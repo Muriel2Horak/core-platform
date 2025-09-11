@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    container_name: core-db
+    environment:
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: core
+      POSTGRES_DB: core
+    volumes:
+      - core_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - core-net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: core-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    networks:
+      - core-net
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend/Dockerfile
+    container_name: core-backend
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    depends_on:
+      - db
+    networks:
+      - core-net
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend/Dockerfile
+      target: dev
+    container_name: core-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev"]
+    depends_on:
+      - backend
+    networks:
+      - core-net
+
+  grafana:
+    image: grafana/grafana
+    container_name: core-grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - core-net
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: core-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml
+    networks:
+      - core-net
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: core-promtail
+    volumes:
+      - /var/log:/var/log
+      - ./promtail/config.yml:/etc/promtail/config.yml
+    networks:
+      - core-net
+
+volumes:
+  core_db_data:
+  grafana_data:
+
+networks:
+  core-net:
+    driver: bridge
