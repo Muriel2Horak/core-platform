@@ -1,1 +1,1 @@
-# core-platform
+# Core Platform
