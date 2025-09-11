@@ -1,17 +1,52 @@
 {
+  // 🔍 Obecné
   "files.exclude": {
     "**/.classpath": true,
     "**/.project": true,
     "**/.settings": true,
-    "**/.factorypath": true
+    "**/.vscode": false
   },
-  "terminal.integrated.defaultProfile.osx": "zsh",
   "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": true,
-    "source.fixAll": true
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+
+  // 🐍 Python (pro tooly nebo migrace)
+  "python.defaultInterpreterPath": "/usr/bin/python3",
+
+  // 🧪 Testy
+  "testing.autoRun.delay": 1000,
+  "testing.autoRun.mode": "default",
+
+  // 🧑‍💻 Frontend (React + TypeScript)
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "eslint.enable": true,
   "eslint.validate": ["javascript", "typescript", "typescriptreact"],
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "prettier.requireConfig": true,
+
+  // ➕ TypeScript SDK z node_modules (důležité pro monorepo/moderní TS)
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  // ☕ Java (Spring Boot backend)
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.format.settings.url": ".vscode/java-formatter.xml",
+  "java.format.settings.profile": "GoogleStyle",
+  "java.codeGeneration.generateComments": true,
+
+  // 🐳 Docker
+  "docker.languageserver.formatter.enable": true,
+
+  // 🔁 Git
+  "git.enableSmartCommit": true,
+  "git.autofetch": true,
+
+  // ☕ Java Runtime
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
+      "default": true
+    }
+  ]
 }
