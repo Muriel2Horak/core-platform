@@ -33,5 +33,3 @@ function App() {
 }
 
 export default App
-
-const test =   "toto bude upraveno lint-staged hookem"
