@@ -22,8 +22,13 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "eslint.enable": true,
-  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
   "prettier.requireConfig": true,
+  "eslint.workingDirectories": [
+    { "directory": "frontend", "changeProcessCWD": true },
+    { "directory": "auth", "changeProcessCWD": true }
+  ],
+  "eslint.packageManager": "npm",
 
   // ➕ TypeScript SDK z node_modules (důležité pro monorepo/moderní TS)
   "typescript.tsdk": "node_modules/typescript/lib",
@@ -48,5 +53,6 @@
       "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
       "default": true
     }
-  ]
+  ],
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable"
 }

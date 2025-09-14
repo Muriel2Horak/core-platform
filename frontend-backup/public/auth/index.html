@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Přihlášení</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+      .card { max-width: 600px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; }
+      .row { margin: .75rem 0; }
+      button { padding: .6rem 1rem; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
+      a.button { display:none; }
+      #user, #error { white-space: pre-wrap; background: #fafafa; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+    </style>
+    <script>
+      window.KEYCLOAK_CFG = { url: 'http://localhost:8081', realm: 'core-platform', clientId: 'web' };
+      // Cílová URL po přihlášení (lze upravit dle potřeby)
+      window.APP_URL = '/';
+    </script>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Přihlášení</h1>
+      <div class="row" id="status">Načítání…</div>
+      <div class="row">
+        <button id="loginBtn">Přihlásit se</button>
+        <button id="logoutBtn" style="display:none">Odhlásit</button>
+        <button id="accountBtn" style="display:none">Můj účet</button>
+        <button id="changePwdBtn" style="display:none">Změnit heslo</button>
+        <a id="continueBtn" class="button" href="/">Pokračovat do aplikace</a>
+      </div>
+      <div class="row" id="user" style="display:none"></div>
+      <div class="row" id="error" style="display:none;color:#b91c1c"></div>
+    </div>
+
+    <script src="http://localhost:8081/js/keycloak.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

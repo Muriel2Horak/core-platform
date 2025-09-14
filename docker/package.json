@@ -1,0 +1,11 @@
+{
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "@types/react": "^19.1.12",
+    "@vitejs/plugin-react": "^5.0.2"
+  },
+  "dependencies": {
+    "jose": "^6.1.0",
+    "keycloak-js": "^26.2.0"
+  }
+}

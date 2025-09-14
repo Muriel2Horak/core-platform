@@ -1,0 +1,25 @@
+services:
+  backend:
+    logging:
+      driver: loki
+      options:
+        loki-url: http://core-loki:3100/loki/api/v1/push
+        loki-external-labels: job={{ index .ContainerLabels "com.docker.compose.service" }},compose_project={{ index .ContainerLabels "com.docker.compose.project" }},container={{ .Name }}
+  frontend:
+    logging:
+      driver: loki
+      options:
+        loki-url: http://core-loki:3100/loki/api/v1/push
+        loki-external-labels: job={{ index .ContainerLabels "com.docker.compose.service" }},compose_project={{ index .ContainerLabels "com.docker.compose.project" }},container={{ .Name }}
+  promtail:
+    volumes:
+      - ./promtail/config.drop-backend-frontend.yml:/etc/promtail/config.yml
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail_positions:/tmp
+  db:
+    logging:
+      driver: loki
+      options:
+        loki-url: http://core-loki:3100/loki/api/v1/push
+        loki-external-labels: job={{ index .ContainerLabels "com.docker.compose.service" }},compose_project={{ index .ContainerLabels "com.docker.compose.project" }},container={{ .Name }}

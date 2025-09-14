@@ -1,0 +1,5 @@
+# Ignoruj lokální závislosti a dočasné soubory v docker/
+node_modules/
+**/node_modules/
+*.log
+.DS_Store

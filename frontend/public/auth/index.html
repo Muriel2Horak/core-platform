@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Přihlášení - Core Platform</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            color: #dc3545;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Core Platform</h1>
+        <p>Přihlašování...</p>
+        <div class="spinner"></div>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/keycloak-js@23/dist/keycloak.min.js"></script>
+    <script>
+        // Keycloak konfigurace podle dokumentace
+        const KEYCLOAK_CFG = {
+            url: 'http://localhost:8081',
+            realm: 'core-platform',
+            clientId: 'web'
+        };
+
+        // URL kam přesměrovat po úspěšném přihlášení
+        const APP_URL = new URLSearchParams(window.location.search).get('redirect') || '/';
+
+        // Inicializace Keycloak
+        const keycloak = new Keycloak(KEYCLOAK_CFG);
+
+        keycloak.init({
+            onLoad: 'login-required',
+            checkLoginIframe: false,
+            flow: 'standard'
+        }).then(function(authenticated) {
+            if (authenticated) {
+                // Uložení tokenu do localStorage
+                localStorage.setItem('keycloak-token', keycloak.token);
+                localStorage.setItem('keycloak-refresh-token', keycloak.refreshToken);
+                localStorage.setItem('keycloak-id-token', keycloak.idToken);
+                
+                // Přesměrování zpět do aplikace
+                window.location.href = window.location.origin + APP_URL;
+            } else {
+                showError('Přihlášení se nezdařilo');
+            }
+        }).catch(function(error) {
+            console.error('Keycloak initialization error:', error);
+            showError('Chyba při inicializaci přihlášení: ' + error.message);
+        });
+
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+            document.querySelector('.spinner').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  compose-ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start stack (base compose without Loki plugin)
+        working-directory: docker
+        run: |
+          docker compose -f docker-compose.yml up -d --build db loki promtail backend frontend grafana
+
+      - name: Wait for Loki readiness
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3100/ready | grep -qi ready; then
+              echo "Loki is ready"; exit 0;
+            fi
+            sleep 2
+          done
+          echo "Loki not ready in time"; exit 1
+
+      - name: Query Loki (sanity)
+        run: |
+          curl -s 'http://localhost:3100/loki/api/v1/query?query=%7Bjob%3D%22docker%22%7D&limit=5' | tee /tmp/loki_query.json
+
+      - name: Show Promtail targets (debug)
+        run: |
+          curl -s http://localhost:9080/targets || true
+
+      - name: Teardown
+        if: always()
+        working-directory: docker
+        run: |
+          docker compose -f docker-compose.yml down -v

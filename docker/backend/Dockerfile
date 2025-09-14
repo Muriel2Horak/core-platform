@@ -13,5 +13,8 @@ RUN mvn -B package -DskipTests
 FROM eclipse-temurin:21
 WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
-EXPOSE 8080 5005
-ENTRYPOINT ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005", "-jar", "app.jar"]
+# Spouštěj jako ne-root uživatel
+RUN groupadd -r app && useradd -r -g app -u 10001 appuser && chown -R appuser:app /app
+USER appuser:app
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
