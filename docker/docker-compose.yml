@@ -122,7 +122,7 @@ services:
     image: prom/prometheus:v2.54.0
     container_name: core-prometheus
     ports:
-      - "9090:9090"
+      - "9091:9090"  # Změna z 9090:9090 na 9091:9090
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:

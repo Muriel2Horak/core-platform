@@ -8,38 +8,115 @@ class FrontendLogger {
     this.isProduction = import.meta.env.PROD;
     this.isDevelopment = import.meta.env.DEV;
     
+    // Konfigurace log levelů podle prostředí
+    this.logLevels = {
+      DEBUG: 0,
+      INFO: 1,
+      WARN: 2,
+      ERROR: 3,
+      SECURITY: 4,
+      AUDIT: 5
+    };
+    
+    // V produkci logujeme jen od INFO výš, v developmentu vše
+    this.minLogLevel = this.isProduction ? this.logLevels.INFO : this.logLevels.DEBUG;
+    
     // POUZE backend endpoint - backend se postará o přeposlání do Loki
-    this.backendLogUrl = '/api/frontend-logs';
+    this.backendLogUrl = '/api/logs/frontend';
     
     console.log(`🔧 LOGGER: Inicializace ${this.isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} módu`);
     console.log(`🔧 LOGGER: Backend URL: ${this.backendLogUrl}`);
+    console.log(`🔧 LOGGER: Min log level: ${this.minLogLevel}`);
   }
 
-  // Strukturovaný log podle JSON Structured Logging standardu
-  _logStructured(level, message, extra = {}) {
+  // Získání user info pro logy
+  _getUserInfo() {
+    // Pokusíme se získat info o uživateli z localStorage nebo context
+    const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
+    return {
+      userId: userInfo.id || 'anonymous',
+      login: userInfo.preferred_username || userInfo.email || 'anonymous',
+      roles: userInfo.roles || []
+    };
+  }
+
+  // Získání client info
+  _getClientInfo() {
+    return {
+      clientIp: 'unknown', // Frontend nemůže přímo získat real IP
+      userAgent: navigator.userAgent.substring(0, 200),
+      url: window.location.href,
+      referrer: document.referrer || '',
+      sessionId: sessionStorage.getItem('sessionId') || 'unknown'
+    };
+  }
+
+  // Strukturovaný log podle našich požadavků
+  _logStructured(level, operation, message, details = {}) {
+    const levelNum = this.logLevels[level.toUpperCase()];
+    
+    // Kontrola min log level
+    if (levelNum < this.minLogLevel) {
+      return;
+    }
+
+    const userInfo = this._getUserInfo();
+    const clientInfo = this._getClientInfo();
+    
     const logEntry = {
+      // Hlavní struktura podle požadavků
       timestamp: new Date().toISOString(),
       level: level.toUpperCase(),
-      service: this.service,
+      clientIp: clientInfo.clientIp,
+      login: userInfo.login,
+      userId: userInfo.userId,
+      operation: operation,
       message: message,
-      url: window.location.href,
-      userAgent: navigator.userAgent.substring(0, 100),
-      ...extra
+      
+      // Dodatečné detaily
+      details: {
+        service: this.service,
+        url: clientInfo.url,
+        userAgent: clientInfo.userAgent,
+        referrer: clientInfo.referrer,
+        sessionId: clientInfo.sessionId,
+        roles: userInfo.roles,
+        ...details
+      }
     };
 
     // 1. Log do console pro developer (local debugging)
-    console.log(`${this._getEmoji(level)} ${extra.component?.toUpperCase() || 'FRONTEND'}: ${message}`, extra);
-    console.log(JSON.stringify(logEntry));
+    this._logToConsole(level, operation, message, logEntry);
     
     // 2. Pošli na server pro centralizované logování
     this._sendToServer(logEntry);
+  }
+
+  // Console logging s emoji
+  _logToConsole(level, operation, message, logEntry) {
+    const emoji = this._getEmoji(level);
+    const prefix = `${emoji} [${level}] ${operation}:`;
+    
+    switch (level.toLowerCase()) {
+      case 'error':
+      case 'security':
+        console.error(prefix, message, logEntry.details);
+        break;
+      case 'warn':
+        console.warn(prefix, message, logEntry.details);
+        break;
+      case 'debug':
+        console.debug(prefix, message, logEntry.details);
+        break;
+      default:
+        console.log(prefix, message, logEntry.details);
+    }
   }
 
   // Zjednodušené odesílání logů - pouze na backend
   async _sendToServer(logEntry) {
     if (!this.enabled) return;
 
-    console.log('📤 LOGGER: Odesílám log na backend...', logEntry);
     await this._sendToBackend(logEntry);
   }
 
@@ -50,14 +127,15 @@ class FrontendLogger {
       case 'warn': return '⚠️';
       case 'info': return 'ℹ️';
       case 'debug': return '🐛';
+      case 'security': return '🔒';
+      case 'audit': return '📋';
       default: return 'ℹ️';
     }
   }
 
-  // Odeslání logu na backend (production + fallback)
+  // Odeslání logu na backend
   async _sendToBackend(logEntry) {
     try {
-      console.log('📡 LOGGER: POST request na', this.backendLogUrl);
       const response = await fetch(this.backendLogUrl, {
         method: 'POST',
         headers: {
@@ -66,9 +144,7 @@ class FrontendLogger {
         body: JSON.stringify(logEntry)
       });
       
-      if (response.ok) {
-        console.log('✅ LOGGER: Log úspěšně odeslán na backend');
-      } else {
+      if (!response.ok) {
         console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response.status);
       }
     } catch (error) {
@@ -78,77 +154,112 @@ class FrontendLogger {
   }
 
   // Standardní log levely
-  info(message, extra = {}) {
-    console.log(`ℹ️ ${message}`, extra); // Readable pro developer
-    this._logStructured('info', message, extra);
+  debug(operation, message, details = {}) {
+    this._logStructured('DEBUG', operation, message, details);
   }
 
-  warn(message, extra = {}) {
-    console.warn(`⚠️ ${message}`, extra);
-    this._logStructured('warn', message, extra);
+  info(operation, message, details = {}) {
+    this._logStructured('INFO', operation, message, details);
   }
 
-  error(message, extra = {}) {
-    console.error(`❌ ${message}`, extra);
-    this._logStructured('error', message, extra);
+  warn(operation, message, details = {}) {
+    this._logStructured('WARN', operation, message, details);
   }
 
-  debug(message, extra = {}) {
-    console.log(`🐛 ${message}`, extra);
-    this._logStructured('debug', message, extra);
+  error(operation, message, details = {}) {
+    this._logStructured('ERROR', operation, message, details);
   }
 
-  // Speciální metody pro authentication flow
-  auth(message, extra = {}) {
-    console.log(`🔐 AUTH: ${message}`, extra);
-    this._logStructured('info', `AUTH: ${message}`, { 
-      ...extra, 
-      component: 'authentication',
-      category: 'auth_flow'
+  // Bezpečnostní a audit logy
+  security(operation, message, details = {}) {
+    this._logStructured('SECURITY', operation, message, {
+      ...details,
+      category: 'security',
+      requires_attention: true
     });
   }
 
-  guard(message, extra = {}) {
-    console.log(`🛡️ GUARD: ${message}`, extra);
-    this._logStructured('info', `GUARD: ${message}`, { 
-      ...extra, 
-      component: 'auth_guard',
-      category: 'auth_flow'
+  audit(operation, message, details = {}) {
+    this._logStructured('AUDIT', operation, message, {
+      ...details,
+      category: 'audit',
+      compliance: true
     });
   }
 
-  service(message, extra = {}) {
-    console.log(`🔧 SERVICE: ${message}`, extra);
-    this._logStructured('info', `SERVICE: ${message}`, { 
-      ...extra, 
-      component: 'auth_service',
-      category: 'auth_flow'
+  // Speciální metody pro různé operace
+
+  // Authentication operations
+  authLogin(success, details = {}) {
+    const level = success ? 'AUDIT' : 'SECURITY';
+    const operation = 'AUTH_LOGIN';
+    const message = success ? 'User login successful' : 'User login failed';
+    
+    this._logStructured(level, operation, message, {
+      ...details,
+      auth_result: success ? 'success' : 'failure',
+      category: 'authentication'
+    });
+  }
+
+  authLogout(details = {}) {
+    this._logStructured('AUDIT', 'AUTH_LOGOUT', 'User logout', {
+      ...details,
+      category: 'authentication'
+    });
+  }
+
+  authPasswordChange(success, details = {}) {
+    const level = success ? 'AUDIT' : 'SECURITY';
+    const message = success ? 'Password change successful' : 'Password change failed';
+    
+    this._logStructured(level, 'AUTH_PASSWORD_CHANGE', message, {
+      ...details,
+      auth_result: success ? 'success' : 'failure',
+      category: 'authentication'
     });
   }
 
   // API call logging
-  api(method, url, status, extra = {}) {
-    const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'info';
-    const message = `API ${method} ${url} -> ${status}`;
+  apiCall(method, url, status, duration, details = {}) {
+    const level = status >= 500 ? 'ERROR' : 
+                  status >= 400 ? 'WARN' : 'INFO';
+    const operation = 'API_CALL';
+    const message = `${method} ${url} -> ${status} (${duration}ms)`;
     
-    console.log(`🌐 ${message}`, extra);
-    this._logStructured(level, message, { 
-      ...extra,
-      component: 'api_client',
-      category: 'http_request',
+    this._logStructured(level, operation, message, {
+      ...details,
       http_method: method,
       http_url: url,
-      http_status: status
+      http_status: status,
+      response_time_ms: duration,
+      category: 'api'
     });
   }
 
   // User action logging
-  userAction(action, extra = {}) {
-    console.log(`👤 USER: ${action}`, extra);
-    this._logStructured('info', `USER: ${action}`, { 
-      ...extra,
-      component: 'user_interface',
-      category: 'user_action'
+  userAction(action, details = {}) {
+    this._logStructured('INFO', 'USER_ACTION', action, {
+      ...details,
+      category: 'user_interaction'
+    });
+  }
+
+  // Security events
+  securityViolation(violation, details = {}) {
+    this._logStructured('SECURITY', 'SECURITY_VIOLATION', violation, {
+      ...details,
+      category: 'security_violation',
+      requires_immediate_attention: true
+    });
+  }
+
+  // Page navigation
+  pageView(page, details = {}) {
+    this._logStructured('DEBUG', 'PAGE_VIEW', `Navigated to ${page}`, {
+      ...details,
+      page: page,
+      category: 'navigation'
     });
   }
 }

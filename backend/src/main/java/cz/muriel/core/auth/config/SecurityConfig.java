@@ -33,7 +33,7 @@ public class SecurityConfig {
         .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/health", "/api/auth/login", "/api/auth/logout", "/api/auth/session",
-                "/api/frontend-logs")
+                "/api/frontend-logs", "/actuator/health", "/actuator/prometheus", "/actuator/metrics")
             .permitAll()
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2

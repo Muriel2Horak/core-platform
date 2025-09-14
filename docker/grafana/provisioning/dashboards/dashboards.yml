@@ -10,3 +10,23 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: false
+  
+  - name: "security"
+    orgId: 1
+    folder: "Security & Compliance"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false
+      
+  - name: "monitoring"
+    orgId: 1
+    folder: "Application Monitoring"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false
