@@ -16,31 +16,143 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start stack (base compose without Loki plugin)
+      - name: Create CI environment file
         working-directory: docker
         run: |
+          # 🔧 Create .env for CI with safe default values
+          cat > .env << 'EOF'
+          # 🤖 CI Environment Configuration
+          # These are safe default values for GitHub Actions CI
+          
+          # OIDC Configuration (CI defaults)
+          OIDC_ISSUER=http://keycloak:8080/realms/core-platform
+          OIDC_API_AUDIENCE=api
+          CORS_ORIGINS=http://localhost:3000
+          
+          # Keycloak Admin Service (CI - will be configured later)
+          KEYCLOAK_ADMIN_BASE_URL=http://keycloak:8080
+          KEYCLOAK_ADMIN_REALM=master
+          KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
+          KEYCLOAK_ADMIN_CLIENT_SECRET=ci-placeholder-secret
+          KEYCLOAK_TARGET_REALM=core-platform
+          
+          # Application Secrets (CI - safe random values)
+          APP_SECRET_KEY=ci-test-key-not-for-production-12345678901234567890
+          JWT_SIGNING_KEY=ci-jwt-signing-key-for-testing-purposes-only-123456
+          
+          # Environment
+          ENVIRONMENT=ci
+          LOG_LEVEL=INFO
+          AUDIT_LOG_LEVEL=INFO
+          EOF
+          echo "✅ Created .env file for CI"
+
+      - name: Install Loki Docker plugin
+        run: |
+          # 📊 Install Loki plugin for Docker logging
+          docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions
+          echo "✅ Loki Docker plugin installed"
+
+      - name: Start stack (base compose without Keycloak for faster CI)
+        working-directory: docker
+        run: |
+          # 🚀 Start core services without Keycloak (faster CI)
+          echo "Starting core services..."
           docker compose -f docker-compose.yml up -d --build db loki promtail backend frontend grafana
+          echo "✅ Core services started"
 
       - name: Wait for Loki readiness
         run: |
+          echo "⏳ Waiting for Loki to be ready..."
           for i in {1..30}; do
             if curl -sf http://localhost:3100/ready | grep -qi ready; then
-              echo "Loki is ready"; exit 0;
+              echo "✅ Loki is ready"; 
+              break;
             fi
+            echo "⏳ Waiting for Loki... ($i/30)"
             sleep 2
           done
-          echo "Loki not ready in time"; exit 1
+          
+          # Final check
+          if curl -sf http://localhost:3100/ready | grep -qi ready; then
+            echo "✅ Loki ready - CI can continue"
+          else
+            echo "❌ Loki not ready in time"
+            echo "🔍 Checking Loki logs:"
+            docker logs core-loki || true
+            exit 1
+          fi
 
-      - name: Query Loki (sanity)
+      - name: Wait for Backend readiness
         run: |
+          echo "⏳ Waiting for Backend to be ready..."
+          for i in {1..20}; do
+            if curl -sf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+              echo "✅ Backend is ready";
+              break;
+            fi
+            echo "⏳ Waiting for Backend... ($i/20)"
+            sleep 3
+          done
+
+      - name: Test services health
+        run: |
+          echo "🏥 Testing service health..."
+          
+          # Test Loki
+          echo "📊 Testing Loki..."
+          curl -sf http://localhost:3100/ready || (echo "❌ Loki failed"; exit 1)
+          
+          # Test Backend
+          echo "⚙️ Testing Backend..."
+          curl -sf http://localhost:8080/actuator/health || (echo "❌ Backend failed"; exit 1)
+          
+          # Test Frontend (basic connectivity)
+          echo "🎨 Testing Frontend..."
+          curl -sf http://localhost:3000 >/dev/null || (echo "❌ Frontend failed"; exit 1)
+          
+          echo "✅ All core services are healthy"
+
+      - name: Query Loki (sanity check)
+        run: |
+          echo "🔍 Testing Loki query functionality..."
           curl -s 'http://localhost:3100/loki/api/v1/query?query=%7Bjob%3D%22docker%22%7D&limit=5' | tee /tmp/loki_query.json
+          
+          # Check if we got valid JSON response
+          if jq empty /tmp/loki_query.json 2>/dev/null; then
+            echo "✅ Loki query returned valid JSON"
+          else
+            echo "❌ Loki query returned invalid response"
+            cat /tmp/loki_query.json
+          fi
 
       - name: Show Promtail targets (debug)
         run: |
-          curl -s http://localhost:9080/targets || true
+          echo "🎯 Checking Promtail targets..."
+          curl -s http://localhost:9080/targets || echo "⚠️ Promtail targets not available"
+
+      - name: Show service status
+        if: always()
+        run: |
+          echo "📊 Final service status:"
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+      - name: Show logs on failure
+        if: failure()
+        working-directory: docker
+        run: |
+          echo "🔍 Showing logs for debugging..."
+          echo "=== Backend logs ==="
+          docker logs core-backend || true
+          echo "=== Loki logs ==="
+          docker logs core-loki || true
+          echo "=== Promtail logs ==="
+          docker logs core-promtail || true
 
       - name: Teardown
         if: always()
         working-directory: docker
         run: |
+          echo "🧹 Cleaning up..."
           docker compose -f docker-compose.yml down -v
+          echo "✅ Teardown complete"
