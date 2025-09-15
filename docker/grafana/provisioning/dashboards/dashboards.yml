@@ -7,26 +7,32 @@ providers:
     type: file
     disableDeletion: false
     editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
     options:
       path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: false
   
   - name: "security"
     orgId: 1
-    folder: "Security & Compliance"
+    folder: ""
     type: file
     disableDeletion: false
     editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
     options:
       path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: false
       
   - name: "monitoring"
     orgId: 1
-    folder: "Application Monitoring"
+    folder: ""
     type: file
     disableDeletion: false
     editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
     options:
       path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: false

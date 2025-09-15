@@ -6,7 +6,7 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: http://core-loki:3100/loki/api/v1/push
 
 scrape_configs:
   - job_name: docker
@@ -14,6 +14,11 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
+      # Drop backend & frontend to avoid duplicates when Loki logging driver is enabled
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        regex: (backend|frontend)
+        action: drop
+      # Keep standard labels
       - source_labels: ['__meta_docker_container_name']
         target_label: 'container'
         regex: '/(.*)'
@@ -33,43 +38,3 @@ scrape_configs:
         replacement: 'docker'
     pipeline_stages:
       - docker: {}
-      
-      # Podmíněné parsování - JSON pouze pro backend kontejnery
-      - match:
-          selector: '{container=~"core-backend|keycloak"}'
-          stages:
-            # JSON parsing pro strukturované logy z backend služeb
-            - json:
-                expressions:
-                  level: level
-                  service_name: service
-                  component: component
-                  category: category
-                  message: message
-                  timestamp: timestamp
-                  http_method: http_method
-                  http_status: http_status
-                  url: url
-            # Extrakce log levelu jako label pro JSON logy
-            - labels:
-                level:
-                service_name:
-                component:
-                category:
-            # Template pro jednotný formát JSON zpráv
-            - template:
-                source: message
-                template: |
-                  {{ if .level }}[{{ .level }}]{{ end }}{{ if .component }} {{ .component }}:{{ end }} {{ .message }}{{ if .http_status }} ({{ .http_method }} {{ .http_status }}){{ end }}
-            # Timestamp parsing (pokud je v JSON)
-            - timestamp:
-                source: timestamp
-                format: RFC3339
-
-      # Textové logy z ostatních kontejnerů (frontend, grafana, atd.)
-      - match:
-          selector: '{container!~"core-backend|keycloak"}'
-          stages:
-            # Pro textové logy zachovávame původní zprávu
-            - output:
-                source: output

@@ -68,6 +68,15 @@ const SimpleLoginPage = () => {
         const data = await response.json();
         _log('LOGIN: Data z úspěšné odpovědi', data);
         
+        // 🎯 PŘIDÁNO: Frontend auth log pro úspěšné přihlášení
+        import('../../services/logger').then(module => {
+          module.default.authLogin(true, {
+            username: username,
+            method: 'password',
+            timestamp: new Date().toISOString()
+          });
+        }).catch(() => {});
+        
         // Backend ukládá tokeny do cookies a vrací accessToken + uživatelská data
         // Uložíme token do localStorage pro kompatibilitu s AuthService
         if (data.accessToken) {
@@ -81,6 +90,18 @@ const SimpleLoginPage = () => {
         
       } else {
         _logError('LOGIN: Chyba při přihlášení', { status: response.status });
+        
+        // 🎯 PŘIDÁNO: Frontend auth log pro neúspěšné přihlášení
+        import('../../services/logger').then(module => {
+          module.default.authLogin(false, {
+            username: username,
+            method: 'password',
+            error: 'authentication_failed',
+            status: response.status,
+            timestamp: new Date().toISOString()
+          });
+        }).catch(() => {});
+        
         let errorMessage = 'Přihlášení se nezdařilo';
         
         try {
@@ -97,6 +118,18 @@ const SimpleLoginPage = () => {
       }
     } catch (err) {
       _logError('LOGIN: Exception při přihlášení', err);
+      
+      // 🎯 PŘIDÁNO: Frontend auth log pro síťové chyby
+      import('../../services/logger').then(module => {
+        module.default.authLogin(false, {
+          username: username,
+          method: 'password',
+          error: 'network_error',
+          details: err.message,
+          timestamp: new Date().toISOString()
+        });
+      }).catch(() => {});
+      
       setError('Chyba připojení k serveru');
     } finally {
       setIsLoading(false);
@@ -177,9 +210,7 @@ const SimpleLoginPage = () => {
           </Button>
         </Box>
 
-        <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 2 }}>
-          Testovací údaje: test / Test.1234
-        </Typography>
+        {/* 🚨 SECURITY FIX: Removed hardcoded test credentials for security */}
       </Paper>
     </Box>
   );

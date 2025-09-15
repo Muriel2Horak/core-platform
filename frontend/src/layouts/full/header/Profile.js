@@ -130,7 +130,7 @@ const Profile = () => {
           </ListItemText>
         </MenuItem>
 
-        <MenuItem component={Link} to="/form-layouts" onClick={handleClose2}>
+        <MenuItem component={Link} to="/profile" onClick={handleClose2}>
           <ListItemIcon>
             <IconUser width={20} />
           </ListItemIcon>

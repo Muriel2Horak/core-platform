@@ -1,78 +1,64 @@
+import React from 'react';
 import { useMediaQuery, Box, Drawer } from '@mui/material';
 import SidebarItems from './SidebarItems';
 import Scrollbar from "../../../components/custom-scroll/Scrollbar";
-import Upgrade from './Upgrade'
 
 const Sidebar = (props) => {
-
   const lgUp = useMediaQuery((theme) => theme.breakpoints.up("lg"));
   const sidebarWidth = '270px';
 
-
-
   if (lgUp) {
     return (
-      <Box
-        sx={{
+      React.createElement(Box, {
+        sx: {
           width: sidebarWidth,
           flexShrink: 0,
-        }}
-      >
-        {/* ------------------------------------------- */}
-        {/* Sidebar for desktop */}
-        {/* ------------------------------------------- */}
-        <Drawer
-          anchor="left"
-          open={props.isSidebarOpen}
-          variant="permanent"
-          slotProps={{
+        }
+      },
+        React.createElement(Drawer, {
+          anchor: "left",
+          open: props.isSidebarOpen,
+          variant: "permanent",
+          slotProps: {
             paper: {
               sx: {
                 width: sidebarWidth,
                 boxSizing: 'border-box',
-                top: '72px',
+                top: '70px',
               },
             }
-          }}
-        >
-          {/* ------------------------------------------- */}
-          {/* Sidebar Box */}
-          {/* ------------------------------------------- */}
-          <Scrollbar sx={{ height: "calc(100% - 73px)" }}>
-            <Box>
-              {/* ------------------------------------------- */}
-              {/* Sidebar Items */}
-              {/* ------------------------------------------- */}
-              <SidebarItems />
-            </Box>
-          </Scrollbar>
-        </Drawer >
-      </Box >
+          }
+        },
+          React.createElement(Scrollbar, {
+            sx: { height: "calc(100% - 73px)" }
+          },
+            React.createElement(Box, null,
+              React.createElement(SidebarItems, null)
+            )
+          )
+        )
+      )
     );
   }
+
   return (
-    <Drawer
-      anchor="left"
-      open={props.isMobileSidebarOpen}
-      onClose={props.onSidebarClose}
-      variant="temporary"
-      slotProps={{
+    React.createElement(Drawer, {
+      anchor: "left",
+      open: props.isMobileSidebarOpen,
+      onClose: props.onSidebarClose,
+      variant: "temporary",
+      slotProps: {
         paper: {
           sx: {
-
+            width: sidebarWidth,
             boxShadow: (theme) => theme.shadows[8],
-          },
+          }
         }
-      }}
-    >
-      <Scrollbar sx={{ height: "calc(100% - 73px)" }}>
-        {/* ------------------------------------------- */}
-        {/* Sidebar For Mobile */}
-        {/* ------------------------------------------- */}
-        <SidebarItems />
-      </Scrollbar>
-      <Upgrade />
-    </Drawer>
+      }
+    },
+      React.createElement(SidebarItems, null)
+    )
   );
 };
+
 export default Sidebar;

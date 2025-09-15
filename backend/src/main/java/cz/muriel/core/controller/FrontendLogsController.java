@@ -32,7 +32,7 @@ public class FrontendLogsController {
     this.objectMapper = new ObjectMapper();
   }
 
-  @PostMapping("/api/logs/frontend")
+  @PostMapping("/api/frontend-logs")
   public ResponseEntity<String> receiveFrontendLog(@RequestBody Map<String, Object> logEntry,
       HttpServletRequest request) {
     try {
@@ -134,6 +134,7 @@ public class FrontendLogsController {
     // Přidáme level do labelů pro lepší filtrování v Grafaně
     String level = (String) logEntry.getOrDefault("level", "INFO");
     labels.put("level", level.toLowerCase());
+    labels.put("log_level", level.toLowerCase()); // 🎯 PŘIDÁNO: Duplicitní label pro kompatibilitu
 
     // Přidáme operaci do labelů
     String operation = (String) logEntry.get("operation");
@@ -144,18 +145,60 @@ public class FrontendLogsController {
       labels.put("operation", normalizedOperation);
     }
 
-    // Kategorie pro audit/security logy
-    @SuppressWarnings("unchecked")
-    Map<String, Object> details = (Map<String, Object>) logEntry.get("details");
+    // 🔧 FIX: Bezpečné parsování details objektu
+    Map<String, Object> details = null;
+    Object detailsObj = logEntry.get("details");
+    if (detailsObj instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
+      details = detailsMap;
+    } else if (detailsObj instanceof String) {
+      // Pokus o parsování JSON stringu
+      try {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsedDetails = objectMapper.readValue((String) detailsObj, Map.class);
+        details = parsedDetails;
+      } catch (Exception e) {
+        // Pokud se nepodaří parsovat, vytvoříme jednoduchý map
+        details = Map.of("raw", detailsObj.toString());
+      }
+    }
+
+    // 🎯 PŘIDÁNO: Username jako label pro filtrování
+    String username = (String) logEntry.get("login");
+    if ((username == null || "anonymous".equals(username) || "null".equals(username)) && details != null) {
+      Object usernameFromDetails = details.get("username");
+      if (usernameFromDetails != null && !usernameFromDetails.toString().isEmpty()) {
+        username = usernameFromDetails.toString();
+      }
+    }
+    if (username != null && !"anonymous".equals(username) && !"null".equals(username) && !username.isEmpty()) {
+      labels.put("username", username);
+      labels.put("user", username); // 🎯 PŘIDÁNO: Duplicitní label pro kompatibilitu
+    }
+
     if (details != null) {
       String category = (String) details.get("category");
       if (category != null) {
         labels.put("category", category.toLowerCase());
       }
 
+      // 🎯 PŘIDÁNO: Auth result jako label
+      String authResult = (String) details.get("auth_result");
+      if (authResult != null) {
+        labels.put("auth_result", authResult.toLowerCase());
+      }
+
+      // 🎯 PŘIDÁNO: Method jako label
+      String method = (String) details.get("method");
+      if (method != null) {
+        labels.put("method", method.toLowerCase());
+      }
+
       // Přidáme HTTP status do labelů pro API calls
       Object httpStatus = details.get("http_status");
       if (httpStatus != null) {
+        labels.put("http_status", httpStatus.toString());
         String statusCategory = categorizeHttpStatus(httpStatus.toString());
         labels.put("status_category", statusCategory);
       }
@@ -198,8 +241,24 @@ public class FrontendLogsController {
     String operation = (String) logEntry.get("operation");
     String level = (String) logEntry.get("level");
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> details = (Map<String, Object>) logEntry.get("details");
+    // 🔧 FIX: Bezpečné parsování details objektu (stejná oprava jako výše)
+    Map<String, Object> details = null;
+    Object detailsObj = logEntry.get("details");
+    if (detailsObj instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
+      details = detailsMap;
+    } else if (detailsObj instanceof String) {
+      // Pokus o parsování JSON stringu
+      try {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsedDetails = objectMapper.readValue((String) detailsObj, Map.class);
+        details = parsedDetails;
+      } catch (Exception e) {
+        // Pokud se nepodaří parsovat, details zůstanou null
+        details = null;
+      }
+    }
 
     // Security události
     if (details != null && "security".equals(details.get("category"))) {
@@ -260,12 +319,36 @@ public class FrontendLogsController {
     String operation = (String) logEntry.get("operation");
     String message = (String) logEntry.get("message");
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> details = (Map<String, Object>) logEntry.get("details");
+    // 🔧 FIX: Bezpečné parsování details objektu (stejná oprava jako ve výše)
+    Map<String, Object> details = null;
+    Object detailsObj = logEntry.get("details");
+    if (detailsObj instanceof Map) {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
+      details = detailsMap;
+    } else if (detailsObj instanceof String) {
+      // Pokus o parsování JSON stringu
+      try {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> parsedDetails = objectMapper.readValue((String) detailsObj, Map.class);
+        details = parsedDetails;
+      } catch (Exception e) {
+        // Pokud se nepodaří parsovat, vytvoříme jednoduchý map s raw hodnotou
+        details = Map.of("raw", detailsObj.toString());
+      }
+    }
+
+    // 🎯 FIX: Získáme username z details pokud není na hlavní úrovni
+    if ((login == null || "anonymous".equals(login) || "null".equals(login)) && details != null) {
+      Object usernameFromDetails = details.get("username");
+      if (usernameFromDetails != null && !usernameFromDetails.toString().isEmpty()) {
+        login = usernameFromDetails.toString();
+      }
+    }
 
     StringBuilder sb = new StringBuilder();
 
-    // Formát: [LEVEL] timestamp IP login OPERATION: message [details]
+    // Formát: [LEVEL] timestamp IP:xxx User:xxx [OPERATION] message | details
     if (level != null) {
       sb.append("[").append(level).append("] ");
     }
@@ -283,7 +366,8 @@ public class FrontendLogsController {
       sb.append("IP:").append(clientIp).append(" ");
     }
 
-    if (login != null && !"anonymous".equals(login) && !"null".equals(login)) {
+    // 🎯 FIX: Zobrazíme username/login pokud ho máme
+    if (login != null && !"anonymous".equals(login) && !"null".equals(login) && !login.isEmpty()) {
       sb.append("User:").append(login).append(" ");
     }
 
@@ -347,12 +431,7 @@ public class FrontendLogsController {
     if (value == null)
       return "null";
 
-    if (value instanceof String) {
-      String str = (String) value;
-      // Zkrátíme dlouhé stringy
-      return str.length() > 100 ? str.substring(0, 100) + "..." : str;
-    }
-
+    // Nejdříve zkontrolujeme složené typy (Map, List) před String
     if (value instanceof Map || value instanceof List) {
       try {
         String json = objectMapper.writeValueAsString(value);
@@ -362,6 +441,13 @@ public class FrontendLogsController {
       }
     }
 
+    if (value instanceof String) {
+      String str = (String) value;
+      // Zkrátíme dlouhé stringy
+      return str.length() > 100 ? str.substring(0, 100) + "..." : str;
+    }
+
+    // Pro ostatní typy (Number, Boolean, atd.)
     return value.toString();
   }
 }

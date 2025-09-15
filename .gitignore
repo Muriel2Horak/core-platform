@@ -1,1 +1,48 @@
+# 🚨 SECURITY CRITICAL - NEVER COMMIT THESE FILES
+# =============================================================================
+.env
+.env.*
+!.env.template
+*.key
+*.pem
+*.p12
+*.jks
+secrets/
+credentials/
+
+# Development & Build
 docker/node_modules/
+node_modules/
+target/
+build/
+dist/
+*.log
+*.tmp
+
+# IDE & OS
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary & Cache
+*.cache
+.temp/
+.tmp/
+.sass-cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# =============================================================================
+# 📝 SECURITY REMINDER:
+# - Always review files before git add
+# - Use git secrets or pre-commit hooks  
+# - Regular security audits of committed files
+# =============================================================================

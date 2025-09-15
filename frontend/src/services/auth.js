@@ -176,11 +176,33 @@ class AuthService {
   async logout() {
     this._log('AUTHSERVICE: Odhlašuji uživatele');
     
+    // 🎯 PŘIDÁNO: Získáme user info před odhlášením pro log
+    const userInfo = await this.getUserInfo();
+    
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });
+      
+      // 🎯 PŘIDÁNO: Frontend auth log pro úspěšné odhlášení
+      if (this.logger) {
+        this.logger.authLogout({
+          username: userInfo?.username || 'unknown',
+          method: 'manual',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        // Fallback - async load logger
+        import('./logger.js').then(module => {
+          module.default.authLogout({
+            username: userInfo?.username || 'unknown',
+            method: 'manual',
+            timestamp: new Date().toISOString()
+          });
+        }).catch(() => {});
+      }
+      
     } catch (error) {
       this._logError('AUTHSERVICE: Logout error', error);
     } finally {

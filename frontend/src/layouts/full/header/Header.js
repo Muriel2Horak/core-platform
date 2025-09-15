@@ -7,7 +7,6 @@ import {
   Stack,
   IconButton,
   Badge,
-  Button,
   Menu,
   MenuItem,
   Typography,
@@ -109,13 +108,6 @@ const Header = (props) => {
         </Box>
         <Box flexGrow={1} />
         <Stack spacing={1} direction='row' alignItems='center'>
-          <Button
-            variant='contained'
-            color='primary'
-            target='_blank'
-            href='https://adminmart.com/product/modernize-react-mui-dashboard-template/?ref=56#product-demo-section'>
-            Check Pro Template
-          </Button>
           <Profile />
         </Stack>
       </ToolbarStyled>

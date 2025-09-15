@@ -2,17 +2,52 @@
 
 Univerzální vývojová platforma pro tvorbu enterprise aplikací, založená na modulárním **CORE** frameworku. Odděluje doménově nezávislou funkcionalitu od konkrétních aplikací – umožňuje rychlé vytváření nadstavbových řešení pomocí sdíleného jádra.
 
+## 🚨 **BEZPEČNOSTNÍ PROHLÁŠENÍ**
+
+**⚠️ KRITICKÉ: Tento projekt NENÍ o kompromisech. Tvoříme bezpečný a spolehlivý produkt pro produkční nasazení.**
+
+### 🔴 **ZNÁMÉ SECURITY ISSUES (MUSÍ BÝT VYŘEŠENY PŘED PRODUKCI):**
+
+1. **KeycloakClient.getAdminToken()** - Nezabezpečený admin přístup
+   - 🚨 Používá `admin-cli` bez client secret
+   - 🚨 Umožňuje neomezenou admin eskalaci
+   - 🚨 **IMMEDIATE FIX REQUIRED**
+
+2. **Hardkódované credentials** v konfiguracích
+3. **Chybějící rate limiting** pro auth endpointy  
+4. **Token caching** bez secure storage
+
+### ✅ **BEZPEČNÁ ARCHITEKTURA (IMPLEMENTOVAT):**
+
+```
+┌─────────────────┐    Service      ┌─────────────────┐    Admin API    ┌──────────────┐
+│   Backend App   │ ────────────→   │ Keycloak Admin  │ ──────────────→ │   Keycloak   │
+│                 │   Account       │   Service       │   with proper   │    Server    │
+│                 │   Token         │                 │   credentials   │              │
+└─────────────────┘                 └─────────────────┘                 └──────────────┘
+```
+
+**Bezpečné řešení:**
+1. **Dedikovaný Service Account** s omezenými právy
+2. **Client Secret** uložený v environment variables
+3. **Token caching** s refresh mechanismem  
+4. **Audit logging** všech admin operací
+5. **Rate limiting** a monitoring
+
 ## 🧱 Architektura
 
 ### Frontend
 - **React** s **TypeScriptem**
 - Vite jako dev server a bundler
 - Modulární GUI komponenty
+- **Strukturované logování** - logger.js posílá logy na backend endpoint
 - Vizualizační nástroje (např. React Flow pro řízení stavů)
 
 ### Backend
 - **Spring Boot** (Java 21)
 - REST API
+- **Logback + Loki4j appender** pro centralizované logování
+- **FrontendLogsController** - přijímá frontend logy a přeposílá do Loki
 - Připojení na PostgreSQL
 - Připraven pro rozšíření o:
   - Metadata engine
@@ -21,11 +56,15 @@ Univerzální vývojová platforma pro tvorbu enterprise aplikací, založená n
   - DMS integrace
   - Auditní logy
 
-### Infrastruktura
+### Infrastruktura & Logování
 - Docker Compose pro vývojové prostředí
 - PostgreSQL jako databáze
 - PgAdmin pro správu DB
-- Grafana + Loki + Promtail pro logování
+- **Hybridní logování:**
+  - **Frontend** → HTTP POST → **Backend** → **Loki** (jediná možnost pro React)
+  - **Backend** → **Loki4j appender** → **Loki** (přímé logování)
+  - **Ostatní služby** → **Promtail** → **Loki** (Docker log driver)
+- **Grafana** pro vizualizaci logů a metrik
 - Jaeger (volitelně) pro tracing
 - Keycloak pro autentizaci (OIDC)
 
@@ -45,9 +84,9 @@ Univerzální vývojová platforma pro tvorbu enterprise aplikací, založená n
 ### Složky
 ```
 📦 core-platform/
- ┣ 📂 backend/             ← Spring Boot backend
- ┣ 📂 frontend/            ← React frontend
- ┣ 📂 docker/              ← Docker Compose, konfigurace Grafana, Loki atd.
+ ┣ 📂 backend/             ← Spring Boot backend + Logback konfigurace
+ ┣ 📂 frontend/            ← React frontend + logger.js
+ ┣ 📂 docker/              ← Docker Compose, Grafana, Loki, Promtail konfigurace
  ┣ 📂 docs/                ← Dokumentace platformy
  ┣ 📂 tools/               ← Nástroje a utility (např. datové migrace)
  ┣ 📂 .vscode/             ← Nastavení vývojového prostředí
@@ -61,10 +100,67 @@ cd docker
 docker compose up -d --build
 ```
 
-Frontend poběží na http://localhost:3000  
-Backend na http://localhost:8080  
-Grafana na http://localhost:3001  
-PgAdmin na http://localhost:5050
+**Služby:**
+- Frontend: http://localhost:3000  
+- Backend: http://localhost:8080  
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Loki**: http://localhost:3100 (health: /ready)
+- **Promtail**: http://localhost:9080
+- PgAdmin: http://localhost:5050
+- Keycloak: http://localhost:8081
+
+## 📊 Logování & Monitoring
+
+### Hybridní logovací architektura
+
+```
+┌─────────────┐    HTTP POST     ┌─────────────┐    Loki4j      ┌──────────┐
+│  Frontend   │ ───────────────→ │   Backend   │ ─────────────→ │   Loki   │
+│ (React)     │ /api/frontend-   │ (Spring)    │   appender     │          │
+└─────────────┘     logs         └─────────────┘                └──────────┘
+                                                                      ↑
+┌─────────────┐    Docker logs   ┌─────────────┐    HTTP POST          │
+│Infrastructure│ ─────────────→ │  Promtail   │ ──────────────────────┘
+│ (DB,Grafana)│                  │             │
+└─────────────┘                  └─────────────┘
+```
+
+### ✅ Funguje
+- **Frontend logování** - logger.js v frontend/src/services/logger.js
+- **Promtail sbírání** infrastrukturních logů
+- **Grafana vizualizace** - předdefinované dashboardy
+- **Docker networking** - všechny služby komunikují přes core-net
+
+### ❌ TODO (známé problémy)
+- **Backend Loki appender** - backend logy se nedostávají do Loki (DNS/networking issue)
+- **Audit logging** - implementace audit trail
+- **Log retention** - automatické mazání starých logů
+
+### Grafana Dashboards
+- **App Overview** - celkový přehled aplikace
+- **Performance** - metriky výkonu a response times  
+- **Security** - bezpečnostní události
+- **Audit** - auditní logy uživatelských akcí
+
+### Testování logování
+
+**Frontend logger (testovací tlačítka v DEV módu):**
+```javascript
+import { logger } from './services/logger';
+
+logger.info('TEST_INFO', 'Test message', { key: 'value' });
+logger.error('TEST_ERROR', 'Error message', { error: 'details' });
+logger.security('SECURITY_EVENT', 'Security violation', { ip: '1.2.3.4' });
+```
+
+**Grafana Explore dotazy:**
+```
+{source="frontend"}           # Frontend logy
+{source="backend"}            # Backend logy (momentálně nefunguje)
+{container=~".*"}            # Všechny logy
+{level="error"}              # Pouze error logy
+{event_type="security"}      # Bezpečnostní události
+```
 
 ## 🔗 Proxy API (Vite)
 
@@ -81,6 +177,32 @@ server: {
 }
 ```
 
+## 🛠️ Docker Networking
+
+**⚠️ Důležité**: Všechny konfigurace musí používat správné **DNS názvy kontejnerů**:
+
+- **Loki**: `core-loki:3100` (NIKOLI `loki:3100`)
+- **Backend**: `core-backend:8080` 
+- **Frontend**: `core-frontend:3000`
+- **Database**: `core-db:5432`
+
+**Síť**: `docker_core-net` (automaticky vytvořena)
+
+### Konfigurační soubory s DNS odkazy:
+- `backend/src/main/resources/logback-spring.xml` - Loki appender URL
+- `backend/.../FrontendLogsController.java` - LOKI_URL konstanta
+- `docker/promtail/config.yml` - Loki client URL
+
+## 🧹 Úklid konfigurace
+
+**Smazané nepotřebné soubory:**
+- `docker-compose.dev.yml`
+- `docker-compose.direct-logging.yml` 
+- `docker-compose.loki-driver.yml`
+- `docker-compose.hybrid-logging.yml`
+
+**Ponechán pouze:** `docker-compose.yml` s integrovanou hybridní konfigurací
+
 ## 🧑‍💻 Příprava pro GitHub Copilot
 
 Copilot získá kontext z:
@@ -95,7 +217,10 @@ Copilot získá kontext z:
 
 - [x] Docker stack pro vývoj
 - [x] Vite + React + Spring Boot propojeno
-- [ ] Logging do Loki
+- [x] Frontend logging do Loki (přes backend)
+- [x] Grafana dashboardy pro monitoring
+- [x] Hybridní logování konfigurace
+- [ ] **Backend Loki appender fix** (hlavní TODO)
 - [ ] GUI Designer
 - [ ] Metadata Editor
 - [ ] BPM Engine
@@ -144,3 +269,25 @@ Kontrola docker-compose (rychlý checklist)
 ---
 
 > Tento repozitář obsahuje **jádro platformy**. Konkrétní aplikace budou vznikat jako samostatné repozitáře, které budou importovat `core-platform` jako submodul nebo závislost.
+
+## 🔐 **SECURITY IMPLEMENTATION ROADMAP**
+
+### **FÁZE 1: OKAMŽITÉ OPRAVY (CRITICAL)**
+- [ ] **Refactor KeycloakClient.getAdminToken()** - použít service account s proper credentials
+- [ ] **Environment variables** pro všechny secrets (client secrets, DB passwords)
+- [ ] **Audit logging** pro admin operace (user management, password changes)
+- [ ] **Input validation** a sanitization všech user inputs
+
+### **FÁZE 2: SECURITY HARDENING (HIGH)**  
+- [ ] **Rate limiting** pro authentication endpointy
+- [ ] **Token caching** s secure storage a refresh
+- [ ] **HTTPS enforcement** ve všech prostředích
+- [ ] **Security headers** (CSP, HSTS, X-Frame-Options)
+- [ ] **Vulnerability scanning** CI/CD pipeline
+
+### **FÁZE 3: ADVANCED SECURITY (MEDIUM)**
+- [ ] **Multi-factor authentication** support
+- [ ] **Session management** s proper timeout
+- [ ] **IP whitelisting** pro admin operace
+- [ ] **Security monitoring** a alerting
+- [ ] **Regular security audits**

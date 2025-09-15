@@ -113,6 +113,41 @@ public class KeycloakClient {
     }
   }
 
+  public void updateUserProfile(String userId, String firstName, String lastName, String email) {
+    String adminToken = getAdminToken();
+    String url = issuer.replace("/realms/", "/admin/realms/") + "/users/" + userId;
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(adminToken);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    Map<String, Object> payload = Map.of(
+        "firstName", firstName != null ? firstName : "",
+        "lastName", lastName != null ? lastName : "",
+        "email", email != null ? email : "");
+
+    try {
+      rt.exchange(url, HttpMethod.PUT, new HttpEntity<>(payload, headers), Void.class);
+    } catch (HttpStatusCodeException ex) {
+      throw kcException("updateUserProfile", ex);
+    }
+  }
+
+  public JsonNode getUserProfile(String userId) {
+    String adminToken = getAdminToken();
+    String url = issuer.replace("/realms/", "/admin/realms/") + "/users/" + userId;
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setBearerAuth(adminToken);
+
+    try {
+      ResponseEntity<String> res = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+      return readJson(res.getBody());
+    } catch (HttpStatusCodeException ex) {
+      throw kcException("getUserProfile", ex);
+    }
+  }
+
   private String getAdminToken() {
     // Implementujte získání admin tokenu pro Keycloak
     // Toto je zjednodušená verze, v produkci použijte bezpečnější způsob

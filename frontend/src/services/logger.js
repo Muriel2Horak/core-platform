@@ -21,8 +21,9 @@ class FrontendLogger {
     // V produkci logujeme jen od INFO výš, v developmentu vše
     this.minLogLevel = this.isProduction ? this.logLevels.INFO : this.logLevels.DEBUG;
     
-    // POUZE backend endpoint - backend se postará o přeposlání do Loki
-    this.backendLogUrl = '/api/logs/frontend';
+    // Backend endpoint - v browseru musíme použít localhost:8080, ne relativní cestu
+    // protože frontend běží na 3000, ale backend na 8080
+    this.backendLogUrl = 'http://localhost:8080/api/frontend-logs';
     
     console.log(`🔧 LOGGER: Inicializace ${this.isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} módu`);
     console.log(`🔧 LOGGER: Backend URL: ${this.backendLogUrl}`);
