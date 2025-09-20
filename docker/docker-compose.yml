@@ -71,8 +71,8 @@ services:
         condition: service_started
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-development}
-      # Issuer URI - veřejná adresa pro validaci 'iss' claimu v JWT
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://${DOMAIN}/realms/core-platform
+      # Issuer URI - PRO DOCKER: interní adresa pro discovery (backend validuje 'iss' claim ale stahuje JWK přes interní síť)
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/core-platform
       # Audience pro JWT validaci
       - OIDC_API_AUDIENCE=api
       # JWK Set URI - interní adresa pro discovery v rámci Docker sítě
