@@ -1,0 +1,454 @@
+/* Core Material Theme - Material Design 3 styles pro Keycloak */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+
+/* CSS Custom Properties - stejné jako frontend */
+:root {
+  --primary-main: #5D87FF;
+  --primary-light: #ECF2FF;
+  --primary-dark: #4570EA;
+  --secondary-main: #49BEFF;
+  --secondary-light: #E8F7FF;
+  --secondary-dark: #23afdb;
+  --error-main: #FA896B;
+  --error-light: #FDEDE8;
+  --error-dark: #f3704d;
+  --warning-main: #FFAE1F;
+  --warning-light: #FEF5E5;
+  --warning-dark: #ae8e59;
+  --success-main: #13DEB9;
+  --success-light: #E6FFFA;
+  --success-dark: #02b3a9;
+  --info-main: #539BFF;
+  --info-light: #EBF3FE;
+  --info-dark: #1682d4;
+  
+  --text-primary: #2A3547;
+  --text-secondary: #5A6A85;
+  --background-default: #fafbfb;
+  --background-paper: #ffffff;
+  --divider: #e5eaef;
+  
+  --grey-100: #F2F6FA;
+  --grey-200: #EAEFF4;
+  --grey-300: #DFE5EF;
+  --grey-400: #7C8FAC;
+  --grey-500: #5A6A85;
+  --grey-600: #2A3547;
+  --grey-700: #dfe5ef;
+}
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: var(--text-primary);
+}
+
+/* Keycloak container overrides */
+#kc-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+#kc-container-wrapper {
+  width: 100%;
+  max-width: 480px;
+}
+
+#kc-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+#kc-header-wrapper {
+  color: white;
+  font-size: 2.5rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Main content card */
+#kc-content {
+  background: var(--background-paper);
+  border-radius: 24px;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+
+#kc-content-wrapper {
+  padding: 48px 40px;
+}
+
+/* Form styles */
+#kc-form {
+  margin-top: 0;
+}
+
+#kc-form-wrapper {
+  margin-bottom: 0;
+}
+
+/* Material Design Text Field */
+.mdc-text-field {
+  height: 56px;
+  border-radius: 8px;
+  background-color: transparent;
+  display: inline-flex;
+  align-items: baseline;
+  position: relative;
+  margin: 16px 0;
+  width: 100%;
+}
+
+.mdc-text-field--outlined {
+  height: 56px;
+}
+
+.mdc-text-field__input {
+  align-self: flex-end;
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 12px 16px 14px;
+  border: none;
+  border-radius: 4px 4px 0 0;
+  background: none;
+  font-size: 1rem;
+  font-family: inherit;
+  appearance: none;
+  color: var(--text-primary);
+}
+
+.mdc-text-field__input:focus {
+  outline: none;
+}
+
+/* Outlined text field */
+.mdc-notched-outline {
+  display: flex;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  text-align: left;
+  pointer-events: none;
+}
+
+.mdc-notched-outline__leading,
+.mdc-notched-outline__notch,
+.mdc-notched-outline__trailing {
+  box-sizing: border-box;
+  height: 100%;
+  border-top: 1px solid var(--grey-700);
+  border-bottom: 1px solid var(--grey-700);
+  pointer-events: none;
+}
+
+.mdc-notched-outline__leading {
+  border-left: 1px solid var(--grey-700);
+  border-right: none;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  width: 12px;
+}
+
+.mdc-notched-outline__trailing {
+  border-left: none;
+  border-right: 1px solid var(--grey-700);
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  flex-grow: 1;
+}
+
+.mdc-notched-outline__notch {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: calc(100% - 24px);
+}
+
+/* Floating label */
+.mdc-floating-label {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+}
+
+.mdc-text-field__input:focus + .mdc-notched-outline .mdc-floating-label,
+.mdc-text-field__input:not(:placeholder-shown) + .mdc-notched-outline .mdc-floating-label {
+  transform: translateY(-106%) scale(0.75);
+  color: var(--primary-main);
+}
+
+.mdc-text-field__input:focus ~ .mdc-notched-outline .mdc-notched-outline__leading,
+.mdc-text-field__input:focus ~ .mdc-notched-outline .mdc-notched-outline__notch,
+.mdc-text-field__input:focus ~ .mdc-notched-outline .mdc-notched-outline__trailing {
+  border-color: var(--primary-main);
+  border-width: 2px;
+}
+
+/* Helper text */
+.mdc-text-field-helper-line {
+  display: flex;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding-right: 16px;
+  padding-left: 16px;
+}
+
+.mdc-text-field-helper-text {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.mdc-text-field-helper-text--validation-msg {
+  color: var(--error-main);
+}
+
+/* Material Design Button */
+.mdc-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 64px;
+  height: 36px;
+  padding: 0 24px;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: 0.0892857143em;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 8px;
+  transition: box-shadow 280ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mdc-button--raised {
+  height: 48px;
+  box-shadow: 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
+}
+
+.mdc-button--primary {
+  background-color: var(--primary-main);
+  color: white;
+}
+
+.mdc-button--primary:hover {
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 4px 5px 0 rgba(0, 0, 0, 0.14), 0 1px 10px 0 rgba(0, 0, 0, 0.12);
+  background-color: var(--primary-dark);
+}
+
+.mdc-button--outlined {
+  border: 1px solid var(--grey-300);
+  color: var(--primary-main);
+  background: transparent;
+}
+
+.mdc-button--outlined:hover {
+  background-color: var(--primary-light);
+}
+
+.mdc-button--text {
+  color: var(--primary-main);
+  background: transparent;
+}
+
+.mdc-button--text:hover {
+  background-color: var(--primary-light);
+}
+
+.mdc-button__ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.mdc-button__label {
+  position: relative;
+}
+
+/* Checkbox */
+.mdc-form-field {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.mdc-checkbox {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+.mdc-checkbox__native-control {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: inherit;
+  width: 100%;
+  height: 100%;
+}
+
+.mdc-checkbox__background {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--grey-400);
+  border-radius: 2px;
+  background-color: transparent;
+  pointer-events: none;
+  will-change: background-color, border-color;
+  transition: background-color 90ms 0ms cubic-bezier(0.4, 0, 0.6, 1), border-color 90ms 0ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background {
+  background-color: var(--primary-main);
+  border-color: var(--primary-main);
+}
+
+.mdc-checkbox__checkmark {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 180ms 0ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background .mdc-checkbox__checkmark {
+  opacity: 1;
+}
+
+.mdc-checkbox__checkmark-path {
+  transition: stroke-dashoffset 180ms 0ms cubic-bezier(0.4, 0, 0.6, 1);
+  stroke: white;
+  stroke-width: 3.12px;
+  stroke-dashoffset: 29.7833385;
+  stroke-dasharray: 29.7833385;
+}
+
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background .mdc-checkbox__checkmark-path {
+  stroke-dashoffset: 0;
+}
+
+.mdc-checkbox-label {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* Messages and alerts */
+.kc-feedback-text {
+  background: var(--error-light);
+  border: 1px solid var(--error-main);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  color: var(--error-dark);
+  font-size: 0.875rem;
+}
+
+.alert-success {
+  background: var(--success-light);
+  border: 1px solid var(--success-main);
+  color: var(--success-dark);
+}
+
+.alert-warning {
+  background: var(--warning-light);
+  border: 1px solid var(--warning-main);
+  color: var(--warning-dark);
+}
+
+.alert-info {
+  background: var(--info-light);
+  border: 1px solid var(--info-main);
+  color: var(--info-dark);
+}
+
+/* Form layout */
+#kc-form-buttons {
+  margin-top: 32px;
+}
+
+#kc-form-options {
+  margin: 24px 0;
+}
+
+/* Registration and social providers */
+#kc-registration-container {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--divider);
+}
+
+#kc-social-providers {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--divider);
+}
+
+#kc-social-providers h4 {
+  text-align: center;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  #kc-content-wrapper {
+    padding: 32px 24px;
+  }
+  
+  #kc-header-wrapper {
+    font-size: 2rem;
+  }
+  
+  .mdc-button {
+    width: 100%;
+    height: 48px;
+  }
+}

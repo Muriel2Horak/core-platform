@@ -1,5 +1,0 @@
-/* Minimální styly pro auth widget */
-.authw { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; background: #fafafa; }
-.authw .row { margin: 6px 0; }
-.authw button { padding: .5rem .8rem; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; }
-.authw .authw-btn { display: inline-block; padding: .5rem .8rem; border-radius: 8px; background: #2563eb; color: #fff; text-decoration: none; border: 1px solid #2563eb; }

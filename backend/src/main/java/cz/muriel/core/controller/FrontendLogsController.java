@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
-@CrossOrigin(origins = { "http://localhost:3000", "http://frontend:3000" })
 public class FrontendLogsController {
 
   private static final Logger logger = LoggerFactory.getLogger("FRONTEND");
@@ -139,9 +138,7 @@ public class FrontendLogsController {
     // Přidáme operaci do labelů
     String operation = (String) logEntry.get("operation");
     if (operation != null) {
-      String normalizedOperation = operation.toLowerCase()
-          .replace("_", "-")
-          .replace(" ", "-");
+      String normalizedOperation = operation.toLowerCase().replace("_", "-").replace(" ", "-");
       labels.put("operation", normalizedOperation);
     }
 
@@ -166,13 +163,15 @@ public class FrontendLogsController {
 
     // 🎯 PŘIDÁNO: Username jako label pro filtrování
     String username = (String) logEntry.get("login");
-    if ((username == null || "anonymous".equals(username) || "null".equals(username)) && details != null) {
+    if ((username == null || "anonymous".equals(username) || "null".equals(username))
+        && details != null) {
       Object usernameFromDetails = details.get("username");
       if (usernameFromDetails != null && !usernameFromDetails.toString().isEmpty()) {
         username = usernameFromDetails.toString();
       }
     }
-    if (username != null && !"anonymous".equals(username) && !"null".equals(username) && !username.isEmpty()) {
+    if (username != null && !"anonymous".equals(username) && !"null".equals(username)
+        && !username.isEmpty()) {
       labels.put("username", username);
       labels.put("user", username); // 🎯 PŘIDÁNO: Duplicitní label pro kompatibilitu
     }
@@ -276,23 +275,20 @@ public class FrontendLogsController {
     }
 
     // API call události
-    if (operation != null && (operation.contains("api") ||
-        operation.contains("request") ||
-        operation.contains("call"))) {
+    if (operation != null && (operation.contains("api") || operation.contains("request")
+        || operation.contains("call"))) {
       return "api";
     }
 
     // User interaction události
-    if (operation != null && (operation.contains("click") ||
-        operation.contains("navigation") ||
-        operation.contains("user"))) {
+    if (operation != null && (operation.contains("click") || operation.contains("navigation")
+        || operation.contains("user"))) {
       return "user_interaction";
     }
 
     // Performance události
-    if (operation != null && (operation.contains("performance") ||
-        operation.contains("timing") ||
-        operation.contains("metric"))) {
+    if (operation != null && (operation.contains("performance") || operation.contains("timing")
+        || operation.contains("metric"))) {
       return "performance";
     }
 
@@ -303,7 +299,8 @@ public class FrontendLogsController {
     String timestampStr = (String) logEntry.get("timestamp");
     try {
       // Konvertuj ISO timestamp na Loki nanoseconds
-      OffsetDateTime timestamp = OffsetDateTime.parse(timestampStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+      OffsetDateTime timestamp = OffsetDateTime.parse(timestampStr,
+          DateTimeFormatter.ISO_OFFSET_DATE_TIME);
       return String.valueOf(timestamp.toInstant().toEpochMilli() * 1_000_000);
     } catch (Exception e) {
       // Fallback na current time
@@ -319,30 +316,55 @@ public class FrontendLogsController {
     String operation = (String) logEntry.get("operation");
     String message = (String) logEntry.get("message");
 
-    // 🔧 FIX: Bezpečné parsování details objektu (stejná oprava jako ve výše)
+    // 🔧 FIX: Kompletně přepsané bezpečné zpracování details objektu
     Map<String, Object> details = null;
     Object detailsObj = logEntry.get("details");
-    if (detailsObj instanceof Map) {
-      @SuppressWarnings("unchecked")
-      Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
-      details = detailsMap;
-    } else if (detailsObj instanceof String) {
-      // Pokus o parsování JSON stringu
-      try {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> parsedDetails = objectMapper.readValue((String) detailsObj, Map.class);
-        details = parsedDetails;
-      } catch (Exception e) {
-        // Pokud se nepodaří parsovat, vytvoříme jednoduchý map s raw hodnotou
-        details = Map.of("raw", detailsObj.toString());
+
+    if (detailsObj != null) {
+      if (detailsObj instanceof Map) {
+        try {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
+          details = detailsMap;
+        } catch (ClassCastException e) {
+          // Pokud cast selže, vytvoříme wrapper
+          details = Map.of("raw_data", detailsObj.toString());
+        }
+      } else if (detailsObj instanceof String) {
+        String detailsStr = (String) detailsObj;
+        if (detailsStr.trim().startsWith("{")) {
+          // Pokus o parsování JSON stringu
+          try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parsedDetails = objectMapper.readValue(detailsStr, Map.class);
+            details = parsedDetails;
+          } catch (Exception e) {
+            // Pokud parsování selže, použijeme string wrapper
+            details = Map.of("raw_string", detailsStr);
+          }
+        } else {
+          // Obyčejný string
+          details = Map.of("message", detailsStr);
+        }
+      } else {
+        // Pro všechny ostatní typy (List, Number, Boolean, atd.)
+        try {
+          String serialized = objectMapper.writeValueAsString(detailsObj);
+          details = Map.of("serialized_data", serialized);
+        } catch (Exception e) {
+          details = Map.of("toString_data", detailsObj.toString());
+        }
       }
     }
 
-    // 🎯 FIX: Získáme username z details pokud není na hlavní úrovni
+    // 🎯 FIX: Bezpečné získání username z details
     if ((login == null || "anonymous".equals(login) || "null".equals(login)) && details != null) {
       Object usernameFromDetails = details.get("username");
-      if (usernameFromDetails != null && !usernameFromDetails.toString().isEmpty()) {
-        login = usernameFromDetails.toString();
+      if (usernameFromDetails != null) {
+        String usernameStr = usernameFromDetails.toString();
+        if (!usernameStr.isEmpty() && !"null".equals(usernameStr)) {
+          login = usernameStr;
+        }
       }
     }
 

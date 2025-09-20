@@ -28,16 +28,23 @@
     { "directory": "frontend", "changeProcessCWD": true },
     { "directory": "auth", "changeProcessCWD": true }
   ],
-  "eslint.packageManager": "npm",
+  // removed deprecated eslint.packageManager
 
   // ➕ TypeScript SDK z node_modules (důležité pro monorepo/moderní TS)
   "typescript.tsdk": "node_modules/typescript/lib",
 
   // ☕ Java (Spring Boot backend)
-  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.configuration.updateBuildConfiguration": "automatic",
   "java.format.settings.url": ".vscode/java-formatter.xml",
   "java.format.settings.profile": "GoogleStyle",
   "java.codeGeneration.generateComments": true,
+
+  // 🎯 Java Maven import (spoléhat na Maven místo ručních sourcePaths)
+  "java.import.maven.enabled": true,
+  "java.import.gradle.enabled": false,
+  "java.maven.downloadSources": true,
+  "java.maven.downloadJavadoc": true,
+  "java.autobuild.enabled": true,
 
   // 🐳 Docker
   "docker.languageserver.formatter.enable": true,
@@ -54,5 +61,8 @@
       "default": true
     }
   ],
-  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable"
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
+  // Volitelné: čistší LS
+  "java.compile.nullAnalysis.mode": "automatic",
+  "maven.terminal.useJavaHome": true
 }

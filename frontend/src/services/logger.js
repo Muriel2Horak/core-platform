@@ -1,4 +1,6 @@
 // Structured logger pro frontend - loguje do console A posílá na backend/Loki
+import authService from './auth';
+
 class FrontendLogger {
   constructor() {
     this.service = 'core-platform-frontend';
@@ -21,42 +23,51 @@ class FrontendLogger {
     // V produkci logujeme jen od INFO výš, v developmentu vše
     this.minLogLevel = this.isProduction ? this.logLevels.INFO : this.logLevels.DEBUG;
     
-    // Backend endpoint - v browseru musíme použít localhost:8080, ne relativní cestu
-    // protože frontend běží na 3000, ale backend na 8080
-    this.backendLogUrl = 'http://localhost:8080/api/frontend-logs';
-    
-    console.log(`🔧 LOGGER: Inicializace ${this.isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} módu`);
-    console.log(`🔧 LOGGER: Backend URL: ${this.backendLogUrl}`);
-    console.log(`🔧 LOGGER: Min log level: ${this.minLogLevel}`);
+    // Backend endpoint - MUSÍ jít přes Nginx proxy, ne přímo na port 8080
+    this.backendLogUrl = '/frontend-logs'; // bude prefikxováno v authService.apiCall na /api
   }
 
-  // Získání user info pro logy
+  // Získání user info pro logy - opraveno pro keycloak token
   _getUserInfo() {
-    // Pokusíme se získat info o uživateli z localStorage nebo context
-    const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
-    return {
-      userId: userInfo.id || 'anonymous',
-      login: userInfo.preferred_username || userInfo.email || 'anonymous',
-      roles: userInfo.roles || []
-    };
+    try {
+      const token = localStorage.getItem('keycloak-token');
+      if (!token) {
+        return {
+          userId: 'anonymous',
+          login: 'anonymous',
+          roles: []
+        };
+      }
+
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        userId: payload.sid || payload.preferred_username || 'unknown',
+        login: payload.preferred_username || payload.email || 'unknown',
+        roles: payload.realm_access?.roles || []
+      };
+    } catch {
+      return {
+        userId: 'anonymous',
+        login: 'anonymous',
+        roles: []
+      };
+    }
   }
 
-  // Získání client info
   _getClientInfo() {
+    const userInfo = this._getUserInfo();
+    
     return {
-      clientIp: 'unknown', // Frontend nemůže přímo získat real IP
+      clientIp: 'unknown',
       userAgent: navigator.userAgent.substring(0, 200),
       url: window.location.href,
       referrer: document.referrer || '',
-      sessionId: sessionStorage.getItem('sessionId') || 'unknown'
+      sessionId: userInfo.userId !== 'anonymous' ? userInfo.userId : 'unknown'
     };
   }
 
-  // Strukturovaný log podle našich požadavků
   _logStructured(level, operation, message, details = {}) {
     const levelNum = this.logLevels[level.toUpperCase()];
-    
-    // Kontrola min log level
     if (levelNum < this.minLogLevel) {
       return;
     }
@@ -65,7 +76,6 @@ class FrontendLogger {
     const clientInfo = this._getClientInfo();
     
     const logEntry = {
-      // Hlavní struktura podle požadavků
       timestamp: new Date().toISOString(),
       level: level.toUpperCase(),
       clientIp: clientInfo.clientIp,
@@ -74,7 +84,6 @@ class FrontendLogger {
       operation: operation,
       message: message,
       
-      // Dodatečné detaily
       details: {
         service: this.service,
         url: clientInfo.url,
@@ -86,14 +95,10 @@ class FrontendLogger {
       }
     };
 
-    // 1. Log do console pro developer (local debugging)
     this._logToConsole(level, operation, message, logEntry);
-    
-    // 2. Pošli na server pro centralizované logování
     this._sendToServer(logEntry);
   }
 
-  // Console logging s emoji
   _logToConsole(level, operation, message, logEntry) {
     const emoji = this._getEmoji(level);
     const prefix = `${emoji} [${level}] ${operation}:`;
@@ -114,14 +119,25 @@ class FrontendLogger {
     }
   }
 
-  // Zjednodušené odesílání logů - pouze na backend
   async _sendToServer(logEntry) {
     if (!this.enabled) return;
+    try {
+      const response = await authService.apiCall(this.backendLogUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(logEntry)
+      });
 
-    await this._sendToBackend(logEntry);
+      if (!response || !response.ok) {
+        console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response?.status);
+      }
+    } catch (error) {
+      console.error('🔴 LOGGER: Chyba při odesílání na backend:', error);
+    }
   }
 
-  // Helper pro emoji podle log level
   _getEmoji(level) {
     switch (level.toLowerCase()) {
       case 'error': return '❌';
@@ -134,27 +150,7 @@ class FrontendLogger {
     }
   }
 
-  // Odeslání logu na backend
-  async _sendToBackend(logEntry) {
-    try {
-      const response = await fetch(this.backendLogUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(logEntry)
-      });
-      
-      if (!response.ok) {
-        console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response.status);
-      }
-    } catch (error) {
-      console.error('🔴 LOGGER: Chyba při odesílání na backend:', error);
-      // V případě chyby je to ok - logy jsou nice-to-have, ne kritické
-    }
-  }
-
-  // Standardní log levely
+  // Veřejné API
   debug(operation, message, details = {}) {
     this._logStructured('DEBUG', operation, message, details);
   }
@@ -171,7 +167,6 @@ class FrontendLogger {
     this._logStructured('ERROR', operation, message, details);
   }
 
-  // Bezpečnostní a audit logy
   security(operation, message, details = {}) {
     this._logStructured('SECURITY', operation, message, {
       ...details,
@@ -188,57 +183,6 @@ class FrontendLogger {
     });
   }
 
-  // Speciální metody pro různé operace
-
-  // Authentication operations
-  authLogin(success, details = {}) {
-    const level = success ? 'AUDIT' : 'SECURITY';
-    const operation = 'AUTH_LOGIN';
-    const message = success ? 'User login successful' : 'User login failed';
-    
-    this._logStructured(level, operation, message, {
-      ...details,
-      auth_result: success ? 'success' : 'failure',
-      category: 'authentication'
-    });
-  }
-
-  authLogout(details = {}) {
-    this._logStructured('AUDIT', 'AUTH_LOGOUT', 'User logout', {
-      ...details,
-      category: 'authentication'
-    });
-  }
-
-  authPasswordChange(success, details = {}) {
-    const level = success ? 'AUDIT' : 'SECURITY';
-    const message = success ? 'Password change successful' : 'Password change failed';
-    
-    this._logStructured(level, 'AUTH_PASSWORD_CHANGE', message, {
-      ...details,
-      auth_result: success ? 'success' : 'failure',
-      category: 'authentication'
-    });
-  }
-
-  // API call logging
-  apiCall(method, url, status, duration, details = {}) {
-    const level = status >= 500 ? 'ERROR' : 
-                  status >= 400 ? 'WARN' : 'INFO';
-    const operation = 'API_CALL';
-    const message = `${method} ${url} -> ${status} (${duration}ms)`;
-    
-    this._logStructured(level, operation, message, {
-      ...details,
-      http_method: method,
-      http_url: url,
-      http_status: status,
-      response_time_ms: duration,
-      category: 'api'
-    });
-  }
-
-  // User action logging
   userAction(action, details = {}) {
     this._logStructured('INFO', 'USER_ACTION', action, {
       ...details,
@@ -246,7 +190,6 @@ class FrontendLogger {
     });
   }
 
-  // Security events
   securityViolation(violation, details = {}) {
     this._logStructured('SECURITY', 'SECURITY_VIOLATION', violation, {
       ...details,
@@ -255,13 +198,47 @@ class FrontendLogger {
     });
   }
 
-  // Page navigation
   pageView(page, details = {}) {
     this._logStructured('DEBUG', 'PAGE_VIEW', `Navigated to ${page}`, {
       ...details,
       page: page,
       category: 'navigation'
     });
+  }
+
+  // ✅ Přidáno: Kompatibilní metoda pro logování API volání používaná v ostatních službách
+  //   - signature: apiCall(method, url, statusOrStart, duration, details)
+  //   - neprovádí žádné přímé HTTP requesty kromě odeslání logu přes authService.apiCall
+  apiCall(method, url, statusOrStart, duration = 0, details = {}) {
+    try {
+      const isStart = typeof statusOrStart === 'string' && statusOrStart.toLowerCase() === 'start';
+      const statusNum = !isStart && typeof statusOrStart === 'number' ? statusOrStart : null;
+
+      let level = 'INFO';
+      if (isStart) level = 'DEBUG';
+      else if (statusNum !== null) {
+        if (statusNum >= 500) level = 'ERROR';
+        else if (statusNum >= 400) level = 'WARN';
+        else level = 'INFO';
+      }
+
+      const message = isStart
+        ? `API ${method} ${url} start`
+        : `API ${method} ${url} finished${statusNum !== null ? ` (${statusNum})` : ''}`;
+
+      // Nepřepisujeme existující details, pouze doplňujeme standardizovaná pole
+      this._logStructured(level, 'API_CALL', message, {
+        category: 'api',
+        method: method,
+        request_url: url,
+        http_status: statusNum ?? undefined,
+        duration: duration || undefined,
+        ...details
+      });
+    } catch (e) {
+      // Bezpečný fallback, aby logování nerozbilo aplikaci
+      console.warn('LOGGER.apiCall fallback', e);
+    }
   }
 }
 

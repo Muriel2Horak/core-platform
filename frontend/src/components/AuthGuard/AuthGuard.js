@@ -12,10 +12,11 @@ const AuthGuard = ({ children }) => {
       console.log(`🛡️ ${message}`, extra);
       // Async load logger pro strukturované logy
       import('../../services/logger').then(module => {
-        module.default.guard(message, extra);
+        // 🔧 FIX: Používám info() místo neexistující guard() metody
+        module.default.info('AUTHGUARD', message, extra);
       }).catch(() => {}); // Tichý fallback
     } catch (error) {
-      console.log(`🛡️ ${message}`, extra);
+      console.log(`🛡️ ${message}`, extra, error);
     }
   };
 
@@ -23,10 +24,11 @@ const AuthGuard = ({ children }) => {
     try {
       console.error(`🛡️ ${message}`, extra);
       import('../../services/logger').then(module => {
-        module.default.error(message, extra);
+        // 🔧 FIX: Používám error() místo neexistující guard() metody  
+        module.default.error('AUTHGUARD_ERROR', message, extra);
       }).catch(() => {});
     } catch (error) {
-      console.error(`🛡️ ${message}`, extra);
+      console.error(`🛡️ ${message}`, extra, error);
     }
   };
 
@@ -37,9 +39,9 @@ const AuthGuard = ({ children }) => {
         search: window.location.search
       });
 
-      // Pokud jsme na auth stránce, neprovádíme kontrolu autentizace
-      if (window.location.pathname === '/auth' || window.location.pathname === '/auth/') {
-        _log('AUTHGUARD: Jsme na auth stránce, povolujeme bez kontroly');
+      // Pokud jsme na login stránce, neprovádíme kontrolu autentizace
+      if (window.location.pathname === '/login' || window.location.pathname === '/login/') {
+        _log('AUTHGUARD: Jsme na login stránce, povolujeme bez kontroly');
         setIsAuthenticated(true);
         setIsLoading(false);
         return;
@@ -47,7 +49,7 @@ const AuthGuard = ({ children }) => {
 
       try {
         _log('AUTHGUARD: Volám authService.isAuthenticated()...');
-        // Použijeme backend API pro kontrolu autentizace
+        // 🔧 FIX: Vrátili jsme se k původnímu auth service
         const isValid = await authService.isAuthenticated();
         
         _log('AUTHGUARD: Výsledek kontroly autentizace', { isValid });
@@ -56,13 +58,13 @@ const AuthGuard = ({ children }) => {
           _log('AUTHGUARD: Uživatel je přihlášen - povolujeme přístup');
           setIsAuthenticated(true);
         } else {
-          _log('AUTHGUARD: Uživatel není přihlášen - přesměrovávám na login');
-          // Pokud nejsme přihlášeni, přesměruj na login
+          _log('AUTHGUARD: Uživatel není přihlášen - přesměrovávám na login stránku');
+          // 🔧 FIX: Používáme původní redirectToLogin() metodu
           authService.redirectToLogin();
         }
       } catch (error) {
         _logError('AUTHGUARD: Chyba při kontrole autentizace', error);
-        // Při chybě přesměruj na login
+        // 🔧 FIX: Při chybě také používáme původní redirectToLogin()
         authService.redirectToLogin();
       } finally {
         _log('AUTHGUARD: Dokončuji kontrolu autentizace');

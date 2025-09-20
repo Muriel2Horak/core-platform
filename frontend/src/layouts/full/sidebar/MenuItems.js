@@ -3,7 +3,8 @@ import { uniqueId } from 'lodash';
 import {
   IconCopy, IconLayoutDashboard, IconTypography,
   IconAperture, IconAlignBoxLeftBottom, IconCheckbox, IconRadar, 
-  IconSlideshow, IconCaretUpDown, IconTable, IconForms, IconUser
+  IconSlideshow, IconCaretUpDown, IconTable, IconForms, 
+  IconUserCircle, IconEdit, IconUsers
 } from '@tabler/icons-react';
 
 const Menuitems = [
@@ -19,7 +20,34 @@ const Menuitems = [
   },
   {
     navlabel: true,
-    subheader: 'Komponenty',
+    subheader: 'Profil',
+  },
+  {
+    id: uniqueId(),
+    title: 'Můj účet',
+    icon: IconUserCircle,
+    href: '/me',
+  },
+  {
+    id: uniqueId(),
+    title: 'Upravit profil',
+    icon: IconEdit,
+    href: '/profile',
+  },
+  {
+    navlabel: true,
+    subheader: 'Administrace',
+  },
+  {
+    id: uniqueId(),
+    title: 'Správa uživatelů',
+    icon: IconUsers,
+    href: '/admin/users',
+    roles: ['admin', 'user-manager'], // Role-based visibility
+  },
+  {
+    navlabel: true,
+    subheader: 'Demo komponenty',
   },
   {
     id: uniqueId(),
@@ -80,16 +108,6 @@ const Menuitems = [
     title: 'Shadow',
     icon: IconCopy,
     href: '/ui/shadow',
-  },
-  {
-    navlabel: true,
-    subheader: 'Uživatel',
-  },
-  {
-    id: uniqueId(),
-    title: 'Můj profil',
-    icon: IconUser,
-    href: '/profile',
   },
   {
     navlabel: true,

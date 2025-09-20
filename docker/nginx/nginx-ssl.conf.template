@@ -1,0 +1,354 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    # MIME types
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    # Basic optimizations
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    server_tokens off;
+    
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss image/svg+xml text/html;
+    
+    # WebSocket upgrade map pro Vite HMR a Keycloak Admin Console
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+    
+    # Upstream definitions
+    upstream frontend {
+        server frontend:3000;
+    }
+    
+    upstream backend {
+        server backend:8080;
+    }
+    
+    upstream keycloak {
+        server keycloak:8080;
+    }
+    
+    # 🔒 HTTPS server - Primary configuration
+    server {
+        listen 443 ssl http2;
+        # ✅ OPRAVENO: používá $DOMAIN proměnnou (envsubst syntax)
+        server_name $DOMAIN;
+        
+        # SSL Configuration
+        ssl_certificate /etc/nginx/ssl/cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/key.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
+        ssl_prefer_server_ciphers off;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
+        
+        # Security headers
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        
+        # ✅ KEYCLOAK 26.x PROXY KONFIGURACE - Keycloak běží na root path
+        
+        # Keycloak Account Console (personal-info, password, sessions, MFA) - NEJVYŠŠÍ PRIORITA
+        location /realms/core-platform/account/ {
+            proxy_pass http://keycloak;
+            
+            # ✅ Kompletní X-Forwarded hlavičky pro Keycloak 26.x Account Console
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            proxy_set_header X-Forwarded-Ssl on;
+            
+            # ✅ Cookie security pro Account Console
+            proxy_cookie_flags ~ secure samesite=lax;
+            
+            # WebSocket support pro interaktivní Account Console
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_http_version 1.1;
+            proxy_cache_bypass $http_upgrade;
+            
+            # Bez cache pro Account Console UI
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            add_header Pragma "no-cache";
+            add_header Expires "0";
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering off;
+        }
+        
+        # Keycloak realms API (OpenID Connect, SAML endpointy) - DRUHÁ PRIORITA
+        location /realms/ {
+            proxy_pass http://keycloak;
+            
+            # ✅ Kompletní X-Forwarded hlavičky pro Keycloak 26.x
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            
+            # ✅ Cookie security pro HTTPS přihlášení
+            proxy_cookie_flags ~ secure samesite=lax;
+            
+            # WebSocket support
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_http_version 1.1;
+            proxy_cache_bypass $http_upgrade;
+            
+            # Bez cache pro API endpointy
+            add_header Cache-Control "no-cache, no-store, must-revalidate";
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering off;
+        }
+        
+        # Keycloak admin konzole - TŘETÍ PRIORITA
+        location /admin/ {
+            proxy_pass http://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            proxy_set_header X-Forwarded-Ssl on;
+            
+            # ✅ Cookie security pro admin přihlášení
+            proxy_cookie_flags ~ secure samesite=lax;
+            
+            # WebSocket support pro admin console
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_http_version 1.1;
+            proxy_cache_bypass $http_upgrade;
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering off;
+        }
+        
+        # Keycloak statické resources (CSS, JS, images) - ČTVRTÁ PRIORITA
+        location /resources/ {
+            proxy_pass http://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Ssl on;
+            
+            # ✅ Cache a správné MIME typy pro statické soubory
+            expires 1h;
+            add_header Cache-Control "public, max-age=3600";
+            
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+
+        # ✅ NOVÝ: Specifický blok pro core-material theme resources
+        location /resources/core-material/ {
+            proxy_pass http://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Ssl on;
+            
+            # ✅ Správné MIME typy pro theme assets
+            location ~* \.(css)$ {
+                add_header Content-Type text/css;
+                expires 1h;
+                add_header Cache-Control "public, max-age=3600";
+                proxy_pass http://keycloak;
+            }
+            
+            location ~* \.(js)$ {
+                add_header Content-Type application/javascript;
+                expires 1h;
+                add_header Cache-Control "public, max-age=3600";
+                proxy_pass http://keycloak;
+            }
+            
+            # Fallback pro ostatní soubory
+            expires 1h;
+            add_header Cache-Control "public, max-age=3600";
+            
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+        
+        # Keycloak JS adapter a ostatní JS soubory
+        location /js/ {
+            proxy_pass http://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Ssl on;
+            
+            # ✅ Správný MIME typ pro JavaScript
+            expires 1h;
+            add_header Cache-Control "public, max-age=3600";
+            
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+        
+        # Keycloak themes (custom core-material theme assets)
+        location /themes/ {
+            proxy_pass http://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Ssl on;
+            
+            # ✅ Cache pro theme assets (CSS, JS, obrázky)
+            expires 1h;
+            add_header Cache-Control "public, max-age=3600";
+            
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+        
+        # ✅ OPRAVENO: /auth/* cesty pro zpětnou kompatibilitu s frontendem
+        # Rewrite /auth/* na root path pro Keycloak 26.x
+        location /auth/ {
+            rewrite ^/auth/(.*)$ /$1 break;
+            proxy_pass http://keycloak;
+            
+            # ✅ Kompletní X-Forwarded hlavičky pro Keycloak 26.x reverse proxy
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            
+            # ✅ Cookie security pro všechna Keycloak přihlášení
+            proxy_cookie_flags ~ secure samesite=lax;
+            
+            # WebSocket support
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_http_version 1.1;
+            proxy_cache_bypass $http_upgrade;
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering off;
+        }
+        
+        # ✅ BACKEND API s CORS a JWT validací
+        location /api/ {
+            proxy_pass http://backend;
+            
+            # ✅ Kompletní proxy hlavičky pro Spring Boot backend
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header Authorization $http_authorization;
+            
+            # ✅ CORS headers pro frontend komunikaci - používá $DOMAIN
+            add_header 'Access-Control-Allow-Origin' 'https://$DOMAIN' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            
+            # ✅ CORS preflight handling
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'https://$DOMAIN';
+                add_header 'Access-Control-Allow-Credentials' 'true';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                add_header 'Access-Control-Max-Age' 86400;
+                add_header 'Content-Type' 'text/plain charset=UTF-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+            
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+        
+        # ✅ FRONTEND - React app s Vite dev server (nejnižší priorita)
+        location / {
+            proxy_pass http://frontend;
+            
+            # ✅ Proxy hlavičky pro Vite dev server
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            
+            # ✅ Vite HMR (Hot Module Replacement) support
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_http_version 1.1;
+            proxy_cache_bypass $http_upgrade;
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }
+    }
+    
+    # 🔀 HTTP -> HTTPS redirect
+    server {
+        listen 80;
+        # ✅ OPRAVENO: používá $DOMAIN proměnnou (envsubst syntax)
+        server_name $DOMAIN;
+        return 301 https://$server_name$request_uri;
+    }
+}

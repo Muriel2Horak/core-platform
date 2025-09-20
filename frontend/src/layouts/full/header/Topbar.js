@@ -1,14 +1,13 @@
 import React from 'react';
 import { Box, AppBar, Toolbar, styled, Stack, Button } from '@mui/material';
 import adminmartLogo from 'src/assets/images/logos/logo-adminmart.svg';
-import { IconLifebuoy, IconGift, IconBriefcase } from '@tabler/icons-react';
 import { Typography } from '@mui/material';
 import { Link } from 'react-router';
 import LivePreviewDropdown from './LivePreviewDropdown';
 import { Icon } from "@iconify/react";
 
 
-const Topbar = (props) => {
+const Topbar = (_props) => {
 
 
   const AppBarStyled = styled(AppBar)(({ theme }) => ({

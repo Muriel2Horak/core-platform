@@ -1,180 +1,171 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
-  Card,
-  CardContent,
   Typography,
   TextField,
   Button,
   Alert,
-  Divider,
-  Avatar,
-  Chip,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  CircularProgress,
-  IconButton,
-  Tooltip
+  Divider,
+  Avatar,
+  Chip
 } from '@mui/material';
-import {
-  IconUser,
-  IconMail,
-  IconKey,
-  IconShield,
-  IconEdit,
-  IconCheck,
-  IconX,
-  IconUserCircle
-} from '@tabler/icons-react';
-
-import PageContainer from 'src/components/container/PageContainer';
-import DashboardCard from 'src/components/shared/DashboardCard';
-import authService from 'src/services/auth';
+import { IconUser, IconKey, IconMail, IconEdit, IconCheck, IconX } from '@tabler/icons-react';
+import PageContainer from '../../components/container/PageContainer';
+import DashboardCard from '../../components/shared/DashboardCard';
+import userManagementService from '../../services/userManagementService';
+import logger from '../../services/logger';
 
 const MyProfilePage = () => {
-  const [userInfo, setUserInfo] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-
-  // Form states
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    username: ''
-  });
-
-  // Password form state
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  
+  // Profile editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({});
+  
+  // Password change state
+  const [passwordDialog, setPasswordDialog] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
 
   useEffect(() => {
-    loadUserInfo();
+    loadProfile();
   }, []);
 
-  const loadUserInfo = async () => {
+  const loadProfile = async () => {
     try {
       setLoading(true);
-      const user = await authService.getUserInfo();
-      setUserInfo(user);
-      setFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        username: user.username || ''
+      setError(null);
+      
+      logger.pageView('/me', { operation: 'load_profile' });
+      
+      const data = await userManagementService.getMyProfile();
+      setProfile(data);
+      setEditedProfile({
+        email: data.email || '',
+        firstName: data.firstName || '',
+        lastName: data.lastName || ''
       });
-    } catch (error) {
-      console.error('Chyba při načítání profilu:', error);
-      setMessage({ type: 'error', text: 'Nepodařilo se načíst profil uživatele' });
+      
+      logger.userAction('PROFILE_LOADED', { userId: data.id });
+      
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+      setError('Nepodařilo se načíst profil uživatele');
+      logger.error('PROFILE_LOAD_ERROR', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveProfile = async () => {
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Zrušit změny
+      setEditedProfile({
+        email: profile.email || '',
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || ''
+      });
+    }
+    setIsEditing(!isEditing);
+    logger.userAction(isEditing ? 'PROFILE_EDIT_CANCELLED' : 'PROFILE_EDIT_STARTED');
+  };
+
+  const handleProfileSave = async () => {
     try {
       setSaving(true);
-      setMessage({ type: '', text: '' });
-
-      const response = await authService.apiCall('/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email
-        })
-      });
-
-      if (response && response.ok) {
-        const updatedUser = await response.json();
-        setUserInfo(updatedUser);
-        setEditing(false);
-        setMessage({ type: 'success', text: 'Profil byl úspěšně aktualizován' });
-      } else if (response) {
-        const error = await response.json();
-        setMessage({ type: 'error', text: error.detail || 'Nepodařilo se aktualizovat profil' });
-      } else {
-        // authService.apiCall vrátí null při 401 - uživatel byl odhlášen
-        setMessage({ type: 'error', text: 'Relace vypršela, budete přesměrováni na přihlášení' });
-      }
-    } catch (error) {
-      console.error('Chyba při ukládání profilu:', error);
-      setMessage({ type: 'error', text: 'Chyba při ukládání profilu' });
+      setError(null);
+      setSuccess(null);
+      
+      const updatedProfile = await userManagementService.updateMyProfile(editedProfile);
+      setProfile(updatedProfile);
+      setIsEditing(false);
+      setSuccess('Profil byl úspěšně aktualizován');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+      
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      setError('Nepodařilo se aktualizovat profil');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleChangePassword = async () => {
+  const handlePasswordChange = async () => {
     try {
-      setPasswordErrors({});
+      setPasswordError(null);
+      
+      // Validation
+      if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+        setPasswordError('Všechna pole jsou povinná');
+        return;
+      }
       
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        setPasswordErrors({ confirmPassword: 'Hesla se neshodují' });
+        setPasswordError('Nové heslo a potvrzení se neshodují');
         return;
       }
-
-      if (passwordData.newPassword.length < 6) {
-        setPasswordErrors({ newPassword: 'Heslo musí mít alespoň 6 znaků' });
+      
+      if (passwordData.newPassword.length < 8) {
+        setPasswordError('Nové heslo musí mít alespoň 8 znaků');
         return;
       }
-
+      
       setSaving(true);
-
-      const response = await authService.apiCall('/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword
-        })
+      
+      await userManagementService.changeMyPassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
       });
-
-      if (response && response.ok) {
-        setPasswordDialogOpen(false);
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setMessage({ type: 'success', text: 'Heslo bylo úspěšně změněno' });
-      } else if (response) {
-        const error = await response.json();
-        setMessage({ type: 'error', text: error.detail || 'Nepodařilo se změnit heslo' });
-      } else {
-        // authService.apiCall vrátí null při 401 - uživatel byl odhlášen
-        setMessage({ type: 'error', text: 'Relace vypršela, budete přesměrováni na přihlášení' });
-      }
-    } catch (error) {
-      console.error('Chyba při změně hesla:', error);
-      setMessage({ type: 'error', text: 'Chyba při změně hesla' });
+      
+      setPasswordDialog(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setSuccess('Heslo bylo úspěšně změněno');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+      
+    } catch (err) {
+      console.error('Failed to change password:', err);
+      setPasswordError(err.message || 'Nepodařilo se změnit heslo');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCancelEdit = () => {
-    setFormData({
-      firstName: userInfo?.firstName || '',
-      lastName: userInfo?.lastName || '',
-      email: userInfo?.email || '',
-      username: userInfo?.username || ''
-    });
-    setEditing(false);
-    setMessage({ type: '', text: '' });
+  const getDisplayName = () => {
+    if (!profile) return 'N/A';
+    if (profile.firstName && profile.lastName) {
+      return `${profile.firstName} ${profile.lastName}`;
+    }
+    return profile.username || profile.email || 'N/A';
+  };
+
+  const getInitials = () => {
+    if (!profile) return '?';
+    if (profile.firstName && profile.lastName) {
+      return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
+    }
+    if (profile.username) {
+      return profile.username.substring(0, 2).toUpperCase();
+    }
+    return '?';
   };
 
   if (loading) {
@@ -190,23 +181,104 @@ const MyProfilePage = () => {
   return (
     <PageContainer title="Můj profil" description="Správa uživatelského profilu">
       <Grid container spacing={3}>
-        {/* Hlavní profil */}
+        
+        {/* Success/Error Messages */}
+        {success && (
+          <Grid item xs={12}>
+            <Alert severity="success" onClose={() => setSuccess(null)}>
+              {success}
+            </Alert>
+          </Grid>
+        )}
+        
+        {error && (
+          <Grid item xs={12}>
+            <Alert severity="error" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          </Grid>
+        )}
+
+        {/* Profile Overview Card */}
+        <Grid item xs={12} md={4}>
+          <DashboardCard title="Přehled profilu">
+            <Box display="flex" flexDirection="column" alignItems="center" p={2}>
+              <Avatar 
+                sx={{ 
+                  width: 80, 
+                  height: 80, 
+                  mb: 2,
+                  backgroundColor: 'primary.main',
+                  fontSize: '2rem'
+                }}
+              >
+                {getInitials()}
+              </Avatar>
+              
+              <Typography variant="h5" gutterBottom>
+                {getDisplayName()}
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                @{profile?.username}
+              </Typography>
+              
+              <Box display="flex" gap={1} flexWrap="wrap" justifyContent="center" mt={2}>
+                {profile?.roles?.map((role) => (
+                  <Chip 
+                    key={role} 
+                    label={role} 
+                    size="small" 
+                    color="primary" 
+                    variant="outlined" 
+                  />
+                ))}
+              </Box>
+              
+              <Divider sx={{ width: '100%', my: 2 }} />
+              
+              <Box width="100%">
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Status:</strong> {profile?.enabled ? 'Aktivní' : 'Neaktivní'}
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" mt={1}>
+                  <strong>Email ověřen:</strong> {profile?.emailVerified ? 'Ano' : 'Ne'}
+                </Typography>
+                
+                {profile?.createdTimestamp && (
+                  <Typography variant="body2" color="text.secondary" mt={1}>
+                    <strong>Registrace:</strong> {new Date(profile.createdTimestamp).toLocaleDateString('cs-CZ')}
+                  </Typography>
+                )}
+              </Box>
+            </Box>
+          </DashboardCard>
+        </Grid>
+
+        {/* Profile Details Card */}
         <Grid item xs={12} md={8}>
-          <DashboardCard title="Osobní údaje">
-            {message.text && (
-              <Alert severity={message.type} sx={{ mb: 3 }}>
-                {message.text}
-              </Alert>
-            )}
-            
+          <DashboardCard 
+            title="Detaily profilu"
+            action={
+              <Button
+                variant={isEditing ? "outlined" : "contained"}
+                startIcon={isEditing ? <IconX /> : <IconEdit />}
+                onClick={handleEditToggle}
+                disabled={saving}
+              >
+                {isEditing ? 'Zrušit' : 'Upravit'}
+              </Button>
+            }
+          >
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Křestní jméno"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  disabled={!editing}
+                  label="Jméno"
+                  value={isEditing ? editedProfile.firstName : (profile?.firstName || '')}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, firstName: e.target.value }))}
+                  disabled={!isEditing}
                   InputProps={{
                     startAdornment: <IconUser size={20} style={{ marginRight: 8 }} />
                   }}
@@ -217,9 +289,9 @@ const MyProfilePage = () => {
                 <TextField
                   fullWidth
                   label="Příjmení"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  disabled={!editing}
+                  value={isEditing ? editedProfile.lastName : (profile?.lastName || '')}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, lastName: e.target.value }))}
+                  disabled={!isEditing}
                   InputProps={{
                     startAdornment: <IconUser size={20} style={{ marginRight: 8 }} />
                   }}
@@ -229,11 +301,11 @@ const MyProfilePage = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="E-mail"
+                  label="Email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  disabled={!editing}
+                  value={isEditing ? editedProfile.email : (profile?.email || '')}
+                  onChange={(e) => setEditedProfile(prev => ({ ...prev, email: e.target.value }))}
+                  disabled={!isEditing}
                   InputProps={{
                     startAdornment: <IconMail size={20} style={{ marginRight: 8 }} />
                   }}
@@ -244,222 +316,132 @@ const MyProfilePage = () => {
                 <TextField
                   fullWidth
                   label="Uživatelské jméno"
-                  value={formData.username}
-                  disabled={true}
+                  value={profile?.username || ''}
+                  disabled
                   helperText="Uživatelské jméno nelze změnit"
-                  InputProps={{
-                    startAdornment: <IconUserCircle size={20} style={{ marginRight: 8 }} />
-                  }}
                 />
               </Grid>
-            </Grid>
-            
-            <Box mt={3} display="flex" gap={2}>
-              {!editing ? (
-                <>
-                  <Button
-                    variant="contained"
-                    startIcon={<IconEdit />}
-                    onClick={() => setEditing(true)}
-                  >
-                    Upravit profil
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<IconKey />}
-                    onClick={() => setPasswordDialogOpen(true)}
-                  >
-                    Změnit heslo
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="contained"
-                    startIcon={<IconCheck />}
-                    onClick={handleSaveProfile}
-                    disabled={saving}
-                  >
-                    {saving ? <CircularProgress size={20} /> : 'Uložit'}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    startIcon={<IconX />}
-                    onClick={handleCancelEdit}
-                    disabled={saving}
-                  >
-                    Zrušit
-                  </Button>
-                </>
+              
+              {isEditing && (
+                <Grid item xs={12}>
+                  <Box display="flex" gap={2} justifyContent="flex-end">
+                    <Button
+                      variant="outlined"
+                      onClick={handleEditToggle}
+                      disabled={saving}
+                    >
+                      Zrušit
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={saving ? <CircularProgress size={16} /> : <IconCheck />}
+                      onClick={handleProfileSave}
+                      disabled={saving}
+                    >
+                      {saving ? 'Ukládám...' : 'Uložit změny'}
+                    </Button>
+                  </Box>
+                </Grid>
               )}
-            </Box>
+            </Grid>
           </DashboardCard>
         </Grid>
 
-        {/* Sidebar s avatarem a základními info */}
-        <Grid item xs={12} md={4}>
-          <DashboardCard title="Profil">
-            <Box display="flex" flexDirection="column" alignItems="center" textAlign="center">
-              <Avatar
-                sx={{
-                  width: 100,
-                  height: 100,
-                  fontSize: '2rem',
-                  bgcolor: 'primary.main',
-                  mb: 2
-                }}
-              >
-                {userInfo?.firstName?.charAt(0) || userInfo?.username?.charAt(0) || 'U'}
-              </Avatar>
-              
-              <Typography variant="h5" gutterBottom>
-                {userInfo?.firstName && userInfo?.lastName 
-                  ? `${userInfo.firstName} ${userInfo.lastName}`
-                  : userInfo?.name || userInfo?.username || 'Uživatel'
-                }
-              </Typography>
-              
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                @{userInfo?.username}
-              </Typography>
-              
-              <Typography variant="body2" color="textSecondary">
-                {userInfo?.email}
-              </Typography>
-            </Box>
-          </DashboardCard>
-        </Grid>
-
-        {/* Role uživatele */}
+        {/* Security Actions Card */}
         <Grid item xs={12}>
-          <DashboardCard title="Uživatelské role">
-            <Box display="flex" alignItems="center" mb={2}>
-              <IconShield size={20} style={{ marginRight: 8 }} />
-              <Typography variant="h6">Přiřazené role</Typography>
+          <DashboardCard title="Bezpečnost">
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                Správa bezpečnostních nastavení vašeho účtu
+              </Typography>
+              
+              <Button
+                variant="outlined"
+                startIcon={<IconKey />}
+                onClick={() => setPasswordDialog(true)}
+                sx={{ mt: 2 }}
+              >
+                Změnit heslo
+              </Button>
             </Box>
-            
-            {userInfo?.roles && userInfo.roles.length > 0 ? (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Role</TableCell>
-                      <TableCell>Popis</TableCell>
-                      <TableCell>Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {userInfo.roles.map((role, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <Box display="flex" alignItems="center">
-                            <Chip 
-                              label={role}
-                              variant="outlined"
-                              color={role.includes('admin') ? 'error' : 'primary'}
-                              size="small"
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          {getRoleDescription(role)}
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label="Aktivní"
-                            color="success"
-                            size="small"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Alert severity="info">
-                Nejsou přiřazeny žádné role
-              </Alert>
-            )}
           </DashboardCard>
         </Grid>
       </Grid>
 
-      {/* Dialog pro změnu hesla */}
+      {/* Password Change Dialog */}
       <Dialog 
-        open={passwordDialogOpen} 
-        onClose={() => setPasswordDialogOpen(false)}
+        open={passwordDialog} 
+        onClose={() => setPasswordDialog(false)}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Změna hesla</DialogTitle>
         <DialogContent>
-          <Box pt={1}>
-            <TextField
-              fullWidth
-              label="Současné heslo"
-              type="password"
-              value={passwordData.currentPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-              margin="normal"
-              error={!!passwordErrors.currentPassword}
-              helperText={passwordErrors.currentPassword}
-            />
+          {passwordError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {passwordError}
+            </Alert>
+          )}
+          
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Současné heslo"
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                required
+              />
+            </Grid>
             
-            <TextField
-              fullWidth
-              label="Nové heslo"
-              type="password"
-              value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              margin="normal"
-              error={!!passwordErrors.newPassword}
-              helperText={passwordErrors.newPassword || "Heslo musí mít alespoň 6 znaků"}
-            />
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Nové heslo"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                required
+                helperText="Alespoň 8 znaků"
+              />
+            </Grid>
             
-            <TextField
-              fullWidth
-              label="Potvrdit nové heslo"
-              type="password"
-              value={passwordData.confirmPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-              margin="normal"
-              error={!!passwordErrors.confirmPassword}
-              helperText={passwordErrors.confirmPassword}
-            />
-          </Box>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Potvrzení nového hesla"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                required
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPasswordDialogOpen(false)} disabled={saving}>
+          <Button 
+            onClick={() => {
+              setPasswordDialog(false);
+              setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              setPasswordError(null);
+            }}
+            disabled={saving}
+          >
             Zrušit
           </Button>
-          <Button 
-            onClick={handleChangePassword} 
+          <Button
             variant="contained"
-            disabled={saving || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+            onClick={handlePasswordChange}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={16} /> : null}
           >
-            {saving ? <CircularProgress size={20} /> : 'Změnit heslo'}
+            {saving ? 'Měním heslo...' : 'Změnit heslo'}
           </Button>
         </DialogActions>
       </Dialog>
     </PageContainer>
   );
-};
-
-// Pomocná funkce pro popis rolí
-const getRoleDescription = (role) => {
-  const descriptions = {
-    'admin': 'Administrátorská role s plnými právy',
-    'user': 'Standardní uživatelská role',
-    'moderator': 'Moderátorská role s rozšířenými právy',
-    'editor': 'Role editora s právy k úpravám obsahu',
-    'viewer': 'Role pouze pro čtení',
-    'default-roles-core-platform': 'Výchozí systémová role',
-    'offline_access': 'Přístup k offline funkcím',
-    'uma_authorization': 'Autorizační role'
-  };
-  
-  return descriptions[role] || 'Systémová role';
 };
 
 export default MyProfilePage;

@@ -2,9 +2,6 @@ package cz.muriel.core.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.muriel.core.auth.dto.LoginRequest;
-import cz.muriel.core.auth.dto.PasswordChangeRequest;
-import cz.muriel.core.auth.dto.UpdateProfileRequest;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,8 +20,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
-@RestController
-@RequestMapping("/api")
+/**
+ * 🔐 Clean Keycloak Auth Controller Obsahuje pouze endpointy pro komunikaci s
+ * Keycloak - žádné hybridní API
+ */
+@RestController @RequestMapping("/api")
 public class AuthController {
   private static final String ACCESS_COOKIE = "at";
   private static final String REFRESH_COOKIE = "rt";
@@ -33,87 +33,18 @@ public class AuthController {
   private static final Logger auditLogger = LoggerFactory.getLogger("AUDIT");
 
   private final KeycloakClient kc;
-  private final KeycloakAdminService adminService;
   private final ObjectMapper om;
   private final JwtDecoder jwtDecoder;
-  private final RestTemplate restTemplate;
 
-  // Loki configuration
-  private static final String LOKI_URL = "http://core-loki:3100/loki/api/v1/push";
-
-  public AuthController(KeycloakClient kc, KeycloakAdminService adminService, ObjectMapper om, JwtDecoder jwtDecoder,
-      RestTemplate restTemplate) {
+  public AuthController(KeycloakClient kc, ObjectMapper om, JwtDecoder jwtDecoder) {
     this.kc = kc;
-    this.adminService = adminService;
     this.om = om;
     this.jwtDecoder = jwtDecoder;
-    this.restTemplate = restTemplate;
   }
 
-  @PostMapping("/auth/login")
-  public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletResponse resp) {
-    auditLogger.info("LOGIN_ATTEMPT: User {} attempting login", req.getUsername());
-
-    try {
-      JsonNode tok = kc.tokenByPassword(req.getUsername(), req.getPassword());
-      String access = tok.path("access_token").asText(null);
-      String refresh = tok.path("refresh_token").asText(null);
-      int expiresIn = tok.path("expires_in").asInt(300);
-      if (access == null || refresh == null) {
-        auditLogger.warn("LOGIN_FAILED: Invalid credentials for user {}", req.getUsername());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid_credentials"));
-      }
-      setCookie(resp, ACCESS_COOKIE, access, Duration.ofSeconds(expiresIn));
-      setCookie(resp, REFRESH_COOKIE, refresh, Duration.ofDays(7));
-
-      Map<String, Object> userMap = new HashMap<>(basicUserFromJwt(access));
-      try {
-        JsonNode me = kc.userinfo(access);
-        Map<String, Object> ui = om.convertValue(me, Map.class);
-        if (ui != null)
-          userMap.putAll(ui);
-      } catch (Exception ignore) {
-      }
-
-      auditLogger.info("LOGIN_SUCCESS: User {} successfully logged in", req.getUsername());
-
-      Map<String, Object> body = new HashMap<>();
-      body.put("accessToken", access);
-      body.putAll(userMap);
-      body.put("roles", rolesFromJwt(access));
-      return ResponseEntity.ok(body);
-    } catch (Exception e) {
-      auditLogger.error("LOGIN_ERROR: Login failed for user {} - {}", req.getUsername(), e.getMessage());
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(Map.of("error", "login_failed", "detail", e.getMessage()));
-    }
-  }
-
-  @GetMapping("/auth/me")
-  public ResponseEntity<?> me(HttpServletRequest request) {
-    try {
-      String at = getCookie(request, ACCESS_COOKIE).orElse(null);
-      if (at == null)
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-      Map<String, Object> userMap = new HashMap<>(basicUserFromJwt(at));
-      try {
-        JsonNode me = kc.userinfo(at);
-        Map<String, Object> ui = om.convertValue(me, Map.class);
-        if (ui != null)
-          userMap.putAll(ui);
-      } catch (Exception ignore) {
-      }
-
-      Map<String, Object> body = new HashMap<>();
-      body.putAll(userMap);
-      body.put("roles", rolesFromJwt(at));
-      return ResponseEntity.ok(body);
-    } catch (Exception e) {
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "unauthorized"));
-    }
-  }
-
+  /**
+   * 🔑 Logout endpoint - odhlásí uživatele z Keycloak
+   */
   @PostMapping("/auth/logout")
   public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
     String userId = "unknown";
@@ -143,25 +74,13 @@ public class AuthController {
     return ResponseEntity.noContent().build();
   }
 
-  @PostMapping("/auth/change-password")
-  public ResponseEntity<?> changePassword(@RequestBody PasswordChangeRequest req, @AuthenticationPrincipal Jwt jwt) {
-    String userId = jwt.getSubject();
-    String adminUserId = jwt.getClaimAsString("preferred_username");
-
-    try {
-      adminService.changeUserPassword(userId, req.getNewPassword(), adminUserId);
-      auditLogger.info("PASSWORD_CHANGE_SUCCESS: Password changed for user {} by {}", userId, adminUserId);
-      return ResponseEntity.noContent().build();
-    } catch (Exception e) {
-      auditLogger.error("PASSWORD_CHANGE_FAILED: Password change failed for user {} by {} - {}",
-          userId, adminUserId, e.getMessage());
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-          .body(Map.of("error", "change_failed", "detail", e.getMessage()));
-    }
-  }
-
+  /**
+   * 🔑 Session endpoint - vytvoří session z Keycloak tokenu Používá se po
+   * Keycloak redirectu pro vytvoření cookies
+   */
   @PostMapping("/auth/session")
-  public ResponseEntity<?> establishSession(@RequestHeader(value = "Authorization", required = false) String authHeader,
+  public ResponseEntity<?> establishSession(
+      @RequestHeader(value = "Authorization", required = false) String authHeader,
       HttpServletResponse resp) {
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "missing_bearer"));
@@ -171,7 +90,8 @@ public class AuthController {
       Jwt jwt = jwtDecoder.decode(token);
       Instant now = Instant.now();
       Instant exp = jwt.getExpiresAt();
-      Duration maxAge = (exp != null && exp.isAfter(now)) ? Duration.between(now, exp) : Duration.ofMinutes(5);
+      Duration maxAge = (exp != null && exp.isAfter(now)) ? Duration.between(now, exp)
+          : Duration.ofMinutes(5);
       setCookie(resp, ACCESS_COOKIE, token, maxAge);
 
       Map<String, Object> userMap = new HashMap<>(basicUserFromJwt(token));
@@ -192,45 +112,16 @@ public class AuthController {
     }
   }
 
-  @PutMapping("/auth/profile")
-  public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest req, @AuthenticationPrincipal Jwt jwt) {
-    String userId = jwt.getSubject();
-    String adminUserId = jwt.getClaimAsString("preferred_username");
-
-    try {
-      adminService.updateUserProfile(userId, req.getFirstName(), req.getLastName(), req.getEmail(), adminUserId);
-
-      Map<String, Object> userMap = new HashMap<>(basicUserFromJwt(jwt.getTokenValue()));
-      try {
-        JsonNode me = kc.userinfo(jwt.getTokenValue());
-        Map<String, Object> ui = om.convertValue(me, Map.class);
-        if (ui != null)
-          userMap.putAll(ui);
-      } catch (Exception ignore) {
-      }
-
-      Map<String, Object> body = new HashMap<>();
-      body.putAll(userMap);
-      body.put("roles", rolesFromJwt(jwt.getTokenValue()));
-
-      auditLogger.info("PROFILE_UPDATE_SUCCESS: Profile updated for user {} by {}", userId, adminUserId);
-      return ResponseEntity.ok(body);
-    } catch (Exception e) {
-      auditLogger.error("PROFILE_UPDATE_FAILED: Profile update failed for user {} by {} - {}",
-          userId, adminUserId, e.getMessage());
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-          .body(Map.of("error", "profile_update_failed", "detail", e.getMessage()));
-    }
-  }
-
-  @GetMapping("/me")
+  /**
+   * 🔑 Alternative userinfo endpoint for direct JWT access
+   */
+  @GetMapping("/auth/userinfo")
   public Map<String, Object> getUserInfo(@AuthenticationPrincipal Jwt jwt) {
-    return Map.of(
-        "username", jwt.getClaimAsString("preferred_username"),
-        "email", jwt.getClaimAsString("email"),
-        "roles", jwt.getClaimAsStringList("realm_access.roles"));
+    return Map.of("username", jwt.getClaimAsString("preferred_username"), "email",
+        jwt.getClaimAsString("email"), "roles", jwt.getClaimAsStringList("realm_access.roles"));
   }
 
+  // Utility methods
   private Map<String, Object> basicUserFromJwt(String jwtStr) {
     try {
       Jwt jwt = jwtDecoder.decode(jwtStr);
@@ -283,25 +174,16 @@ public class AuthController {
     return Optional.empty();
   }
 
-  private static void setCookie(HttpServletResponse resp, String name, String value, Duration maxAge) {
-    ResponseCookie cookie = ResponseCookie.from(name, value)
-        .httpOnly(true)
-        .secure(false)
-        .path("/")
-        .sameSite("Lax")
-        .maxAge(maxAge)
-        .build();
+  private static void setCookie(HttpServletResponse resp, String name, String value,
+      Duration maxAge) {
+    ResponseCookie cookie = ResponseCookie.from(name, value).httpOnly(true).secure(false).path("/")
+        .sameSite("Lax").maxAge(maxAge).build();
     resp.addHeader("Set-Cookie", cookie.toString());
   }
 
   private static void clearCookie(HttpServletResponse resp, String name) {
-    ResponseCookie cookie = ResponseCookie.from(name, "")
-        .httpOnly(true)
-        .secure(false)
-        .path("/")
-        .sameSite("Lax")
-        .maxAge(Duration.ZERO)
-        .build();
+    ResponseCookie cookie = ResponseCookie.from(name, "").httpOnly(true).secure(false).path("/")
+        .sameSite("Lax").maxAge(Duration.ZERO).build();
     resp.addHeader("Set-Cookie", cookie.toString());
   }
 }

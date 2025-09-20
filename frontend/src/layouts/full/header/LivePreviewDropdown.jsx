@@ -4,8 +4,7 @@ import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import { IconDeviceLaptop, IconExternalLink } from '@tabler/icons-react';
-import { Link } from 'react-router';
+import { IconDeviceLaptop } from '@tabler/icons-react';
 import { Box } from '@mui/material';
 
 const StyledMenu = styled((props) => (
@@ -51,18 +50,8 @@ const StyledMenu = styled((props) => (
   },
 }));
 
-// Styling Link within MenuItem
-const StyledLink = styled(Link)(({ theme }) => ({
-  textDecoration: 'none',
-  color: '#000c29',
-  borderRadius: '4px',
-  '&:hover': {
-    backgroundColor: '#000c290d',
-  },
-}));
-
 // Styled button with outline style
-const StyledButton = styled(Button)(({ theme }) => ({
+const StyledButton = styled(Button)(() => ({
   border: `1px solid rgba(255,255,255,.4)`,
   fontSize: '16px',
   color: '#ffffff',

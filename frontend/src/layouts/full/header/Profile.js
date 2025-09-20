@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router';
 import {
   Avatar,
@@ -13,28 +13,18 @@ import {
   Divider
 } from '@mui/material';
 
-import { IconLogout, IconUser, IconUserCircle } from '@tabler/icons-react';
-import authService from '../../../services/auth';
+import { IconLogout, IconUser, IconUserCircle, IconKey, IconSettings } from '@tabler/icons-react';
+import keycloakService from '../../../services/keycloakService';
+import { useUserInfo } from '../../../hooks/useUserInfo';
 
 const Profile = () => {
-  const [anchorEl2, setAnchorEl2] = useState(null);
-  const [userInfo, setUserInfo] = useState(null);
-
-  useEffect(() => {
-    // Načtení informací o uživateli z backend API
-    const loadUserInfo = async () => {
-      try {
-        const user = await authService.getUserInfo();
-        setUserInfo(user);
-      } catch (error) {
-        // Fallback na synchronní verzi pro rychlé zobrazení
-        const fallbackUser = authService.getUserInfoSync();
-        setUserInfo(fallbackUser);
-      }
-    };
-
-    loadUserInfo();
-  }, []);
+  const [anchorEl2, setAnchorEl2] = React.useState(null);
+  
+  // Použij useUserInfo hook pro aktuální data
+  const { userInfo, getDisplayName, isAdmin } = useUserInfo({
+    refreshInterval: 5 * 60 * 1000, // Refresh každých 5 minut
+    autoRefresh: true
+  });
 
   const handleClick2 = (event) => {
     setAnchorEl2(event.currentTarget);
@@ -46,13 +36,13 @@ const Profile = () => {
 
   const handleLogout = async () => {
     handleClose2();
-    await authService.logout();
+    await keycloakService.logout();
   };
 
   // Zobrazení prvního písmena jména jako avatar
   const getAvatarLetter = () => {
-    if (userInfo?.name) {
-      return userInfo.name.charAt(0).toUpperCase();
+    if (userInfo?.firstName) {
+      return userInfo.firstName.charAt(0).toUpperCase();
     }
     if (userInfo?.username) {
       return userInfo.username.charAt(0).toUpperCase();
@@ -79,7 +69,7 @@ const Profile = () => {
           sx={{
             width: 35,
             height: 35,
-            bgcolor: 'primary.main',
+            bgcolor: isAdmin() ? 'error.main' : 'primary.main',
             color: 'white'
           }}
         >
@@ -104,16 +94,21 @@ const Profile = () => {
         {/* Informace o uživateli */}
         <Box px={2} py={1}>
           <Typography variant="subtitle1" fontWeight="bold">
-            {userInfo?.name || userInfo?.username || 'Uživatel'}
+            {getDisplayName()}
           </Typography>
           {userInfo?.email && (
             <Typography variant="body2" color="textSecondary">
               {userInfo.email}
             </Typography>
           )}
-          {userInfo?.roles && userInfo.roles.length > 0 && (
+          {userInfo?.department && (
             <Typography variant="caption" color="primary">
-              Role: {userInfo.roles.join(', ')}
+              {userInfo.department}
+            </Typography>
+          )}
+          {userInfo?.roles && userInfo.roles.length > 0 && (
+            <Typography variant="caption" color="primary" display="block">
+              Role: {userInfo.roles.slice(0, 2).join(', ')}{userInfo.roles.length > 2 ? '...' : ''}
             </Typography>
           )}
         </Box>
@@ -130,12 +125,30 @@ const Profile = () => {
           </ListItemText>
         </MenuItem>
 
-        <MenuItem component={Link} to="/profile" onClick={handleClose2}>
+        <MenuItem component={Link} to="/me" onClick={handleClose2}>
           <ListItemIcon>
             <IconUser width={20} />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="subtitle2">Můj profil</Typography>
+            <Typography variant="subtitle2">Můj účet</Typography>
+          </ListItemText>
+        </MenuItem>
+
+        <MenuItem onClick={() => { keycloakService.openPasswordChange(); handleClose2(); }}>
+          <ListItemIcon>
+            <IconKey width={20} />
+          </ListItemIcon>
+          <ListItemText>
+            <Typography variant="subtitle2">Změnit heslo</Typography>
+          </ListItemText>
+        </MenuItem>
+
+        <MenuItem onClick={() => { keycloakService.openAccountConsole(); handleClose2(); }}>
+          <ListItemIcon>
+            <IconSettings width={20} />
+          </ListItemIcon>
+          <ListItemText>
+            <Typography variant="subtitle2">Správa účtu</Typography>
           </ListItemText>
         </MenuItem>
 

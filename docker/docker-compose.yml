@@ -1,15 +1,41 @@
 services:
+  # 🌐 Nginx reverse proxy - SSL/HTTPS configuration
+  nginx:
+    image: nginx:alpine
+    container_name: core-nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+    volumes:
+      - ./nginx/nginx-ssl.conf.template:/etc/nginx/templates/nginx-ssl.conf.template:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot-www:/var/www/certbot:ro
+    command: >
+      sh -c "envsubst '$$DOMAIN' < /etc/nginx/templates/nginx-ssl.conf.template > /etc/nginx/nginx.conf && 
+             exec nginx -g 'daemon off;'"
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+    networks:
+      - core-net
+    restart: unless-stopped
+
+  # 🗄️ Database
   db:
     image: postgres:16
     container_name: core-db
     environment:
       POSTGRES_USER: core
       POSTGRES_PASSWORD: core
-      POSTGRES_DB: core
+      POSTGRES_DB: core,keycloak
     volumes:
       - core_db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     networks:
       - core-net
     healthcheck:
@@ -18,6 +44,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # 🗄️ PgAdmin
   pgadmin:
     image: dpage/pgadmin4
     container_name: core-pgadmin
@@ -29,76 +56,72 @@ services:
     networks:
       - core-net
 
+  # 🏗️ Backend
   backend:
     build:
       context: ../backend
       dockerfile: ../docker/backend/Dockerfile
     container_name: core-backend
-    ports:
-      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
       keycloak:
-        condition: service_started
+        condition: service_healthy
       loki:
         condition: service_started
-    # 🔐 SECURITY: Load environment variables from .env file
-    env_file:
-      - .env
     environment:
-      - OIDC_ISSUER=${OIDC_ISSUER}
-      - OIDC_API_AUDIENCE=${OIDC_API_AUDIENCE}
-      - CORS_ORIGINS=${CORS_ORIGINS}
-      # 🔐 SECURE: Keycloak Admin Service credentials from .env
-      - KEYCLOAK_ADMIN_BASE_URL=${KEYCLOAK_ADMIN_BASE_URL}
-      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM}
-      - KEYCLOAK_ADMIN_CLIENT_ID=${KEYCLOAK_ADMIN_CLIENT_ID}
-      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
-      - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM}
-      # Application security
-      - APP_SECRET_KEY=${APP_SECRET_KEY}
-      - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
-      # 🔧 BETTER: Logging configuration přes environment variables
-      - LOKI_URL=http://loki:3100/loki/api/v1/push
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LOGGING_LEVEL_ROOT=INFO
-      - LOGGING_LEVEL_CZ_MURIEL_CORE=DEBUG
-      - SPRING_PROFILES_ACTIVE=development
       - ENVIRONMENT=${ENVIRONMENT:-development}
-      # Audit logging
-      - AUDIT_LOG_LEVEL=${AUDIT_LOG_LEVEL:-INFO}
+      # Issuer URI - veřejná adresa pro validaci 'iss' claimu v JWT
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=https://${DOMAIN}/realms/core-platform
+      # Audience pro JWT validaci
+      - OIDC_API_AUDIENCE=api
+      # JWK Set URI - interní adresa pro discovery v rámci Docker sítě
+      - OIDC_JWK_SET_URI=http://keycloak:8080/realms/core-platform/protocol/openid-connect/certs
+      # Keycloak admin URL - interní komunikace
+      - KEYCLOAK_ADMIN_BASE_URL=http://keycloak:8080
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://${DOMAIN}}
+      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
+      - LOKI_URL=http://loki:3100/loki/api/v1/push
+      - LOG_LEVEL=DEBUG
+      - SPRING_PROFILES_ACTIVE=development
+      - KEYCLOAK_ADMIN_CLIENT_ID=${KEYCLOAK_ADMIN_CLIENT_ID:-admin-cli}
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET:-}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
+      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM:-master}
+      - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM:-core-platform}
     logging:
-      driver: loki
+      driver: loki 
       options:
         loki-url: "http://localhost:3100/loki/api/v1/push"
-        loki-external-labels: "service=backend,environment=development"
-        loki-pipeline-stages: |
-          - docker: {}
+        loki-external-labels: "service=backend,environment=${ENVIRONMENT:-development}"
     networks:
       - core-net
+    restart: unless-stopped
 
+  # 🛡️ Frontend  
   frontend:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend/Dockerfile
-      target: dev
+      target: development
     container_name: core-frontend
-    ports:
-      - "3000:3000"
     environment:
       - HOST=0.0.0.0
-      - VITE_API_TARGET=http://backend:8080
+      - VITE_API_TARGET=https://${DOMAIN}/api
       - VITE_LOKI_TARGET=http://loki:3100
+      - VITE_KEYCLOAK_URL=https://${DOMAIN}
+      - VITE_KEYCLOAK_REALM=core-platform
+      - VITE_KEYCLOAK_CLIENT_ID=web
     volumes:
       - ../frontend:/app
       - ../frontend/node_modules:/app/node_modules
     command: ["sh", "-c", "npm install && npm run dev -- --port 3000 --host 0.0.0.0"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     depends_on:
       backend:
         condition: service_started
@@ -108,24 +131,70 @@ services:
       driver: loki
       options:
         loki-url: "http://localhost:3100/loki/api/v1/push"
-        loki-external-labels: "service=frontend,environment=development"
-        loki-pipeline-stages: |
-          - docker: {}
+        loki-external-labels: "service=frontend,environment=${ENVIRONMENT:-development}"
     networks:
       - core-net
+    restart: unless-stopped
 
+  # 🔐 Keycloak
+  keycloak:
+    build:
+      context: ..
+      dockerfile: docker/keycloak/Dockerfile
+    container_name: core-keycloak
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/realms/core-platform || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    environment:
+      # Proxy konfigurace pro nginx
+      - KC_HOSTNAME=${DOMAIN}
+      - KC_PROXY=edge
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME_STRICT=false
+      - KC_PROXY_HEADERS=xforwarded
+      
+      # Debug logování
+      - KEYCLOAK_LOGLEVEL=DEBUG
+      - ROOT_LOGLEVEL=DEBUG
+      
+      # PostgreSQL databáze - opraveno na správné DB jméno a credentials
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+      
+      # Admin účet - explicitně definované credentials
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      
+      # Další features
+      - KC_FEATURES=scripts,token-exchange,admin-fine-grained-authz
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8081}:8080"
+    command: ["start", "--verbose", "--import-realm"]
+    networks:
+      - core-net
+    restart: "no"
+
+  # 📊 Monitoring Stack
   grafana:
     image: grafana/grafana:10.4.0
     container_name: core-grafana
     ports:
-      - "3001:3000"
+      - "${GRAFANA_PORT:-3001}:3000"
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
-      - GF_INSTALL_PLUGINS=
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
@@ -136,7 +205,7 @@ services:
     image: grafana/loki:3.0.0
     container_name: core-loki
     ports:
-      - "3100:3100"
+      - "${LOKI_PORT:-3100}:3100"
     command: -config.file=/etc/loki/config.yml
     volumes:
       - ./loki/config.yml:/etc/loki/config.yml
@@ -165,7 +234,7 @@ services:
     image: prom/prometheus:v2.54.0
     container_name: core-prometheus
     ports:
-      - "9091:9090"  # Změna z 9090:9090 na 9091:9090
+      - "9091:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
@@ -216,42 +285,12 @@ services:
     networks:
       - core-net
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.2.0
-    container_name: keycloak
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["start-dev", "--import-realm", "--import-strategy=OVERWRITE"]
-    environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://db:5432/core
-      KC_DB_USERNAME: core
-      KC_DB_PASSWORD: core
-      KC_HEALTH_ENABLED: "true"
-      # 🔧 FIX: Nový formát pro Keycloak 26.2.0 (bez deprecated v1 options)
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_STRICT: "false"
-      KC_HTTP_ENABLED: "true"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
-      # Odstraněno deprecated: KC_HOSTNAME_PORT, KC_HOSTNAME_ADMIN, KC_HOSTNAME_ADMIN_URL
-    ports:
-      - "8081:8080"
-      - "9000:9000"
-      - "8443:8443"
-    volumes:
-      - ./keycloak:/opt/keycloak/data/import:ro
-    networks:
-      - core-net
-    restart: unless-stopped
-
 volumes:
   core_db_data:
   grafana_data:
   loki_data:
   promtail_positions:
+  certbot-www:
 
 networks:
   core-net:

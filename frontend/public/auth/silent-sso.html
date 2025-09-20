@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Silent SSO</title>
+</head>
+<body>
+    <script>
+        // Silent SSO callback pro Keycloak
+        // Tato stránka se používá pro tiché ověření SSO session
+        parent.postMessage(location.href, location.origin);
+    </script>
+</body>
+</html>

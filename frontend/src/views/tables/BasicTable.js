@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Card, CardContent, Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 import ProductPerformance from "../dashboard/components/ProductPerformance";
 

@@ -1,0 +1,112 @@
+/* Login specifické styly pro Material Design theme */
+
+/* Login page container */
+#kc-login {
+  width: 100%;
+}
+
+/* Login form container */
+#kc-form-login {
+  margin-top: 0;
+}
+
+/* Username/email input specific styling */
+#username, #password {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Login button specific */
+#kc-login-btn {
+  margin-top: 1rem;
+  text-transform: none;
+  font-size: 1rem;
+  letter-spacing: normal;
+}
+
+/* Forgot password link */
+#kc-form-options {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+#kc-form-options .checkbox {
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+/* Registration link */
+#kc-registration {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+#kc-registration span {
+  color: var(--text-secondary);
+  margin-right: 0.5rem;
+}
+
+/* Info messages */
+#kc-info-message {
+  margin-bottom: 1rem;
+}
+
+/* Try another way link */
+#kc-attempted-username {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Social providers section */
+#kc-social-providers ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#kc-social-providers li {
+  margin-bottom: 0.75rem;
+}
+
+/* Locale selector */
+#kc-locale {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+#kc-locale-dropdown {
+  background: white;
+  border: 1px solid var(--grey-300);
+  border-radius: var(--border-radius);
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Error page specific */
+#kc-error-message {
+  text-align: center;
+  color: var(--error-main);
+  margin-bottom: 1rem;
+}
+
+/* Terms and conditions */
+#kc-terms-text {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--grey-300);
+  padding: 1rem;
+  margin: 1rem 0;
+  background: var(--grey-100);
+  border-radius: var(--border-radius);
+}
+
+/* Update password form */
+#kc-passwd-update-form .form-group {
+  margin-bottom: 1rem;
+}
+
+/* Required fields indicator */
+.required {
+  color: var(--error-main);
+}

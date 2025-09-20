@@ -37,7 +37,7 @@ class AuthService {
         // Fallback na console.log
         console.log(`🔧 ${message}`, extra);
       }
-    } catch (error) {
+    } catch {
       // Fallback na console.log
       console.log(`🔧 ${message}`, extra);
     }
@@ -54,7 +54,7 @@ class AuthService {
       } else {
         console.error(`❌ ${message}`, extra);
       }
-    } catch (error) {
+    } catch {
       console.error(`❌ ${message}`, extra);
     }
   }
@@ -121,7 +121,7 @@ class AuthService {
     }
   }
 
-  // Získání tokenu pro API volání
+  // Získání tokenu pro API volání (bez require, pouze lokální cache/localStorage)
   getToken() {
     return this.token || localStorage.getItem('keycloak-token');
   }
@@ -167,9 +167,11 @@ class AuthService {
 
   // Přesměrování na přihlašovací stránku
   redirectToLogin() {
-    const currentUrl = encodeURIComponent(window.location.pathname + window.location.search);
-    this._log('AUTHSERVICE: Přesměrovávám na login', { currentUrl });
-    window.location.href = `/auth?redirect=${currentUrl}`;
+    const currentUrl = encodeURIComponent(window.location.origin + window.location.pathname + window.location.search);
+    this._log('AUTHSERVICE: Přesměrovávám na Keycloak login relativně', { currentUrl });
+    // Relativní přesměrování na Keycloak login endpoint přes NGINX
+    const keycloakLoginUrl = `${window.location.origin}/realms/core-platform/protocol/openid-connect/auth?client_id=web&redirect_uri=${currentUrl}&response_type=code&scope=openid%20profile%20email`;
+    window.location.href = keycloakLoginUrl;
   }
 
   // Odhlášení přes backend API a vyčištění localStorage
@@ -212,37 +214,132 @@ class AuthService {
       localStorage.removeItem('keycloak-id-token');
       this.token = null;
       this._log('AUTHSERVICE: localStorage vyčištěn, přesměrovávám na login');
-      window.location.href = '/auth';
+      // 🔧 FIX: Přesměrování na SimpleLoginPage místo starého /auth
+      window.location.href = '/login';
     }
   }
 
   // API volání s automatickým přidáním tokenu
   async apiCall(url, options = {}) {
+    // Vždy se pokus o osvěžení tokenu přes keycloakService před voláním
+    try {
+      const ksModule = await import('./keycloakService');
+      const ks = ksModule.default;
+      if (ks?.keycloak && ks.isAuthenticated()) {
+        try {
+          await ks.keycloak.updateToken(30);
+          // Synchronizuj token do localStorage pro kompatibilitu
+          const fresh = ks.getToken();
+          if (fresh) localStorage.setItem('keycloak-token', fresh);
+        } catch (e) {
+          this._logError('AUTHSERVICE: updateToken před voláním selhal', { error: e?.message });
+        }
+      }
+    } catch {
+      // keycloakService nemusí být dostupný – použijeme localStorage fallback
+    }
+
     const token = this.getToken();
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers
     };
 
-    // Přidej Bearer token pokud existuje
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const response = await fetch(`/api${url}`, {
-      ...options,
-      headers,
-      credentials: 'include' // Pro cookies kompatibilitu
+    const fullUrl = `/api${url}`; // relativně přes Nginx proxy
+
+    this._log('AUTHSERVICE: API call start', {
+      url: url,
+      fullUrl: fullUrl,
+      method: options.method || 'GET',
+      hasToken: !!token,
+      hasBody: !!options.body,
+      architecture: 'nginx-proxy'
     });
 
-    if (response.status === 401) {
-      // Token vypršel nebo je neplatný
-      this._log('AUTHSERVICE: API volání vrátilo 401, odhlašuji');
-      this.logout();
-      return;
-    }
+    try {
+      let response = await fetch(fullUrl, {
+        ...options,
+        headers,
+        credentials: 'include'
+      });
 
-    return response;
+      this._log('AUTHSERVICE: API call response', {
+        url: url,
+        fullUrl: fullUrl,
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
+      if (response.status === 401) {
+        // Pokus o refresh tokenu a jednorázový retry
+        try {
+          const ksModule = await import('./keycloakService');
+          const ks = ksModule.default;
+          if (ks?.keycloak) {
+            const refreshed = await ks.keycloak.updateToken(10);
+            if (refreshed) {
+              const newToken = ks.getToken();
+              if (newToken) localStorage.setItem('keycloak-token', newToken);
+              const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+              response = await fetch(fullUrl, { ...options, headers: retryHeaders, credentials: 'include' });
+            }
+          }
+        } catch {
+          this._logError('AUTHSERVICE: Refresh při 401 selhal');
+        }
+      }
+
+      if (response.status === 401) {
+        // Token vypršel nebo je neplatný i po pokusu o refresh
+        this._logError('AUTHSERVICE: API call returned 401 - unauthorized', {
+          url: url,
+          fullUrl: fullUrl,
+          hasToken: !!token,
+          tokenExpired: this.isTokenExpired()
+        });
+
+        if (this.logger) {
+          this.logger.security('API_401_UNAUTHORIZED', 'API call returned 401 - token invalid or expired', {
+            url: url,
+            fullUrl: fullUrl,
+            method: options.method || 'GET',
+            hasToken: !!token,
+            timestamp: new Date().toISOString()
+          });
+        }
+
+        this.logout();
+        return null;
+      }
+
+      return response;
+
+    } catch (error) {
+      this._logError('AUTHSERVICE: API call failed with exception', {
+        url: url,
+        fullUrl: `/api${url}`,
+        error: error.message,
+        stack: error.stack
+      });
+
+      // Zaloguj jako error event
+      if (this.logger) {
+        this.logger.error('API_CALL_EXCEPTION', 'API call failed with network/other error', {
+          url: url,
+          fullUrl: `/api${url}`,
+          method: options.method || 'GET',
+          error: error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      throw error;
+    }
   }
 }
 

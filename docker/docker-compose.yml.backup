@@ -1,0 +1,182 @@
+services:
+  # 🌐 Nginx reverse proxy - unified for all environments
+  nginx:
+    image: nginx:alpine
+    container_name: core-nginx
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx-unified.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot-www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+    networks:
+      - core-net
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DOMAIN_NAME=${DOMAIN_NAME:-core-platform.local}
+
+  # 🔐 SSL Certificate management (production + staging)
+  certbot:
+    image: certbot/certbot
+    container_name: core-certbot
+    volumes:
+      - ./ssl:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN_NAME}
+    profiles:
+      - ssl
+    networks:
+      - core-net
+
+  # 🗄️ Database - same for all environments
+  db:
+    image: postgres:16
+    container_name: core-db
+    environment:
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: core
+      POSTGRES_DB: core
+    volumes:
+      - core_db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - core-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 🛡️ Frontend - environment aware
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend/Dockerfile
+      target: ${FRONTEND_TARGET:-development}
+      args:
+        - ENVIRONMENT=${ENVIRONMENT:-development}
+        - API_URL=${API_URL:-https://core-platform.local/api}
+        - AUTH_URL=${AUTH_URL:-https://core-platform.local/auth}
+    container_name: core-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_INTERNAL_PORT:-3000}"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - VITE_API_URL=${API_URL:-https://core-platform.local/api}
+      - VITE_AUTH_URL=${AUTH_URL:-https://core-platform.local/auth}
+    volumes:
+      # Development only - removed in production
+      - ../frontend:/app:${FRONTEND_VOLUME_MODE:-rw}
+      - ../frontend/node_modules:/app/node_modules:${FRONTEND_VOLUME_MODE:-rw}
+    networks:
+      - core-net
+    restart: unless-stopped
+
+  # 🏗️ Backend - environment aware
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend/Dockerfile
+      target: ${BACKEND_TARGET:-development}
+    container_name: core-backend
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    env_file:
+      - .env.${ENVIRONMENT:-development}
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - KEYCLOAK_ISSUER_URI=${KEYCLOAK_ISSUER_URI:-https://core-platform.local/auth/realms/core-platform}
+      - KEYCLOAK_INTERNAL_URI=${KEYCLOAK_INTERNAL_URI:-http://keycloak:8080/auth/realms/core-platform}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://core-platform.local}
+      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
+    networks:
+      - core-net
+    restart: unless-stopped
+
+  # 🔐 Keycloak - environment aware
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.0
+    container_name: keycloak
+    command: ["start", "--import-realm", "--import-strategy=OVERWRITE"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://db:5432/core
+      - KC_DB_USERNAME=core
+      - KC_DB_PASSWORD=core
+      - KC_HEALTH_ENABLED=true
+      - KC_HOSTNAME=${DOMAIN_NAME:-core-platform.local}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=${KC_HTTP_ENABLED:-false}
+      - KC_HTTPS_CERTIFICATE_FILE=${KC_HTTPS_CERTIFICATE_FILE:-}
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=${KC_HTTPS_CERTIFICATE_KEY_FILE:-}
+      - KC_HOSTNAME_STRICT_HTTPS=${KC_HOSTNAME_STRICT_HTTPS:-true}
+      - KC_PROXY=${KC_PROXY:-edge}
+      - KC_HOSTNAME_URL=https://${DOMAIN_NAME:-core-platform.local}
+      - KC_HOSTNAME_ADMIN_URL=https://admin.${DOMAIN_NAME:-core-platform.local}
+    ports:
+      - "${KEYCLOAK_PORT:-8081}:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+      - ./ssl:/opt/keycloak/ssl:ro
+    networks:
+      - core-net
+    restart: unless-stopped
+
+  # 📊 Monitoring stack (optional profiles)
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: core-grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=${GF_AUTH_ANONYMOUS_ENABLED:-true}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    profiles:
+      - monitoring
+    networks:
+      - core-net
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: core-loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/config.yml:/etc/loki/config.yml
+      - loki_data:/loki
+    profiles:
+      - monitoring
+    networks:
+      - core-net
+
+volumes:
+  core_db_data:
+  grafana_data:
+  loki_data:
+  certbot-www:
+
+networks:
+  core-net:
+    driver: bridge

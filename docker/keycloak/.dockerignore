@@ -1,0 +1,29 @@
+# Node & frontend artefakty
+node_modules
+dist
+build
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+logs
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+
+# IDE
+.vscode
+.idea

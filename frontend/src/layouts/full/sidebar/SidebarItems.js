@@ -4,62 +4,79 @@ import { Box, Typography, List, ListItem, ListItemButton, ListItemText } from '@
 import { Link, NavLink } from 'react-router';
 import Menuitems from './MenuItems';
 import Logo from '../shared/logo/Logo';
+import useUserRoles from '../../../hooks/useUserRoles';
 
 const SidebarItems = () => {
   const location = useLocation();
   const pathDirect = location.pathname;
+  const { hasAnyRole, loading: rolesLoading } = useUserRoles();
 
   const renderMenuItems = (menuItems) => {
-    return menuItems.map((item) => {
-      if (item.navlabel) {
-        return React.createElement(Typography, {
-          key: item.subheader,
-          variant: "caption",
-          sx: {
-            mt: 2,
-            mb: 1,
-            ml: 2,
-            fontSize: '11px',
-            fontWeight: 700,
-            color: '#A5B4CB',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
-          }
-        }, item.subheader);
-      }
+    return menuItems
+      .filter((item) => {
+        // Pokud položka nemá definované role, zobrazit vždy
+        if (!item.roles || item.roles.length === 0) {
+          return true;
+        }
+        
+        // Pokud se ještě načítají role, nezobrazovat role-restricted položky
+        if (rolesLoading) {
+          return false;
+        }
+        
+        // Zobrazit pouze pokud má uživatel požadované role
+        return hasAnyRole(item.roles);
+      })
+      .map((item) => {
+        if (item.navlabel) {
+          return React.createElement(Typography, {
+            key: item.subheader,
+            variant: "caption",
+            sx: {
+              mt: 2,
+              mb: 1,
+              ml: 2,
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#A5B4CB',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }
+          }, item.subheader);
+        }
 
-      const isSelected = pathDirect === item.href;
-      
-      return React.createElement(ListItem, {
-        key: item.id,
-        disablePadding: true
-      },
-        React.createElement(ListItemButton, {
-          component: Link,
-          to: item.href,
-          target: item.href.startsWith("https") ? "_blank" : "_self",
-          rel: "noopener noreferrer",
-          selected: isSelected,
-          sx: {
-            borderRadius: '8px',
-            mx: 1,
-            my: 0.5,
-            backgroundColor: isSelected ? '#5D87FF' : 'transparent',
-            '&:hover': {
-              backgroundColor: isSelected ? '#5D87FF' : 'rgba(93, 135, 255, 0.1)'
-            }
-          }
+        const isSelected = pathDirect === item.href;
+        
+        return React.createElement(ListItem, {
+          key: item.id,
+          disablePadding: true
         },
-          React.createElement(ListItemText, {
-            primary: item.title,
-            primaryTypographyProps: {
-              color: isSelected ? '#fff' : 'inherit',
-              fontWeight: isSelected ? 600 : 400
+          React.createElement(ListItemButton, {
+            component: Link,
+            to: item.href,
+            target: item.href.startsWith("https") ? "_blank" : "_self",
+            rel: "noopener noreferrer",
+            selected: isSelected,
+            sx: {
+              borderRadius: '8px',
+              mx: 1,
+              my: 0.5,
+              backgroundColor: isSelected ? '#5D87FF' : 'transparent',
+              '&:hover': {
+                backgroundColor: isSelected ? '#5D87FF' : 'rgba(93, 135, 255, 0.1)'
+              }
             }
-          })
-        )
-      );
-    });
+          },
+            React.createElement(ListItemText, {
+              primary: item.title,
+              primaryTypographyProps: {
+                color: isSelected ? '#fff' : 'inherit',
+                fontWeight: isSelected ? 600 : 400
+              }
+            })
+          )
+        );
+      });
   };
 
   return React.createElement(Box, {

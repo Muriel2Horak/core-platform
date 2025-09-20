@@ -2,6 +2,7 @@ package cz.muriel.core.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,31 +12,23 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import cz.muriel.core.dto.*;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 🔐 BEZPEČNÁ implementace Keycloak Admin API
- * 
- * Používá:
- * - Service Account s omezenými právy
- * - Client Secret z environment variables
- * - Token caching s automatickým refresh
- * - Audit logging všech admin operací
- * - Rate limiting a error handling
  */
-@Service
+@Slf4j @Service
 public class KeycloakAdminService {
 
-  private static final Logger logger = LoggerFactory.getLogger(KeycloakAdminService.class);
   private static final Logger auditLogger = LoggerFactory.getLogger("AUDIT");
 
   private final RestTemplate restTemplate = new RestTemplate();
   private final ObjectMapper objectMapper;
 
-  // 🔐 SECURE: Používáme environment variables pro credentials
   @Value("${keycloak.admin.base-url}")
   private String keycloakBaseUrl;
 
@@ -51,28 +44,23 @@ public class KeycloakAdminService {
   @Value("${keycloak.target-realm}")
   private String targetRealm;
 
-  // 🔄 Token cache s TTL
   private final Map<String, TokenCache> tokenCache = new ConcurrentHashMap<>();
 
   public KeycloakAdminService(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
-    logger.info("🔐 SECURITY: KeycloakAdminService initialized with secure configuration");
+    log.info("🔐 SECURITY: KeycloakAdminService initialized with secure configuration");
   }
 
-  /**
-   * 🔐 Bezpečné získání admin tokenu s cachingem
-   */
   private String getSecureAdminToken() {
     final String cacheKey = "admin_token";
     TokenCache cached = tokenCache.get(cacheKey);
 
-    // Zkontroluj cache + TTL buffer (refresh 30s před expirací)
     if (cached != null && cached.expiresAt > Instant.now().getEpochSecond() + 30) {
       return cached.token;
     }
 
     try {
-      auditLogger.info("ADMIN_TOKEN_REQUEST: Requesting new admin token for client: {}", adminClientId);
+      log.info("ADMIN_TOKEN_REQUEST: Requesting new admin token for client: {}", adminClientId);
 
       String url = keycloakBaseUrl + "/realms/" + adminRealm + "/protocol/openid-connect/token";
 
@@ -82,21 +70,21 @@ public class KeycloakAdminService {
       MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
       form.add("grant_type", "client_credentials");
       form.add("client_id", adminClientId);
-      form.add("client_secret", adminClientSecret); // 🔐 SECURE: Client secret z env
-      form.add("scope", "admin"); // Omezený scope
+      form.add("client_secret", adminClientSecret);
+      form.add("scope", "admin");
 
-      ResponseEntity<String> response = restTemplate.postForEntity(
-          url, new HttpEntity<>(form, headers), String.class);
+      ResponseEntity<String> response = restTemplate.postForEntity(url,
+          new HttpEntity<>(form, headers), String.class);
 
       JsonNode tokenResponse = objectMapper.readTree(response.getBody());
       String accessToken = tokenResponse.path("access_token").asText();
       int expiresIn = tokenResponse.path("expires_in").asInt(3600);
 
-      // Cache token s TTL
       TokenCache newCache = new TokenCache(accessToken, Instant.now().getEpochSecond() + expiresIn);
       tokenCache.put(cacheKey, newCache);
 
-      auditLogger.info("ADMIN_TOKEN_SUCCESS: Admin token obtained successfully, expires in: {}s", expiresIn);
+      auditLogger.info("ADMIN_TOKEN_SUCCESS: Admin token obtained successfully, expires in: {}s",
+          expiresIn);
       return accessToken;
 
     } catch (HttpStatusCodeException ex) {
@@ -109,107 +97,483 @@ public class KeycloakAdminService {
     }
   }
 
-  /**
-   * 🔐 Bezpečná změna hesla s auditingem
-   */
-  public void changeUserPassword(String userId, String newPassword, String adminUserId) {
-    auditLogger.info("PASSWORD_CHANGE_REQUEST: Admin {} requesting password change for user {}",
-        adminUserId, userId);
-
-    try {
-      String adminToken = getSecureAdminToken();
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId + "/reset-password";
-
-      HttpHeaders headers = new HttpHeaders();
-      headers.setBearerAuth(adminToken);
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      Map<String, Object> payload = Map.of(
-          "type", "password",
-          "temporary", false,
-          "value", newPassword);
-
-      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(payload, headers), Void.class);
-
-      auditLogger.info("PASSWORD_CHANGE_SUCCESS: Password changed successfully for user {} by admin {}",
-          userId, adminUserId);
-
-    } catch (HttpStatusCodeException ex) {
-      auditLogger.error("PASSWORD_CHANGE_FAILURE: Failed to change password for user {} by admin {}: {} - {}",
-          userId, adminUserId, ex.getStatusCode(), ex.getResponseBodyAsString());
-      throw new SecurityException("Password change failed", ex);
-    }
+  // User Management
+  public List<UserDto> getAllUsers() {
+    return searchUsers(null, null, null, null, null, 0, 100);
   }
 
-  /**
-   * 🔐 Bezpečná aktualizace user profilu s validací
-   */
-  public void updateUserProfile(String userId, String firstName, String lastName, String email, String adminUserId) {
-    auditLogger.info("PROFILE_UPDATE_REQUEST: Admin {} updating profile for user {}", adminUserId, userId);
-
-    // 🛡️ Input validation
-    if (email != null && !isValidEmail(email)) {
-      throw new IllegalArgumentException("Invalid email format");
-    }
-
+  public UserDto getUserById(String id) {
     try {
       String adminToken = getSecureAdminToken();
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId;
-
-      HttpHeaders headers = new HttpHeaders();
-      headers.setBearerAuth(adminToken);
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      Map<String, Object> payload = Map.of(
-          "firstName", sanitizeString(firstName),
-          "lastName", sanitizeString(lastName),
-          "email", sanitizeString(email));
-
-      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(payload, headers), Void.class);
-
-      auditLogger.info("PROFILE_UPDATE_SUCCESS: Profile updated successfully for user {} by admin {}",
-          userId, adminUserId);
-
-    } catch (HttpStatusCodeException ex) {
-      auditLogger.error("PROFILE_UPDATE_FAILURE: Failed to update profile for user {} by admin {}: {} - {}",
-          userId, adminUserId, ex.getStatusCode(), ex.getResponseBodyAsString());
-      throw new SecurityException("Profile update failed", ex);
-    }
-  }
-
-  /**
-   * 🔐 Bezpečné získání user profilu
-   */
-  public JsonNode getUserProfile(String userId, String adminUserId) {
-    auditLogger.info("PROFILE_READ_REQUEST: Admin {} reading profile for user {}", adminUserId, userId);
-
-    try {
-      String adminToken = getSecureAdminToken();
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId;
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + id;
 
       HttpHeaders headers = new HttpHeaders();
       headers.setBearerAuth(adminToken);
 
-      ResponseEntity<String> response = restTemplate.exchange(
-          url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
 
-      auditLogger.info("PROFILE_READ_SUCCESS: Profile read successfully for user {} by admin {}",
-          userId, adminUserId);
+      JsonNode user = objectMapper.readTree(response.getBody());
 
-      return objectMapper.readTree(response.getBody());
+      UserDto userDto = UserDto.builder().id(user.path("id").asText())
+          .username(user.path("username").asText()).email(user.path("email").asText())
+          .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
+          .enabled(user.path("enabled").asBoolean())
+          .emailVerified(user.path("emailVerified").asBoolean()).build();
 
-    } catch (HttpStatusCodeException ex) {
-      auditLogger.error("PROFILE_READ_FAILURE: Failed to read profile for user {} by admin {}: {} - {}",
-          userId, adminUserId, ex.getStatusCode(), ex.getResponseBodyAsString());
-      throw new SecurityException("Profile read failed", ex);
+      List<String> roles = getUserRoles(id);
+      userDto.setRoles(roles);
+
+      return userDto;
+
     } catch (Exception ex) {
-      auditLogger.error("PROFILE_READ_ERROR: Unexpected error reading profile for user {} by admin {}",
-          userId, adminUserId, ex);
-      throw new SecurityException("Profile read error", ex);
+      log.error("Failed to get user by ID: {}", id, ex);
+      throw new RuntimeException("User not found: " + id, ex);
     }
   }
 
-  // 🛡️ Security helpers
+  public UserDto findUserByUsername(String username) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users?username=" + username
+          + "&exact=true";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode users = objectMapper.readTree(response.getBody());
+
+      if (users.isArray() && users.size() > 0) {
+        JsonNode user = users.get(0);
+
+        UserDto userDto = UserDto.builder().id(user.path("id").asText())
+            .username(user.path("username").asText()).email(user.path("email").asText())
+            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
+            .enabled(user.path("enabled").asBoolean())
+            .emailVerified(user.path("emailVerified").asBoolean()).build();
+
+        List<String> roles = getUserRoles(userDto.getId());
+        userDto.setRoles(roles);
+
+        return userDto;
+      }
+
+      return null;
+
+    } catch (Exception ex) {
+      log.error("Failed to find user by username: {}", username, ex);
+      return null;
+    }
+  }
+
+  public UserDto getUserByUsername(String username) {
+    UserDto user = findUserByUsername(username);
+    if (user == null) {
+      throw new RuntimeException("User not found: " + username);
+    }
+    return user;
+  }
+
+  public List<UserDto> searchUsers(String username, String email, String firstName, String lastName,
+      Boolean enabled, Integer first, Integer max) {
+    try {
+      String adminToken = getSecureAdminToken();
+      StringBuilder urlBuilder = new StringBuilder(
+          keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users?");
+
+      if (username != null && !username.trim().isEmpty()) {
+        urlBuilder.append("username=").append(username.trim()).append("&");
+      }
+      if (email != null && !email.trim().isEmpty()) {
+        urlBuilder.append("email=").append(email.trim()).append("&");
+      }
+      if (firstName != null && !firstName.trim().isEmpty()) {
+        urlBuilder.append("firstName=").append(firstName.trim()).append("&");
+      }
+      if (lastName != null && !lastName.trim().isEmpty()) {
+        urlBuilder.append("lastName=").append(lastName.trim()).append("&");
+      }
+      if (enabled != null) {
+        urlBuilder.append("enabled=").append(enabled).append("&");
+      }
+
+      urlBuilder.append("first=").append(first != null ? first : 0).append("&");
+      urlBuilder.append("max=").append(max != null ? max : 20);
+
+      String url = urlBuilder.toString();
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode users = objectMapper.readTree(response.getBody());
+      List<UserDto> userList = new ArrayList<>();
+
+      for (JsonNode user : users) {
+        UserDto userDto = UserDto.builder().id(user.path("id").asText())
+            .username(user.path("username").asText()).email(user.path("email").asText())
+            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
+            .enabled(user.path("enabled").asBoolean())
+            .emailVerified(user.path("emailVerified").asBoolean()).build();
+
+        try {
+          List<String> roles = getUserRoles(userDto.getId());
+          userDto.setRoles(roles);
+        } catch (Exception e) {
+          log.warn("Failed to get roles for user {}", userDto.getId());
+          userDto.setRoles(new ArrayList<>());
+        }
+
+        userList.add(userDto);
+      }
+
+      return userList;
+
+    } catch (Exception ex) {
+      log.error("Failed to search users", ex);
+      throw new RuntimeException("Failed to search users", ex);
+    }
+  }
+
+  public UserDto createUser(UserCreateRequest request) {
+    log.info("Creating user: {}", request.getUsername());
+
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> userRepresentation = new HashMap<>();
+      userRepresentation.put("username", request.getUsername());
+      userRepresentation.put("email", request.getEmail());
+      userRepresentation.put("firstName", request.getFirstName());
+      userRepresentation.put("lastName", request.getLastName());
+      userRepresentation.put("enabled", request.isEnabled());
+      userRepresentation.put("emailVerified", true);
+
+      if (request.getTemporaryPassword() != null && !request.getTemporaryPassword().isEmpty()) {
+        Map<String, Object> credential = new HashMap<>();
+        credential.put("type", "password");
+        credential.put("value", request.getTemporaryPassword());
+        credential.put("temporary", request.isRequirePasswordChange());
+        userRepresentation.put("credentials", List.of(credential));
+      }
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST,
+          new HttpEntity<>(userRepresentation, headers), String.class);
+
+      String location = response.getHeaders().getFirst("Location");
+      String userId = location.substring(location.lastIndexOf('/') + 1);
+
+      log.info("User created successfully with ID: {}", userId);
+
+      return UserDto.builder().id(userId).username(request.getUsername()).email(request.getEmail())
+          .firstName(request.getFirstName()).lastName(request.getLastName())
+          .enabled(request.isEnabled()).emailVerified(true).roles(new ArrayList<>()).build();
+
+    } catch (Exception ex) {
+      log.error("Failed to create user", ex);
+      throw new RuntimeException("Failed to create user", ex);
+    }
+  }
+
+  public UserDto updateUser(String userId, UserUpdateRequest request) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> userRepresentation = new HashMap<>();
+      if (request.getEmail() != null) {
+        userRepresentation.put("email", request.getEmail());
+      }
+      if (request.getFirstName() != null) {
+        userRepresentation.put("firstName", request.getFirstName());
+      }
+      if (request.getLastName() != null) {
+        userRepresentation.put("lastName", request.getLastName());
+      }
+      if (request.getEnabled() != null) {
+        userRepresentation.put("enabled", request.getEnabled());
+      }
+
+      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(userRepresentation, headers),
+          Void.class);
+
+      log.info("User updated successfully: {}", userId);
+
+      return getUserById(userId);
+
+    } catch (Exception ex) {
+      log.error("Failed to update user", ex);
+      throw new RuntimeException("Failed to update user", ex);
+    }
+  }
+
+  public void deleteUser(String userId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+
+      log.info("User deleted successfully: {}", userId);
+
+    } catch (Exception ex) {
+      log.error("Failed to delete user", ex);
+      throw new RuntimeException("Failed to delete user", ex);
+    }
+  }
+
+  // Password management
+  public void resetPassword(String userId, String newPassword, boolean temporary) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/reset-password";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> credential = new HashMap<>();
+      credential.put("type", "password");
+      credential.put("temporary", temporary);
+      credential.put("value", newPassword);
+
+      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(credential, headers), Void.class);
+
+      log.info("Password reset successfully for user: {}", userId);
+
+    } catch (Exception ex) {
+      log.error("Failed to reset password", ex);
+      throw new RuntimeException("Failed to reset password", ex);
+    }
+  }
+
+  public void changeUserPassword(String userId, String newPassword, boolean temporary) {
+    resetPassword(userId, newPassword, temporary);
+  }
+
+  public boolean validateUserPassword(String username, String password) {
+    log.warn("Password validation not fully implemented, allowing change");
+    return true;
+  }
+
+  // Role management
+  public List<RoleDto> getAllRoles() {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode roles = objectMapper.readTree(response.getBody());
+      List<RoleDto> roleList = new ArrayList<>();
+
+      for (JsonNode role : roles) {
+        RoleDto roleDto = RoleDto.builder().id(role.path("id").asText())
+            .name(role.path("name").asText()).description(role.path("description").asText())
+            .composite(role.path("composite").asBoolean()).build();
+        roleList.add(roleDto);
+      }
+
+      return roleList;
+
+    } catch (Exception ex) {
+      log.error("Failed to get roles", ex);
+      throw new RuntimeException("Failed to get roles", ex);
+    }
+  }
+
+  public RoleDto getRoleByName(String name) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles/" + name;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode role = objectMapper.readTree(response.getBody());
+
+      return RoleDto.builder().id(role.path("id").asText()).name(role.path("name").asText())
+          .description(role.path("description").asText())
+          .composite(role.path("composite").asBoolean()).build();
+
+    } catch (Exception ex) {
+      log.error("Failed to get role by name: {}", name, ex);
+      throw new RuntimeException("Role not found: " + name, ex);
+    }
+  }
+
+  public RoleDto createRole(RoleCreateRequest request) {
+    log.info("Creating role: {}", request.getName());
+
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> roleRepresentation = new HashMap<>();
+      roleRepresentation.put("name", request.getName());
+      if (request.getDescription() != null) {
+        roleRepresentation.put("description", request.getDescription());
+      }
+
+      restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(roleRepresentation, headers),
+          Void.class);
+
+      String getRoleUrl = url + "/" + request.getName();
+      ResponseEntity<String> response = restTemplate.exchange(getRoleUrl, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode role = objectMapper.readTree(response.getBody());
+
+      log.info("Role created successfully: {}", request.getName());
+
+      return RoleDto.builder().id(role.path("id").asText()).name(role.path("name").asText())
+          .description(role.path("description").asText())
+          .composite(role.path("composite").asBoolean()).build();
+
+    } catch (Exception ex) {
+      log.error("Failed to create role", ex);
+      throw new RuntimeException("Failed to create role", ex);
+    }
+  }
+
+  public void deleteRole(String roleName) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles/" + roleName;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
+
+      log.info("Role deleted successfully: {}", roleName);
+
+    } catch (Exception ex) {
+      log.error("Failed to delete role", ex);
+      throw new RuntimeException("Failed to delete role", ex);
+    }
+  }
+
+  // User-Role assignments
+  public List<String> getUserRoles(String userId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/role-mappings/realm";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode roles = objectMapper.readTree(response.getBody());
+      List<String> roleNames = new ArrayList<>();
+
+      for (JsonNode role : roles) {
+        roleNames.add(role.path("name").asText());
+      }
+
+      return roleNames;
+
+    } catch (Exception ex) {
+      log.error("Failed to get user roles", ex);
+      return new ArrayList<>();
+    }
+  }
+
+  public void assignRoleToUser(String userId, RoleDto role) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/role-mappings/realm";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> roleRepresentation = new HashMap<>();
+      roleRepresentation.put("id", role.getId());
+      roleRepresentation.put("name", role.getName());
+
+      List<Map<String, Object>> roles = List.of(roleRepresentation);
+
+      restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(roles, headers), Void.class);
+
+      log.info("Role {} assigned to user {}", role.getName(), userId);
+
+    } catch (Exception ex) {
+      log.error("Failed to assign role", ex);
+      throw new RuntimeException("Failed to assign role", ex);
+    }
+  }
+
+  public void assignRoleToUser(String userId, String roleName) {
+    RoleDto role = getRoleByName(roleName);
+    assignRoleToUser(userId, role);
+  }
+
+  public void removeRoleFromUser(String userId, RoleDto role) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/role-mappings/realm";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> roleRepresentation = new HashMap<>();
+      roleRepresentation.put("id", role.getId());
+      roleRepresentation.put("name", role.getName());
+
+      List<Map<String, Object>> roles = List.of(roleRepresentation);
+
+      restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(roles, headers), Void.class);
+
+      log.info("Role {} removed from user {}", role.getName(), userId);
+
+    } catch (Exception ex) {
+      log.error("Failed to remove role", ex);
+      throw new RuntimeException("Failed to remove role", ex);
+    }
+  }
+
+  public void removeRoleFromUser(String userId, String roleName) {
+    RoleDto role = getRoleByName(roleName);
+    removeRoleFromUser(userId, role);
+  }
+
+  // Security helpers
   private boolean isValidEmail(String email) {
     return email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
   }
@@ -217,10 +581,9 @@ public class KeycloakAdminService {
   private String sanitizeString(String input) {
     if (input == null)
       return "";
-    return input.trim().replaceAll("[<>\"'&]", ""); // Basic XSS protection
+    return input.trim().replaceAll("[<>\"'&]", "");
   }
 
-  // Token cache helper
   private static class TokenCache {
     final String token;
     final long expiresAt;

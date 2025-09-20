@@ -1,293 +1,421 @@
-# core-platform
+# 🚀 Core Platform
 
-Univerzální vývojová platforma pro tvorbu enterprise aplikací, založená na modulárním **CORE** frameworku. Odděluje doménově nezávislou funkcionalitu od konkrétních aplikací – umožňuje rychlé vytváření nadstavbových řešení pomocí sdíleného jádra.
+Modern full-stack application with React frontend, Spring Boot backend, PostgreSQL database, and Keycloak authentication - all running in Docker containers with unified deployment across development, staging, and production environments.
 
-## 🚨 **BEZPEČNOSTNÍ PROHLÁŠENÍ**
-
-**⚠️ KRITICKÉ: Tento projekt NENÍ o kompromisech. Tvoříme bezpečný a spolehlivý produkt pro produkční nasazení.**
-
-### 🔴 **ZNÁMÉ SECURITY ISSUES (MUSÍ BÝT VYŘEŠENY PŘED PRODUKCI):**
-
-1. **KeycloakClient.getAdminToken()** - Nezabezpečený admin přístup
-   - 🚨 Používá `admin-cli` bez client secret
-   - 🚨 Umožňuje neomezenou admin eskalaci
-   - 🚨 **IMMEDIATE FIX REQUIRED**
-
-2. **Hardkódované credentials** v konfiguracích
-3. **Chybějící rate limiting** pro auth endpointy  
-4. **Token caching** bez secure storage
-
-### ✅ **BEZPEČNÁ ARCHITEKTURA (IMPLEMENTOVAT):**
+## 🏗️ Architecture
 
 ```
-┌─────────────────┐    Service      ┌─────────────────┐    Admin API    ┌──────────────┐
-│   Backend App   │ ────────────→   │ Keycloak Admin  │ ──────────────→ │   Keycloak   │
-│                 │   Account       │   Service       │   with proper   │    Server    │
-│                 │   Token         │                 │   credentials   │              │
-└─────────────────┘                 └─────────────────┘                 └──────────────┘
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Nginx Proxy   │────│  React Frontend  │────│ Spring Backend  │
+│  (SSL/HTTPS)    │    │   (Vite/MUI)     │    │   (Java 21)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+            ┌────────────────────┼────────────────────┐
+            │                    │                    │
+   ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
+   │   Keycloak     │   │  PostgreSQL    │   │   Monitoring   │
+   │ (Auth/SSO)     │   │  Database      │   │ (Grafana/Loki) │
+   └────────────────┘   └────────────────┘   └────────────────┘
 ```
 
-**Bezpečné řešení:**
-1. **Dedikovaný Service Account** s omezenými právy
-2. **Client Secret** uložený v environment variables
-3. **Token caching** s refresh mechanismem  
-4. **Audit logging** všech admin operací
-5. **Rate limiting** a monitoring
+## 📋 Prerequisites
 
-## 🧱 Architektura
+### 🖥️ **System Requirements**
 
-### Frontend
-- **React** s **TypeScriptem**
-- Vite jako dev server a bundler
-- Modulární GUI komponenty
-- **Strukturované logování** - logger.js posílá logy na backend endpoint
-- Vizualizační nástroje (např. React Flow pro řízení stavů)
+- **macOS** (tested on macOS 12+)
+- **Docker Desktop** 4.0+ with Docker Compose
+- **Git**
+- **Admin privileges** (for `/etc/hosts` modification)
 
-### Backend
-- **Spring Boot** (Java 21)
-- REST API
-- **Logback + Loki4j appender** pro centralizované logování
-- **FrontendLogsController** - přijímá frontend logy a přeposílá do Loki
-- Připojení na PostgreSQL
-- Připraven pro rozšíření o:
-  - Metadata engine
-  - Procesní engine
-  - Modulární security
-  - DMS integrace
-  - Auditní logy
+### 🔧 **Required Software**
 
-### Infrastruktura & Logování
-- Docker Compose pro vývojové prostředí
-- PostgreSQL jako databáze
-- PgAdmin pro správu DB
-- **Hybridní logování:**
-  - **Frontend** → HTTP POST → **Backend** → **Loki** (jediná možnost pro React)
-  - **Backend** → **Loki4j appender** → **Loki** (přímé logování)
-  - **Ostatní služby** → **Promtail** → **Loki** (Docker log driver)
-- **Grafana** pro vizualizaci logů a metrik
-- Jaeger (volitelně) pro tracing
-- Keycloak pro autentizaci (OIDC)
+1. **Docker Desktop**
+   ```bash
+   # Install via Homebrew
+   brew install --cask docker
+   
+   # Or download from: https://www.docker.com/products/docker-desktop/
+   ```
 
-## 🧪 Vývojové prostředí
+2. **OpenSSL** (for SSL certificate generation)
+   ```bash
+   # Usually pre-installed on macOS, verify with:
+   openssl version
+   
+   # If missing, install via Homebrew:
+   brew install openssl
+   ```
 
-### Požadavky
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [Node.js ≥ 20](https://nodejs.org/) (pouze pro frontend development)
-- [Java 21](https://adoptium.net/)
-- [Visual Studio Code](https://code.visualstudio.com/) + doporučené pluginy:
-  - ESLint
-  - Prettier
-  - Java
-  - Docker
-  - GitHub Copilot
+3. **Git**
+   ```bash
+   # Usually pre-installed on macOS, verify with:
+   git --version
+   
+   # If missing, install via Homebrew:
+   brew install git
+   ```
 
-### Složky
-```
-📦 core-platform/
- ┣ 📂 backend/             ← Spring Boot backend + Logback konfigurace
- ┣ 📂 frontend/            ← React frontend + logger.js
- ┣ 📂 docker/              ← Docker Compose, Grafana, Loki, Promtail konfigurace
- ┣ 📂 docs/                ← Dokumentace platformy
- ┣ 📂 tools/               ← Nástroje a utility (např. datové migrace)
- ┣ 📂 .vscode/             ← Nastavení vývojového prostředí
- ┗ 📄 README.md
-```
+### 🌐 **Network Configuration**
 
-## 🚀 Spuštění vývojového prostředí
+The development environment uses local domains that need to be added to your `/etc/hosts` file:
 
+- `core-platform.local` - Main application
+- `api.core-platform.local` - API endpoints  
+- `auth.core-platform.local` - Keycloak authentication
+- `admin.core-platform.local` - Admin interfaces
+
+**These domains are automatically configured by the setup script.**
+
+## 🚀 Quick Start
+
+### 🔧 **Development Setup**
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd core-platform
+   ```
+
+2. **Start development environment**
+   ```bash
+   cd docker
+   ./scripts/docker/dev-start-ssl.sh
+   ```
+
+   This script will:
+   - 🧹 Clean up any existing containers
+   - 🌐 Add local domains to `/etc/hosts` (requires sudo password)
+   - 🔐 Generate self-signed SSL certificates
+   - 🐳 Start all services with HTTPS support
+   - 🔍 Perform health checks
+
+3. **Access the application**
+   
+   After successful startup, access:
+   - 🌐 **Frontend**: https://core-platform.local
+   - 🔐 **API**: https://core-platform.local/api
+   - 🔑 **Keycloak**: https://core-platform.local/auth
+   - 👤 **Keycloak Admin**: https://core-platform.local/admin
+   - 📊 **Grafana**: http://localhost:3001
+   - 🗄️ **PgAdmin**: http://localhost:5050
+
+### 🔐 **Default Credentials**
+
+| Service | Username | Password |
+|---------|----------|----------|
+| **Test User** | `test` | `Test.1234` |
+| **Keycloak Admin** | `admin` | `admin` |
+| **Grafana** | `admin` | `admin` |
+| **PgAdmin** | `admin@local.dev` | `admin` |
+
+## 🌍 Environments
+
+The platform supports three environments with unified configuration:
+
+### 🔧 **Development** (`core-platform.local`)
+- Self-signed SSL certificates
+- Hot reload for frontend/backend
+- Debug logging enabled
+- All monitoring services
+- Local domain names
+
+### 🧪 **Staging** (`staging.yourdomain.com`)
+- Let's Encrypt SSL certificates  
+- Production builds
+- Rate limiting enabled
+- Restricted admin access
+
+### 🚀 **Production** (`yourdomain.com`)
+- Let's Encrypt SSL certificates
+- Full security headers
+- Rate limiting and monitoring
+- Database backups
+- Zero-downtime deployments
+
+## 🛠️ Management Commands
+
+### 🔧 **Development**
 ```bash
-cd docker
-docker compose up -d --build
+# Start development environment
+./scripts/docker/dev-start-ssl.sh
+
+# View service logs
+docker-compose --env-file .env.development logs -f [service]
+
+# Stop environment
+docker-compose --env-file .env.development down
+
+# Restart specific service
+docker-compose --env-file .env.development restart [service]
+
+# Clean rebuild
+docker-compose --env-file .env.development up -d --build
 ```
 
-**Služby:**
-- Frontend: http://localhost:3000  
-- Backend: http://localhost:8080  
+### 🧹 **Cleanup**
+```bash
+# Clean up all containers and networks
+./scripts/docker/cleanup.sh
+
+# Remove SSL certificates and volumes (⚠️ DESTRUCTIVE)
+./scripts/docker/cleanup.sh  # Follow prompts
+```
+
+### 🧪 **Staging Deployment**
+```bash
+# Set required environment variables
+export DOMAIN_NAME="staging.yourdomain.com"
+export SSL_EMAIL="admin@yourdomain.com"
+export KEYCLOAK_ADMIN_PASSWORD="secure-password"
+export GRAFANA_PASSWORD="secure-password"
+
+# Deploy to staging
+./scripts/docker/staging-deploy.sh
+```
+
+### 🚀 **Production Deployment**
+```bash
+# Set required environment variables (use secrets management!)
+export DOMAIN_NAME="yourdomain.com"
+export SSL_EMAIL="admin@yourdomain.com"
+export KEYCLOAK_ADMIN_PASSWORD="secure-password"
+export KEYCLOAK_CLIENT_SECRET="secure-secret"
+export APP_SECRET_KEY="secure-app-key"
+export JWT_SIGNING_KEY="secure-jwt-key"
+
+# Deploy to production
+./scripts/docker/prod-deploy.sh
+```
+
+## 🔧 Troubleshooting
+
+### 🌐 **SSL Certificate Issues**
+
+If you see SSL warnings in browser:
+1. Click **"Advanced"** 
+2. Click **"Proceed to core-platform.local"**
+3. Or add certificates to keychain:
+   ```bash
+   # Add certificate to macOS keychain
+   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain docker/ssl/cert.pem
+   ```
+
+### 🗄️ **Database Connection Issues**
+```bash
+# Check database status
+docker-compose logs db
+
+# Reset database (⚠️ DESTRUCTIVE)
+docker-compose down -v
+docker volume rm core-platform_core_db_data
+```
+
+### 🔐 **Keycloak Issues**
+```bash
+# Check Keycloak logs
+docker-compose logs keycloak
+
+# Reset Keycloak realm
+docker-compose restart keycloak
+```
+
+### 🌐 **/etc/hosts Issues**
+
+If local domains don't work:
+```bash
+# Check if domains are in hosts file
+cat /etc/hosts | grep core-platform
+
+# Manually add domains (if script failed)
+sudo vim /etc/hosts
+# Add these lines:
+# 127.0.0.1   core-platform.local
+# 127.0.0.1   api.core-platform.local  
+# 127.0.0.1   auth.core-platform.local
+# 127.0.0.1   admin.core-platform.local
+
+# Flush DNS cache on macOS
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+### 🐳 **Docker Issues**
+```bash
+# Check Docker Desktop is running
+docker version
+
+# Clean Docker system
+docker system prune -a
+
+# Reset Docker Desktop (if needed)
+# Docker Desktop → Troubleshoot → Reset to factory defaults
+```
+
+## 🔐 Authentication Flow
+
+The platform uses **Keycloak with standard OIDC flow**:
+
+1. User visits `https://core-platform.local`
+2. Frontend detects no authentication
+3. Redirects to Keycloak login page
+4. User enters credentials (`test` / `Test.1234`)
+5. Keycloak issues JWT token
+6. Frontend stores token in memory (not localStorage)
+7. All API calls include `Authorization: Bearer <token>`
+8. Backend validates JWT signatures against Keycloak
+
+### 🔑 **Keycloak Configuration**
+
+- **Realm**: `core-platform`
+- **Frontend Client**: `web` (public client)
+- **Backend Client**: `api` (bearer-only)
+- **Roles**: `ROLE_USER`, `admin`
+
+## 🎨 Keycloak Themes Setup
+
+### 🎯 **Automatic Theme Configuration**
+
+The Core Platform uses a custom **Material Design theme** (`core-material`) that automatically matches the frontend design. **No manual configuration is required** - the theme is set up automatically when Docker starts.
+
+#### ✅ **What happens automatically:**
+
+1. **Theme Auto-Loading**: Docker Compose mounts the custom theme from `themes/core-material/` 
+2. **Realm Configuration**: The `core-platform` realm is pre-configured to use `core-material` theme
+3. **Hot Reload**: Theme changes are reflected immediately during development
+4. **Consistent Design**: Login, account management, and password reset pages all use Material UI styling
+
+#### 🎨 **Theme Features:**
+
+- **Material Design 3** components (text fields, buttons, cards)
+- **Plus Jakarta Sans** font (same as frontend)
+- **Consistent color palette** (#5D87FF primary, etc.)
+- **Responsive design** for mobile and desktop
+- **Localization support** (Czech/English)
+
+#### 📁 **Theme Structure:**
+```
+themes/core-material/
+├── theme.properties          # Main theme configuration
+├── login/                    # Login pages
+│   ├── template.ftl         # Base layout template
+│   ├── login.ftl            # Login form with Material UI
+│   ├── login-reset-password.ftl # Password reset
+│   └── resources/css/styles.css # Material Design CSS
+├── account/                  # Account management
+│   ├── theme.properties     # Account theme config
+│   └── resources/css/account-styles.css # Account CSS
+└── email/                    # Email templates
+    └── theme.properties     # Email theme config
+```
+
+#### 🔧 **Configuration Files:**
+
+- **Realm Config**: `docker/keycloak/realm-core-platform.json`
+  - Pre-configured with `"loginTheme": "core-material"`
+  - Pre-configured with `"accountTheme": "core-material"`
+  - Versioned in Git for consistency across environments
+
+- **Docker Environment**: 
+  - `KC_THEME_DEFAULT=core-material` - Sets global default
+  - `KC_SPI_THEME_CACHE_THEMES=false` - Enables hot reload
+  - Volume mount: `../themes/core-material:/opt/keycloak/themes/core-material:ro`
+
+#### 🛠️ **Development Workflow:**
+
+1. **Making Theme Changes:**
+   ```bash
+   # Edit theme files
+   vim themes/core-material/login/resources/css/styles.css
+   
+   # Changes are reflected immediately (hot reload enabled)
+   # No restart required
+   ```
+
+2. **Testing Theme:**
+   - **Login**: https://core-platform.local/realms/core-platform/protocol/openid-connect/auth?client_id=web&response_type=code&redirect_uri=https://core-platform.local
+   - **Account**: https://core-platform.local/realms/core-platform/account/
+   - **Admin Console**: https://core-platform.local/admin/
+
+3. **Debugging Theme Issues:**
+   ```bash
+   # Check if theme loaded correctly
+   docker-compose logs keycloak | grep -i theme
+   
+   # Verify CSS loading in browser DevTools
+   # Network tab should show 200 OK for /resources/css/styles.css
+   ```
+
+#### 🚨 **Important Notes:**
+
+- **No React/Vite**: Keycloak 26.x uses FreeMarker templates (.ftl), not React components
+- **CSS Only**: All styling is pure CSS with Material Design classes
+- **Automatic Setup**: Theme is configured via Docker environment and realm import
+- **Version Control**: All theme configurations are versioned in Git
+- **No Manual Steps**: After `docker-compose up`, theme is ready to use
+
+#### 🎯 **Result:**
+
+After starting the Docker stack, all Keycloak pages (login, password reset, account management) will automatically use the same Material UI design as your frontend application - consistent colors, fonts, and component styling across the entire platform.
+
+## 📚 Development
+
+### 🛡️ **Frontend** (React + Vite + MUI)
+```bash
+cd frontend
+npm install
+npm run dev  # Development server
+npm run build  # Production build
+```
+
+### 🏗️ **Backend** (Spring Boot + Java 21)
+```bash
+cd backend  
+./mvnw spring-boot:run  # Development server
+./mvnw clean package    # Build JAR
+```
+
+### 🗄️ **Database** (PostgreSQL)
+- Access via PgAdmin: http://localhost:5050
+- Direct connection: `localhost:5432`
+- Credentials: `core` / `core` / `core`
+
+## 📊 Monitoring
+
 - **Grafana**: http://localhost:3001 (admin/admin)
-- **Loki**: http://localhost:3100 (health: /ready)
-- **Promtail**: http://localhost:9080
-- PgAdmin: http://localhost:5050
-- Keycloak: http://localhost:8081
+- **Prometheus**: http://localhost:9091
+- **Loki**: http://localhost:3100
+- **Application logs** via Docker Loki driver
 
-## 📊 Logování & Monitoring
+## 🔒 Security
 
-### Hybridní logovací architektura
+### 🛡️ **Development**
+- Self-signed SSL certificates
+- Permissive CORS policies
+- Debug logging enabled
+- All ports exposed
 
-```
-┌─────────────┐    HTTP POST     ┌─────────────┐    Loki4j      ┌──────────┐
-│  Frontend   │ ───────────────→ │   Backend   │ ─────────────→ │   Loki   │
-│ (React)     │ /api/frontend-   │ (Spring)    │   appender     │          │
-└─────────────┘     logs         └─────────────┘                └──────────┘
-                                                                      ↑
-┌─────────────┐    Docker logs   ┌─────────────┐    HTTP POST          │
-│Infrastructure│ ─────────────→ │  Promtail   │ ──────────────────────┘
-│ (DB,Grafana)│                  │             │
-└─────────────┘                  └─────────────┘
-```
+### 🚀 **Production**
+- Let's Encrypt SSL certificates
+- Restrictive CORS policies  
+- Rate limiting on all endpoints
+- Security headers (CSP, HSTS, etc.)
+- Monitoring access restricted to private networks
+- Secrets management required
 
-### ✅ Funguje
-- **Frontend logování** - logger.js v frontend/src/services/logger.js
-- **Promtail sbírání** infrastrukturních logů
-- **Grafana vizualizace** - předdefinované dashboardy
-- **Docker networking** - všechny služby komunikují přes core-net
+## 🤝 Contributing
 
-### ❌ TODO (známé problémy)
-- **Backend Loki appender** - backend logy se nedostávají do Loki (DNS/networking issue)
-- **Audit logging** - implementace audit trail
-- **Log retention** - automatické mazání starých logů
+1. Create feature branch: `git checkout -b feature/amazing-feature`
+2. Make changes and test locally
+3. Commit changes: `git commit -m 'Add amazing feature'`  
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
 
-### Grafana Dashboards
-- **App Overview** - celkový přehled aplikace
-- **Performance** - metriky výkonu a response times  
-- **Security** - bezpečnostní události
-- **Audit** - auditní logy uživatelských akcí
+## 📝 License
 
-### Testování logování
-
-**Frontend logger (testovací tlačítka v DEV módu):**
-```javascript
-import { logger } from './services/logger';
-
-logger.info('TEST_INFO', 'Test message', { key: 'value' });
-logger.error('TEST_ERROR', 'Error message', { error: 'details' });
-logger.security('SECURITY_EVENT', 'Security violation', { ip: '1.2.3.4' });
-```
-
-**Grafana Explore dotazy:**
-```
-{source="frontend"}           # Frontend logy
-{source="backend"}            # Backend logy (momentálně nefunguje)
-{container=~".*"}            # Všechny logy
-{level="error"}              # Pouze error logy
-{event_type="security"}      # Bezpečnostní události
-```
-
-## 🔗 Proxy API (Vite)
-
-Frontend proxy přesměrovává `/api` na backend, viz `vite.config.ts`:
-```ts
-server: {
-  proxy: {
-    '/api': {
-      target: 'http://core-backend:8080',
-      changeOrigin: true,
-      rewrite: path => path.replace(/^\/api/, ''),
-    }
-  }
-}
-```
-
-## 🛠️ Docker Networking
-
-**⚠️ Důležité**: Všechny konfigurace musí používat správné **DNS názvy kontejnerů**:
-
-- **Loki**: `core-loki:3100` (NIKOLI `loki:3100`)
-- **Backend**: `core-backend:8080` 
-- **Frontend**: `core-frontend:3000`
-- **Database**: `core-db:5432`
-
-**Síť**: `docker_core-net` (automaticky vytvořena)
-
-### Konfigurační soubory s DNS odkazy:
-- `backend/src/main/resources/logback-spring.xml` - Loki appender URL
-- `backend/.../FrontendLogsController.java` - LOKI_URL konstanta
-- `docker/promtail/config.yml` - Loki client URL
-
-## 🧹 Úklid konfigurace
-
-**Smazané nepotřebné soubory:**
-- `docker-compose.dev.yml`
-- `docker-compose.direct-logging.yml` 
-- `docker-compose.loki-driver.yml`
-- `docker-compose.hybrid-logging.yml`
-
-**Ponechán pouze:** `docker-compose.yml` s integrovanou hybridní konfigurací
-
-## 🧑‍💻 Příprava pro GitHub Copilot
-
-Copilot získá kontext z:
-- `README.md` (tento soubor)
-- Projektové struktury a názvů složek
-- `.vscode/settings.json`, `tsconfig.json`, `.prettierrc`, `.eslintrc`
-- Názvů a struktur komponent, endpointů a entit
-
-➡️ Doporučeno začít vývoj s komentovaným skeletonem komponent / API / služeb.
-
-## 📦 Roadmapa
-
-- [x] Docker stack pro vývoj
-- [x] Vite + React + Spring Boot propojeno
-- [x] Frontend logging do Loki (přes backend)
-- [x] Grafana dashboardy pro monitoring
-- [x] Hybridní logování konfigurace
-- [ ] **Backend Loki appender fix** (hlavní TODO)
-- [ ] GUI Designer
-- [ ] Metadata Editor
-- [ ] BPM Engine
-- [ ] Uživatelské role a oprávnění
-- [ ] Auditní logy
-
-## 🔐 Přihlášení (Keycloak)
-
-Umístění
-- docker/docker-compose.yml → služby db a keycloak (import realmu)
-- docker/keycloak/realm-core-platform.json → realm core-platform (klienti web, api; role admin; uživatel test/Test.1234)
-- frontend/public/auth → přihlašovací stránka (keycloak-js), přesměrování do aplikace
-
-Spuštění
-- docker compose -f docker/docker-compose.yml up -d db keycloak
-- Keycloak UI: http://localhost:8081 (admin/admin)
-- Login stránka: http://localhost:3000/auth/
-
-Frontend
-- KEYCLOAK_CFG je v frontend/public/auth/index.html (url, realm, clientId=web)
-- APP_URL určuje, kam po přihlášení pokračovat (výchozí „/")
-
-Backend
-- Ověřuj JWT proti issueru: http://localhost:8081/realms/core-platform (z hosta)
-- V kontejneru používej: http://keycloak:8080/realms/core-platform
-- Očekávaná audience: api (claim aud)
-- Role z claimu: realm_access.roles
-- Doporučené env: OIDC_ISSUER, OIDC_API_AUDIENCE=api, CORS_ORIGINS=http://localhost:3000
-
-Troubleshooting
-- 401: zkontroluj ISS a audience=api, i čas (clock skew)
-- Redirect/CORS: Redirect URIs a Web Origins u klienta „web“ musí obsahovat http://localhost:3000/*
-- Chybí audience=api: client scope „api-audience“ je v defaultClientScopes klienta „web“
-
-Kontrola docker-compose (rychlý checklist)
-- keycloak běží na 8081, db běží a je healthy
-- Volume pro import realmu: docker/keycloak → /opt/keycloak/data/import:ro
-- Backend má v docker-compose dependency na keycloak a env OIDC_ISSUER=http://keycloak:8080/realms/core-platform
-- Frontend běží na 3000 a obsluhuje /auth
-
-🧹 Úklid: docker/node_modules
-- Složka docker/node_modules do repozitáře nepatří. Smaž ji a přidej do .gitignore:
-  - rm -rf docker/node_modules
-  - do .gitignore přidej řádek: docker/node_modules/
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
-> Tento repozitář obsahuje **jádro platformy**. Konkrétní aplikace budou vznikat jako samostatné repozitáře, které budou importovat `core-platform` jako submodul nebo závislost.
-
-## 🔐 **SECURITY IMPLEMENTATION ROADMAP**
-
-### **FÁZE 1: OKAMŽITÉ OPRAVY (CRITICAL)**
-- [ ] **Refactor KeycloakClient.getAdminToken()** - použít service account s proper credentials
-- [ ] **Environment variables** pro všechny secrets (client secrets, DB passwords)
-- [ ] **Audit logging** pro admin operace (user management, password changes)
-- [ ] **Input validation** a sanitization všech user inputs
-
-### **FÁZE 2: SECURITY HARDENING (HIGH)**  
-- [ ] **Rate limiting** pro authentication endpointy
-- [ ] **Token caching** s secure storage a refresh
-- [ ] **HTTPS enforcement** ve všech prostředích
-- [ ] **Security headers** (CSP, HSTS, X-Frame-Options)
-- [ ] **Vulnerability scanning** CI/CD pipeline
-
-### **FÁZE 3: ADVANCED SECURITY (MEDIUM)**
-- [ ] **Multi-factor authentication** support
-- [ ] **Session management** s proper timeout
-- [ ] **IP whitelisting** pro admin operace
-- [ ] **Security monitoring** a alerting
-- [ ] **Regular security audits**
+**🎉 Happy coding!** For issues or questions, please open a GitHub issue.

@@ -1,95 +1,103 @@
 import './App.css'
-import { CssBaseline, ThemeProvider, Box, Button, Typography } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { CssBaseline, ThemeProvider, Box, CircularProgress, Typography } from '@mui/material';
 import { baselightTheme } from "./theme/DefaultColors";
 import { RouterProvider } from 'react-router';
 import router from "./routes/Router.js"
-import AuthGuard from './components/AuthGuard/AuthGuard';
-import { logger } from './services/logger.js';
+import keycloakService from './services/keycloakService';
 
 function App() {
   const theme = baselightTheme;
+  const [keycloakInitialized, setKeycloakInitialized] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [initializationError, setInitializationError] = useState(null);
 
-  // Testovací funkce pro různé typy logů
-  const testLogs = {
-    info: () => {
-      logger.info('TEST_INFO', 'Testovací INFO log z frontendu', { 
-        testData: 'nějaká data', 
-        timestamp: Date.now() 
-      });
-    },
-    
-    error: () => {
-      logger.error('TEST_ERROR', 'Testovací ERROR log z frontendu', { 
-        errorType: 'test', 
-        component: 'App.jsx',
-        stack: 'Simulovaný stack trace'
-      });
-    },
-    
-    warn: () => {
-      logger.warn('TEST_WARN', 'Testovací WARNING log z frontendu', { 
-        warningType: 'test',
-        action: 'user_test'
-      });
-    },
-    
-    security: () => {
-      logger.security('TEST_SECURITY', 'Testovací SECURITY log z frontendu', { 
-        threatLevel: 'low',
-        action: 'manual_test'
-      });
-    },
-    
-    apiCall: () => {
-      logger.apiCall('GET', '/api/test', 404, 150, { 
-        description: 'Simulovaný API call test'
-      });
-    }
-  };
+  useEffect(() => {
+    // 🔑 Inicializuj Keycloak při startu aplikace
+    const initKeycloak = async () => {
+      try {
+        console.log('🚀 App: Inicializuji Keycloak...');
+        const authenticated = await keycloakService.initialize();
+        console.log('✅ App: Keycloak úspěšně inicializován, přihlášen:', authenticated);
+        setKeycloakInitialized(true);
+        setIsAuthenticated(authenticated);
+      } catch (error) {
+        console.error('❌ App: Chyba při inicializaci Keycloak:', error);
+        setInitializationError(error.message);
+      }
+    };
 
+    initKeycloak();
+  }, []); // Prázdné pole závislostí - spustí se jen jednou při mount
+
+  // Zobraz loading pouze během inicializace Keycloak
+  if (!keycloakInitialized && !initializationError) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+            gap: 2
+          }}
+        >
+          <CircularProgress />
+          <Typography variant="h6">Inicializuji autentizaci...</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Připojuji se ke Keycloak serveru
+          </Typography>
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
+  // Zobraz chybu pokud inicializace selhala
+  if (initializationError) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh',
+            gap: 2,
+            textAlign: 'center',
+            p: 3
+          }}
+        >
+          <Typography variant="h5" color="error">
+            Chyba při přihlašování
+          </Typography>
+          <Typography variant="body1">
+            {initializationError}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Zkuste obnovit stránku nebo kontaktujte správce systému.
+          </Typography>
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
+  // Zobraz login stránku pokud uživatel není přihlášen
+  if (!isAuthenticated) {
+    // Automatický redirect na Keycloak login
+    keycloakService.login();
+    return null;
+  }
+
+  // Keycloak inicializován a uživatel přihlášen - zobraz aplikaci
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      
-      {/* Testovací panel pro logování - pouze pro development */}
-      {import.meta.env.DEV && (
-        <Box 
-          sx={{ 
-            position: 'fixed', 
-            top: 10, 
-            right: 10, 
-            zIndex: 9999, 
-            bgcolor: 'background.paper',
-            p: 2,
-            border: '1px solid #ccc',
-            borderRadius: 1,
-            boxShadow: 2
-          }}
-        >
-          <Typography variant="h6" gutterBottom>🧪 Log Tester</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button size="small" variant="outlined" onClick={testLogs.info} color="primary">
-              📝 Test INFO
-            </Button>
-            <Button size="small" variant="outlined" onClick={testLogs.error} color="error">
-              ❌ Test ERROR  
-            </Button>
-            <Button size="small" variant="outlined" onClick={testLogs.warn} color="warning">
-              ⚠️ Test WARN
-            </Button>
-            <Button size="small" variant="outlined" onClick={testLogs.security} sx={{color: 'purple'}}>
-              🔒 Test SECURITY
-            </Button>
-            <Button size="small" variant="outlined" onClick={testLogs.apiCall} color="secondary">
-              📡 Test API Call
-            </Button>
-          </Box>
-        </Box>
-      )}
-
-      <AuthGuard>
-        <RouterProvider router={router} />
-      </AuthGuard>
+      <RouterProvider router={router} />
     </ThemeProvider>
   );
 }

@@ -1,0 +1,5 @@
+# Core Platform - Local Development Domains
+127.0.0.1   core-platform.local
+127.0.0.1   api.core-platform.local
+127.0.0.1   auth.core-platform.local
+127.0.0.1   admin.core-platform.local

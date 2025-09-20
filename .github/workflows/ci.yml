@@ -34,6 +34,7 @@ jobs:
           KEYCLOAK_ADMIN_REALM=master
           KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
           KEYCLOAK_ADMIN_CLIENT_SECRET=ci-placeholder-secret
+          KEYCLOAK_CLIENT_SECRET=ci-client-secret-placeholder
           KEYCLOAK_TARGET_REALM=core-platform
           
           # Application Secrets (CI - safe random values)
@@ -83,7 +84,7 @@ jobs:
               echo "✅ Loki is ready"; 
               break;
             fi
-            if [ $i -eq 60 ]; then
+            if [ $i -eq 60]; then
               echo "❌ Loki not ready in time"
               echo "🔍 Checking Loki logs:"
               docker logs core-loki || true
