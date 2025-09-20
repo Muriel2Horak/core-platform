@@ -76,24 +76,21 @@ public class SecurityConfig {
 
   @Bean
   JwtDecoder jwtDecoder() {
-    JwtDecoder decoder;
+    // Použij NimbusJwtDecoder s explicitním JWK Set URI místo issuer discovery
+    String jwkSetUri = optionalJwkSetUri != null && !optionalJwkSetUri.trim().isEmpty() 
+        ? optionalJwkSetUri 
+        : issuerUri + "/protocol/openid-connect/certs";
+    
+    NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
 
-    // Pokud je nastaven JWK Set URI, použij ho místo issuer discovery
-    if (optionalJwkSetUri != null && !optionalJwkSetUri.trim().isEmpty()) {
-      decoder = NimbusJwtDecoder.withJwkSetUri(optionalJwkSetUri).build();
-    } else {
-      decoder = JwtDecoders.fromIssuerLocation(issuerUri);
-    }
-
-    // Vždy přidej validátory pro issuer a audience
+    // Vytvoř validátory pro issuer a audience
     OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
     OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(allowedAudience);
-    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer,
-        audienceValidator);
+    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
 
-    if (decoder instanceof NimbusJwtDecoder nimbus) {
-      nimbus.setJwtValidator(validator);
-    }
+    // Nastav validátory na decoder
+    decoder.setJwtValidator(validator);
+    
     return decoder;
   }
 
