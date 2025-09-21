@@ -5,6 +5,7 @@ import cz.muriel.core.auth.KeycloakAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +19,7 @@ public class UserProfileController {
   private final KeycloakAdminService keycloakAdminService;
 
   @GetMapping
+  @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<UserDto> getMyProfile(Authentication authentication) {
     String userId = getCurrentUserId(authentication);
     log.info("Getting profile for user: {}", userId);
@@ -27,6 +29,7 @@ public class UserProfileController {
   }
 
   @PutMapping
+  @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
     String userId = getCurrentUserId(authentication);
@@ -37,6 +40,7 @@ public class UserProfileController {
   }
 
   @PutMapping("/password")
+  @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request,
       Authentication authentication) {
     String userId = getCurrentUserId(authentication);

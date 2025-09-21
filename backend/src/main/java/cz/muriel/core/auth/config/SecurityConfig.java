@@ -52,7 +52,10 @@ public class SecurityConfig {
   SecurityFilterChain securityFilterChain(HttpSecurity http,
       BearerTokenResolver bearerTokenResolver,
       JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
-    http.csrf(csrf -> csrf.disable()).cors(Customizer.withDefaults())
+    http.csrf(csrf -> csrf
+        // Globálně vypneme CSRF pro REST API (stateless JWT)
+        .disable())
+        .cors(Customizer.withDefaults())
         .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             // Veřejné endpointy
@@ -62,11 +65,12 @@ public class SecurityConfig {
             .permitAll()
             // CORS preflight requesty
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            // Chráněné endpointy pro přihlášené uživatele
-            .requestMatchers("/api/me/**").authenticated()
+            // Frontend logs - pouze authenticated, bez role požadavků
             .requestMatchers(HttpMethod.POST, "/api/frontend-logs").authenticated()
-            // Admin endpointy - řešeno přes @PreAuthorize anotace v kontrolerech
-            .requestMatchers("/api/users/**", "/api/roles/**").authenticated()
+            // Self-service endpointy - pouze authenticated, role kontrola v metodách
+            .requestMatchers("/api/me/**").authenticated()
+            // User management endpointy - vyžadují CORE_ROLE_USER_MANAGER
+            .requestMatchers("/api/users/**", "/api/roles/**").hasAuthority("CORE_ROLE_USER_MANAGER")
             // Všechny ostatní requesty vyžadují autentifikaci
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver)
