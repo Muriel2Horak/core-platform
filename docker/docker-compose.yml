@@ -30,7 +30,7 @@ services:
     environment:
       POSTGRES_USER: core
       POSTGRES_PASSWORD: core
-      POSTGRES_DB: core,keycloak
+      POSTGRES_DB: core
     volumes:
       - core_db_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -73,12 +73,12 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       # 🌐 DOMAIN pro všechny external URLs
       - DOMAIN=${DOMAIN:-core-platform.local}
-      # 🔧 FIX: OIDC Configuration - použijeme environment proměnné místo nested expansion
-      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI}
-      - OIDC_JWK_SET_URI=${OIDC_JWK_SET_URI}
-      - OIDC_API_AUDIENCE=${OIDC_API_AUDIENCE}
-      # 🔧 FIX: CORS origins - použijeme environment proměnnou místo nested expansion
-      - CORS_ORIGINS=${CORS_ORIGINS}
+      # 🔧 FIX: OIDC Configuration - sjednocené issuery
+      - OIDC_ISSUER_URI=https://${DOMAIN:-core-platform.local}/realms/core-platform
+      - OIDC_JWK_SET_URI=http://keycloak:8080/realms/core-platform/protocol/openid-connect/certs
+      - OIDC_API_AUDIENCE=api
+      # 🔧 FIX: CORS origins - použijeme environment proměnnou
+      - CORS_ORIGINS=https://${DOMAIN:-core-platform.local}
       - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
       - LOKI_URL=http://loki:3100/loki/api/v1/push
       - LOG_LEVEL=DEBUG
