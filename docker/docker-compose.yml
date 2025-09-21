@@ -148,7 +148,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000 && printf \"GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && grep -q \"status.*UP\" <&3'"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -157,14 +157,11 @@ services:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
       
-      # 🔧 FIX: Keycloak 26.x hostname v2 konfigurace - pouze základní hostname
-      - KC_HOSTNAME=${DOMAIN:-core-platform.local}
+      # 🔧 FIX: Keycloak 26.x hostname v2 konfigurace - s proxy headers pro HTTPS
+      - KC_HOSTNAME=core-platform.local
       - KC_PROXY_HEADERS=xforwarded
       - KC_HTTP_ENABLED=true
       - KC_HOSTNAME_STRICT=false
-      - KC_LOG_LEVEL=info
-      - KC_HEALTH_ENABLED=true
-      - KC_METRICS_ENABLED=true
       
       # PostgreSQL databáze
       - KC_DB=postgres
@@ -182,7 +179,7 @@ services:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "${KEYCLOAK_PORT:-8081}:8080"
-    command: ["start", "--import-realm"]
+    command: ["start"]
     networks:
       - core-net
     restart: unless-stopped
