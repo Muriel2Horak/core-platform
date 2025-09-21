@@ -3,60 +3,17 @@ class AuthService {
   constructor() {
     // Backend používá cookies, ale pro kompatibilitu kontrolujeme i localStorage
     this.token = localStorage.getItem('keycloak-token');
-    this.logger = null;
-    this.loggerPromise = null;
-    this._initLogger();
-    this._log('AUTHSERVICE: Inicializace', { hasToken: !!this.token });
+    // 🔧 FIX: Odstraněno - logger se neinicializuje zde kvůli cyklické závislosti
+    console.log('🔧 AUTHSERVICE: Inicializace', { hasToken: !!this.token });
   }
 
-  // Inicializace loggeru při startu
-  async _initLogger() {
-    if (this.loggerPromise) return this.loggerPromise;
-    
-    this.loggerPromise = import('./logger.js').then(module => {
-      this.logger = module.default;
-      return this.logger;
-    }).catch(error => {
-      console.warn('Failed to load logger:', error);
-      return null;
-    });
-    
-    return this.loggerPromise;
+  // 🔧 FIX: Zjednodušené logování bez importu loggeru (kvůli cyklické závislosti)
+  _log(message, extra = {}) {
+    console.log(`🔧 AUTHSERVICE: ${message}`, extra);
   }
 
-  // Spolehlivé logování s fallback
-  async _log(message, extra = {}) {
-    try {
-      if (!this.logger) {
-        await this._initLogger();
-      }
-      
-      if (this.logger) {
-        this.logger.service(message, extra);
-      } else {
-        // Fallback na console.log
-        console.log(`🔧 ${message}`, extra);
-      }
-    } catch {
-      // Fallback na console.log
-      console.log(`🔧 ${message}`, extra);
-    }
-  }
-
-  async _logError(message, extra = {}) {
-    try {
-      if (!this.logger) {
-        await this._initLogger();
-      }
-      
-      if (this.logger) {
-        this.logger.error(message, extra);
-      } else {
-        console.error(`❌ ${message}`, extra);
-      }
-    } catch {
-      console.error(`❌ ${message}`, extra);
-    }
+  _logError(message, extra = {}) {
+    console.error(`❌ AUTHSERVICE: ${message}`, extra);
   }
 
   // Kontrola, zda je uživatel přihlášený - použijeme localStorage token pro Docker kompatibilitu
@@ -178,7 +135,7 @@ class AuthService {
   async logout() {
     this._log('AUTHSERVICE: Odhlašuji uživatele');
     
-    // 🎯 PŘIDÁNO: Získáme user info před odhlášením pro log
+    // Získáme user info před odhlášením pro log
     const userInfo = await this.getUserInfo();
     
     try {
@@ -187,22 +144,16 @@ class AuthService {
         credentials: 'include'
       });
       
-      // 🎯 PŘIDÁNO: Frontend auth log pro úspěšné odhlášení
-      if (this.logger) {
-        this.logger.authLogout({
+      // 🔧 FIX: Async load logger pro audit log
+      try {
+        const loggerModule = await import('./logger.js');
+        loggerModule.default.authLogout({
           username: userInfo?.username || 'unknown',
           method: 'manual',
           timestamp: new Date().toISOString()
         });
-      } else {
-        // Fallback - async load logger
-        import('./logger.js').then(module => {
-          module.default.authLogout({
-            username: userInfo?.username || 'unknown',
-            method: 'manual',
-            timestamp: new Date().toISOString()
-          });
-        }).catch(() => {});
+      } catch (loggerError) {
+        console.log('📋 Auth logout logged:', userInfo?.username || 'unknown');
       }
       
     } catch (error) {
@@ -214,7 +165,6 @@ class AuthService {
       localStorage.removeItem('keycloak-id-token');
       this.token = null;
       this._log('AUTHSERVICE: localStorage vyčištěn, přesměrovávám na login');
-      // 🔧 FIX: Přesměrování na SimpleLoginPage místo starého /auth
       window.location.href = '/login';
     }
   }
@@ -257,16 +207,30 @@ class AuthService {
       tokenSource = 'localStorage-noservice';
     }
 
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
-
+    // 🔧 FIX: Bezpečný merge hlaviček - vytvoř base Headers a pak merge options.headers
+    const headers = new Headers();
+    
+    // Nejdříve nastav base hlavičky
+    headers.set('Content-Type', 'application/json');
+    
+    // Přidej Authorization token pokud je dostupný
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    // Pak projdi options.headers a nastav je (ale nepřepiš Authorization)
+    if (options.headers) {
+      for (const [key, value] of Object.entries(options.headers)) {
+        if (key.toLowerCase() !== 'authorization' || !token) {
+          headers.set(key, value);
+        }
+      }
     }
 
     const fullUrl = `/api${url}`; // relativně přes Nginx proxy
+
+    // 🔍 DEBUG: Log finálních hlaviček
+    console.debug('AUTH FINAL HEADERS', Array.from(headers.entries()));
 
     this._log('AUTHSERVICE: API call start', {
       url: url,
@@ -305,7 +269,10 @@ class AuthService {
               if (newToken && newToken !== token) {
                 localStorage.setItem('keycloak-token', newToken);
                 this.token = newToken;
-                const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+                
+                // 🔧 FIX: Bezpečný retry s novým tokenem
+                const retryHeaders = new Headers(headers);
+                retryHeaders.set('Authorization', `Bearer ${newToken}`);
                 
                 this._log('AUTHSERVICE: Retrying with refreshed token');
                 response = await fetch(fullUrl, { ...options, headers: retryHeaders, credentials: 'include' });
@@ -326,14 +293,18 @@ class AuthService {
           tokenExpired: this.isTokenExpired()
         });
 
-        if (this.logger) {
-          this.logger.security('API_401_UNAUTHORIZED', 'API call returned 401 - token invalid or expired', {
+        // 🔧 FIX: Async load logger pro security log
+        try {
+          const loggerModule = await import('./logger.js');
+          loggerModule.default.security('API_401_UNAUTHORIZED', 'API call returned 401 - token invalid or expired', {
             url: url,
             fullUrl: fullUrl,
             method: options.method || 'GET',
             hasToken: !!token,
             timestamp: new Date().toISOString()
           });
+        } catch (loggerError) {
+          console.warn('🔒 Security event logged:', 'API_401_UNAUTHORIZED');
         }
 
         this.logout();
@@ -350,15 +321,18 @@ class AuthService {
         stack: error.stack
       });
 
-      // Zaloguj jako error event
-      if (this.logger) {
-        this.logger.error('API_CALL_EXCEPTION', 'API call failed with network/other error', {
+      // 🔧 FIX: Async load logger pro error log
+      try {
+        const loggerModule = await import('./logger.js');
+        loggerModule.default.error('API_CALL_EXCEPTION', 'API call failed with network/other error', {
           url: url,
           fullUrl: `/api${url}`,
           method: options.method || 'GET',
           error: error.message,
           timestamp: new Date().toISOString()
         });
+      } catch (loggerError) {
+        console.error('❌ Error logged:', error.message);
       }
 
       throw error;
