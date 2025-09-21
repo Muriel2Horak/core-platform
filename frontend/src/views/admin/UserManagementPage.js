@@ -44,6 +44,7 @@ import {
 import PageContainer from '../../components/container/PageContainer';
 import DashboardCard from '../../components/shared/DashboardCard';
 import userManagementService from '../../services/userManagementService';
+import authService from '../../services/auth';
 import logger from '../../services/logger';
 
 const UserManagementPage = () => {
@@ -52,6 +53,10 @@ const UserManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  // State for current user permissions
+  const [userInfo, setUserInfo] = useState(null);
+  const [hasUserManagerRole, setHasUserManagerRole] = useState(false);
 
   // State for pagination and filtering
   const [page, setPage] = useState(1);
@@ -93,6 +98,35 @@ const UserManagementPage = () => {
   // User roles management
   const [userRoles, setUserRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState('');
+
+  // Check user permissions on component mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const info = await authService.getUserInfo();
+        setUserInfo(info);
+        
+        // Check if user has CORE_ROLE_USER_MANAGER or CORE_ROLE_ADMIN
+        const hasManagerRole = info?.roles?.includes('CORE_ROLE_USER_MANAGER') || 
+                               info?.roles?.includes('CORE_ROLE_ADMIN');
+        setHasUserManagerRole(hasManagerRole);
+        
+        if (!hasManagerRole) {
+          setError('Nemáte oprávnění pro správu uživatelů. Vyžaduje se role CORE_ROLE_USER_MANAGER nebo CORE_ROLE_ADMIN.');
+          logger.security('UNAUTHORIZED_ACCESS_ATTEMPT', 'User tried to access user management without proper role', {
+            userRoles: info?.roles || [],
+            requiredRole: 'CORE_ROLE_USER_MANAGER',
+            username: info?.username
+          });
+        }
+      } catch (err) {
+        console.error('Failed to check user permissions:', err);
+        setError('Nepodařilo se ověřit oprávnění uživatele');
+      }
+    };
+    
+    checkPermissions();
+  }, []);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -515,17 +549,19 @@ const UserManagementPage = () => {
                       variant="outlined"
                       startIcon={<IconRefresh />}
                       onClick={loadUsers}
-                      disabled={loading}
+                      disabled={loading || !hasUserManagerRole}
                     >
                       Obnovit
                     </Button>
-                    <Button
-                      variant="contained"
-                      startIcon={<IconPlus />}
-                      onClick={openCreateUserDialog}
-                    >
-                      Nový uživatel
-                    </Button>
+                    {hasUserManagerRole && (
+                      <Button
+                        variant="contained"
+                        startIcon={<IconPlus />}
+                        onClick={openCreateUserDialog}
+                      >
+                        Nový uživatel
+                      </Button>
+                    )}
                   </Box>
                 </Grid>
               </Grid>
@@ -628,13 +664,23 @@ const UserManagementPage = () => {
                           </TableCell>
                           
                           <TableCell align="right">
-                            <Tooltip title="Akce">
-                              <IconButton
-                                onClick={(e) => handleActionMenuOpen(e, user)}
-                              >
-                                <IconDotsVertical size={20} />
-                              </IconButton>
-                            </Tooltip>
+                            {hasUserManagerRole ? (
+                              <Tooltip title="Akce">
+                                <IconButton
+                                  onClick={(e) => handleActionMenuOpen(e, user)}
+                                >
+                                  <IconDotsVertical size={20} />
+                                </IconButton>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip title="Nemáte oprávnění pro správu uživatelů">
+                                <span>
+                                  <IconButton disabled>
+                                    <IconDotsVertical size={20} />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
