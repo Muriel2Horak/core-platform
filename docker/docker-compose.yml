@@ -71,11 +71,14 @@ services:
         condition: service_started
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-development}
-      # Split issuer/jwk-set configuration
-      - OIDC_ISSUER_URI=https://core-platform.local/realms/core-platform
-      - OIDC_JWK_SET_URI=http://keycloak:8080/realms/core-platform/protocol/openid-connect/certs
-      - OIDC_API_AUDIENCE=api
-      - CORS_ORIGINS=${CORS_ORIGINS:-https://${DOMAIN}}
+      # 🌐 DOMAIN pro všechny external URLs
+      - DOMAIN=${DOMAIN:-core-platform.local}
+      # 🔧 FIX: OIDC Configuration - použijeme environment proměnné místo nested expansion
+      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI}
+      - OIDC_JWK_SET_URI=${OIDC_JWK_SET_URI}
+      - OIDC_API_AUDIENCE=${OIDC_API_AUDIENCE}
+      # 🔧 FIX: CORS origins - použijeme environment proměnnou místo nested expansion
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
       - LOKI_URL=http://loki:3100/loki/api/v1/push
       - LOG_LEVEL=DEBUG
@@ -84,8 +87,8 @@ services:
       - KEYCLOAK_ADMIN_CLIENT_ID=backend-admin-service
       - KEYCLOAK_ADMIN_CLIENT_SECRET=lYHZXQHv1lHEn1bToLzySIchd7dVIFmm
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
-      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM:-master}
-      - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM:-core-platform}
+      - KEYCLOAK_ADMIN_REALM=core-platform
+      - KEYCLOAK_TARGET_REALM=core-platform
       - KEYCLOAK_ADMIN_BASE_URL=http://keycloak:8080
     logging:
       driver: loki 
@@ -105,9 +108,10 @@ services:
     container_name: core-frontend
     environment:
       - HOST=0.0.0.0
-      - VITE_API_TARGET=https://${DOMAIN}/api
+      # 🌐 Používá DOMAIN místo hardcoded URLs
+      - VITE_API_TARGET=https://${DOMAIN:-core-platform.local}/api
       - VITE_LOKI_TARGET=http://loki:3100
-      - VITE_KEYCLOAK_URL=https://${DOMAIN}
+      - VITE_KEYCLOAK_URL=https://${DOMAIN:-core-platform.local}
       - VITE_KEYCLOAK_REALM=core-platform
       - VITE_KEYCLOAK_CLIENT_ID=web
     volumes:
@@ -144,43 +148,44 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /realms/core-platform HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && head -1 <&3 | grep -q '200 OK'"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/core-platform/.well-known/openid-configuration >/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
     environment:
-      # Proxy konfigurace pro nginx
-      - KC_HOSTNAME=${DOMAIN}
-      - KC_PROXY=edge
+      # 🌐 DOMAIN pro dynamické generování realm exportu
+      - DOMAIN=${DOMAIN:-core-platform.local}
+      
+      # 🔧 FIX: Keycloak 26 hostname konfigurace (moderní varianta)
+      - KC_HOSTNAME=${DOMAIN:-core-platform.local}
+      - KC_PROXY_HEADERS=xforwarded
       - KC_HTTP_ENABLED=true
       - KC_HOSTNAME_STRICT=false
-      - KC_PROXY_HEADERS=xforwarded
+      - KC_LOG_LEVEL=debug
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
       
-      # Debug logování
-      - KEYCLOAK_LOGLEVEL=DEBUG
-      - ROOT_LOGLEVEL=DEBUG
-      
-      # PostgreSQL databáze - opraveno na správné DB jméno a credentials
+      # PostgreSQL databáze
       - KC_DB=postgres
       - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
       - KC_DB_USERNAME=keycloak
       - KC_DB_PASSWORD=keycloak
       
-      # Admin účet - explicitně definované credentials
+      # Admin účet
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       
-      # Další features
+      # Features
       - KC_FEATURES=scripts,token-exchange,admin-fine-grained-authz
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "${KEYCLOAK_PORT:-8081}:8080"
-    command: ["start", "--verbose", "--import-realm"]
+    command: ["start", "--import-realm"]
     networks:
       - core-net
-    restart: "no"
+    restart: unless-stopped
 
   # 📊 Monitoring Stack
   grafana:
