@@ -17,7 +17,7 @@
   "adminTheme": "core-material",
   "emailTheme": "core-material",
   "attributes": {
-    "frontendUrl": "https://core-platform.local"
+    "frontendUrl": "https://$DOMAIN"
   },
   "users": [
     {
@@ -53,13 +53,6 @@
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_ADMIN"]
-    },
-    {
-      "username": "service-account-backend-admin-service",
-      "enabled": true,
-      "emailVerified": true,
-      "serviceAccountClientId": "backend-admin-service",
-      "realmRoles": ["CORE_ROLE_ADMIN", "admin"]
     }
   ],
   "roles": {
@@ -89,17 +82,6 @@
       { "name": "USER", "description": "Standard user role" }
     ]
   },
-  "clientScopes": [
-    {
-      "name": "admin",
-      "description": "Admin scope for backend services",
-      "protocol": "openid-connect",
-      "attributes": {
-        "include.in.token.scope": "true",
-        "display.on.consent.screen": "false"
-      }
-    }
-  ],
   "clients": [
     {
       "clientId": "api",
@@ -127,10 +109,7 @@
       "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm",
       "attributes": {
         "client.secret.creation.time": "1640995200"
-      },
-      "defaultClientScopes": [
-        "admin"
-      ]
+      }
     },
     {
       "clientId": "web",
@@ -147,7 +126,7 @@
         "http://localhost:3000/*",
         "https://localhost/*",
         "https://localhost:3000/*",
-        "https://core-platform.local/*",
+        "https://$DOMAIN/*",
         "https://staging.yourdomain.com/*", 
         "https://yourdomain.com/*"
       ],
@@ -156,7 +135,7 @@
         "http://localhost:3000",
         "https://localhost",
         "https://localhost:3000",
-        "https://core-platform.local",
+        "https://$DOMAIN",
         "https://staging.yourdomain.com",
         "https://yourdomain.com"
       ],

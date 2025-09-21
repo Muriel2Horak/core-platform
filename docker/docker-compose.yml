@@ -157,8 +157,8 @@ services:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
       
-      # 🔧 FIX: Keycloak 26 hostname konfigurace (moderní varianta)
-      - KC_HOSTNAME=${DOMAIN:-core-platform.local}
+      # 🔧 FIX: Keycloak 26 hostname konfigurace - spoléháme na X-Forwarded hlavičky
+      - KC_PROXY=edge
       - KC_PROXY_HEADERS=xforwarded
       - KC_HTTP_ENABLED=true
       - KC_HOSTNAME_STRICT=false

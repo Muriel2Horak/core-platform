@@ -134,9 +134,13 @@ public class KeycloakAdminService {
 
   public UserDto findUserByUsername(String username) {
     try {
+      log.info("🔍 findUserByUsername called with username: {}", username);
       String adminToken = getSecureAdminToken();
+      log.info("🔍 Admin token obtained successfully");
+
       String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users?username=" + username
           + "&exact=true";
+      log.info("🔍 Calling Keycloak API: {}", url);
 
       HttpHeaders headers = new HttpHeaders();
       headers.setBearerAuth(adminToken);
@@ -144,10 +148,15 @@ public class KeycloakAdminService {
       ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
           new HttpEntity<>(headers), String.class);
 
+      log.info("🔍 Keycloak API response status: {}", response.getStatusCode());
+      log.info("🔍 Keycloak API response body: {}", response.getBody());
+
       JsonNode users = objectMapper.readTree(response.getBody());
+      log.info("🔍 Parsed users array, size: {}", users.size());
 
       if (users.isArray() && users.size() > 0) {
         JsonNode user = users.get(0);
+        log.info("🔍 Found user, building UserDto...");
 
         UserDto userDto = UserDto.builder().id(user.path("id").asText())
             .username(user.path("username").asText()).email(user.path("email").asText())
@@ -155,25 +164,32 @@ public class KeycloakAdminService {
             .enabled(user.path("enabled").asBoolean())
             .emailVerified(user.path("emailVerified").asBoolean()).build();
 
+        log.info("🔍 Getting roles for user ID: {}", userDto.getId());
         List<String> roles = getUserRoles(userDto.getId());
         userDto.setRoles(roles);
 
+        log.info("🔍 User found and built successfully: {}", userDto.getUsername());
         return userDto;
       }
 
+      log.info("🔍 No users found in response");
       return null;
 
     } catch (Exception ex) {
-      log.error("Failed to find user by username: {}", username, ex);
+      log.error("🔍 Exception in findUserByUsername: {}", ex.getMessage(), ex);
       return null;
     }
   }
 
   public UserDto getUserByUsername(String username) {
+    log.info("🔍 getUserByUsername called with username: {}", username);
     UserDto user = findUserByUsername(username);
+    log.info("🔍 findUserByUsername returned: {}", user != null ? "user found" : "null");
     if (user == null) {
+      log.error("🔍 User not found, throwing exception for username: {}", username);
       throw new RuntimeException("User not found: " + username);
     }
+    log.info("🔍 Returning user: {}", user.getUsername());
     return user;
   }
 
@@ -582,6 +598,107 @@ public class KeycloakAdminService {
     if (input == null)
       return "";
     return input.trim().replaceAll("[<>\"'&]", "");
+  }
+
+  /**
+   * 🔐 CLIENT ROLE MANAGEMENT - pro service account admin oprávnění
+   */
+
+  /**
+   * Přiřadí client role uživateli (používá se pro realm-management admin role)
+   */
+  public void assignClientRoleToUser(String userId, String clientId, String roleName) {
+    try {
+      log.info("Assigning client role {} from client {} to user {}", roleName, clientId, userId);
+
+      String adminToken = getSecureAdminToken();
+
+      // 1. Najdi client UUID podle clientId
+      String clientUuid = getClientUuidByClientId(clientId, adminToken);
+      if (clientUuid == null) {
+        throw new RuntimeException("Client not found: " + clientId);
+      }
+
+      // 2. Najdi role definition
+      JsonNode roleNode = getClientRole(clientUuid, roleName, adminToken);
+      if (roleNode == null) {
+        throw new RuntimeException("Client role not found: " + roleName + " in client " + clientId);
+      }
+
+      // 3. Přiřaď role uživateli
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/role-mappings/clients/" + clientUuid;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> roleRepresentation = new HashMap<>();
+      roleRepresentation.put("id", roleNode.path("id").asText());
+      roleRepresentation.put("name", roleNode.path("name").asText());
+
+      List<Map<String, Object>> roles = List.of(roleRepresentation);
+
+      restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(roles, headers), Void.class);
+
+      log.info("Client role {} successfully assigned to user {}", roleName, userId);
+      auditLogger.info("CLIENT_ROLE_ASSIGNED: role={}, client={}, user={}", roleName, clientId,
+          userId);
+
+    } catch (Exception ex) {
+      log.error("Failed to assign client role {} to user {}", roleName, userId, ex);
+      throw new RuntimeException("Failed to assign client role", ex);
+    }
+  }
+
+  /**
+   * Najdi UUID klienta podle clientId
+   */
+  private String getClientUuidByClientId(String clientId, String adminToken) {
+    try {
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/clients?clientId="
+          + clientId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode clients = objectMapper.readTree(response.getBody());
+
+      if (clients.isArray() && clients.size() > 0) {
+        return clients.get(0).path("id").asText();
+      }
+
+      return null;
+
+    } catch (Exception ex) {
+      log.error("Failed to get client UUID for clientId: {}", clientId, ex);
+      return null;
+    }
+  }
+
+  /**
+   * Najdi client role podle názvu
+   */
+  private JsonNode getClientRole(String clientUuid, String roleName, String adminToken) {
+    try {
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/clients/" + clientUuid
+          + "/roles/" + roleName;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      return objectMapper.readTree(response.getBody());
+
+    } catch (Exception ex) {
+      log.error("Failed to get client role {} for client {}", roleName, clientUuid, ex);
+      return null;
+    }
   }
 
   private static class TokenCache {

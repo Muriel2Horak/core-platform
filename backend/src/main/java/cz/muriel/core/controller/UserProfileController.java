@@ -20,18 +20,23 @@ public class UserProfileController {
 
   @GetMapping @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<UserDto> getMyProfile(Authentication authentication) {
-    String userId = getCurrentUserId(authentication);
-    log.info("Getting profile for user: {}", userId);
+    String username = getCurrentUsername(authentication);
+    log.info("Getting profile for username: {}", username);
 
-    UserDto user = keycloakAdminService.getUserById(userId);
+    // Místo hledání podle ID použijeme username
+    UserDto user = keycloakAdminService.getUserByUsername(username);
     return ResponseEntity.ok(user);
   }
 
   @PutMapping @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
-    String userId = getCurrentUserId(authentication);
-    log.info("Updating profile for user: {}", userId);
+    String username = getCurrentUsername(authentication);
+    log.info("Updating profile for username: {}", username);
+
+    // Nejdříve najdeme uživatele podle username, abychom získali jeho ID
+    UserDto existingUser = keycloakAdminService.getUserByUsername(username);
+    String userId = existingUser.getId();
 
     UserDto updatedUser = keycloakAdminService.updateUser(userId, request);
     return ResponseEntity.ok(updatedUser);
@@ -40,10 +45,12 @@ public class UserProfileController {
   @PutMapping("/password") @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request,
       Authentication authentication) {
-    String userId = getCurrentUserId(authentication);
     String username = getCurrentUsername(authentication);
+    log.info("Changing password for username: {}", username);
 
-    log.info("Changing password for user: {}", userId);
+    // Nejdříve najdeme uživatele podle username, abychom získali jeho ID
+    UserDto existingUser = keycloakAdminService.getUserByUsername(username);
+    String userId = existingUser.getId();
 
     // Validate that new password and confirmation match
     if (!request.getNewPassword().equals(request.getConfirmPassword())) {
@@ -70,14 +77,29 @@ public class UserProfileController {
 
     // Zkusíme několik možných claims pro user ID
     String userId = jwt.getClaimAsString("sub");
-    if (userId == null) {
-      userId = jwt.getClaimAsString("user_id");
+    log.debug("sub claim: {}", userId);
+
+    if (userId == null || userId.trim().isEmpty()) {
+      // Pokud sub není dostupné, použijeme preferred_username
+      userId = jwt.getClaimAsString("preferred_username");
+      log.debug("preferred_username claim: {}", userId);
     }
-    if (userId == null) {
+    if (userId == null || userId.trim().isEmpty()) {
+      userId = jwt.getClaimAsString("user_id");
+      log.debug("user_id claim: {}", userId);
+    }
+    if (userId == null || userId.trim().isEmpty()) {
       userId = jwt.getClaimAsString("id");
+      log.debug("id claim: {}", userId);
     }
 
-    log.debug("Extracted user ID: {}", userId);
+    log.debug("Final extracted user ID: {}", userId);
+
+    if (userId == null || userId.trim().isEmpty()) {
+      throw new IllegalStateException("Could not extract user ID from JWT token. Available claims: "
+          + jwt.getClaims().keySet());
+    }
+
     return userId;
   }
 

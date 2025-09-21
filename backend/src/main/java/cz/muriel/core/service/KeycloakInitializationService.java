@@ -12,6 +12,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j @Service @RequiredArgsConstructor
@@ -46,6 +47,9 @@ public class KeycloakInitializationService implements ApplicationRunner {
 
       // 2. Ensure system administrator user exists
       ensureSystemAdminExists();
+
+      // 3. Ensure backend service account has proper admin roles
+      ensureServiceAccountRoles();
 
       log.info("Keycloak initialization completed successfully");
     } catch (Exception e) {
@@ -137,5 +141,76 @@ public class KeycloakInitializationService implements ApplicationRunner {
     }
 
     return password.toString();
+  }
+
+  /**
+   * Automaticky přiřadí admin role backend service accountu
+   */
+  private void ensureServiceAccountRoles() {
+    try {
+      log.info("Ensuring backend service account has proper admin roles...");
+
+      // Najdi service account uživatele pro backend-admin-service klienta
+      // Service account uživatel má username ve formátu "service-account-{clientId}"
+      String serviceAccountUsername = "service-account-backend-admin-service";
+
+      UserDto serviceAccount = keycloakAdminService.findUserByUsername(serviceAccountUsername);
+
+      if (serviceAccount == null) {
+        log.warn(
+            "Service account user {} not found. Backend admin client may not be properly configured.",
+            serviceAccountUsername);
+        return;
+      }
+
+      log.info("Found service account user: {} (ID: {})", serviceAccount.getUsername(),
+          serviceAccount.getId());
+
+      // Seznam potřebných admin rolí pro Keycloak Admin API
+      String[] requiredRoles = { "manage-users", "view-users", "view-realm", "manage-realm" };
+
+      // Pro každou potřebnou roli zkontroluj a přiřaď ji, pokud chybí
+      List<String> currentRoles = keycloakAdminService.getUserRoles(serviceAccount.getId());
+
+      for (String roleName : requiredRoles) {
+        if (!currentRoles.contains(roleName)) {
+          try {
+            log.info("Assigning role {} to service account {}", roleName,
+                serviceAccount.getUsername());
+
+            // Tyto role jsou client roles z realm-management klienta
+            // Pro zjednodušení použijeme KeycloakAdminService API (bude vyžadovat
+            // rozšíření)
+            assignClientRoleToServiceAccount(serviceAccount.getId(), "realm-management", roleName);
+
+          } catch (Exception e) {
+            log.error("Failed to assign role {} to service account: {}", roleName, e.getMessage());
+          }
+        } else {
+          log.info("Service account already has role: {}", roleName);
+        }
+      }
+
+      log.info("Service account role assignment completed");
+
+    } catch (Exception e) {
+      log.error("Failed to configure service account roles", e);
+      // Ne-kritická chyba - nevhazuj výjimku, jen zaloguj
+    }
+  }
+
+  /**
+   * Přiřadí client role service accountu (rozšíření pro realm-management role)
+   */
+  private void assignClientRoleToServiceAccount(String userId, String clientId, String roleName) {
+    try {
+      keycloakAdminService.assignClientRoleToUser(userId, clientId, roleName);
+      log.info("Successfully assigned {} role from {} client to service account user {}", roleName,
+          clientId, userId);
+    } catch (Exception e) {
+      log.error("Failed to assign {} role from {} client to user {}: {}", roleName, clientId,
+          userId, e.getMessage());
+      throw e;
+    }
   }
 }
