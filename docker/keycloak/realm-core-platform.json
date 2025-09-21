@@ -94,6 +94,27 @@
       "serviceAccountsEnabled": false
     },
     {
+      "clientId": "backend-admin-service",
+      "name": "Backend Admin Service",
+      "description": "Service account for backend to access Keycloak Admin API",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "enabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": false,
+      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm",
+      "attributes": {
+        "client.secret.creation.time": "1640995200"
+      },
+      "serviceAccountsClientRoles": {
+        "realm-management": ["view-users", "manage-users", "view-realm", "manage-realm"]
+      }
+    },
+    {
       "clientId": "web",
       "name": "web",
       "protocol": "openid-connect",
