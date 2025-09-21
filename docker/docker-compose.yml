@@ -157,9 +157,8 @@ services:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
       
-      # 🔧 FIX: Keycloak 26.x hostname v2 konfigurace - s proxy headers pro HTTPS
+      # 🔧 FIX: Keycloak 26.x hostname v2 konfigurace - bez proxy headers pro debug
       - KC_HOSTNAME=core-platform.local
-      - KC_PROXY_HEADERS=xforwarded
       - KC_HTTP_ENABLED=true
       - KC_HOSTNAME_STRICT=false
       
