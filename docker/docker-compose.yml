@@ -157,13 +157,12 @@ services:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
       
-      # 🔧 FIX: Keycloak 26 hostname konfigurace - explicitní hostname
+      # 🔧 FIX: Keycloak 26.x hostname v2 konfigurace (bez zastaralého KC_HOSTNAME_URL)
       - KC_HOSTNAME=${DOMAIN:-core-platform.local}
-      - KC_HOSTNAME_ADMIN=${DOMAIN:-core-platform.local}
+      - KC_HOSTNAME_PORT=443
       - KC_HOSTNAME_STRICT=false
-      - KC_HOSTNAME_STRICT_BACKCHANNEL=false
-      - KC_PROXY=edge
       - KC_PROXY_HEADERS=xforwarded
+      - KC_PROXY=edge
       - KC_HTTP_ENABLED=true
       - KC_LOG_LEVEL=info
       - KC_HEALTH_ENABLED=true
