@@ -9,6 +9,7 @@ import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
@@ -31,7 +32,7 @@ public class FrontendLogsController {
     this.objectMapper = new ObjectMapper();
   }
 
-  @PostMapping("/api/frontend-logs")
+  @PostMapping("/api/frontend-logs") // Pouze authenticated - bez role požadavků
   public ResponseEntity<String> receiveFrontendLog(@RequestBody Map<String, Object> logEntry,
       HttpServletRequest request) {
     try {

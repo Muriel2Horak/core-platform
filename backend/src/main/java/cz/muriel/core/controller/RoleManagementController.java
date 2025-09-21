@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 
-@Slf4j @RestController @RequestMapping("/api/roles") @RequiredArgsConstructor @Validated @PreAuthorize("hasRole('CORE_USER_ADMIN')")
+@Slf4j @RestController @RequestMapping("/api/roles") @RequiredArgsConstructor @Validated
 public class RoleManagementController {
 
   private final KeycloakAdminService keycloakAdminService;
 
-  @GetMapping
+  @GetMapping @PreAuthorize("hasAnyAuthority('CORE_ROLE_USER', 'CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN')")
   public ResponseEntity<List<RoleDto>> getAllRoles() {
     log.info("Getting all roles");
 
@@ -27,7 +27,7 @@ public class RoleManagementController {
     return ResponseEntity.ok(roles);
   }
 
-  @GetMapping("/{name}")
+  @GetMapping("/{name}") @PreAuthorize("hasAnyAuthority('CORE_ROLE_USER', 'CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN')")
   public ResponseEntity<RoleDto> getRoleByName(@PathVariable String name) {
     log.info("Getting role by name: {}", name);
 
@@ -35,7 +35,7 @@ public class RoleManagementController {
     return ResponseEntity.ok(role);
   }
 
-  @PostMapping
+  @PostMapping @PreAuthorize("hasAuthority('CORE_ROLE_ADMIN')")
   public ResponseEntity<RoleDto> createRole(@Valid @RequestBody RoleCreateRequest request) {
     log.info("Creating new role: {}", request.getName());
 

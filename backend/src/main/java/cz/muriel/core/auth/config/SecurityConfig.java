@@ -77,20 +77,21 @@ public class SecurityConfig {
   @Bean
   JwtDecoder jwtDecoder() {
     // Použij NimbusJwtDecoder s explicitním JWK Set URI místo issuer discovery
-    String jwkSetUri = optionalJwkSetUri != null && !optionalJwkSetUri.trim().isEmpty() 
-        ? optionalJwkSetUri 
+    String jwkSetUri = optionalJwkSetUri != null && !optionalJwkSetUri.trim().isEmpty()
+        ? optionalJwkSetUri
         : issuerUri + "/protocol/openid-connect/certs";
-    
+
     NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
 
     // Vytvoř validátory pro issuer a audience
     OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
     OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(allowedAudience);
-    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
+    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer,
+        audienceValidator);
 
     // Nastav validátory na decoder
     decoder.setJwtValidator(validator);
-    
+
     return decoder;
   }
 
@@ -107,7 +108,19 @@ public class SecurityConfig {
       // Extrahování rolí z Keycloak JWT tokenu
       Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-      // 1. Realm roles z resource_access claim
+      // 1. Realm roles z realm_access claim (primární pro CORE_ROLE_*)
+      Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+      if (realmAccess != null) {
+        Object rolesObj = realmAccess.get("roles");
+        if (rolesObj instanceof List) {
+          @SuppressWarnings("unchecked")
+          List<String> roles = (List<String>) rolesObj;
+          // Mapujeme role 1:1 bez přidávání prefixu "ROLE_"
+          roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
+        }
+      }
+
+      // 2. Resource access roles z resource_access claim (volitelné pro budoucí použití)
       Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
       if (resourceAccess != null) {
         resourceAccess.forEach((clientId, clientAccess) -> {
@@ -118,21 +131,11 @@ public class SecurityConfig {
             if (rolesObj instanceof List) {
               @SuppressWarnings("unchecked")
               List<String> roles = (List<String>) rolesObj;
-              roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+              // Mapujeme client-specific role také 1:1 bez prefixu
+              roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
             }
           }
         });
-      }
-
-      // 2. Realm roles z realm_access claim
-      Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-      if (realmAccess != null) {
-        Object rolesObj = realmAccess.get("roles");
-        if (rolesObj instanceof List) {
-          @SuppressWarnings("unchecked")
-          List<String> roles = (List<String>) rolesObj;
-          roles.forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
-        }
       }
 
       // 3. Scope authorities (standardní OAuth2)
