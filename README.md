@@ -271,7 +271,71 @@ The platform uses **Keycloak with standard OIDC flow**:
 - **Realm**: `core-platform`
 - **Frontend Client**: `web` (public client)
 - **Backend Client**: `api` (bearer-only)
-- **Roles**: `ROLE_USER`, `admin`
+
+### 👥 **Role Model**
+
+The platform uses a hierarchical role-based access control (RBAC) system with composite roles:
+
+#### **Core Roles (Realm-level)**
+
+| Role | Description | Permissions |
+|------|-------------|-------------|
+| `CORE_ROLE_USER` | Basic user role | Self-service operations (profile, password change) |
+| `CORE_ROLE_USER_MANAGER` | User management role | User CRUD, role assignment, password reset |
+| `CORE_ROLE_ADMIN` | System administrator | Full system access, all operations |
+
+#### **Role Hierarchy (Composite Structure)**
+
+```
+CORE_ROLE_ADMIN (top-level)
+├── includes: CORE_ROLE_USER_MANAGER
+│   └── includes: CORE_ROLE_USER
+└── Result: ADMIN has all USER_MANAGER + USER permissions
+
+CORE_ROLE_USER_MANAGER (mid-level)  
+├── includes: CORE_ROLE_USER
+└── Result: USER_MANAGER has all USER permissions + management
+
+CORE_ROLE_USER (base-level)
+└── Basic authenticated user permissions
+```
+
+#### **Endpoint Authorization**
+
+| Endpoint Pattern | Required Role | Description |
+|------------------|---------------|-------------|
+| `POST /api/frontend-logs` | *authenticated only* | Frontend logging (no specific role needed) |
+| `GET/PUT /api/me/**` | `CORE_ROLE_USER` | Self-service operations |
+| `GET/POST/PUT/DELETE /api/users/**` | `CORE_ROLE_USER_MANAGER` | User management |
+| `GET/POST /api/roles/**` | `CORE_ROLE_USER_MANAGER` | Role management |
+
+#### **Test Users**
+
+| Username | Password | Assigned Role | Effective Permissions |
+|----------|----------|---------------|----------------------|
+| `test` | `Test.1234` | `CORE_ROLE_USER` | Self-service only |
+| `test_admin` | `Test.1234` | `CORE_ROLE_ADMIN` | Full system access (includes USER_MANAGER + USER) |
+
+#### **Frontend Role-Gated UI**
+
+- **User Management Page**: Only visible to users with `CORE_ROLE_USER_MANAGER` or `CORE_ROLE_ADMIN`
+- **Admin Menu Items**: Hidden for users without proper roles
+- **Action Buttons**: Disabled/hidden based on user permissions
+- **Security Logging**: Unauthorized access attempts are logged for monitoring
+
+#### **JWT Token Structure**
+
+Roles are mapped from Keycloak JWT `realm_access.roles` claim to Spring Security authorities:
+
+```json
+{
+  "realm_access": {
+    "roles": ["CORE_ROLE_USER", "offline_access", "uma_authorization"]
+  }
+}
+```
+
+Backend maps these roles 1:1 without prefix (uses `hasAuthority("CORE_ROLE_USER")` instead of `hasRole()`).
 
 ## 🎨 Keycloak Themes Setup
 
