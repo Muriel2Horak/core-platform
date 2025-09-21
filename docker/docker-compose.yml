@@ -148,11 +148,11 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/core-platform/.well-known/openid-configuration >/dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
     environment:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
