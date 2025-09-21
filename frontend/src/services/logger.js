@@ -4,7 +4,7 @@ import authService from './auth';
 class FrontendLogger {
   constructor() {
     this.service = 'core-platform-frontend';
-    this.enabled = true;
+    this.enabled = true; // 🔧 ZAPNUTO ZPĚT - opravil jsem tokenSource logiku v auth.js
     
     // Detekce prostředí a nastavení endpointů
     this.isProduction = import.meta.env.PROD;

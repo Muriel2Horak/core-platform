@@ -18,8 +18,7 @@ public class UserProfileController {
 
   private final KeycloakAdminService keycloakAdminService;
 
-  @GetMapping
-  @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
+  @GetMapping @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<UserDto> getMyProfile(Authentication authentication) {
     String userId = getCurrentUserId(authentication);
     log.info("Getting profile for user: {}", userId);
@@ -28,8 +27,7 @@ public class UserProfileController {
     return ResponseEntity.ok(user);
   }
 
-  @PutMapping
-  @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
+  @PutMapping @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
     String userId = getCurrentUserId(authentication);
@@ -39,8 +37,7 @@ public class UserProfileController {
     return ResponseEntity.ok(updatedUser);
   }
 
-  @PutMapping("/password")
-  @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
+  @PutMapping("/password") @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
   public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request,
       Authentication authentication) {
     String userId = getCurrentUserId(authentication);

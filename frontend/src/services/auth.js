@@ -221,25 +221,42 @@ class AuthService {
 
   // API volání s automatickým přidáním tokenu
   async apiCall(url, options = {}) {
-    // Vždy se pokus o osvěžení tokenu přes keycloakService před voláním
+    let token = null;
+    let tokenSource = 'localStorage'; // default
+    
+    // 🔧 FIX: Priorita tokenu - vždy zkus keycloakService PRVNÍ
     try {
       const ksModule = await import('./keycloakService');
       const ks = ksModule.default;
       if (ks?.keycloak && ks.isAuthenticated()) {
         try {
+          // Vždy obnovit token před voláním
           await ks.keycloak.updateToken(30);
-          // Synchronizuj token do localStorage pro kompatibilitu
-          const fresh = ks.getToken();
-          if (fresh) localStorage.setItem('keycloak-token', fresh);
+          const freshToken = ks.getToken();
+          if (freshToken) {
+            token = freshToken;
+            tokenSource = 'keycloakService'; // 🔧 FIX: Správně označit zdroj
+            // Synchronizuj do localStorage pro backup
+            localStorage.setItem('keycloak-token', freshToken);
+            this.token = freshToken;
+          }
         } catch (e) {
           this._logError('AUTHSERVICE: updateToken před voláním selhal', { error: e?.message });
+          // Fallback na localStorage token
+          token = this.getToken();
+          tokenSource = 'localStorage-fallback';
         }
+      } else {
+        // keycloakService není autentizovaný, použij localStorage
+        token = this.getToken();
+        tokenSource = 'localStorage-notauth';
       }
     } catch {
       // keycloakService nemusí být dostupný – použijeme localStorage fallback
+      token = this.getToken();
+      tokenSource = 'localStorage-noservice';
     }
 
-    const token = this.getToken();
     const headers = {
       'Content-Type': 'application/json',
       ...options.headers
@@ -256,6 +273,7 @@ class AuthService {
       fullUrl: fullUrl,
       method: options.method || 'GET',
       hasToken: !!token,
+      tokenSource: tokenSource, // 🔧 FIX: Používám správnou proměnnou
       hasBody: !!options.body,
       architecture: 'nginx-proxy'
     });
@@ -276,7 +294,7 @@ class AuthService {
       });
 
       if (response.status === 401) {
-        // Pokus o refresh tokenu a jednorázový retry
+        // Pokus o refresh tokenu a jednorázový retry pouze pokud máme keycloakService
         try {
           const ksModule = await import('./keycloakService');
           const ks = ksModule.default;
@@ -284,9 +302,14 @@ class AuthService {
             const refreshed = await ks.keycloak.updateToken(10);
             if (refreshed) {
               const newToken = ks.getToken();
-              if (newToken) localStorage.setItem('keycloak-token', newToken);
-              const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
-              response = await fetch(fullUrl, { ...options, headers: retryHeaders, credentials: 'include' });
+              if (newToken && newToken !== token) {
+                localStorage.setItem('keycloak-token', newToken);
+                this.token = newToken;
+                const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+                
+                this._log('AUTHSERVICE: Retrying with refreshed token');
+                response = await fetch(fullUrl, { ...options, headers: retryHeaders, credentials: 'include' });
+              }
             }
           }
         } catch {

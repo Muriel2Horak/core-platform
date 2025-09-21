@@ -4,7 +4,10 @@
     "**/.classpath": true,
     "**/.project": true,
     "**/.settings": true,
-    "**/.vscode": false
+    "**/.vscode": false,
+    "**/target": true,
+    "**/node_modules": true,
+    "**/.DS_Store": true
   },
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
@@ -54,15 +57,22 @@
   "git.autofetch": true,
 
   // ☕ Java Runtime
-  "java.configuration.runtimes": [
-    {
-      "name": "JavaSE-21",
-      "path": "/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home",
-      "default": true
-    }
-  ],
+  "java.configuration.runtimes": [],
   "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable",
   // Volitelné: čistší LS
   "java.compile.nullAnalysis.mode": "automatic",
-  "maven.terminal.useJavaHome": true
+  "maven.terminal.useJavaHome": true,
+
+  // 🛠️ Java Workspace Settings
+  "java.configuration.workspaceCacheLimit": 90,
+  "java.project.sourcePaths": [
+    "backend/src/main/java"
+  ],
+  "java.project.referencedLibraries": [
+    "backend/target/dependency/*.jar"
+  ],
+  "java.configuration.maven.userSettings": "",
+  "java.project.outputPath": "backend/target/classes",
+  "spring-boot.ls.problem.application-properties.enabled": true,
+  "java.debug.settings.onBuildFailureProceed": true
 }

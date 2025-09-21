@@ -75,15 +75,14 @@ services:
       - OIDC_ISSUER_URI=https://core-platform.local/realms/core-platform
       - OIDC_JWK_SET_URI=http://keycloak:8080/realms/core-platform/protocol/openid-connect/certs
       - OIDC_API_AUDIENCE=api
-      # Legacy compatibility
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak:8080/realms/core-platform
       - CORS_ORIGINS=${CORS_ORIGINS:-https://${DOMAIN}}
       - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
       - LOKI_URL=http://loki:3100/loki/api/v1/push
       - LOG_LEVEL=DEBUG
       - SPRING_PROFILES_ACTIVE=development
-      - KEYCLOAK_ADMIN_CLIENT_ID=${KEYCLOAK_ADMIN_CLIENT_ID:-admin-cli}
-      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET:-}
+      # 🔐 Service Account Credentials
+      - KEYCLOAK_ADMIN_CLIENT_ID=backend-admin-service
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=lYHZXQHv1lHEn1bToLzySIchd7dVIFmm
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
       - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM:-master}
       - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM:-core-platform}

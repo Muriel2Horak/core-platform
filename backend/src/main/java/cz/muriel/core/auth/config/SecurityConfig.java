@@ -54,8 +54,7 @@ public class SecurityConfig {
       JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
     http.csrf(csrf -> csrf
         // Globálně vypneme CSRF pro REST API (stateless JWT)
-        .disable())
-        .cors(Customizer.withDefaults())
+        .disable()).cors(Customizer.withDefaults())
         .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             // Veřejné endpointy
@@ -70,7 +69,8 @@ public class SecurityConfig {
             // Self-service endpointy - pouze authenticated, role kontrola v metodách
             .requestMatchers("/api/me/**").authenticated()
             // User management endpointy - vyžadují CORE_ROLE_USER_MANAGER
-            .requestMatchers("/api/users/**", "/api/roles/**").hasAuthority("CORE_ROLE_USER_MANAGER")
+            .requestMatchers("/api/users/**", "/api/roles/**")
+            .hasAuthority("CORE_ROLE_USER_MANAGER")
             // Všechny ostatní requesty vyžadují autentifikaci
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver)
@@ -124,7 +124,8 @@ public class SecurityConfig {
         }
       }
 
-      // 2. Resource access roles z resource_access claim (volitelné pro budoucí použití)
+      // 2. Resource access roles z resource_access claim (volitelné pro budoucí
+      // použití)
       Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
       if (resourceAccess != null) {
         resourceAccess.forEach((clientId, clientAccess) -> {
