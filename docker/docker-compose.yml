@@ -7,7 +7,7 @@ services:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     environment:
-      - DOMAIN=${DOMAIN}
+      - DOMAIN=${DOMAIN:-core-platform.local}
     volumes:
       - ./nginx/nginx-ssl.conf.template:/etc/nginx/templates/nginx-ssl.conf.template:ro
       - ./ssl:/etc/nginx/ssl:ro
@@ -157,12 +157,15 @@ services:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
       
-      # 🔧 FIX: Keycloak 26 hostname konfigurace - spoléháme na X-Forwarded hlavičky
+      # 🔧 FIX: Keycloak 26 hostname konfigurace - explicitní hostname
+      - KC_HOSTNAME=${DOMAIN:-core-platform.local}
+      - KC_HOSTNAME_ADMIN=${DOMAIN:-core-platform.local}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_BACKCHANNEL=false
       - KC_PROXY=edge
       - KC_PROXY_HEADERS=xforwarded
       - KC_HTTP_ENABLED=true
-      - KC_HOSTNAME_STRICT=false
-      - KC_LOG_LEVEL=debug
+      - KC_LOG_LEVEL=info
       - KC_HEALTH_ENABLED=true
       - KC_METRICS_ENABLED=true
       
