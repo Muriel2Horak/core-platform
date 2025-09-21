@@ -1,5 +1,5 @@
 // Structured logger pro frontend - loguje do console A posílá na backend/Loki
-import authService from './auth';
+// 🔧 FIX: Odstraněn import authService kvůli cyklické závislosti
 
 class FrontendLogger {
   constructor() {
@@ -96,7 +96,10 @@ class FrontendLogger {
     };
 
     this._logToConsole(level, operation, message, logEntry);
-    this._sendToServer(logEntry);
+    // 🔧 FIX: _sendToServer je nyní async, ale nečekáme na výsledek (fire-and-forget)
+    this._sendToServer(logEntry).catch(error => {
+      console.warn('⚠️ LOGGER: Async send failed:', error);
+    });
   }
 
   _logToConsole(level, operation, message, logEntry) {
@@ -119,22 +122,100 @@ class FrontendLogger {
     }
   }
 
+  // 🔧 FIX: Inteligentní získání platného tokenu
+  async _getValidToken() {
+    try {
+      // 1. Zkus localStorage token
+      const token = localStorage.getItem('keycloak-token');
+      if (!token) return null;
+
+      // 2. Zkontroluj, zda token není vypršený
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+        
+        // Pokud token vyprší za méně než 30 sekund, zkus ho obnovit
+        if (payload.exp && payload.exp < currentTime + 30) {
+          console.log('🔄 LOGGER: Token brzy vyprší, pokouším se o refresh...');
+          
+          // Zkus async load keycloakService pro refresh
+          try {
+            const ksModule = await import('./keycloakService');
+            const ks = ksModule.default;
+            if (ks?.keycloak && ks.isAuthenticated()) {
+              await ks.keycloak.updateToken(30);
+              const freshToken = ks.getToken();
+              if (freshToken && freshToken !== token) {
+                localStorage.setItem('keycloak-token', freshToken);
+                console.log('✅ LOGGER: Token úspěšně obnoven');
+                return freshToken;
+              }
+            }
+          } catch (refreshError) {
+            console.warn('⚠️ LOGGER: Refresh tokenu selhal:', refreshError);
+          }
+        }
+        
+        // Pokud token je stále platný (nebo se nepodařil refresh), použij ho
+        if (payload.exp && payload.exp > currentTime) {
+          return token;
+        }
+        
+      } catch (parseError) {
+        console.warn('⚠️ LOGGER: Nelze parsovat token:', parseError);
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ LOGGER: Chyba při získávání tokenu:', error);
+    }
+    
+    return null;
+  }
+
   async _sendToServer(logEntry) {
     if (!this.enabled) return;
+    
     try {
+      // 🔧 FIX: Používáme VÝHRADNĚ authService.apiCall místo přímého fetch
+      console.log('🔧 LOGGER: Odesílám log přes authService.apiCall', {
+        operation: logEntry.operation,
+        level: logEntry.level,
+        endpoint: this.backendLogUrl
+      });
+      
+      // Async import authService (kvůli cyklické závislosti)
+      const authModule = await import('./auth.js');
+      const authService = authModule.default;
+      
       const response = await authService.apiCall(this.backendLogUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(logEntry)
       });
 
       if (!response || !response.ok) {
-        console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response?.status);
+        // 🔧 FIX: Bezpečné zpracování non-JSON odpovědí
+        let errorMessage = `HTTP ${response?.status}`;
+        try {
+          const contentType = response?.headers?.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+          } else {
+            // Plain text odpověď - načteme jako text
+            const textError = await response.text();
+            errorMessage = textError || errorMessage;
+          }
+        } catch (parseError) {
+          // Fallback pokud ani text parsing nefunguje
+          errorMessage = `HTTP ${response?.status} (parsing failed)`;
+        }
+        
+        console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response?.status, errorMessage);
+      } else {
+        console.log('✅ LOGGER: Log úspěšně odeslán přes authService.apiCall');
       }
     } catch (error) {
-      console.error('🔴 LOGGER: Chyba při odesílání na backend:', error);
+      console.error('🔴 LOGGER: Chyba při odesílání na backend přes authService:', error);
     }
   }
 
@@ -239,6 +320,20 @@ class FrontendLogger {
       // Bezpečný fallback, aby logování nerozbilo aplikaci
       console.warn('LOGGER.apiCall fallback', e);
     }
+  }
+
+  // 🔧 FIX: Přidáno pro kompatibilitu s authService
+  service(operation, message, details = {}) {
+    this.info(operation, message, { ...details, category: 'service' });
+  }
+
+  // 🔧 FIX: Přidáno pro auth logy
+  authLogout(details = {}) {
+    this.audit('AUTH_LOGOUT', 'User logged out', {
+      ...details,
+      category: 'authentication',
+      action: 'logout'
+    });
   }
 }
 
