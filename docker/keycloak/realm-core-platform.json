@@ -36,13 +36,50 @@
       "credentials": [
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
-      "realmRoles": ["admin", "ROLE_USER"]
+      "realmRoles": ["CORE_ROLE_USER"]
+    },
+    {
+      "username": "test_admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Test",
+      "lastName": "Administrator",
+      "email": "test.admin@example.com",
+      "attributes": {
+        "department": ["IT Administration"],
+        "position": ["System Administrator"]
+      },
+      "credentials": [
+        { "type": "password", "value": "Test.1234", "temporary": false }
+      ],
+      "realmRoles": ["CORE_ROLE_ADMIN"]
     }
   ],
   "roles": {
     "realm": [
+      { 
+        "name": "CORE_ROLE_USER", 
+        "description": "Basic user role for core platform",
+        "composite": false
+      },
+      { 
+        "name": "CORE_ROLE_USER_MANAGER", 
+        "description": "User management role - can manage other users",
+        "composite": true,
+        "composites": {
+          "realm": ["CORE_ROLE_USER"]
+        }
+      },
+      { 
+        "name": "CORE_ROLE_ADMIN", 
+        "description": "Full administrator role - can manage users and system",
+        "composite": true,
+        "composites": {
+          "realm": ["CORE_ROLE_USER_MANAGER"]
+        }
+      },
       { "name": "admin", "description": "Realm admin role for demo" },
-      { "name": "ROLE_USER", "description": "Standard user role" }
+      { "name": "USER", "description": "Standard user role" }
     ]
   },
   "clients": [
