@@ -165,7 +165,7 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Ssl on;
+            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Cache a správné MIME typy pro statické soubory
             expires 1h;
@@ -186,7 +186,7 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Ssl on;
+            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Správné MIME typy pro theme assets
             location ~* \.(css)$ {
@@ -222,7 +222,7 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Ssl on;
+            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Správný MIME typ pro JavaScript
             expires 1h;
@@ -243,7 +243,7 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Ssl on;
+            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Cache pro theme assets (CSS, JS, obrázky)
             expires 1h;
