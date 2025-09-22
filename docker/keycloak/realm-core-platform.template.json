@@ -12,7 +12,6 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["cs", "en"],
   "defaultLocale": "cs",
-  "frontendUrl": "https://${DOMAIN}",
   "users": [
     {
       "username": "test",

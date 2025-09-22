@@ -185,6 +185,7 @@ services:
     # 🚀 Start příkaz s optimálními parametry pro development
     command: [
       "start",
+      "--import-realm",                       # Import realm souborů při startu
       "--http-enabled=true",                  # Povolí HTTP na portu 8080 (pro health checks)
       "--http-port=8080",                     # Explicitní HTTP port
       "--hostname=core-platform.local",      # Hostname pro HTTPS odkazy
