@@ -1,4 +1,4 @@
-FROM quay.io/keycloak/keycloak:26.2.0
+FROM quay.io/keycloak/keycloak:24.0.5
 
 # Kopírování custom theme z repozitáře
 COPY themes/core-material /opt/keycloak/themes/core-material

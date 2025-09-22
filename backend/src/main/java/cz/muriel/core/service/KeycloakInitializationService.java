@@ -35,7 +35,7 @@ public class KeycloakInitializationService implements ApplicationRunner {
   @Value("${keycloak.init.admin.last-name:Administrator}")
   private String systemAdminLastName;
 
-  private static final String CORE_USER_ADMIN_ROLE = "CORE_USER_ADMIN";
+  private static final String CORE_USER_ADMIN_ROLE = "CORE_ROLE_ADMIN";
 
   @Override
   public void run(ApplicationArguments args) throws Exception {
@@ -157,10 +157,21 @@ public class KeycloakInitializationService implements ApplicationRunner {
       UserDto serviceAccount = keycloakAdminService.findUserByUsername(serviceAccountUsername);
 
       if (serviceAccount == null) {
-        log.warn(
-            "Service account user {} not found. Backend admin client may not be properly configured.",
+        log.warn("Service account user {} not found. Attempting to create it...",
             serviceAccountUsername);
-        return;
+
+        // Pokus se vytvořit service account uživatele
+        // Toto je backup řešení pro případy, kdy import realmu nevytvoří service
+        // account
+        try {
+          serviceAccount = createServiceAccountUser(serviceAccountUsername);
+          log.info("Successfully created service account user: {}", serviceAccountUsername);
+        } catch (Exception e) {
+          log.error("Failed to create service account user: {}", e.getMessage());
+          log.warn(
+              "Service account configuration skipped. Please check Keycloak client configuration.");
+          return;
+        }
       }
 
       log.info("Found service account user: {} (ID: {})", serviceAccount.getUsername(),
@@ -179,8 +190,6 @@ public class KeycloakInitializationService implements ApplicationRunner {
                 serviceAccount.getUsername());
 
             // Tyto role jsou client roles z realm-management klienta
-            // Pro zjednodušení použijeme KeycloakAdminService API (bude vyžadovat
-            // rozšíření)
             assignClientRoleToServiceAccount(serviceAccount.getId(), "realm-management", roleName);
 
           } catch (Exception e) {
@@ -196,6 +205,34 @@ public class KeycloakInitializationService implements ApplicationRunner {
     } catch (Exception e) {
       log.error("Failed to configure service account roles", e);
       // Ne-kritická chyba - nevhazuj výjimku, jen zaloguj
+    }
+  }
+
+  /**
+   * Vytvoří service account uživatele pro backend-admin-service klienta Toto je
+   * backup řešení pro případy, kdy import realmu nevytvoří service account
+   * automaticky
+   */
+  private UserDto createServiceAccountUser(String serviceAccountUsername) {
+    try {
+      log.info("Creating service account user: {}", serviceAccountUsername);
+
+      UserCreateRequest userRequest = new UserCreateRequest();
+      userRequest.setUsername(serviceAccountUsername);
+      userRequest.setEmail(serviceAccountUsername + "@service.local");
+      userRequest.setFirstName("Backend");
+      userRequest.setLastName("Service Account");
+      userRequest.setEnabled(true);
+      userRequest.setRequirePasswordChange(false);
+
+      UserDto createdUser = keycloakAdminService.createUser(userRequest);
+      log.info("Service account user created with ID: {}", createdUser.getId());
+
+      return createdUser;
+
+    } catch (Exception e) {
+      log.error("Failed to create service account user: {}", e.getMessage());
+      throw new RuntimeException("Could not create service account user", e);
     }
   }
 

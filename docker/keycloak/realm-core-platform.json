@@ -12,13 +12,6 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["cs", "en"],
   "defaultLocale": "cs",
-  "loginTheme": "core-material",
-  "accountTheme": "core-material",
-  "adminTheme": "core-material",
-  "emailTheme": "core-material",
-  "attributes": {
-    "frontendUrl": "https://core-platform.local"
-  },
   "users": [
     {
       "username": "test",
@@ -27,12 +20,6 @@
       "firstName": "Test",
       "lastName": "User",
       "email": "test.user@example.com",
-      "attributes": {
-        "department": ["IT Development"],
-        "manager": ["Jan Novák"],
-        "position": ["Senior Developer"],
-        "phone_number": ["+420 123 456 789"]
-      },
       "credentials": [
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
@@ -45,41 +32,34 @@
       "firstName": "Test",
       "lastName": "Administrator",
       "email": "test.admin@example.com",
-      "attributes": {
-        "department": ["IT Administration"],
-        "position": ["System Administrator"]
-      },
       "credentials": [
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_ADMIN"]
+    },
+    {
+      "username": "service-account-backend-admin-service",
+      "enabled": true,
+      "serviceAccountClientId": "backend-admin-service",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users", "view-realm", "manage-realm"]
+      }
     }
   ],
   "roles": {
     "realm": [
       { 
         "name": "CORE_ROLE_USER", 
-        "description": "Basic user role for core platform",
-        "composite": false
-      },
-      { 
-        "name": "CORE_ROLE_USER_MANAGER", 
-        "description": "User management role - can manage other users",
-        "composite": true,
-        "composites": {
-          "realm": ["CORE_ROLE_USER"]
-        }
+        "description": "Basic user role for core platform"
       },
       { 
         "name": "CORE_ROLE_ADMIN", 
-        "description": "Full administrator role - can manage users and system",
-        "composite": true,
-        "composites": {
-          "realm": ["CORE_ROLE_USER_MANAGER"]
-        }
+        "description": "Administrator role for core platform"
       },
-      { "name": "admin", "description": "Realm admin role for demo" },
-      { "name": "USER", "description": "Standard user role" }
+      { 
+        "name": "CORE_USER_MANAGER", 
+        "description": "User manager role for core platform"
+      }
     ]
   },
   "clients": [
@@ -106,10 +86,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
-      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm",
-      "attributes": {
-        "client.secret.creation.time": "1640995200"
-      }
+      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm"
     },
     {
       "clientId": "web",
@@ -130,147 +107,6 @@
       "webOrigins": [
         "https://core-platform.local",
         "+"
-      ],
-      "protocolMappers": [
-        {
-          "name": "given_name",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "firstName",
-            "claim.name": "given_name",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "family_name",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "lastName",
-            "claim.name": "family_name",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "email",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "email",
-            "claim.name": "email",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "username",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "username",
-            "claim.name": "preferred_username",
-            "jsonType.label": "String",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "department",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "department",
-            "claim.name": "department",
-            "jsonType.label": "String",
-            "id.token.claim": "false",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "manager",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "manager",
-            "claim.name": "manager",
-            "jsonType.label": "String",
-            "id.token.claim": "false",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "position",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "position",
-            "claim.name": "position",
-            "jsonType.label": "String",
-            "id.token.claim": "false",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "phone_number",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-attribute-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.attribute": "phone_number",
-            "claim.name": "phone_number",
-            "jsonType.label": "String",
-            "id.token.claim": "false",
-            "access.token.claim": "false",
-            "userinfo.token.claim": "true"
-          }
-        },
-        {
-          "name": "audience-api",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-audience-mapper",
-          "consentRequired": false,
-          "config": {
-            "included.client.audience": "api",
-            "id.token.claim": "false",
-            "access.token.claim": "true"
-          }
-        }
-      ],
-      "attributes": {
-        "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "+"
-      },
-      "defaultClientScopes": [
-        "web-origins",
-        "roles",
-        "profile",
-        "email"
-      ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "offline_access",
-        "microprofile-jwt"
       ]
     }
   ]
