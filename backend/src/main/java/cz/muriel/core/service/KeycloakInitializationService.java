@@ -13,8 +13,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.util.List;
-import java.util.UUID;
 
 @Slf4j @Service @RequiredArgsConstructor
 public class KeycloakInitializationService implements ApplicationRunner {

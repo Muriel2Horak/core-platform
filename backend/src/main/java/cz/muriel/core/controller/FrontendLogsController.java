@@ -9,7 +9,6 @@ import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
@@ -57,7 +56,6 @@ public class FrontendLogsController {
   private String getRealClientIp(HttpServletRequest request) {
     String xForwardedFor = request.getHeader("X-Forwarded-For");
     String xRealIp = request.getHeader("X-Real-IP");
-    String xForwardedProto = request.getHeader("X-Forwarded-Proto");
 
     if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
       // X-Forwarded-For může obsahovat více IP adres, první je real client IP

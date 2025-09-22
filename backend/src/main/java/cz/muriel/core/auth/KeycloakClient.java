@@ -171,10 +171,6 @@ public class KeycloakClient {
     }
   }
 
-  private String realmBase() {
-    return issuer; // already points to /realms/{realm}
-  }
-
   private JsonNode readJson(String body) {
     try {
       return om.readTree(body);

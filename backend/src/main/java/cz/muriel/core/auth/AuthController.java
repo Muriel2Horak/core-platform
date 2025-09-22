@@ -28,7 +28,6 @@ public class AuthController {
   private static final String ACCESS_COOKIE = "at";
   private static final String REFRESH_COOKIE = "rt";
 
-  private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
   private static final Logger auditLogger = LoggerFactory.getLogger("AUDIT");
 
   private final KeycloakClient kc;
@@ -146,6 +145,7 @@ public class AuthController {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private List<String> rolesFromJwt(String jwtStr) {
     try {
       Jwt jwt = jwtDecoder.decode(jwtStr);

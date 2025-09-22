@@ -72,41 +72,6 @@ public class UserProfileController {
     return ResponseEntity.ok().build();
   }
 
-  private String getCurrentUserId(Authentication authentication) {
-    Jwt jwt = (Jwt) authentication.getPrincipal();
-
-    // DEBUG: Vypíšeme všechny claims pro debugging
-    log.debug("JWT Claims: {}", jwt.getClaims());
-    log.debug("Available claims: {}", jwt.getClaims().keySet());
-
-    // Zkusíme několik možných claims pro user ID
-    String userId = jwt.getClaimAsString("sub");
-    log.debug("sub claim: {}", userId);
-
-    if (userId == null || userId.trim().isEmpty()) {
-      // Pokud sub není dostupné, použijeme preferred_username
-      userId = jwt.getClaimAsString("preferred_username");
-      log.debug("preferred_username claim: {}", userId);
-    }
-    if (userId == null || userId.trim().isEmpty()) {
-      userId = jwt.getClaimAsString("user_id");
-      log.debug("user_id claim: {}", userId);
-    }
-    if (userId == null || userId.trim().isEmpty()) {
-      userId = jwt.getClaimAsString("id");
-      log.debug("id claim: {}", userId);
-    }
-
-    log.debug("Final extracted user ID: {}", userId);
-
-    if (userId == null || userId.trim().isEmpty()) {
-      throw new IllegalStateException("Could not extract user ID from JWT token. Available claims: "
-          + jwt.getClaims().keySet());
-    }
-
-    return userId;
-  }
-
   private String getCurrentUsername(Authentication authentication) {
     Jwt jwt = (Jwt) authentication.getPrincipal();
     return jwt.getClaimAsString("preferred_username");

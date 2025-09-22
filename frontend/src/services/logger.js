@@ -181,8 +181,8 @@ class FrontendLogger {
             localStorage.removeItem('keycloak-token');
           }
           
-        } catch (parseError) {
-          console.warn('⚠️ LOGGER: Nelze parsovat token z localStorage:', parseError);
+        } catch {
+          console.warn('⚠️ LOGGER: Nelze parsovat token z localStorage');
           localStorage.removeItem('keycloak-token');
         }
       }
@@ -239,7 +239,7 @@ class FrontendLogger {
             const textError = await response.text();
             errorMessage = textError || errorMessage;
           }
-        } catch (parseError) {
+        } catch (error) {
           // Fallback pokud ani text parsing nefunguje
           errorMessage = `HTTP ${response?.status} (parsing failed)`;
         }
