@@ -18,6 +18,18 @@ echo "🔧 Development debugging: Můžeš použít přímé porty"
 echo "🛑 Zastavuji staré kontejnery..."
 docker-compose down
 
+# ✅ Automatické generování Keycloak realm konfigurace pro development
+echo "🔑 Generuji Keycloak realm konfiguraci pro development..."
+if [[ -f "/Users/martinhorak/Projects/core-platform/docker/keycloak/generate-realm.sh" ]]; then
+    cd "/Users/martinhorak/Projects/core-platform/docker/keycloak"
+    # Nastavíme DOMAIN pro development
+    export DOMAIN=core-platform.local
+    ./generate-realm.sh
+    echo "✅ Realm konfigurace vygenerována pro core-platform.local"
+else
+    echo "⚠️  generate-realm.sh nenalezen - pokračuji bez generování"
+fi
+
 # Spustit development architekturu
 echo "🚀 Spouštím development s kontejnery..."
 cd /Users/martinhorak/Projects/core-platform/docker

@@ -9,9 +9,55 @@
   "resetPasswordAllowed": true,
   "rememberMe": true,
   "verifyEmail": false,
+  "editUsernameAllowed": false,
+  "registrationEmailAsUsername": false,
   "internationalizationEnabled": true,
   "supportedLocales": ["cs", "en"],
   "defaultLocale": "cs",
+  "loginTheme": "core-material",
+  "accountTheme": "keycloak",
+  "adminTheme": "keycloak",
+  "emailTheme": "keycloak",
+  "attributes": {
+    "frontendUrl": "https://core-platform.local",
+    "userProfileEnabled": "false",
+    "requirePasswordUpdateOnFirstLogin": "false",
+    "_browser_header.contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains",
+    "_browser_header.xFrameOptions": "SAMEORIGIN",
+    "_browser_header.xContentTypeOptions": "nosniff",
+    "_browser_header.referrerPolicy": "no-referrer"
+  },
+  "requiredActions": [
+    {
+      "alias": "VERIFY_EMAIL",
+      "name": "Verify Email",
+      "providerId": "VERIFY_EMAIL",
+      "enabled": false,
+      "defaultAction": false
+    },
+    {
+      "alias": "UPDATE_PROFILE",
+      "name": "Update Profile",
+      "providerId": "UPDATE_PROFILE", 
+      "enabled": false,
+      "defaultAction": false
+    },
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false
+    },
+    {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password", 
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false
+    }
+  ],
   "users": [
     {
       "username": "test",
@@ -24,6 +70,7 @@
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER"],
+      "requiredActions": [],
       "attributes": {
         "department": ["IT - Vývoj"],
         "position": ["Senior Developer"],
@@ -48,6 +95,7 @@
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_ADMIN"],
+      "requiredActions": [],
       "attributes": {
         "department": ["IT - Vývoj"],
         "position": ["Vedoucí vývojového týmu"],
@@ -60,6 +108,7 @@
       "username": "service-account-backend-admin-service",
       "enabled": true,
       "serviceAccountClientId": "backend-admin-service",
+      "requiredActions": [],
       "clientRoles": {
         "realm-management": ["manage-users", "view-users", "view-realm", "manage-realm"]
       }
@@ -72,12 +121,16 @@
         "description": "Basic user role for core platform"
       },
       { 
-        "name": "CORE_ROLE_ADMIN", 
-        "description": "Administrator role for core platform"
-      },
-      { 
         "name": "CORE_USER_MANAGER", 
         "description": "User manager role for core platform"
+      },
+      { 
+        "name": "CORE_ROLE_ADMIN", 
+        "description": "Administrator role for core platform",
+        "composite": true,
+        "composites": {
+          "realm": ["CORE_USER_MANAGER"]
+        }
       }
     ]
   },

@@ -174,11 +174,17 @@ services:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       
+      # 🎨 Theme konfigurace - pouze cache nastavení, žádné globální téma
+      - KC_SPI_THEME_CACHE_THEMES=false
+      - KC_SPI_THEME_CACHE_TEMPLATES=false
+      - KC_SPI_THEME_STATIC_MAX_AGE=-1
+      
       # 🚀 Features
       - KC_FEATURES=scripts,token-exchange,admin-fine-grained-authz
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
       - ./ssl:/opt/keycloak/conf/tls:ro       # Mount SSL certifikátů (read-only)
+      - ../themes/core-material:/opt/keycloak/themes/core-material:ro  # Material Design theme
     ports:
       - "${KEYCLOAK_PORT:-8081}:8080"         # HTTP port pro health/debug/admin
       - "8443:8443"                           # HTTPS port pro reálný provoz

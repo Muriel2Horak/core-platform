@@ -121,7 +121,14 @@ const ProfilePage = () => {
       
       const data = await userManagementService.getMyProfile();
       setProfile(data);
-      setEditedProfile({ ...data });
+      
+      // Převést datum hodnoty na dayjs objekty pro DatePicker komponenty
+      const editedData = { 
+        ...data,
+        deputyFrom: data.deputyFrom ? dayjs(data.deputyFrom) : null,
+        deputyTo: data.deputyTo ? dayjs(data.deputyTo) : null
+      };
+      setEditedProfile(editedData);
       
       logger.userAction('PROFILE_LOADED', { userId: data.id });
       
@@ -167,8 +174,13 @@ const ProfilePage = () => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Zrušit změny
-      setEditedProfile({ ...profile });
+      // Zrušit změny a převést datum hodnoty na dayjs objekty
+      const resetData = { 
+        ...profile,
+        deputyFrom: profile.deputyFrom ? dayjs(profile.deputyFrom) : null,
+        deputyTo: profile.deputyTo ? dayjs(profile.deputyTo) : null
+      };
+      setEditedProfile(resetData);
     }
     setIsEditing(!isEditing);
     logger.userAction(isEditing ? 'PROFILE_EDIT_CANCELLED' : 'PROFILE_EDIT_STARTED');
@@ -180,8 +192,24 @@ const ProfilePage = () => {
       setError(null);
       setSuccess(null);
       
-      const updatedProfile = await userManagementService.updateMyProfile(editedProfile);
+      // Převést dayjs objekty na ISO string pro backend
+      const dataToSave = {
+        ...editedProfile,
+        deputyFrom: editedProfile.deputyFrom ? editedProfile.deputyFrom.format('YYYY-MM-DD') : null,
+        deputyTo: editedProfile.deputyTo ? editedProfile.deputyTo.format('YYYY-MM-DD') : null
+      };
+      
+      const updatedProfile = await userManagementService.updateMyProfile(dataToSave);
       setProfile(updatedProfile);
+      
+      // Aktualizovat editedProfile s novými daty a převést datum hodnoty na dayjs objekty
+      const editedData = {
+        ...updatedProfile,
+        deputyFrom: updatedProfile.deputyFrom ? dayjs(updatedProfile.deputyFrom) : null,
+        deputyTo: updatedProfile.deputyTo ? dayjs(updatedProfile.deputyTo) : null
+      };
+      setEditedProfile(editedData);
+      
       setIsEditing(false);
       setSuccess('Profil byl úspěšně aktualizován');
       
@@ -396,23 +424,7 @@ const ProfilePage = () => {
                       </Typography>
                     )}
                     
-                    <Box display="flex" gap={1} flexWrap="wrap" mt={2}>
-                      {profile?.roles?.map((role) => (
-                        <Chip 
-                          key={role} 
-                          label={role} 
-                          size="medium" 
-                          sx={{
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            '&:hover': {
-                              backgroundColor: 'rgba(255,255,255,0.3)'
-                            }
-                          }}
-                        />
-                      ))}
-                    </Box>
+                    {/* Role odebrány - přesunuty do tabu Bezpečnost */}
                   </Box>
                 </Box>
 
@@ -1059,6 +1071,53 @@ const ProfilePage = () => {
               </Typography>
               
               <Grid container spacing={3}>
+                {/* Role a oprávnění */}
+                <Grid item xs={12}>
+                  <Card 
+                    sx={{ 
+                      background: 'linear-gradient(135deg, #f3e5f5 0%, #e1f5fe 100%)',
+                      borderRadius: 2,
+                      border: '1px solid rgba(102, 126, 234, 0.3)',
+                      mb: 3
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'primary.main' }}>
+                        🛡️ Role a oprávnění
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" paragraph>
+                        Vaše aktuální role v systému a související oprávnění
+                      </Typography>
+                      
+                      <Box display="flex" gap={1} flexWrap="wrap" mt={2}>
+                        {profile?.roles?.length > 0 ? (
+                          profile.roles.map((role) => (
+                            <Chip 
+                              key={role} 
+                              label={role} 
+                              size="medium" 
+                              color={role.includes('ADMIN') ? 'error' : 'primary'}
+                              variant="filled"
+                              sx={{
+                                fontWeight: 'bold',
+                                '&:hover': {
+                                  transform: 'translateY(-1px)',
+                                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                            Žádné role nejsou přiřazeny
+                          </Typography>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
                 <Grid item xs={12} md={6}>
                   <Card 
                     sx={{ 
@@ -1122,23 +1181,27 @@ const ProfilePage = () => {
                       </Typography>
                       
                       <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Chip 
                             label={profile?.enabled ? 'Aktivní' : 'Neaktivní'} 
                             color={profile?.enabled ? 'success' : 'error'}
                             size="small"
                           />
-                          <span style={{ fontSize: '0.9rem', color: '#666' }}>Status účtu</span>
-                        </Typography>
+                          <Typography variant="body2" component="span" sx={{ fontSize: '0.9rem', color: '#666' }}>
+                            Status účtu
+                          </Typography>
+                        </Box>
                         
-                        <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Chip 
                             label={profile?.emailVerified ? 'Ověřeno' : 'Neověřeno'} 
                             color={profile?.emailVerified ? 'success' : 'warning'}
                             size="small"
                           />
-                          <span style={{ fontSize: '0.9rem', color: '#666' }}>Email</span>
-                        </Typography>
+                          <Typography variant="body2" component="span" sx={{ fontSize: '0.9rem', color: '#666' }}>
+                            Email
+                          </Typography>
+                        </Box>
                         
                         {profile?.createdTimestamp && (
                           <Typography variant="body2" color="text.secondary">

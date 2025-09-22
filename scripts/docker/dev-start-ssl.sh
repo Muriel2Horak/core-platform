@@ -105,6 +105,19 @@ if docker compose ps -q | grep -q .; then
     print_success "Kontejnery zastaveny"
 fi
 
+# 4.5. Automatické generování Keycloak realm konfigurace pro development
+print_info "Generuji Keycloak realm konfiguraci pro development..."
+if [[ -f "${DOCKER_DIR}/keycloak/generate-realm.sh" ]]; then
+    cd "${DOCKER_DIR}/keycloak"
+    # Nastavíme DOMAIN pro development
+    export DOMAIN=core-platform.local
+    ./generate-realm.sh
+    print_success "Realm konfigurace vygenerována pro core-platform.local"
+    cd "$DOCKER_DIR"
+else
+    print_warning "generate-realm.sh nenalezen - pokračuji bez generování"
+fi
+
 # 5. Spuštění SSL prostředí
 print_info "Spouštím SSL prostředí..."
 

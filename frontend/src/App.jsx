@@ -1,6 +1,8 @@
 import './App.css'
 import React, { useEffect, useState } from 'react';
 import { CssBaseline, ThemeProvider, Box, CircularProgress, Typography } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { baselightTheme } from "./theme/DefaultColors";
 import { RouterProvider } from 'react-router';
 import router from "./routes/Router.js"
@@ -97,7 +99,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <RouterProvider router={router} />
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <RouterProvider router={router} />
+      </LocalizationProvider>
     </ThemeProvider>
   );
 }

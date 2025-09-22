@@ -8,6 +8,19 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 cd "${REPO_ROOT}/docker"
 
+# ✅ Automatické generování Keycloak realm konfigurace pro development
+echo "🔑 Generuji Keycloak realm konfiguraci pro development..."
+if [[ -f "${REPO_ROOT}/docker/keycloak/generate-realm.sh" ]]; then
+    cd "${REPO_ROOT}/docker/keycloak"
+    # Nastavíme DOMAIN pro development
+    export DOMAIN=core-platform.local
+    ./generate-realm.sh
+    echo "✅ Realm konfigurace vygenerována pro core-platform.local"
+    cd "${REPO_ROOT}/docker"
+else
+    echo "⚠️  generate-realm.sh nenalezen - pokračuji bez generování"
+fi
+
 # ✅ OPRAVENO: Kontrola existencie loki-driver override súboru
 LOKI_DRIVER_COMPOSE="${REPO_ROOT}/docker/docker-compose.loki-driver.yml"
 PLUGIN_ENABLED=$(docker plugin inspect loki --format '{{.Enabled}}' 2>/dev/null || echo "false")
