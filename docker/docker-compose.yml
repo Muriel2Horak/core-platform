@@ -72,7 +72,7 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       # 🌐 DOMAIN pro všechny external URLs
       - DOMAIN=${DOMAIN:-core-platform.local}
-      # 🔧 FIX: OIDC Configuration - sjednocené issuery
+      # 🔧 FIX: OIDC Configuration - opravené issuery pro JWT validaci
       - OIDC_ISSUER_URI=https://${DOMAIN:-core-platform.local}/realms/core-platform
       - OIDC_JWK_SET_URI=http://keycloak:8080/realms/core-platform/protocol/openid-connect/certs
       - OIDC_API_AUDIENCE=api

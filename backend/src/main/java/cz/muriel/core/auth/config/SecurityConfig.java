@@ -87,13 +87,12 @@ public class SecurityConfig {
 
     NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
 
-    // Vytvoř validátory pro issuer a audience
+    // 🔧 FIX: Použijeme upravený AudienceValidator který akceptuje prázdné audience
     OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
     OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(allowedAudience);
-    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer,
-        audienceValidator);
+    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
 
-    // Nastav validátory na decoder
+    // Nastav oba validátory
     decoder.setJwtValidator(validator);
 
     return decoder;
