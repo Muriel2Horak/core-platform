@@ -40,7 +40,8 @@ public class KeycloakClient {
     try {
       return requestToken(url, headers, username, password, preferredScopes);
     } catch (HttpStatusCodeException ex) {
-      if (ex.getStatusCode().value() == 400 && safeBody(ex).toLowerCase().contains("invalid_scope")) {
+      if (ex.getStatusCode().value() == 400
+          && safeBody(ex).toLowerCase().contains("invalid_scope")) {
         try {
           return requestToken(url, headers, username, password, "openid");
         } catch (HttpStatusCodeException ex2) {
@@ -51,8 +52,8 @@ public class KeycloakClient {
     }
   }
 
-  private JsonNode requestToken(String url, HttpHeaders headers, String username, String password, String scope)
-      throws HttpStatusCodeException {
+  private JsonNode requestToken(String url, HttpHeaders headers, String username, String password,
+      String scope) throws HttpStatusCodeException {
     MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
     form.add("grant_type", "password");
     form.add("client_id", clientId);
@@ -61,7 +62,8 @@ public class KeycloakClient {
     if (scope != null && !scope.isBlank()) {
       form.add("scope", scope.trim());
     }
-    ResponseEntity<String> res = rt.postForEntity(url, new HttpEntity<>(form, headers), String.class);
+    ResponseEntity<String> res = rt.postForEntity(url, new HttpEntity<>(form, headers),
+        String.class);
     return readJson(res.getBody());
   }
 
@@ -70,7 +72,8 @@ public class KeycloakClient {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(accessToken);
     try {
-      ResponseEntity<String> res = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+      ResponseEntity<String> res = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(headers),
+          String.class);
       return readJson(res.getBody());
     } catch (HttpStatusCodeException ex) {
       throw kcException("userinfo", ex);
@@ -95,16 +98,15 @@ public class KeycloakClient {
 
   public void changePassword(String userId, String newPassword) {
     String adminToken = getAdminToken();
-    String url = issuer.replace("/realms/", "/admin/realms/") + "/users/" + userId + "/reset-password";
+    String url = issuer.replace("/realms/", "/admin/realms/") + "/users/" + userId
+        + "/reset-password";
 
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(adminToken);
     headers.setContentType(MediaType.APPLICATION_JSON);
 
-    Map<String, Object> payload = Map.of(
-        "type", "password",
-        "temporary", false,
-        "value", newPassword);
+    Map<String, Object> payload = Map.of("type", "password", "temporary", false, "value",
+        newPassword);
 
     try {
       rt.exchange(url, HttpMethod.PUT, new HttpEntity<>(payload, headers), Void.class);
@@ -121,10 +123,8 @@ public class KeycloakClient {
     headers.setBearerAuth(adminToken);
     headers.setContentType(MediaType.APPLICATION_JSON);
 
-    Map<String, Object> payload = Map.of(
-        "firstName", firstName != null ? firstName : "",
-        "lastName", lastName != null ? lastName : "",
-        "email", email != null ? email : "");
+    Map<String, Object> payload = Map.of("firstName", firstName != null ? firstName : "",
+        "lastName", lastName != null ? lastName : "", "email", email != null ? email : "");
 
     try {
       rt.exchange(url, HttpMethod.PUT, new HttpEntity<>(payload, headers), Void.class);
@@ -141,7 +141,8 @@ public class KeycloakClient {
     headers.setBearerAuth(adminToken);
 
     try {
-      ResponseEntity<String> res = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+      ResponseEntity<String> res = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(headers),
+          String.class);
       return readJson(res.getBody());
     } catch (HttpStatusCodeException ex) {
       throw kcException("getUserProfile", ex);
@@ -151,7 +152,8 @@ public class KeycloakClient {
   private String getAdminToken() {
     // Implementujte získání admin tokenu pro Keycloak
     // Toto je zjednodušená verze, v produkci použijte bezpečnější způsob
-    String url = issuer.substring(0, issuer.indexOf("/realms/")) + "/realms/master/protocol/openid-connect/token";
+    String url = issuer.substring(0, issuer.indexOf("/realms/"))
+        + "/realms/master/protocol/openid-connect/token";
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -163,7 +165,8 @@ public class KeycloakClient {
     // Pro tento příklad předpokládáme, že admin-cli klient nemá secret
 
     try {
-      ResponseEntity<String> res = rt.postForEntity(url, new HttpEntity<>(form, headers), String.class);
+      ResponseEntity<String> res = rt.postForEntity(url, new HttpEntity<>(form, headers),
+          String.class);
       JsonNode tokenNode = readJson(res.getBody());
       return tokenNode.path("access_token").asText();
     } catch (HttpStatusCodeException ex) {
@@ -180,8 +183,8 @@ public class KeycloakClient {
   }
 
   private RuntimeException kcException(String op, HttpStatusCodeException ex) {
-    String msg = String.format("Keycloak %s error %d %s: %s", op, ex.getStatusCode().value(), ex.getStatusText(),
-        safeBody(ex));
+    String msg = String.format("Keycloak %s error %d %s: %s", op, ex.getStatusCode().value(),
+        ex.getStatusText(), safeBody(ex));
     return new RuntimeException(msg, ex);
   }
 

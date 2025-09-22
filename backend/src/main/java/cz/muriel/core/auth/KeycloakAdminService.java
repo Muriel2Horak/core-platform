@@ -821,8 +821,7 @@ public class KeycloakAdminService {
   }
 
   /**
-   * 🔍 IDENTITY SOURCE DETECTION - detekuje zdroj uživatele (lokální vs
-   * federovaný)
+   * 🔍 IDENTITY SOURCE DETECTION - detekuje zdroj uživatele (lokální vs federovaný)
    */
   private void detectUserIdentitySource(JsonNode user, UserDto userDto) {
     try {
@@ -836,9 +835,8 @@ public class KeycloakAdminService {
         String identityProvider = firstIdentity.path("identityProvider").asText();
         String federatedUsername = firstIdentity.path("userName").asText();
 
-        userDto.setIsLocalUser(false);
-        userDto.setIdentityProvider(identityProvider);
-        userDto.setFederatedUsername(federatedUsername);
+        // Použijeme reflection pro nastavení isLocalUser
+        setUserIdentityInfo(userDto, false, identityProvider, federatedUsername);
 
         // Detekuj typ providera podle názvu
         if (identityProvider.toLowerCase().contains("ldap")
@@ -856,10 +854,8 @@ public class KeycloakAdminService {
             identityProvider, federatedUsername);
       } else {
         // Uživatel je lokální v Keycloak
-        userDto.setIsLocalUser(true);
-        userDto.setIdentityProvider("keycloak-local");
+        setUserIdentityInfo(userDto, true, "keycloak-local", null);
         userDto.setIdentityProviderAlias("Lokální Keycloak");
-        userDto.setFederatedUsername(null);
 
         log.debug("User {} is local Keycloak user", userDto.getUsername());
       }
@@ -869,9 +865,26 @@ public class KeycloakAdminService {
           ex.getMessage());
 
       // Fallback - předpokládej lokálního uživatele
-      userDto.setIsLocalUser(true);
-      userDto.setIdentityProvider("keycloak-local");
+      setUserIdentityInfo(userDto, true, "keycloak-local", null);
       userDto.setIdentityProviderAlias("Lokální Keycloak");
+    }
+  }
+
+  /**
+   * Helper metoda pro nastavení identity informací pomocí reflection
+   */
+  private void setUserIdentityInfo(UserDto userDto, boolean isLocal, String provider, String federatedUsername) {
+    try {
+      // Použijeme reflection pro nastavení isLocalUser property
+      java.lang.reflect.Field isLocalUserField = UserDto.class.getDeclaredField("isLocalUser");
+      isLocalUserField.setAccessible(true);
+      isLocalUserField.set(userDto, isLocal);
+      
+      userDto.setIdentityProvider(provider);
+      userDto.setFederatedUsername(federatedUsername);
+    } catch (Exception e) {
+      log.warn("Failed to set identity info using reflection: {}", e.getMessage());
+      // Fallback - necháme isLocalUser na default hodnotě
     }
   }
 

@@ -239,7 +239,7 @@ class FrontendLogger {
             const textError = await response.text();
             errorMessage = textError || errorMessage;
           }
-        } catch (error) {
+        } catch (parseError) {
           // Fallback pokud ani text parsing nefunguje
           errorMessage = `HTTP ${response?.status} (parsing failed)`;
         }

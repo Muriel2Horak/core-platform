@@ -95,6 +95,7 @@ public class AuthController {
       Map<String, Object> userMap = new HashMap<>(basicUserFromJwt(token));
       try {
         JsonNode me = kc.userinfo(token);
+        @SuppressWarnings("unchecked")
         Map<String, Object> ui = om.convertValue(me, Map.class);
         if (ui != null)
           userMap.putAll(ui);
