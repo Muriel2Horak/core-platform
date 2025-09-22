@@ -121,23 +121,15 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
+      "rootUrl": "https://core-platform.local/",
       "redirectUris": [
-        "http://localhost/*",
-        "http://localhost:3000/*",
-        "https://localhost/*",
-        "https://localhost:3000/*",
         "https://core-platform.local/*",
-        "https://staging.yourdomain.com/*", 
-        "https://yourdomain.com/*"
+        "http://localhost:3000/*",
+        "http://localhost/*"
       ],
       "webOrigins": [
-        "http://localhost",
-        "http://localhost:3000",
-        "https://localhost",
-        "https://localhost:3000",
         "https://core-platform.local",
-        "https://staging.yourdomain.com",
-        "https://yourdomain.com"
+        "+"
       ],
       "protocolMappers": [
         {

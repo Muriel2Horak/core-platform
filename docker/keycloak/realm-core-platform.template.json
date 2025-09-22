@@ -121,23 +121,15 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
+      "rootUrl": "https://${DOMAIN}/",
       "redirectUris": [
-        "http://localhost/*",
+        "https://${DOMAIN}/*",
         "http://localhost:3000/*",
-        "https://localhost/*",
-        "https://localhost:3000/*",
-        "https://$DOMAIN/*",
-        "https://staging.yourdomain.com/*", 
-        "https://yourdomain.com/*"
+        "http://localhost/*"
       ],
       "webOrigins": [
-        "http://localhost",
-        "http://localhost:3000",
-        "https://localhost",
-        "https://localhost:3000",
-        "https://$DOMAIN",
-        "https://staging.yourdomain.com",
-        "https://yourdomain.com"
+        "https://${DOMAIN}",
+        "+"
       ],
       "protocolMappers": [
         {
