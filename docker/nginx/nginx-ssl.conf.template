@@ -66,15 +66,13 @@ http {
         location /realms/core-platform/account/ {
             proxy_pass http://keycloak;
             
-            # ✅ Kompletní X-Forwarded hlavičky pro Keycloak 26.x Account Console
+            # ✅ Sjednocené X-Forwarded hlavičky pro Keycloak 26.x hostname v2
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
-            proxy_set_header X-Forwarded-Ssl on;
             
             # ✅ Cookie security pro Account Console
             proxy_cookie_flags ~ secure samesite=lax;
@@ -100,14 +98,13 @@ http {
         location /realms/ {
             proxy_pass http://keycloak;
             
-            # ✅ Kompletní X-Forwarded hlavičky pro Keycloak 26.x
+            # ✅ Sjednocené X-Forwarded hlavičky pro Keycloak 26.x hostname v2
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Cookie security pro HTTPS přihlášení
             proxy_cookie_flags ~ secure samesite=lax;
@@ -137,8 +134,6 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
-            proxy_set_header X-Forwarded-Ssl on;
             
             # ✅ Cookie security pro admin přihlášení
             proxy_cookie_flags ~ secure samesite=lax;
@@ -165,7 +160,6 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Cache a správné MIME typy pro statické soubory
             expires 1h;
@@ -186,7 +180,6 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Správné MIME typy pro theme assets
             location ~* \.(css)$ {
@@ -222,7 +215,6 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Správný MIME typ pro JavaScript
             expires 1h;
@@ -243,7 +235,6 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Cache pro theme assets (CSS, JS, obrázky)
             expires 1h;
@@ -267,7 +258,6 @@ http {
             proxy_set_header X-Forwarded-Proto https;
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Server $host;
             
             # ✅ Cookie security pro všechna Keycloak přihlášení
             proxy_cookie_flags ~ secure samesite=lax;
