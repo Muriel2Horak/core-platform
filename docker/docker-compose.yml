@@ -147,20 +147,18 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health/ready || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 20s
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET / HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q '200\\|302\\|401'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     environment:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
       
-      # 🔧 FIX: Keycloak 26.x hostname v2 konfigurace
-      - KC_HOSTNAME=${DOMAIN:-core-platform.local}
-      - KC_HOSTNAME_URL=https://${DOMAIN:-core-platform.local}
-      - KC_HTTP_ENABLED=true
+      # 🔧 FIX: Keycloak 26.x simplified hostname konfigurace
       - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
       - KC_PROXY_HEADERS=xforwarded
       
       # PostgreSQL databáze
@@ -179,7 +177,7 @@ services:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "${KEYCLOAK_PORT:-8081}:8080"
-    command: ["sh", "-c", "envsubst '$DOMAIN' < /opt/keycloak/data/import/realm-core-platform.template.json > /opt/keycloak/data/import/realm-core-platform.json && exec /opt/keycloak/bin/kc.sh start --import-realm --optimized"]
+    command: ["start", "--import-realm", "--optimized"]
     networks:
       - core-net
     restart: unless-stopped
