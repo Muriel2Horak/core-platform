@@ -23,7 +23,19 @@
       "credentials": [
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
-      "realmRoles": ["CORE_ROLE_USER"]
+      "realmRoles": ["CORE_ROLE_USER"],
+      "attributes": {
+        "department": ["IT - Vývoj"],
+        "position": ["Senior Developer"],
+        "manager": ["test_admin"],
+        "costCenter": ["IT-001"],
+        "location": ["Praha - Karlín"],
+        "phone": ["+420 987 654 321"],
+        "deputy": ["test_admin"],
+        "deputyReason": ["dovolená"],
+        "deputyFrom": ["2025-10-22"],
+        "deputyTo": ["2025-11-05"]
+      }
     },
     {
       "username": "test_admin",
@@ -35,7 +47,14 @@
       "credentials": [
         { "type": "password", "value": "Test.1234", "temporary": false }
       ],
-      "realmRoles": ["CORE_ROLE_ADMIN"]
+      "realmRoles": ["CORE_ROLE_ADMIN"],
+      "attributes": {
+        "department": ["IT - Vývoj"],
+        "position": ["Vedoucí vývojového týmu"],
+        "costCenter": ["IT-001"],
+        "location": ["Praha - Karlín"],
+        "phone": ["+420 123 456 789"]
+      }
     },
     {
       "username": "service-account-backend-admin-service",

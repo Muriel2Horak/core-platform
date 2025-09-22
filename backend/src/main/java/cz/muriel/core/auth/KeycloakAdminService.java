@@ -115,11 +115,7 @@ public class KeycloakAdminService {
 
       JsonNode user = objectMapper.readTree(response.getBody());
 
-      UserDto userDto = UserDto.builder().id(user.path("id").asText())
-          .username(user.path("username").asText()).email(user.path("email").asText())
-          .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
-          .enabled(user.path("enabled").asBoolean())
-          .emailVerified(user.path("emailVerified").asBoolean()).build();
+      UserDto userDto = buildUserDtoFromJson(user);
 
       List<String> roles = getUserRoles(id);
       userDto.setRoles(roles);
@@ -158,11 +154,7 @@ public class KeycloakAdminService {
         JsonNode user = users.get(0);
         log.info("🔍 Found user, building UserDto...");
 
-        UserDto userDto = UserDto.builder().id(user.path("id").asText())
-            .username(user.path("username").asText()).email(user.path("email").asText())
-            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
-            .enabled(user.path("enabled").asBoolean())
-            .emailVerified(user.path("emailVerified").asBoolean()).build();
+        UserDto userDto = buildUserDtoFromJson(user);
 
         log.info("🔍 Getting roles for user ID: {}", userDto.getId());
         List<String> roles = getUserRoles(userDto.getId());
@@ -231,11 +223,7 @@ public class KeycloakAdminService {
       List<UserDto> userList = new ArrayList<>();
 
       for (JsonNode user : users) {
-        UserDto userDto = UserDto.builder().id(user.path("id").asText())
-            .username(user.path("username").asText()).email(user.path("email").asText())
-            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
-            .enabled(user.path("enabled").asBoolean())
-            .emailVerified(user.path("emailVerified").asBoolean()).build();
+        UserDto userDto = buildUserDtoFromJson(user);
 
         try {
           List<String> roles = getUserRoles(userDto.getId());
@@ -287,6 +275,9 @@ public class KeycloakAdminService {
           new HttpEntity<>(userRepresentation, headers), String.class);
 
       String location = response.getHeaders().getFirst("Location");
+      if (location == null) {
+        throw new RuntimeException("Failed to get user location from response headers");
+      }
       String userId = location.substring(location.lastIndexOf('/') + 1);
 
       log.info("User created successfully with ID: {}", userId);
@@ -311,6 +302,8 @@ public class KeycloakAdminService {
       headers.setContentType(MediaType.APPLICATION_JSON);
 
       Map<String, Object> userRepresentation = new HashMap<>();
+
+      // Základní atributy
       if (request.getEmail() != null) {
         userRepresentation.put("email", request.getEmail());
       }
@@ -322,6 +315,51 @@ public class KeycloakAdminService {
       }
       if (request.getEnabled() != null) {
         userRepresentation.put("enabled", request.getEnabled());
+      }
+
+      // 🏢 Custom atributy pro organizační strukturu
+      Map<String, List<String>> attributes = new HashMap<>();
+
+      if (request.getDepartment() != null) {
+        attributes.put("department", List.of(request.getDepartment()));
+      }
+      if (request.getPosition() != null) {
+        attributes.put("position", List.of(request.getPosition()));
+      }
+      if (request.getManager() != null) {
+        attributes.put("manager", List.of(request.getManager()));
+      }
+      if (request.getCostCenter() != null) {
+        attributes.put("costCenter", List.of(request.getCostCenter()));
+      }
+      if (request.getLocation() != null) {
+        attributes.put("location", List.of(request.getLocation()));
+      }
+      if (request.getPhone() != null) {
+        attributes.put("phone", List.of(request.getPhone()));
+      }
+
+      // 👥 Zástupství
+      if (request.getDeputy() != null) {
+        attributes.put("deputy", List.of(request.getDeputy()));
+      }
+      if (request.getDeputyFrom() != null) {
+        attributes.put("deputyFrom", List.of(request.getDeputyFrom().toString()));
+      }
+      if (request.getDeputyTo() != null) {
+        attributes.put("deputyTo", List.of(request.getDeputyTo().toString()));
+      }
+      if (request.getDeputyReason() != null) {
+        attributes.put("deputyReason", List.of(request.getDeputyReason()));
+      }
+
+      // 📷 Profilová fotka
+      if (request.getProfilePicture() != null) {
+        attributes.put("profilePicture", List.of(request.getProfilePicture()));
+      }
+
+      if (!attributes.isEmpty()) {
+        userRepresentation.put("attributes", attributes);
       }
 
       restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(userRepresentation, headers),
@@ -699,6 +737,171 @@ public class KeycloakAdminService {
       log.error("Failed to get client role {} for client {}", roleName, clientUuid, ex);
       return null;
     }
+  }
+
+  /**
+   * 🏢 HELPER METHODS pro organizační strukturu a custom atributy
+   */
+
+  /**
+   * Převede Keycloak JsonNode na UserDto s kompletními organizačními atributy
+   */
+  private UserDto buildUserDtoFromJson(JsonNode user) {
+    try {
+      // Základní atributy
+      UserDto.UserDtoBuilder builder = UserDto.builder().id(user.path("id").asText())
+          .username(user.path("username").asText()).email(user.path("email").asText())
+          .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
+          .enabled(user.path("enabled").asBoolean())
+          .emailVerified(user.path("emailVerified").asBoolean());
+
+      // Timestamp
+      if (user.has("createdTimestamp")) {
+        long timestamp = user.path("createdTimestamp").asLong();
+        builder.createdTimestamp(Instant.ofEpochMilli(timestamp));
+      }
+
+      // Custom atributy z Keycloak attributes pole
+      JsonNode attributes = user.path("attributes");
+      if (attributes != null && !attributes.isMissingNode()) {
+        // 🏢 Organizační struktura
+        builder.department(getAttributeValue(attributes, "department"))
+            .position(getAttributeValue(attributes, "position"))
+            .manager(getAttributeValue(attributes, "manager"))
+            .costCenter(getAttributeValue(attributes, "costCenter"))
+            .location(getAttributeValue(attributes, "location"))
+            .phone(getAttributeValue(attributes, "phone"));
+
+        // 👥 Zástupství
+        builder.deputy(getAttributeValue(attributes, "deputy"))
+            .deputyReason(getAttributeValue(attributes, "deputyReason"));
+
+        // 📷 Profilová fotka a identita
+        builder.profilePicture(getAttributeValue(attributes, "profilePicture"));
+
+        // Datum atributy
+        String deputyFromStr = getAttributeValue(attributes, "deputyFrom");
+        if (deputyFromStr != null && !deputyFromStr.isEmpty()) {
+          try {
+            builder.deputyFrom(java.time.LocalDate.parse(deputyFromStr));
+          } catch (Exception e) {
+            log.warn("Failed to parse deputyFrom date: {}", deputyFromStr);
+          }
+        }
+
+        String deputyToStr = getAttributeValue(attributes, "deputyTo");
+        if (deputyToStr != null && !deputyToStr.isEmpty()) {
+          try {
+            builder.deputyTo(java.time.LocalDate.parse(deputyToStr));
+          } catch (Exception e) {
+            log.warn("Failed to parse deputyTo date: {}", deputyToStr);
+          }
+        }
+      }
+
+      UserDto userDto = builder.build();
+
+      // 🔍 Identifikace zdroje uživatele (lokální vs federovaný)
+      detectUserIdentitySource(user, userDto);
+
+      // Rozšířené informace - najdi jména pro manager a deputy
+      if (userDto.getManager() != null && !userDto.getManager().isEmpty()) {
+        userDto.setManagerName(resolveUserDisplayName(userDto.getManager()));
+      }
+      if (userDto.getDeputy() != null && !userDto.getDeputy().isEmpty()) {
+        userDto.setDeputyName(resolveUserDisplayName(userDto.getDeputy()));
+      }
+
+      return userDto;
+
+    } catch (Exception ex) {
+      log.error("Failed to build UserDto from JSON", ex);
+      throw new RuntimeException("Failed to parse user data", ex);
+    }
+  }
+
+  /**
+   * Extrahuje hodnotu z Keycloak attributes pole (které je array stringů)
+   */
+  private String getAttributeValue(JsonNode attributes, String attributeName) {
+    JsonNode attributeNode = attributes.path(attributeName);
+    if (attributeNode != null && attributeNode.isArray() && attributeNode.size() > 0) {
+      return attributeNode.get(0).asText();
+    }
+    return null;
+  }
+
+  /**
+   * 🔍 IDENTITY SOURCE DETECTION - detekuje zdroj uživatele (lokální vs
+   * federovaný)
+   */
+  private void detectUserIdentitySource(JsonNode user, UserDto userDto) {
+    try {
+      // Zkontroluj federatedIdentities pro federované uživatele
+      JsonNode federatedIdentities = user.path("federatedIdentities");
+
+      if (federatedIdentities != null && federatedIdentities.isArray()
+          && federatedIdentities.size() > 0) {
+        // Uživatel je federovaný (z AD, SAML, atd.)
+        JsonNode firstIdentity = federatedIdentities.get(0);
+        String identityProvider = firstIdentity.path("identityProvider").asText();
+        String federatedUsername = firstIdentity.path("userName").asText();
+
+        userDto.setIsLocalUser(false);
+        userDto.setIdentityProvider(identityProvider);
+        userDto.setFederatedUsername(federatedUsername);
+
+        // Detekuj typ providera podle názvu
+        if (identityProvider.toLowerCase().contains("ldap")
+            || identityProvider.toLowerCase().contains("ad")) {
+          userDto.setIdentityProviderAlias("Active Directory");
+        } else if (identityProvider.toLowerCase().contains("saml")) {
+          userDto.setIdentityProviderAlias("SAML Provider");
+        } else if (identityProvider.toLowerCase().contains("oidc")) {
+          userDto.setIdentityProviderAlias("OIDC Provider");
+        } else {
+          userDto.setIdentityProviderAlias(identityProvider);
+        }
+
+        log.debug("User {} is federated from provider: {} ({})", userDto.getUsername(),
+            identityProvider, federatedUsername);
+      } else {
+        // Uživatel je lokální v Keycloak
+        userDto.setIsLocalUser(true);
+        userDto.setIdentityProvider("keycloak-local");
+        userDto.setIdentityProviderAlias("Lokální Keycloak");
+        userDto.setFederatedUsername(null);
+
+        log.debug("User {} is local Keycloak user", userDto.getUsername());
+      }
+
+    } catch (Exception ex) {
+      log.warn("Failed to detect identity source for user {}: {}", userDto.getUsername(),
+          ex.getMessage());
+
+      // Fallback - předpokládej lokálního uživatele
+      userDto.setIsLocalUser(true);
+      userDto.setIdentityProvider("keycloak-local");
+      userDto.setIdentityProviderAlias("Lokální Keycloak");
+    }
+  }
+
+  /**
+   * Najde zobrazovací jméno uživatele podle username
+   */
+  private String resolveUserDisplayName(String username) {
+    try {
+      UserDto user = findUserByUsername(username);
+      if (user != null) {
+        if (user.getFirstName() != null && user.getLastName() != null) {
+          return user.getFirstName() + " " + user.getLastName();
+        }
+        return user.getUsername();
+      }
+    } catch (Exception e) {
+      log.debug("Could not resolve display name for username: {}", username);
+    }
+    return username; // fallback
   }
 
   private static class TokenCache {

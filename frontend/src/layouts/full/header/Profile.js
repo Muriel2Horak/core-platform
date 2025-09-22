@@ -13,7 +13,7 @@ import {
   Divider
 } from '@mui/material';
 
-import { IconLogout, IconUser, IconUserCircle, IconKey, IconSettings } from '@tabler/icons-react';
+import { IconLogout, IconUser } from '@tabler/icons-react';
 import keycloakService from '../../../services/keycloakService';
 import { useUserInfo } from '../../../hooks/useUserInfo';
 
@@ -116,39 +116,12 @@ const Profile = () => {
         <Divider />
 
         {/* Menu položky */}
-        <MenuItem component={Link} to="/dashboard" onClick={handleClose2}>
-          <ListItemIcon>
-            <IconUserCircle width={20} />
-          </ListItemIcon>
-          <ListItemText>
-            <Typography variant="subtitle2">Dashboard</Typography>
-          </ListItemText>
-        </MenuItem>
-
-        <MenuItem component={Link} to="/me" onClick={handleClose2}>
+        <MenuItem component={Link} to="/profile" onClick={handleClose2}>
           <ListItemIcon>
             <IconUser width={20} />
           </ListItemIcon>
           <ListItemText>
-            <Typography variant="subtitle2">Můj účet</Typography>
-          </ListItemText>
-        </MenuItem>
-
-        <MenuItem onClick={() => { keycloakService.openPasswordChange(); handleClose2(); }}>
-          <ListItemIcon>
-            <IconKey width={20} />
-          </ListItemIcon>
-          <ListItemText>
-            <Typography variant="subtitle2">Změnit heslo</Typography>
-          </ListItemText>
-        </MenuItem>
-
-        <MenuItem onClick={() => { keycloakService.openAccountConsole(); handleClose2(); }}>
-          <ListItemIcon>
-            <IconSettings width={20} />
-          </ListItemIcon>
-          <ListItemText>
-            <Typography variant="subtitle2">Správa účtu</Typography>
+            <Typography variant="subtitle2">Můj profil</Typography>
           </ListItemText>
         </MenuItem>
 

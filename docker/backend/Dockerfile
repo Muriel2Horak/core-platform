@@ -3,9 +3,9 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 
-# 🔧 FIX: Správné cesty k backend souborům z root kontextu
-COPY backend/pom.xml .
-COPY backend/src ./src
+# 🔧 FIX: Správné cesty - context je ../backend, takže soubory jsou v root
+COPY pom.xml .
+COPY src ./src
 
 RUN mvn -B dependency:go-offline
 RUN mvn -B package -DskipTests

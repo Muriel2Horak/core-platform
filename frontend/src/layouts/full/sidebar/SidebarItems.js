@@ -62,8 +62,17 @@ const SidebarItems = () => {
               mx: 1,
               my: 0.5,
               backgroundColor: isSelected ? '#5D87FF' : 'transparent',
+              color: isSelected ? '#fff' : 'text.primary',
               '&:hover': {
-                backgroundColor: isSelected ? '#5D87FF' : 'rgba(93, 135, 255, 0.1)'
+                backgroundColor: isSelected ? '#4570EA' : 'rgba(93, 135, 255, 0.1)',
+                color: isSelected ? '#fff' : 'primary.main'
+              },
+              '&.Mui-selected': {
+                backgroundColor: '#5D87FF',
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: '#4570EA'
+                }
               }
             }
           },

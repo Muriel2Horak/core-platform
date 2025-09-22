@@ -5,50 +5,38 @@ import { createBrowserRouter, Navigate } from 'react-router';
 const FullLayout = lazy(() => import('../layouts/full/FullLayout'));
 
 /* ****Production Pages***** */
-const MePage = lazy(() => import('../views/profile/MePage'));
-const MyProfilePage = lazy(() => import('../views/profile/MyProfilePage'));
+const ProfilePage = lazy(() => import('../views/profile/ProfilePage'));
 const UserManagementPage = lazy(() => import('../views/admin/UserManagementPage'));
 
-/* ****Demo Pages for Reference***** */
-const Dashboard = lazy(() => import('../views/dashboard/Dashboard'));
-const SamplePage = lazy(() => import('../views/sample-page/SamplePage'));
-
 /**
- * 🚀 Production Router with User Management
+ * 🚀 Production Router - Clean Version
  * 
- * Hlavní aplikace obsahuje:
- * - /me - rychlý přehled profilu (původní MePage)
- * - /profile - kompletní správa profilu
+ * Hlavní aplikace obsahuje pouze produkční stránky:
+ * - /profile - sjednocená správa profilu s organizační strukturou a zástupstvím
  * - /admin/users - administrace uživatelů (pouze pro admin role)
- * - /dashboard - demo dashboard (pro reference)
  * 
  * Role-based security je implementována na backend API úrovni
- * Frontend kontrola rolí se provádí v komponentách
  */
 const Router = [
   {
     path: '/',
     element: <FullLayout />,
     children: [
-      // 🏠 Homepage redirect to user profile
-      { path: '/', element: <Navigate to="/me" /> },
+      // 🏠 Homepage redirect to profile
+      { path: '/', element: <Navigate to="/profile" /> },
       
       // 👤 User profile pages
-      { path: '/me', element: <MePage /> },
-      { path: '/profile', element: <MyProfilePage /> },
+      { path: '/me', element: <Navigate to="/profile" replace /> },
+      { path: '/profile', element: <ProfilePage /> },
       
       // 🔧 Admin pages
       { path: '/admin/users', element: <UserManagementPage /> },
       
-      // 📊 Demo/Reference pages
-      { path: '/dashboard', element: <Dashboard /> },
-      { path: '/sample-page', element: <SamplePage /> },
-      
-      // 🔄 Alternative routes and redirects
+      // 🔄 Redirects for old routes
       { path: '/user-profile', element: <Navigate to="/profile" replace /> },
       
       // 🔄 Fallback for unknown routes
-      { path: '*', element: <Navigate to="/me" /> },
+      { path: '*', element: <Navigate to="/profile" /> },
     ],
   },
 ];

@@ -3,6 +3,7 @@ package cz.muriel.core.service;
 import cz.muriel.core.dto.RoleCreateRequest;
 import cz.muriel.core.dto.UserCreateRequest;
 import cz.muriel.core.dto.UserDto;
+import cz.muriel.core.dto.UserUpdateRequest;
 import cz.muriel.core.auth.KeycloakAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,9 @@ public class KeycloakInitializationService implements ApplicationRunner {
 
       // 3. Ensure backend service account has proper admin roles
       ensureServiceAccountRoles();
+
+      // 4. Initialize demo organizational data
+      initializeDemoData();
 
       log.info("Keycloak initialization completed successfully");
     } catch (Exception e) {
@@ -180,31 +184,83 @@ public class KeycloakInitializationService implements ApplicationRunner {
       // Seznam potřebných admin rolí pro Keycloak Admin API
       String[] requiredRoles = { "manage-users", "view-users", "view-realm", "manage-realm" };
 
-      // Pro každou potřebnou roli zkontroluj a přiřaď ji, pokud chybí
-      List<String> currentRoles = keycloakAdminService.getUserRoles(serviceAccount.getId());
-
       for (String roleName : requiredRoles) {
-        if (!currentRoles.contains(roleName)) {
-          try {
-            log.info("Assigning role {} to service account {}", roleName,
-                serviceAccount.getUsername());
-
-            // Tyto role jsou client roles z realm-management klienta
-            assignClientRoleToServiceAccount(serviceAccount.getId(), "realm-management", roleName);
-
-          } catch (Exception e) {
-            log.error("Failed to assign role {} to service account: {}", roleName, e.getMessage());
-          }
-        } else {
-          log.info("Service account already has role: {}", roleName);
+        try {
+          assignClientRoleToServiceAccount(serviceAccount.getId(), "realm-management", roleName);
+        } catch (Exception e) {
+          log.warn("Failed to assign role {} to service account: {}", roleName, e.getMessage());
         }
       }
 
-      log.info("Service account role assignment completed");
+      log.info("Service account roles configuration completed");
 
     } catch (Exception e) {
-      log.error("Failed to configure service account roles", e);
-      // Ne-kritická chyba - nevhazuj výjimku, jen zaloguj
+      log.error("Failed to ensure service account roles", e);
+      // Don't fail application startup
+    }
+  }
+
+  /**
+   * 🎯 DEMO DATA INITIALIZATION - vytvoří demo organizační strukturu
+   */
+  private void initializeDemoData() {
+    try {
+      log.info("🎯 Initializing demo organizational data...");
+
+      // Najdi test_admin (nadřízený)
+      UserDto testAdmin = keycloakAdminService.findUserByUsername("test_admin");
+      if (testAdmin == null) {
+        log.warn("test_admin user not found, skipping demo data initialization");
+        return;
+      }
+
+      // Najdi test (podřízený)
+      UserDto testUser = keycloakAdminService.findUserByUsername("test");
+      if (testUser == null) {
+        log.warn("test user not found, skipping demo data initialization");
+        return;
+      }
+
+      // Aktualizuj test_admin s organizačními daty
+      log.info("🏢 Setting up test_admin as department manager...");
+      UserUpdateRequest adminUpdate = new UserUpdateRequest();
+      adminUpdate.setDepartment("IT - Vývoj");
+      adminUpdate.setPosition("Vedoucí vývojového týmu");
+      adminUpdate.setCostCenter("IT-001");
+      adminUpdate.setLocation("Praha - Karlín");
+      adminUpdate.setPhone("+420 123 456 789");
+
+      keycloakAdminService.updateUser(testAdmin.getId(), adminUpdate);
+      log.info("✅ test_admin organizational data updated");
+
+      // Aktualizuj test jako podřízeného test_admina
+      log.info("👥 Setting up test as subordinate of test_admin...");
+      UserUpdateRequest userUpdate = new UserUpdateRequest();
+      userUpdate.setDepartment("IT - Vývoj");
+      userUpdate.setPosition("Senior Developer");
+      userUpdate.setManager("test_admin"); // Klíčové propojení!
+      userUpdate.setCostCenter("IT-001");
+      userUpdate.setLocation("Praha - Karlín");
+      userUpdate.setPhone("+420 987 654 321");
+
+      // Přidej zástupství (test_admin zastupuje test při dovolené)
+      userUpdate.setDeputy("test_admin");
+      userUpdate.setDeputyReason("dovolená");
+      userUpdate.setDeputyFrom(java.time.LocalDate.now().plusDays(30)); // Dovolená za měsíc
+      userUpdate.setDeputyTo(java.time.LocalDate.now().plusDays(44)); // 2 týdny dovolené
+
+      keycloakAdminService.updateUser(testUser.getId(), userUpdate);
+      log.info("✅ test user organizational data updated with manager relationship");
+
+      // Výpis vytvořené hierarchie
+      log.info("🎯 Demo organizational hierarchy created:");
+      log.info("   👨‍💼 test_admin (Vedoucí vývojového týmu) - IT Vývoj");
+      log.info("   └── 👨‍💻 test (Senior Developer) - podřízený test_admina");
+      log.info("   📅 Plánované zastupování: test_admin zastupuje test při dovolené");
+
+    } catch (Exception e) {
+      log.warn("Failed to initialize demo data: {}", e.getMessage());
+      // Don't fail application startup
     }
   }
 

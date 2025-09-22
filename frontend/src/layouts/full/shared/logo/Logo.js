@@ -1,6 +1,7 @@
 import { Link } from "react-router";
-import { ReactComponent as LogoDark1 } from "src/assets/images/logos/dark1-logo.svg";
+import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material";
+import { IconShield } from "@tabler/icons-react";
 
 const LinkStyled = styled(Link)(() => ({
   height: "70px",
@@ -17,9 +18,31 @@ const Logo = () => {
       style={{
         display: "flex",
         alignItems: "center",
+        textDecoration: "none"
       }}
     >
-      <LogoDark1 />
+      <Box display="flex" alignItems="center" gap={1}>
+        <IconShield 
+          size={32} 
+          style={{ 
+            color: '#667eea',
+            strokeWidth: 2.5
+          }} 
+        />
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontSize: '1.4rem'
+          }}
+        >
+          CORE Platform
+        </Typography>
+      </Box>
     </LinkStyled>
   );
 };

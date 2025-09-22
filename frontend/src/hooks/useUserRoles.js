@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import authService from '../services/auth';
-import userManagementService from '../services/userManagementService';
 import logger from '../services/logger';
 
 /**
@@ -29,21 +28,15 @@ export const useUserRoles = () => {
       
       setUserInfo(user);
       
-      // Pokud uživatel má role v JWT tokenu, použij je
+      // Role by měly být vždy dostupné z JWT tokenu
       if (user.roles && Array.isArray(user.roles)) {
         setUserRoles(user.roles);
         logger.userAction('ROLES_LOADED_FROM_TOKEN', { roles: user.roles });
       } else {
-        // Jinak načti role z API
-        try {
-          const profile = await userManagementService.getMyProfile();
-          const roles = profile.roles || [];
-          setUserRoles(roles);
-          logger.userAction('ROLES_LOADED_FROM_API', { roles });
-        } catch (apiError) {
-          console.warn('Failed to load roles from API, fallback to empty roles', apiError);
-          setUserRoles([]);
-        }
+        // Fallback na prázdné role - nebudeme volat API pro správu uživatelů
+        console.warn('No roles found in user info, using empty roles');
+        setUserRoles([]);
+        logger.userAction('ROLES_EMPTY_FALLBACK', { reason: 'no_roles_in_token' });
       }
       
     } catch (err) {
