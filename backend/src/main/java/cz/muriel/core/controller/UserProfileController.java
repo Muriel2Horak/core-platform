@@ -18,7 +18,8 @@ public class UserProfileController {
 
   private final KeycloakAdminService keycloakAdminService;
 
-  @GetMapping @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
+  @GetMapping @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z hasAuthority('CORE_ROLE_USER')
+                                                 // na isAuthenticated()
   public ResponseEntity<UserDto> getMyProfile(Authentication authentication) {
     String username = getCurrentUsername(authentication);
     log.info("Getting profile for username: {}", username);
@@ -28,7 +29,8 @@ public class UserProfileController {
     return ResponseEntity.ok(user);
   }
 
-  @PutMapping @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
+  @PutMapping @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z hasAuthority('CORE_ROLE_USER')
+                                                 // na isAuthenticated()
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
     String username = getCurrentUsername(authentication);
@@ -42,7 +44,9 @@ public class UserProfileController {
     return ResponseEntity.ok(updatedUser);
   }
 
-  @PutMapping("/password") @PreAuthorize("hasAuthority('CORE_ROLE_USER')")
+  @PutMapping("/password") @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z
+                                                              // hasAuthority('CORE_ROLE_USER') na
+                                                              // isAuthenticated()
   public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request,
       Authentication authentication) {
     String username = getCurrentUsername(authentication);

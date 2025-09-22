@@ -90,7 +90,8 @@ public class SecurityConfig {
     // 🔧 FIX: Použijeme upravený AudienceValidator který akceptuje prázdné audience
     OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
     OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(allowedAudience);
-    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
+    OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(withIssuer,
+        audienceValidator);
 
     // Nastav oba validátory
     decoder.setJwtValidator(validator);

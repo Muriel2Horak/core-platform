@@ -42,7 +42,7 @@
       "enabled": true,
       "serviceAccountClientId": "backend-admin-service",
       "clientRoles": {
-        "realm-management": ["manage-users", "view-users", "view-realm", "manage-realm"]
+        "realm-management": ["manage-users", "view-users", "view-realm", "manage-realm", "query-users", "query-groups", "query-realms"]
       }
     }
   ],
@@ -86,7 +86,13 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
-      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm"
+      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm",
+      "defaultClientScopes": ["profile", "email", "roles", "web-origins"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
+      "attributes": {
+        "access.token.lifespan": "3600",
+        "client.secret.creation.time": "1640995200"
+      }
     },
     {
       "clientId": "web",

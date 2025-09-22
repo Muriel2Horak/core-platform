@@ -71,7 +71,7 @@ public class KeycloakAdminService {
       form.add("grant_type", "client_credentials");
       form.add("client_id", adminClientId);
       form.add("client_secret", adminClientSecret);
-      form.add("scope", "admin");
+      // Odstraněn nesprávný scope - service account používá client roles místo scope
 
       ResponseEntity<String> response = restTemplate.postForEntity(url,
           new HttpEntity<>(form, headers), String.class);
