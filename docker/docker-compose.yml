@@ -10,11 +10,10 @@ services:
       - DOMAIN=${DOMAIN:-core-platform.local}
     volumes:
       - ./nginx/nginx-ssl.conf.template:/etc/nginx/templates/nginx-ssl.conf.template:ro
+      - ./nginx/start-nginx.sh:/usr/local/bin/start-nginx.sh:ro
       - ./ssl:/etc/nginx/ssl:ro
       - certbot-www:/var/www/certbot:ro
-    command: >
-      sh -c "envsubst '$$DOMAIN' < /etc/nginx/templates/nginx-ssl.conf.template > /etc/nginx/nginx.conf && 
-             exec nginx -g 'daemon off;'"
+    command: ["/usr/local/bin/start-nginx.sh"]
     depends_on:
       - frontend
       - backend
@@ -180,7 +179,7 @@ services:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "${KEYCLOAK_PORT:-8081}:8080"
-    command: ["start", "--import-realm", "--optimized"]
+    command: ["sh", "-c", "envsubst '$DOMAIN' < /opt/keycloak/data/import/realm-core-platform.template.json > /opt/keycloak/data/import/realm-core-platform.json && exec /opt/keycloak/bin/kc.sh start --import-realm --optimized"]
     networks:
       - core-net
     restart: unless-stopped
