@@ -821,7 +821,8 @@ public class KeycloakAdminService {
   }
 
   /**
-   * 🔍 IDENTITY SOURCE DETECTION - detekuje zdroj uživatele (lokální vs federovaný)
+   * 🔍 IDENTITY SOURCE DETECTION - detekuje zdroj uživatele (lokální vs
+   * federovaný)
    */
   private void detectUserIdentitySource(JsonNode user, UserDto userDto) {
     try {
@@ -873,13 +874,14 @@ public class KeycloakAdminService {
   /**
    * Helper metoda pro nastavení identity informací pomocí reflection
    */
-  private void setUserIdentityInfo(UserDto userDto, boolean isLocal, String provider, String federatedUsername) {
+  private void setUserIdentityInfo(UserDto userDto, boolean isLocal, String provider,
+      String federatedUsername) {
     try {
       // Použijeme reflection pro nastavení isLocalUser property
       java.lang.reflect.Field isLocalUserField = UserDto.class.getDeclaredField("isLocalUser");
       isLocalUserField.setAccessible(true);
       isLocalUserField.set(userDto, isLocal);
-      
+
       userDto.setIdentityProvider(provider);
       userDto.setFederatedUsername(federatedUsername);
     } catch (Exception e) {
