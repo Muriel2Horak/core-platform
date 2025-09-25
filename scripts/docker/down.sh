@@ -7,6 +7,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}/docker"
 
 echo "Stopping stack..."
-docker compose down -v
+# 🔧 FIX: Nemazat volumes při běžném down - zachovat data
+docker compose down --remove-orphans
 
 echo "Done."

@@ -145,13 +145,26 @@ public class KeycloakAdminService {
           new HttpEntity<>(headers), String.class);
 
       log.info("🔍 Keycloak API response status: {}", response.getStatusCode());
-      log.info("🔍 Keycloak API response body: {}", response.getBody());
+      log.info("🔍 Keycloak API RAW response body: {}", response.getBody());
 
       JsonNode users = objectMapper.readTree(response.getBody());
       log.info("🔍 Parsed users array, size: {}", users.size());
 
       if (users.isArray() && users.size() > 0) {
         JsonNode user = users.get(0);
+        log.info("🔍 RAW user JSON from Keycloak: {}", user.toString());
+
+        // Speciální debug pro attributes
+        JsonNode attributes = user.path("attributes");
+        if (attributes != null && !attributes.isMissingNode()) {
+          log.info("🔍 ATTRIBUTES DEBUG: Raw attributes node: {}", attributes.toString());
+          attributes.fields().forEachRemaining(entry -> {
+            log.info("🔍 ATTRIBUTES DEBUG: Key: {}, Value: {}", entry.getKey(), entry.getValue());
+          });
+        } else {
+          log.info("🔍 ATTRIBUTES DEBUG: No attributes found or attributes is missing node");
+        }
+
         log.info("🔍 Found user, building UserDto...");
 
         UserDto userDto = buildUserDtoFromJson(user);
@@ -183,6 +196,47 @@ public class KeycloakAdminService {
     }
     log.info("🔍 Returning user: {}", user.getUsername());
     return user;
+  }
+
+  /**
+   * Načte uživatele s retry mechanikou pro čerstvě aktualizované atributy
+   */
+  public UserDto getUserByUsernameWithRetry(String username, String expectedAttribute, int maxRetries) {
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      UserDto user = findUserByUsername(username);
+      
+      if (user == null) {
+        throw new RuntimeException("User not found: " + username);
+      }
+      
+      // Pokud nehledáme konkrétní atribut, nebo ho už máme, vrať uživatele
+      if (expectedAttribute == null || 
+          (user.getCustomAttributes() != null && user.getCustomAttributes().containsKey(expectedAttribute))) {
+        log.info("🔄 RETRY: User loaded successfully on attempt {}", attempt);
+        return user;
+      }
+      
+      // Pokud je to poslední pokus, vrať co máme
+      if (attempt == maxRetries) {
+        log.warn("🔄 RETRY: Max retries reached, returning user without expected attribute: {}", expectedAttribute);
+        return user;
+      }
+      
+      // Exponential backoff: 100ms, 200ms, 400ms...
+      int delayMs = 100 * (1 << (attempt - 1));
+      log.info("🔄 RETRY: Attribute '{}' not found on attempt {}, retrying in {}ms", 
+          expectedAttribute, attempt, delayMs);
+      
+      try {
+        Thread.sleep(delayMs);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        log.warn("🔄 RETRY: Interrupted during retry delay");
+        return user;
+      }
+    }
+    
+    throw new RuntimeException("Unreachable code");
   }
 
   public List<UserDto> searchUsers(String username, String email, String firstName, String lastName,
@@ -729,6 +783,136 @@ public class KeycloakAdminService {
   }
 
   /**
+   * 🔧 USER ATTRIBUTES MANAGEMENT - pro custom pole jako profilové obrázky
+   */
+
+  /**
+   * Aktualizuje nebo přidá user attribute
+   */
+  public void updateUserAttribute(String userId, String attributeName, String attributeValue) {
+    try {
+      log.info("Updating user attribute {} for user {}", attributeName, userId);
+
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      // 🔧 FIX: Načti fresh data přímo z Keycloak API místo cached getUserById()
+      log.info("🔧 ATTRIBUTE_UPDATE: Loading fresh user data from Keycloak for user: {}", userId);
+      ResponseEntity<String> userResponse = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode currentUserJson = objectMapper.readTree(userResponse.getBody());
+      JsonNode currentAttributes = currentUserJson.path("attributes");
+      log.info("🔧 ATTRIBUTE_UPDATE: Current attributes from Keycloak: {}", currentAttributes);
+
+      // Připrav attributes mapu
+      Map<String, List<String>> attributes = new HashMap<>();
+
+      // Zkopíruj všechny existující attributes (pokud existují)
+      if (currentAttributes != null && !currentAttributes.isMissingNode()) {
+        currentAttributes.fields().forEachRemaining(entry -> {
+          String key = entry.getKey();
+          JsonNode valueArray = entry.getValue();
+          if (valueArray.isArray() && valueArray.size() > 0) {
+            attributes.put(key, List.of(valueArray.get(0).asText()));
+            log.debug("🔧 ATTRIBUTE_UPDATE: Preserving existing attribute: {} = {}", key,
+                valueArray.get(0).asText());
+          }
+        });
+      }
+
+      // Přidej/aktualizuj nový attribute
+      attributes.put(attributeName, List.of(attributeValue));
+      log.info("🔧 ATTRIBUTE_UPDATE: Adding/updating attribute: {} = {}", attributeName,
+          attributeValue);
+
+      // Pošli update
+      Map<String, Object> userRepresentation = new HashMap<>();
+      userRepresentation.put("attributes", attributes);
+
+      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(userRepresentation, headers),
+          Void.class);
+
+      log.info("User attribute {} successfully updated for user {}", attributeName, userId);
+      auditLogger.info("USER_ATTRIBUTE_UPDATED: user={}, attribute={}, value={}", userId,
+          attributeName,
+          attributeValue.length() > 50 ? attributeValue.substring(0, 50) + "..." : attributeValue);
+
+    } catch (Exception ex) {
+      log.error("Failed to update user attribute {} for user {}", attributeName, userId, ex);
+      throw new RuntimeException("Failed to update user attribute", ex);
+    }
+  }
+
+  /**
+   * Odstraní user attribute
+   */
+  public void removeUserAttribute(String userId, String attributeName) {
+    try {
+      log.info("Removing user attribute {} for user {}", attributeName, userId);
+
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      // Nejdřív získej aktuální uživatele
+      UserDto currentUser = getUserById(userId);
+
+      // Připrav attributes mapu bez daného attributu
+      Map<String, List<String>> attributes = new HashMap<>();
+
+      // Zkopíruj všechny existující attributes kromě toho, co chceme smazat
+      if (currentUser.getCustomAttributes() != null) {
+        for (Map.Entry<String, String> entry : currentUser.getCustomAttributes().entrySet()) {
+          if (!entry.getKey().equals(attributeName)) {
+            attributes.put(entry.getKey(), List.of(entry.getValue()));
+          }
+        }
+      }
+
+      // Pošli update
+      Map<String, Object> userRepresentation = new HashMap<>();
+      userRepresentation.put("attributes", attributes);
+
+      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(userRepresentation, headers),
+          Void.class);
+
+      log.info("User attribute {} successfully removed for user {}", attributeName, userId);
+      auditLogger.info("USER_ATTRIBUTE_REMOVED: user={}, attribute={}", userId, attributeName);
+
+    } catch (Exception ex) {
+      log.error("Failed to remove user attribute {} for user {}", attributeName, userId, ex);
+      throw new RuntimeException("Failed to remove user attribute", ex);
+    }
+  }
+
+  /**
+   * Získá hodnotu konkrétního user attributu
+   */
+  public String getUserAttribute(String userId, String attributeName) {
+    try {
+      UserDto user = getUserById(userId);
+
+      if (user.getCustomAttributes() != null) {
+        return user.getCustomAttributes().get(attributeName);
+      }
+
+      return null;
+
+    } catch (Exception ex) {
+      log.error("Failed to get user attribute {} for user {}", attributeName, userId, ex);
+      return null;
+    }
+  }
+
+  /**
    * 🏢 HELPER METHODS pro organizační strukturu a custom atributy
    */
 
@@ -752,7 +936,12 @@ public class KeycloakAdminService {
 
       // Custom atributy z Keycloak attributes pole
       JsonNode attributes = user.path("attributes");
+      log.info("🔍 PROFIL: Building UserDto for user: {}, attributes exist: {}",
+          user.path("username").asText(), attributes != null && !attributes.isMissingNode());
+
       if (attributes != null && !attributes.isMissingNode()) {
+        log.info("🔍 PROFIL: All available attributes: {}", attributes.fieldNames());
+
         // 🏢 Organizační struktura
         builder.department(getAttributeValue(attributes, "department"))
             .position(getAttributeValue(attributes, "position"))
@@ -765,8 +954,19 @@ public class KeycloakAdminService {
         builder.deputy(getAttributeValue(attributes, "deputy"))
             .deputyReason(getAttributeValue(attributes, "deputyReason"));
 
-        // 📷 Profilová fotka a identita
-        builder.profilePicture(getAttributeValue(attributes, "profilePicture"));
+        // 📷 Profilová fotka a identita - zkusíme oba názvy
+        String customProfileImage = getAttributeValue(attributes, "customProfileImage");
+        String profilePicture = getAttributeValue(attributes, "profilePicture");
+
+        log.info("🔍 PROFIL: customProfileImage = {}", customProfileImage);
+        log.info("🔍 PROFIL: profilePicture = {}", profilePicture);
+
+        // Použij customProfileImage s fallbackem na profilePicture
+        String finalProfilePicture = customProfileImage != null ? customProfileImage
+            : profilePicture;
+        log.info("🔍 PROFIL: Final profile picture value: {}", finalProfilePicture);
+
+        builder.profilePicture(finalProfilePicture);
 
         // Datum atributy
         String deputyFromStr = getAttributeValue(attributes, "deputyFrom");
@@ -786,9 +986,26 @@ public class KeycloakAdminService {
             log.warn("Failed to parse deputyTo date: {}", deputyToStr);
           }
         }
+      } else {
+        log.info("🔍 PROFIL: No attributes found for user: {}", user.path("username").asText());
       }
 
       UserDto userDto = builder.build();
+
+      // 📊 Zkopíruj všechny attributes do customAttributes mapy
+      if (attributes != null && !attributes.isMissingNode()) {
+        Map<String, String> customAttrs = new HashMap<>();
+        attributes.fields().forEachRemaining(entry -> {
+          String key = entry.getKey();
+          JsonNode valueArray = entry.getValue();
+          if (valueArray.isArray() && valueArray.size() > 0) {
+            customAttrs.put(key, valueArray.get(0).asText());
+          }
+        });
+        userDto.setCustomAttributes(customAttrs);
+        log.info("🔍 PROFIL: CustomAttributes map size: {}, contains customProfileImage: {}",
+            customAttrs.size(), customAttrs.containsKey("customProfileImage"));
+      }
 
       // 🔍 Identifikace zdroje uživatele (lokální vs federovaný)
       detectUserIdentitySource(user, userDto);

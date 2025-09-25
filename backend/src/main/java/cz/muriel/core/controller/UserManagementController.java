@@ -2,6 +2,7 @@ package cz.muriel.core.controller;
 
 import cz.muriel.core.dto.*;
 import cz.muriel.core.auth.KeycloakAdminService;
+import cz.muriel.core.service.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import java.util.List;
 public class UserManagementController {
 
   private final KeycloakAdminService keycloakAdminService;
+  private final S3StorageService s3StorageService;
 
   @GetMapping
   public ResponseEntity<List<UserDto>> searchUsers(@RequestParam(required = false) String username,
@@ -34,6 +36,9 @@ public class UserManagementController {
     List<UserDto> users = keycloakAdminService.searchUsers(username, email, firstName, lastName,
         enabled, first, max);
 
+    // Enrich all users with image URLs
+    users.forEach(this::enrichUserWithImageUrl);
+
     return ResponseEntity.ok(users);
   }
 
@@ -42,6 +47,10 @@ public class UserManagementController {
     log.info("Getting user by ID: {}", id);
 
     UserDto user = keycloakAdminService.getUserById(id);
+
+    // Enrich user with image URL
+    enrichUserWithImageUrl(user);
+
     return ResponseEntity.ok(user);
   }
 
@@ -50,6 +59,10 @@ public class UserManagementController {
     log.info("Creating new user: {}", request.getUsername());
 
     UserDto createdUser = keycloakAdminService.createUser(request);
+
+    // Enrich user with image URL
+    enrichUserWithImageUrl(createdUser);
+
     return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
   }
 
@@ -59,6 +72,10 @@ public class UserManagementController {
     log.info("Updating user: {}", id);
 
     UserDto updatedUser = keycloakAdminService.updateUser(id, request);
+
+    // Enrich user with image URL
+    enrichUserWithImageUrl(updatedUser);
+
     return ResponseEntity.ok(updatedUser);
   }
 
@@ -104,6 +121,16 @@ public class UserManagementController {
 
     keycloakAdminService.removeRoleFromUser(id, roleName);
     return ResponseEntity.ok().build();
+  }
+
+  /**
+   * Obohacuje UserDto o správnou URL pro profilový obrázek
+   */
+  private void enrichUserWithImageUrl(UserDto user) {
+    if (user != null && user.getProfilePicture() != null && !user.getProfilePicture().isEmpty()) {
+      String imageUrl = s3StorageService.getFileUrl(user.getProfilePicture());
+      user.setProfilePictureUrl(imageUrl);
+    }
   }
 
   // Helper DTO for role assignment

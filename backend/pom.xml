@@ -106,6 +106,20 @@
 			<artifactId>logstash-logback-encoder</artifactId>
 			<version>7.4</version>
 		</dependency>
+
+		<!-- AWS S3 Storage -->
+		<dependency>
+			<groupId>io.awspring.cloud</groupId>
+			<artifactId>spring-cloud-aws-starter-s3</artifactId>
+			<version>3.1.1</version>
+		</dependency>
+
+		<!-- Keycloak Admin Client -->
+		<dependency>
+			<groupId>org.keycloak</groupId>
+			<artifactId>keycloak-admin-client</artifactId>
+			<version>24.0.5</version>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -39,7 +39,8 @@ public class UserDto {
   private String deputyReason; // Důvod zástupství (dovolená, nemoc, služební cesta)
 
   // 📷 Profilová fotka a identita
-  private String profilePicture; // URL nebo base64 profilové fotky
+  private String profilePicture; // S3 klíč pro profilovou fotku
+  private String profilePictureUrl; // Kompletní URL pro profilovou fotku
   private String identityProvider; // Zdroj uživatele (local, ldap, saml, etc.)
   private String identityProviderAlias; // Alias providera (např. "company-ad")
   private boolean isLocalUser; // True pokud je uživatel lokální v Keycloak

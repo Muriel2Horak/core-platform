@@ -107,6 +107,7 @@ const MePage = () => {
           <DashboardCard title="Základní informace">
             <Box display="flex" alignItems="center" mb={3}>
               <Avatar
+                src={userInfo?.profilePictureUrl}
                 sx={{
                   width: 80,
                   height: 80,

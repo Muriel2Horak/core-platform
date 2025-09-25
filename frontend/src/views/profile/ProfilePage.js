@@ -26,7 +26,9 @@ import {
   Slide,
   Paper,
   IconButton,
-  Badge
+  Badge,
+  LinearProgress,
+  Tooltip
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -50,10 +52,13 @@ import {
   IconBriefcase,
   IconCamera,
   IconCloud,
-  IconServer
+  IconServer,
+  IconTrash,
+  IconUpload
 } from '@tabler/icons-react';
 import PageContainer from '../../components/container/PageContainer';
 import userManagementService from '../../services/userManagementService';
+import fileUploadService from '../../services/fileUploadService';
 import authService from '../../services/auth';
 import logger from '../../services/logger';
 
@@ -95,6 +100,11 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState({});
   
+  // Image upload states
+  const [imageUploading, setImageUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedImagePreview, setSelectedImagePreview] = useState(null);
+  
   // Password change state
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -111,6 +121,15 @@ const ProfilePage = () => {
     loadProfile();
     loadUserSuggestions();
   }, []);
+
+  // Cleanup preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreview) {
+        fileUploadService.revokeFilePreview(selectedImagePreview);
+      }
+    };
+  }, [selectedImagePreview]);
 
   const loadProfile = async () => {
     try {
@@ -181,9 +200,110 @@ const ProfilePage = () => {
         deputyTo: profile.deputyTo ? dayjs(profile.deputyTo) : null
       };
       setEditedProfile(resetData);
+      
+      // Clear image preview
+      if (selectedImagePreview) {
+        fileUploadService.revokeFilePreview(selectedImagePreview);
+        setSelectedImagePreview(null);
+      }
     }
     setIsEditing(!isEditing);
     logger.userAction(isEditing ? 'PROFILE_EDIT_CANCELLED' : 'PROFILE_EDIT_STARTED');
+  };
+
+  const handleImageUpload = async (file) => {
+    try {
+      setImageUploading(true);
+      setUploadProgress(0);
+      setError(null);
+
+      // Create preview
+      const previewUrl = fileUploadService.createFilePreview(file);
+      setSelectedImagePreview(previewUrl);
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // Upload file
+      const result = await fileUploadService.uploadProfilePicture(file);
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      // 🔄 OPRAVA: Použij retry mechanismus pro načtení čerstvě nahraného atributu
+      console.log('🔄 Načítám profil s retry mechanismem po nahrání fotky...');
+      const profileWithRetry = await userManagementService.getMyProfileWithRetry('customProfileImage', 3);
+      setProfile(profileWithRetry);
+      
+      // Převést datum hodnoty na dayjs objekty pro DatePicker komponenty
+      const editedData = { 
+        ...profileWithRetry,
+        deputyFrom: profileWithRetry.deputyFrom ? dayjs(profileWithRetry.deputyFrom) : null,
+        deputyTo: profileWithRetry.deputyTo ? dayjs(profileWithRetry.deputyTo) : null
+      };
+      setEditedProfile(editedData);
+      
+      setSuccess('Profilová fotka byla úspěšně nahrána');
+      setTimeout(() => setSuccess(null), 3000);
+
+      // Clear preview after successful upload
+      setTimeout(() => {
+        fileUploadService.revokeFilePreview(previewUrl);
+        setSelectedImagePreview(null);
+        setUploadProgress(0);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Failed to upload profile picture:', err);
+      setError(err.message || 'Nepodařilo se nahrát profilovou fotku');
+      
+      // Clear preview on error
+      if (selectedImagePreview) {
+        fileUploadService.revokeFilePreview(selectedImagePreview);
+        setSelectedImagePreview(null);
+      }
+      setUploadProgress(0);
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleImageDelete = async () => {
+    try {
+      setImageUploading(true);
+      setError(null);
+
+      await fileUploadService.deleteProfilePicture();
+      
+      // Refresh profile to remove image URL
+      await loadProfile();
+      
+      setSuccess('Profilová fotka byla úspěšně smazána');
+      setTimeout(() => setSuccess(null), 3000);
+
+    } catch (err) {
+      console.error('Failed to delete profile picture:', err);
+      setError(err.message || 'Nepodařilo se smazat profilovou fotku');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      handleImageUpload(file);
+    }
+    // Reset input value to allow selecting the same file again
+    event.target.value = '';
   };
 
   const handleProfileSave = async () => {
@@ -328,7 +448,7 @@ const ProfilePage = () => {
             </Slide>
           )}
 
-          {/* Profile Header Card - Redesigned */}
+          {/* Profile Header Card - Enhanced with Image Upload */}
           <Paper 
             elevation={3} 
             sx={{ 
@@ -342,53 +462,122 @@ const ProfilePage = () => {
             <CardContent sx={{ p: 4 }}>
               <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={3}>
                 <Box display="flex" alignItems="center" gap={3}>
-                  {/* Profilová fotka s možností změny */}
+                  {/* Enhanced Profilová fotka s upload funkcionalitou */}
                   <Box position="relative">
                     <Badge
                       overlap="circular"
                       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                       badgeContent={
-                        isEditing ? (
-                          <IconButton
-                            size="small"
-                            component="label"
-                            sx={{
-                              backgroundColor: 'white',
-                              color: 'primary.main',
-                              '&:hover': { backgroundColor: 'grey.100' }
-                            }}
-                          >
-                            <IconCamera size={16} />
-                            <input
-                              type="file"
-                              hidden
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  // TODO: Implementovat upload profilové fotky
-                                  console.log('Selected file:', file);
+                        <Box>
+                          {/* Upload button */}
+                          <Tooltip title="Nahrát novou fotku" arrow>
+                            <IconButton
+                              size="small"
+                              component="label"
+                              disabled={imageUploading}
+                              sx={{
+                                backgroundColor: 'rgba(76, 175, 80, 0.9)',
+                                color: 'white',
+                                mr: 0.5,
+                                '&:hover': { 
+                                  backgroundColor: 'rgba(76, 175, 80, 1)',
+                                  transform: 'scale(1.1)'
+                                },
+                                '&:disabled': {
+                                  backgroundColor: 'rgba(158, 158, 158, 0.5)'
                                 }
                               }}
-                            />
-                          </IconButton>
-                        ) : null
+                            >
+                              <IconCamera size={16} />
+                              <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                                disabled={imageUploading}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          {/* Delete button - only show if user has profile picture */}
+                          {profile?.profilePictureUrl && (
+                            <Tooltip title="Smazat fotku" arrow>
+                              <IconButton
+                                size="small"
+                                onClick={handleImageDelete}
+                                disabled={imageUploading}
+                                sx={{
+                                  backgroundColor: 'rgba(244, 67, 54, 0.9)',
+                                  color: 'white',
+                                  '&:hover': { 
+                                    backgroundColor: 'rgba(244, 67, 54, 1)',
+                                    transform: 'scale(1.1)'
+                                  },
+                                  '&:disabled': {
+                                    backgroundColor: 'rgba(158, 158, 158, 0.5)'
+                                  }
+                                }}
+                              >
+                                <IconTrash size={16} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
                       }
                     >
                       <Avatar 
-                        src={profile?.profilePicture}
+                        src={selectedImagePreview || profile?.profilePictureUrl || null}
                         sx={{ 
                           width: 100, 
                           height: 100,
                           backgroundColor: 'rgba(255,255,255,0.2)',
                           fontSize: '2.5rem',
                           fontWeight: 'bold',
-                          border: '4px solid rgba(255,255,255,0.3)'
+                          border: '4px solid rgba(255,255,255,0.3)',
+                          position: 'relative'
                         }}
                       >
-                        {!profile?.profilePicture && getInitials()}
+                        {(!profile?.profilePictureUrl && !selectedImagePreview) && getInitials()}
+                        
+                        {/* Upload overlay */}
+                        {imageUploading && (
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(0,0,0,0.7)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '50%'
+                            }}
+                          >
+                            <CircularProgress size={30} sx={{ color: 'white' }} />
+                          </Box>
+                        )}
                       </Avatar>
                     </Badge>
+                    
+                    {/* Upload progress bar */}
+                    {imageUploading && uploadProgress > 0 && (
+                      <Box sx={{ position: 'absolute', bottom: -10, left: 0, right: 0 }}>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={uploadProgress}
+                          sx={{
+                            height: 4,
+                            borderRadius: 2,
+                            backgroundColor: 'rgba(255,255,255,0.3)',
+                            '& .MuiLinearProgress-bar': {
+                              backgroundColor: '#4caf50'
+                            }
+                          }}
+                        />
+                      </Box>
+                    )}
                   </Box>
                   
                   <Box>
@@ -423,8 +612,6 @@ const ProfilePage = () => {
                         AD účet: {profile.federatedUsername}
                       </Typography>
                     )}
-                    
-                    {/* Role odebrány - přesunuty do tabu Bezpečnost */}
                   </Box>
                 </Box>
 
@@ -435,7 +622,7 @@ const ProfilePage = () => {
                     size="large"
                     startIcon={isEditing ? <IconX /> : <IconEdit />}
                     onClick={handleEditToggle}
-                    disabled={saving}
+                    disabled={saving || imageUploading}
                     sx={{
                       backgroundColor: isEditing ? 'transparent' : 'rgba(255,255,255,0.9)',
                       color: isEditing ? 'white' : 'primary.main',
@@ -506,7 +693,8 @@ const ProfilePage = () => {
               </Tabs>
             </Box>
 
-            {/* Tab 0: Základní údaje - Enhanced */}
+            {/* Existing tabs content remains the same... */}
+            {/* Tab 0: Základní údaje */}
             <TabPanel value={currentTab} index={0}>
               <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
                 📋 Základní údaje
@@ -666,7 +854,7 @@ const ProfilePage = () => {
               </Grid>
             </TabPanel>
 
-            {/* Tab 1: Organizační struktura - Enhanced */}
+            {/* Tab 1: Organizační struktura */}
             <TabPanel value={currentTab} index={1}>
               <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
                 🏢 Organizační struktura
@@ -864,7 +1052,7 @@ const ProfilePage = () => {
               </Grid>
             </TabPanel>
 
-            {/* Tab 2: Zastupování - Enhanced */}
+            {/* Tab 2: Zastupování */}
             <TabPanel value={currentTab} index={2}>
               <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
                 👥 Zastupování
@@ -1061,7 +1249,7 @@ const ProfilePage = () => {
               </Grid>
             </TabPanel>
 
-            {/* Tab 3: Bezpečnost - Enhanced */}
+            {/* Tab 3: Bezpečnost */}
             <TabPanel value={currentTab} index={3}>
               <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
                 🔐 Bezpečnost

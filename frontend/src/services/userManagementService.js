@@ -32,6 +32,42 @@ class UserManagementService {
     }
   }
 
+  /**
+   * Načte profil s retry mechanismem pro čerstvě aktualizované atributy
+   * Používá se po nahrání profilové fotky pro zajištění, že se atribut načte
+   */
+  async getMyProfileWithRetry(expectedAttribute = 'customProfileImage', maxRetries = 3) {
+    try {
+      logger.apiCall('GET', '/me/with-retry', 'start', 0, { 
+        operation: 'get_my_profile_with_retry',
+        expectedAttribute,
+        maxRetries
+      });
+      const startTime = Date.now();
+      
+      const params = new URLSearchParams();
+      params.append('expectedAttribute', expectedAttribute);
+      params.append('maxRetries', maxRetries.toString());
+      
+      const response = await authService.apiCall(`/me/with-retry?${params.toString()}`);
+      if (!response) throw new Error('Failed to get profile with retry');
+      
+      const data = await response.json();
+      const duration = Date.now() - startTime;
+      
+      logger.apiCall('GET', '/me/with-retry', response.status, duration, { 
+        operation: 'get_my_profile_with_retry',
+        success: true,
+        hasExpectedAttribute: data.customAttributes && data.customAttributes[expectedAttribute] != null
+      });
+      
+      return data;
+    } catch (error) {
+      logger.error('GET_MY_PROFILE_WITH_RETRY_ERROR', error.message, { error: error.stack });
+      throw error;
+    }
+  }
+
   async updateMyProfile(profileData) {
     try {
       logger.apiCall('PUT', '/me', 'start', 0, { operation: 'update_my_profile' });

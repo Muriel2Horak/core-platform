@@ -7,6 +7,9 @@ http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
     
+    # ✅ PŘIDÁNO: Limit pro velikost uploadu souborů (10MB)
+    client_max_body_size 10M;
+    
     # Basic optimizations
     sendfile on;
     tcp_nopush on;
@@ -37,6 +40,10 @@ http {
     
     upstream keycloak {
         server keycloak:8080;
+    }
+
+    upstream minio {
+        server minio:9000;
     }
     
     # 🔒 HTTPS server - Primary configuration

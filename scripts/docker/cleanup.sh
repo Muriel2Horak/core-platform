@@ -1,57 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# 🧹 Cleanup script pro Core Platform
-set -e
+# 🎨 Barvy pro lepší čitelnost
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-echo "🧹 Cleaning up Core Platform environment..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Stop všechny running containery
-echo "🛑 Stopping all running containers..."
-if docker-compose ps | grep -q "Up\|running"; then
-    docker-compose down --remove-orphans --volumes
-    echo "✅ Docker compose stack stopped"
-fi
+cd "${REPO_ROOT}/docker"
 
-# Vyčisti všechny core- containery (i ty co zůstaly)
-echo "🗑️  Removing any remaining core- containers..."
-docker ps -aq --filter "name=core-" | xargs -r docker rm -f 2>/dev/null || true
-echo "✅ Remaining containers removed"
-
-# Vyčisti nepoužívané images
-echo "🧹 Cleaning up unused Docker images..."
-docker image prune -f
-echo "✅ Unused images removed"
-
-# Vyčisti nepoužívané networks
-echo "🌐 Cleaning up unused networks..."
-docker network prune -f
-echo "✅ Unused networks removed"
-
-# Volitelně - vyčisti volumes (opatrně!)
-read -p "🗄️  Do you want to remove database volumes? This will DELETE ALL DATA! (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🚨 Removing all volumes..."
-    docker volume prune -f
-    echo "✅ All volumes removed"
-else
-    echo "📦 Volumes preserved"
-fi
-
-# Vyčisti SSL certifikáty pokud existují
-if [ -d "ssl" ]; then
-    read -p "🔐 Remove SSL certificates? (y/N): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        rm -rf ssl/
-        echo "✅ SSL certificates removed"
-    fi
-fi
-
+echo -e "${RED}⚠️  POZOR: Tento příkaz smaže VŠECHNA DATA včetně:${NC}"
+echo -e "${RED}   - Keycloak databázi (uživatelé, role, atributy)${NC}"
+echo -e "${RED}   - PostgreSQL data${NC}"
+echo -e "${RED}   - MinIO soubory (profilové fotky, dokumenty)${NC}"
+echo -e "${RED}   - Grafana dashboardy a nastavení${NC}"
 echo ""
-echo "🎉 Cleanup completed!"
+echo -e "${YELLOW}Pokud chcete jen restartovat služby BEZ ztráty dat, použijte:${NC}"
+echo -e "${CYAN}  scripts/docker/down.sh && scripts/docker/up.sh${NC}"
 echo ""
-echo "🚀 To start fresh environment:"
-echo "   Development:  ./scripts/docker/dev-start-ssl.sh"
-echo "   Staging:      ./scripts/docker/staging-deploy.sh"
-echo "   Production:   ./scripts/docker/prod-deploy.sh"
+read -p "Opravdu chcete smazat VŠECHNA DATA? (zadejte 'YES' pro potvrzení): " confirm
+
+if [ "$confirm" != "YES" ]; then
+    echo -e "${GREEN}Operace zrušena.${NC}"
+    exit 0
+fi
+
+echo -e "${RED}Mažu všechna data...${NC}"
+docker compose down -v --remove-orphans
+
+echo -e "${YELLOW}Mažu nepoužívané Docker objekty...${NC}"
+docker system prune -f
+docker volume prune -f
+
+echo -e "${GREEN}✅ Úplné vyčištění dokončeno.${NC}"

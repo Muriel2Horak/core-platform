@@ -146,7 +146,6 @@ public class AuthController {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private List<String> rolesFromJwt(String jwtStr) {
     try {
       Jwt jwt = jwtDecoder.decode(jwtStr);

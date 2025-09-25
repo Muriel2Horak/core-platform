@@ -210,20 +210,32 @@ class AuthService {
     // 🔧 FIX: Bezpečný merge hlaviček - vytvoř base Headers a pak merge options.headers
     const headers = new Headers();
     
-    // Nejdříve nastav base hlavičky
-    headers.set('Content-Type', 'application/json');
+    // ✅ FIX: Nestavíme Content-Type pro FormData - necháme prohlížeč nastavit boundary
+    const isFormData = options.body instanceof FormData;
+    
+    // Nejdříve nastav base hlavičky (ale pouze pokud není FormData)
+    if (!isFormData) {
+      headers.set('Content-Type', 'application/json');
+    }
     
     // Přidej Authorization token pokud je dostupný
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
     
-    // Pak projdi options.headers a nastav je (ale nepřepiš Authorization)
+    // Pak projdi options.headers a nastav je (ale nepřepiš Authorization a Content-Type pro FormData)
     if (options.headers) {
       for (const [key, value] of Object.entries(options.headers)) {
-        if (key.toLowerCase() !== 'authorization' || !token) {
-          headers.set(key, value);
+        const keyLower = key.toLowerCase();
+        if (keyLower === 'authorization' && token) {
+          // Nepřepiš Authorization pokud už máme token
+          continue;
         }
+        if (keyLower === 'content-type' && isFormData) {
+          // Nepřepiš Content-Type pro FormData - necháme prohlížeč nastavit
+          continue;
+        }
+        headers.set(key, value);
       }
     }
 
@@ -239,6 +251,7 @@ class AuthService {
       hasToken: !!token,
       tokenSource: tokenSource, // 🔧 FIX: Používám správnou proměnnou
       hasBody: !!options.body,
+      isFormData: isFormData,
       architecture: 'nginx-proxy'
     });
 
