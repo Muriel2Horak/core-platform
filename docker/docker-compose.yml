@@ -89,6 +89,9 @@ services:
       - KEYCLOAK_ADMIN_REALM=core-platform
       - KEYCLOAK_TARGET_REALM=core-platform
       - KEYCLOAK_ADMIN_BASE_URL=http://keycloak:8080
+      # 🏢 MULTITENANCY Configuration
+      - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-test-tenant}
+      - AUTH_JWT_TENANT_CLAIM=${AUTH_JWT_TENANT_CLAIM:-tenant}
     logging:
       driver: loki 
       options:
