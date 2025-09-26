@@ -5,7 +5,7 @@
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeContext>true</includeContext>
       <includeMdc>true</includeMdc>
-      <customFields>{"service":"core-platform-backend","source":"backend"}</customFields>
+      <customFields>{"service":"core-platform-backend","source":"backend","tenant":"${mdc:tenant:-unknown}"}</customFields>
     </encoder>
   </appender>
 
@@ -14,7 +14,7 @@
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeContext>true</includeContext>
       <includeMdc>true</includeMdc>
-      <customFields>{"service":"core-platform-backend","source":"backend","event_type":"audit","level":"AUDIT"}</customFields>
+      <customFields>{"service":"core-platform-backend","source":"backend","event_type":"audit","level":"AUDIT","tenant":"${mdc:tenant:-unknown}"}</customFields>
     </encoder>
   </appender>
 
@@ -25,10 +25,10 @@
     </http>
     <format>
       <label>
-        <pattern>container=core-backend,service=backend,source=backend,level=%level,environment=${ENVIRONMENT:-development}</pattern>
+        <pattern>container=core-backend,service=backend,source=backend,level=%level,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
       </label>
       <message>
-        <pattern>[%level] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} - %msg%n</pattern>
+        <pattern>[%level] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
       </message>
     </format>
     <batchMaxItems>100</batchMaxItems>
@@ -43,10 +43,10 @@
     </http>
     <format>
       <label>
-        <pattern>container=core-backend,service=backend,source=backend,level=AUDIT,event_type=audit,environment=${ENVIRONMENT:-development}</pattern>
+        <pattern>container=core-backend,service=backend,source=backend,level=AUDIT,event_type=audit,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
       </label>
       <message>
-        <pattern>[AUDIT] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} - %msg%n</pattern>
+        <pattern>[AUDIT] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
       </message>
     </format>
     <batchMaxItems>50</batchMaxItems>

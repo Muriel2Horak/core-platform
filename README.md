@@ -1,6 +1,109 @@
 # 🚀 Core Platform
 
-Modern full-stack application with React frontend, Spring Boot backend, PostgreSQL database, and Keycloak authentication - all running in Docker containers with unified deployment across development, staging, and production environments.
+Komplexní enterprise platforma s **React + Material-UI** frontendem, **Spring Boot** backendem, **Keycloak** autentizací a **multitenantovou architekturou**.
+
+## 🎯 Klíčové Funkce
+
+- 🏢 **Multitenancy** - Izolace dat mezi organizacemi
+- 🔐 **Keycloak Authentication** - Enterprise SSO řešení
+- 👥 **User Directory** - Centrální správa uživatelů
+- 📊 **Monitoring Stack** - Grafana + Prometheus + Loki
+- 🏗️ **Microservices Ready** - Škálovatelná architektura
+- 🧪 **Comprehensive Testing** - Unit + Integration testy
+
+## 🏢 Multitenancy Architecture
+
+Core Platform implementuje **shared database, separate schemas** multitenancy:
+
+### Komponenty
+- **TenantContext** - ThreadLocal kontext pro aktuální tenant
+- **TenantFilter** - Automatické nastavení tenant kontextu z JWT
+- **Hibernate Tenant Filter** - Databázová filtrace na úrovni ORM
+- **User Directory** - Centrální uživatelský adresář s tenant izolací
+
+### JWT Token Structure
+```json
+{
+  "sub": "user-123",
+  "preferred_username": "john.doe",
+  "tenant": "company-a",     // 🏢 Tenant identifikátor
+  "realm_access": {
+    "roles": ["CORE_ROLE_USER"]
+  }
+}
+```
+
+### API Endpointy
+```bash
+GET /api/tenants/me          # Informace o aktuálním tenantu
+GET /api/users/me           # Aktuální uživatel z directory
+GET /api/users/search?q=    # Vyhledávání uživatelů v tenantu
+```
+
+### Databázové schéma
+```sql
+CREATE TABLE tenants (
+    id UUID PRIMARY KEY,
+    key TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    realm TEXT NOT NULL
+);
+
+CREATE TABLE users_directory (
+    id UUID PRIMARY KEY,
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    keycloak_user_id TEXT NULL,
+    username TEXT NOT NULL,
+    -- ... další atributy
+);
+```
+
+## 🚀 Quick Start
+
+### 🔧 **Development Setup**
+
+1. **Clone & Setup**
+   ```bash
+   git clone <repository>
+   cd core-platform
+   
+   # Zkopírujte SSL certifikáty
+   cp ssl/* docker/ssl/
+   
+   # Spusťte celý stack
+   cd docker && ./up.sh
+   ```
+
+2. **Služby budou dostupné na:**
+   - 🌐 **Frontend**: https://core-platform.local
+   - 🔐 **Keycloak Admin**: https://core-platform.local/admin/ (admin/admin)
+   - 🗄️ **PgAdmin**: http://localhost:5050
+   - 📊 **Grafana**: http://localhost:3001 (admin/admin)
+
+3. **První přihlášení**
+   - Username: `test` / Password: `Test.1234`
+   - Tenant: `test-tenant` (default)
+
+### 🏢 **Multitenancy Setup**
+
+1. **Vytvoření nového tenantu**
+   ```sql
+   INSERT INTO tenants (key, name, realm) VALUES 
+   ('company-a', 'Company A', 'core-platform');
+   ```
+
+2. **JWT s tenant claimem**
+   ```json
+   {
+     "tenant": "company-a"
+   }
+   ```
+
+3. **Environment proměnné**
+   ```bash
+   export TENANCY_DEFAULT_TENANT_KEY=company-a
+   export AUTH_JWT_TENANT_CLAIM=tenant
+   ```
 
 ## 🏗️ Architecture
 
@@ -308,6 +411,7 @@ CORE_ROLE_USER (base-level)
 | `GET/PUT /api/me/**` | `CORE_ROLE_USER` | Self-service operations |
 | `GET/POST/PUT/DELETE /api/users/**` | `CORE_ROLE_USER_MANAGER` | User management |
 | `GET/POST /api/roles/**` | `CORE_ROLE_USER_MANAGER` | Role management |
+| `GET /api/tenants/me` | `CORE_ROLE_USER` | Tenant information |
 
 #### **Test Users**
 
@@ -452,6 +556,19 @@ cd backend
 - **Loki**: http://localhost:3100
 - **Application logs** via Docker Loki driver
 
+### 🏢 **Multitenancy Monitoring**
+
+```logql
+# Logy pro konkrétní tenant
+{service="backend",tenant="company-a"}
+
+# Chyby v tenant řešení
+{service="backend"} |= "TenantNotFound"
+
+# Statistiky podle tenantů
+sum by (tenant) (count_over_time({service="backend"}[1h]))
+```
+
 ## 🔒 Security
 
 ### 🛡️ **Development**
@@ -468,18 +585,41 @@ cd backend
 - Monitoring access restricted to private networks
 - Secrets management required
 
+## 🏢 Multitenancy Best Practices
+
+### Development
+1. **Vždy testovat s více tenanty** - Vytvořit test data pro alespoň 2 tenanty
+2. **Ověřit tenant kontext** - V unit testech používat `TenantContext.setTenantKey()`
+3. **Použít @Transactional** - Pro konzistenci dat v testech
+
+### Production
+1. **Monitor tenant isolation** - Sledovat metriky v Grafaně
+2. **Cache performance** - Kontrolovat hit/miss ratio TenantCache
+3. **Audit access patterns** - Logovat všechny tenant operace
+
+### Security
+1. **Nikdy neobcházet tenant filter** - Vždy používat service vrstvu
+2. **Validovat tenant claims** - Kontrolovat JWT tokeny
+3. **Logovat tenant operace** - Všechny akce s tenant kontextem
+
+## 📖 Dokumentace
+
+- 🏢 [Multitenancy Architecture](docs/MULTITENANCY_ARCHITECTURE.md)
+- 🔐 [Security Migration Guide](docs/SECURITY_MIGRATION_GUIDE.md)
+- 🚀 [Keycloak 26.x Migration](docs/KEYCLOAK_26_MIGRATION_COMPLETED.md)
+
 ## 🤝 Contributing
 
-1. Create feature branch: `git checkout -b feature/amazing-feature`
-2. Make changes and test locally
-3. Commit changes: `git commit -m 'Add amazing feature'`  
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
+1. Fork repository
+2. Vytvořte feature branch: `git checkout -b feature/multitenancy-enhancement`
+3. Commitujte změny: `git commit -m 'Add multitenancy feature'`
+4. Push branch: `git push origin feature/multitenancy-enhancement`
+5. Vytvořte Pull Request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - viz [LICENSE](LICENSE) soubor.
 
 ---
 
-**🎉 Happy coding!** For issues or questions, please open a GitHub issue.
+**🏢 Ready for Enterprise Multitenancy** | **🔐 Secure by Design** | **📊 Production Monitoring**

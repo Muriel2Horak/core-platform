@@ -36,110 +36,100 @@ main() {
     local REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
     
     echo -e "${CYAN}🚀 Core Platform - Clean Startup${NC}"
-    echo "=====================================\\n"
+    echo "====================================="
+    echo ""
     
-    # 1. Instalace Loki pluginu
+    # 1. Instalace Loki pluginu (opcionálně)
     print_step "Checking Loki Docker plugin..."
-    if ! docker plugin ls --format '{{.Name}}' | grep -qx 'loki'; then
+    if ! docker plugin ls --format '{{.Name}}' | grep -qx 'loki' 2>/dev/null; then
         print_step "Installing Loki Docker plugin..."
-        docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions >/dev/null 2>&1
-        print_success "Loki plugin installed"
+        if docker plugin install grafana/loki-docker-driver:latest --alias loki --grant-all-permissions >/dev/null 2>&1; then
+            print_success "Loki plugin installed"
+        else
+            print_warning "Could not install Loki plugin - continuing without it"
+        fi
     else
         print_success "Loki plugin already installed"
     fi
     
     # 2. Přechod do docker složky
-    cd "${REPO_ROOT}/docker"
+    cd "${REPO_ROOT}/docker" || {
+        print_error "Could not change to docker directory"
+        exit 1
+    }
     
-    # 3. Kontrola stávajících kontejnerů
-    print_step "Checking existing containers..."
-    local running_containers=$(docker compose ps --services --filter "status=running" 2>/dev/null | wc -l)
-    if [ "$running_containers" -gt 0 ]; then
-        print_warning "Found $running_containers running containers - stopping them first"
-        docker compose down --remove-orphans >/dev/null 2>&1
-        print_success "Previous containers stopped"
-    fi
+    # 3. Clean stop existing containers
+    print_step "Stopping and removing existing containers..."
+    docker-compose down --remove-orphans --volumes 2>/dev/null || true
+    print_success "Previous containers cleaned up"
     
-    # 4. Spuštění služeb po částech s informativním výstupem
-    print_step "Starting core infrastructure..."
+    # 4. Pull latest images
+    print_step "Pulling latest images..."
+    docker-compose pull --ignore-pull-failures 2>/dev/null || true
+    print_success "Images updated"
     
-    # Database first
-    print_info "Starting PostgreSQL database..."
-    docker compose up -d db >/dev/null 2>&1
+    # 5. Build and start all services
+    print_step "Building and starting all services..."
+    docker-compose up -d --build --force-recreate
     
-    # Wait for DB to be ready
-    print_info "Waiting for database to be ready..."
-    while ! docker compose exec -T db pg_isready -U core -d core >/dev/null 2>&1; do
-        sleep 2
-        echo -n "."
-    done
-    echo ""
-    print_success "Database ready"
+    # 6. Wait for core services
+    print_step "Waiting for core services to start..."
+    sleep 10
     
-    # Keycloak
-    print_info "Starting Keycloak..."
-    docker compose up -d keycloak >/dev/null 2>&1
-    print_success "Keycloak started"
-    
-    # Monitoring stack
-    print_info "Starting monitoring stack (Loki, Grafana, Promtail)..."
-    docker compose up -d loki grafana promtail >/dev/null 2>&1
-    print_success "Monitoring stack ready"
-    
-    # Backend
-    print_info "Building and starting backend..."
-    docker compose up -d --build backend >/dev/null 2>&1
-    print_success "Backend started"
-    
-    # Frontend
-    print_info "Building and starting frontend..."
-    docker compose up -d --build frontend >/dev/null 2>&1
-    print_success "Frontend started"
-    
-    # Optional services
-    print_info "Starting optional services (PgAdmin, Prometheus, etc.)..."
-    docker compose up -d pgadmin prometheus postgres-exporter cadvisor >/dev/null 2>&1
-    print_success "Optional services started"
-    
-    # 5. Zdravotní kontroly
+    # 7. Health checks with correct URLs
     echo ""
     print_step "Running health checks..."
     
-    # Wait a bit for services to initialize
-    sleep 5
+    # Check database first
+    print_info "Checking database connection..."
+    local db_attempts=0
+    while [ $db_attempts -lt 30 ]; do
+        if docker-compose exec -T db pg_isready -U core -d core >/dev/null 2>&1; then
+            print_success "Database is ready"
+            break
+        fi
+        sleep 2
+        ((db_attempts++))
+        if [ $db_attempts -eq 30 ]; then
+            print_warning "Database health check timed out"
+        fi
+    done
     
-    # Check each service
-    check_service "Frontend" "http://localhost:3000" 
+    # Check other services
     check_service "Backend" "http://localhost:8080/actuator/health"
+    check_service "Frontend" "http://localhost:3000"
     check_service "Grafana" "http://localhost:3001/api/health"
-    check_service "Loki" "http://localhost:3100/ready"
-    check_service "Keycloak" "http://localhost:8081/health"
+    check_service "Keycloak" "http://localhost:8081/health/ready"
     
-    # 6. Finální přehled
+    # 8. Final overview
     echo ""
-    print_success "🎉 All services started successfully!"
+    print_success "🎉 Core Platform started!"
     echo ""
     echo -e "${CYAN}📋 Service URLs:${NC}"
-    echo "  🎨 Frontend:    http://localhost:3000"
-    echo "  ⚙️  Backend:     http://localhost:8080"
+    echo "  🌐 Frontend:    http://localhost:3000"
+    echo "  🔧 Backend:     http://localhost:8080"
     echo "  📊 Grafana:     http://localhost:3001 (admin/admin)"
-    echo "  🗃️  PgAdmin:     http://localhost:5050"
-    echo "  🔐 Keycloak:    http://localhost:8081"
+    echo "  🗄️  PgAdmin:     http://localhost:5050 (admin@local.dev/admin)"
+    echo "  🔐 Keycloak:    http://localhost:8081 (admin/admin)"
     echo "  📈 Prometheus:  http://localhost:9091"
     echo ""
     echo -e "${CYAN}🐳 Container Status:${NC}"
-    docker compose ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}"
+    docker-compose ps
+    echo ""
+    print_info "Use 'docker-compose logs -f [service]' to view logs"
 }
 
 # 🏥 Funkce pro kontrolu zdraví služeb
 check_service() {
     local name="$1"
     local url="$2"
-    local max_attempts=10
+    local max_attempts=15
     local attempt=1
     
+    print_info "Checking $name..."
+    
     while [ $attempt -le $max_attempts ]; do
-        if curl -s -f "$url" >/dev/null 2>&1; then
+        if curl -s -f -m 5 "$url" >/dev/null 2>&1; then
             print_success "$name is healthy"
             return 0
         fi
@@ -149,7 +139,7 @@ check_service() {
             return 1
         fi
         
-        sleep 2
+        sleep 3
         ((attempt++))
     done
 }
