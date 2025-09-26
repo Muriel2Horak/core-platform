@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 
-@Slf4j @RestController @RequestMapping("/api/users") @RequiredArgsConstructor @Validated @PreAuthorize("hasAuthority('CORE_ROLE_USER_MANAGER')")
+@Slf4j @RestController @RequestMapping("/api/users") @RequiredArgsConstructor @Validated @PreAuthorize("hasAnyAuthority('CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN')")
 public class UserManagementController {
 
   private final KeycloakAdminService keycloakAdminService;

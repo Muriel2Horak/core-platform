@@ -79,14 +79,14 @@ export const useUserRoles = () => {
    * Kontrola admin oprávnění
    */
   const isAdmin = () => {
-    return hasRole('admin');
+    return hasRole('CORE_ROLE_ADMIN');
   };
 
   /**
    * Kontrola user management oprávnění
    */
   const canManageUsers = () => {
-    return hasAnyRole(['admin', 'user-manager']);
+    return hasAnyRole(['CORE_ROLE_ADMIN', 'CORE_ROLE_USER_MANAGER']);
   };
 
   /**

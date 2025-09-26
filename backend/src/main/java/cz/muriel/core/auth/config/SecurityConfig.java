@@ -66,9 +66,10 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.POST, "/api/frontend-logs").authenticated()
             // Self-service endpointy - pouze authenticated, role kontrola v metodách
             .requestMatchers("/api/me/**").authenticated()
-            // User management endpointy - vyžadují CORE_ROLE_USER_MANAGER
+            // User management endpointy - vyžadují CORE_ROLE_USER_MANAGER nebo
+            // CORE_ROLE_ADMIN
             .requestMatchers("/api/users/**", "/api/roles/**")
-            .hasAuthority("CORE_ROLE_USER_MANAGER")
+            .hasAnyAuthority("CORE_ROLE_USER_MANAGER", "CORE_ROLE_ADMIN")
             // Všechny ostatní requesty vyžadují autentifikaci
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver)

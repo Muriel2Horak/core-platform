@@ -24,7 +24,7 @@ const Menuitems = [
     title: 'Správa uživatelů',
     icon: IconUsers,
     href: '/admin/users',
-    roles: ['admin', 'user-manager'], // Role-based visibility
+    roles: ['CORE_ROLE_ADMIN', 'CORE_ROLE_USER_MANAGER'], // Role-based visibility
   },
 ];
 
