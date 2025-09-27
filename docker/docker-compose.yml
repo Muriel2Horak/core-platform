@@ -13,7 +13,7 @@ services:
       - ./nginx/start-nginx.sh:/usr/local/bin/start-nginx.sh:ro
       - ./ssl:/etc/nginx/ssl:ro
       - certbot-www:/var/www/certbot:ro
-    command: ["/usr/local/bin/start-nginx.sh"]
+    command: [ "/usr/local/bin/start-nginx.sh" ]
     depends_on:
       - frontend
       - backend
@@ -38,7 +38,7 @@ services:
     networks:
       - core-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -92,8 +92,15 @@ services:
       # 🏢 MULTITENANCY Configuration
       - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-test-tenant}
       - AUTH_JWT_TENANT_CLAIM=${AUTH_JWT_TENANT_CLAIM:-tenant}
+      # 🔗 KEYCLOAK WEBHOOK Configuration
+      - APP_KEYCLOAK_WEBHOOK_SECRET=${KC_EVENT_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
+      # 📅 KEYCLOAK BACKFILL Configuration
+      - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
+      - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
     logging:
-      driver: loki 
+      driver: loki
       options:
         loki-url: "http://localhost:3100/loki/api/v1/push"
         loki-external-labels: "service=backend,environment=${ENVIRONMENT:-development}"
@@ -119,9 +126,9 @@ services:
     volumes:
       - ../frontend:/app
       - ../frontend/node_modules:/app/node_modules
-    command: ["sh", "-c", "npm install && npm run dev -- --port 3000 --host 0.0.0.0"]
+    command: [ "sh", "-c", "npm install && npm run dev -- --port 3000 --host 0.0.0.0" ]
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -142,13 +149,15 @@ services:
 
   # 🔐 Keycloak
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.5
+    build:
+      context: ../keycloak-spi-event-webhook
+      dockerfile: ../docker/keycloak/Dockerfile
     container_name: core-keycloak
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q '200'"]
+      test: [ "CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q '200'" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -156,50 +165,60 @@ services:
     environment:
       # 🌐 DOMAIN pro dynamické generování realm exportu
       - DOMAIN=${DOMAIN:-core-platform.local}
-      
+
       # 🔧 Keycloak 24.0.5 - optimální konfigurace pro single-node
-      - KC_HEALTH_ENABLED=true              # Povolí health endpointy na /health/*
-      - KC_METRICS_ENABLED=true             # Povolí metriky pro monitoring
-      - KC_PROXY_HEADERS=xforwarded         # Přijímá X-Forwarded-* hlavičky od reverse proxy
-      - KC_CACHE=local                      # Lokální cache místo JGroups clusteru (řeší JGroups loop)
-      
+      - KC_HEALTH_ENABLED=true # Povolí health endpointy na /health/*
+      - KC_METRICS_ENABLED=true # Povolí metriky pro monitoring
+      - KC_PROXY_HEADERS=xforwarded # Přijímá X-Forwarded-* hlavičky od reverse proxy
+      - KC_CACHE=local # Lokální cache místo JGroups clusteru (řeší JGroups loop)
+
       # 🗄️ PostgreSQL databáze konfigurace
       - KC_DB=postgres
       - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
       - KC_DB_USERNAME=keycloak
       - KC_DB_PASSWORD=keycloak
-      
+
       # 🔐 SSL/TLS certifikáty konfigurace
-      - KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/tls/cert.pem    # Cesta k SSL certifikátu
+      - KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/tls/cert.pem # Cesta k SSL certifikátu
       - KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/tls/key.pem # Cesta k privátnímu klíči
-      
+
       # 👤 Admin účet
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      
+
       # 🎨 Theme konfigurace - pouze cache nastavení, žádné globální téma
       - KC_SPI_THEME_CACHE_THEMES=false
       - KC_SPI_THEME_CACHE_TEMPLATES=false
       - KC_SPI_THEME_STATIC_MAX_AGE=-1
-      
+
       # 🚀 Features
       - KC_FEATURES=scripts,token-exchange,admin-fine-grained-authz
+
+      # 🔗 Webhook Event Listener Configuration
+      - KC_EVENT_WEBHOOK_URL=${KC_EVENT_WEBHOOK_URL:-http://backend:8080/internal/keycloak/events}
+      - KC_EVENT_WEBHOOK_SECRET=${KC_EVENT_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
+      - KC_SPI_EVENTS_LISTENER_CORE_PLATFORM_WEBHOOK_ENABLED=true
+
+      # 📊 Event Configuration
+      - KC_SPI_EVENTS_LISTENER_JBOSS_LOGGING_SUCCESS_LEVEL=info
+      - KC_SPI_EVENTS_LISTENER_JBOSS_LOGGING_ERROR_LEVEL=warn
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
-      - ./ssl:/opt/keycloak/conf/tls:ro       # Mount SSL certifikátů (read-only)
-      - ../themes/core-material:/opt/keycloak/themes/core-material:ro  # Material Design theme
+      - ./ssl:/opt/keycloak/conf/tls:ro # Mount SSL certifikátů (read-only)
+      - ../themes/core-material:/opt/keycloak/themes/core-material:ro # Material Design theme
     ports:
-      - "${KEYCLOAK_PORT:-8081}:8080"         # HTTP port pro health/debug/admin
-      - "8443:8443"                           # HTTPS port pro reálný provoz
+      - "${KEYCLOAK_PORT:-8081}:8080" # HTTP port pro health/debug/admin
+      - "8443:8443" # HTTPS port pro reálný provoz
     # 🚀 Start příkaz s optimálními parametry pro development
-    command: [
-      "start",
-      "--import-realm",                       # Import realm souborů při startu
-      "--http-enabled=true",                  # Povolí HTTP na portu 8080 (pro health checks)
-      "--http-port=8080",                     # Explicitní HTTP port
-      "--hostname=core-platform.local",      # Hostname pro HTTPS odkazy
-      "--hostname-strict=false"               # Nestriktní hostname validace (pro development)
-    ]
+    command:
+      [
+        "start",
+        "--import-realm", # Import realm souborů při startu
+        "--http-enabled=true", # Povolí HTTP na portu 8080 (pro health checks)
+        "--http-port=8080", # Explicitní HTTP port
+        "--hostname=core-platform.local", # Hostname pro HTTPS odkazy
+        "--hostname-strict=false" # Nestriktní hostname validace (pro development)
+      ]
     networks:
       - core-net
     restart: unless-stopped
@@ -311,6 +330,7 @@ volumes:
   loki_data:
   promtail_positions:
   certbot-www:
+
 
 networks:
   core-net:

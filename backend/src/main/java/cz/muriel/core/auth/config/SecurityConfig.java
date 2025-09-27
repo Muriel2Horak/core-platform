@@ -2,6 +2,7 @@ package cz.muriel.core.auth.config;
 
 import cz.muriel.core.auth.CookieBearerTokenResolver;
 import cz.muriel.core.auth.AudienceValidator;
+import cz.muriel.core.auth.security.WebhookHmacFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,15 +24,14 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.*;
 
-@Configuration @EnableWebSecurity @EnableMethodSecurity(prePostEnabled = true) // Povolí
-                                                                               // @PreAuthorize
-                                                                               // anotace
+@Configuration @EnableWebSecurity @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
   @Value("${cors.origins:http://localhost:3000}")
@@ -46,15 +46,24 @@ public class SecurityConfig {
   @Value("${OIDC_JWK_SET_URI:}")
   private String optionalJwkSetUri;
 
+  private final WebhookHmacFilter webhookHmacFilter;
+
+  public SecurityConfig(WebhookHmacFilter webhookHmacFilter) {
+    this.webhookHmacFilter = webhookHmacFilter;
+  }
+
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http,
       BearerTokenResolver bearerTokenResolver,
       JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
     http.csrf(csrf -> csrf
-        // Globálně vypneme CSRF pro REST API (stateless JWT)
-        .disable()).cors(Customizer.withDefaults())
+        // CSRF vypnuto pro webhook endpoint a globálně pro REST API
+        .ignoringRequestMatchers("/internal/keycloak/events").disable())
+        .cors(Customizer.withDefaults())
         .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
+            // 🔐 Keycloak webhook endpoint - permitAll (autentizace přes HMAC filter)
+            .requestMatchers(HttpMethod.POST, "/internal/keycloak/events").permitAll()
             // Veřejné endpointy
             .requestMatchers("/api/health", "/api/auth/login", "/api/auth/logout",
                 "/api/auth/session", "/actuator/health", "/actuator/prometheus",
@@ -74,6 +83,10 @@ public class SecurityConfig {
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver)
             .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
+
+    // 🔐 Přidáme HMAC filter před standardní autentizační filtr
+    http.addFilterBefore(webhookHmacFilter, UsernamePasswordAuthenticationFilter.class);
+
     return http.build();
   }
 

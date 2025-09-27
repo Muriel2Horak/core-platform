@@ -44,6 +44,29 @@ public class UserDirectoryEntity extends MultiTenantEntity {
   @Column(name = "status") @Builder.Default
   private String status = "ACTIVE";
 
+  // New columns for Keycloak sync
+  @Column(name = "active", nullable = false) @Builder.Default
+  private Boolean active = true;
+
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
+
+  @Column(name = "roles_json", columnDefinition = "TEXT")
+  private String rolesJson;
+
+  @Column(name = "groups_json", columnDefinition = "TEXT")
+  private String groupsJson;
+
+  // Additional user attributes
+  @Column(name = "phone_number")
+  private String phoneNumber;
+
+  @Column(name = "department")
+  private String department;
+
+  @Column(name = "title")
+  private String title;
+
   @Column(name = "created_at")
   private LocalDateTime createdAt;
 
@@ -59,5 +82,18 @@ public class UserDirectoryEntity extends MultiTenantEntity {
   @PreUpdate
   protected void onUpdate() {
     updatedAt = LocalDateTime.now();
+  }
+
+  // Helper methods
+  public boolean isActiveUser() {
+    return active != null && active && deletedAt == null;
+  }
+
+  public void setActive(Boolean active) {
+    this.active = active;
+    // Clear deleted_at when activating user
+    if (Boolean.TRUE.equals(active)) {
+      this.deletedAt = null;
+    }
   }
 }

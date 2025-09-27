@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Test Console appender - bez Loki pro testy -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [tenant:${mdc:tenant:-unknown}] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- AUDIT appender pro testy -->
+  <appender name="AUDIT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [AUDIT] [tenant:${mdc:tenant:-unknown}] %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Root logger - pouze CONSOLE pro testy -->
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+
+  <!-- AUDIT logger -->
+  <logger name="AUDIT" level="INFO" additivity="false">
+    <appender-ref ref="AUDIT_CONSOLE"/>
+  </logger>
+
+  <!-- Test specific loggers -->
+  <logger name="org.springframework" level="WARN"/>
+  <logger name="org.hibernate" level="WARN"/>
+  <logger name="org.postgresql" level="WARN"/>
+  <logger name="org.testcontainers" level="WARN"/>
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+
+  <!-- Naše aplikační logy -->
+  <logger name="cz.muriel.core" level="DEBUG"/>
+</configuration>
