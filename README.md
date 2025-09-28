@@ -62,6 +62,88 @@ docker compose up --build -d
 docker compose logs -f backend keycloak
 ```
 
+## 🔄 Správa Dat a Restartů
+
+### Typy Restartů
+Core Platform nabízí různé možnosti restartu podle vašich potřeb:
+
+#### 🔄 **Běžný Restart (Zachová VŠECHNA data)**
+```bash
+make restart
+```
+- Standardní restart pro běžný vývoj
+- **Zachová**: Keycloak customizace, databázová data, uživatelská nastavení
+- **Použití**: Denní vývoj, po změnách kódu
+
+#### 🆕 **Fresh Start (Smaže JEN Keycloak data)**
+```bash
+make fresh
+```
+- Smaže pouze Keycloak data, zachová aplikační databázi
+- **Zachová**: Všechna aplikační data v PostgreSQL
+- **Smaže**: Keycloak realms, uživatele, role, customizace
+- **Použití**: Reset autentifikace při zachování app dat
+- ⚠️ **5 sekund na zrušení**
+
+#### 🔄 **Reset Keycloak**
+```bash
+make reset-kc
+```
+- Rychlý reset pouze Keycloak do výchozího stavu
+- Obnoví základní realm a test uživatele
+- ⚠️ **3 sekundy na zrušení**
+
+#### 💾 **Reset Databáze**
+```bash
+make reset-db
+```
+- Smaže pouze aplikační data, zachová Keycloak
+- **Zachová**: Keycloak nastavení, uživatele, role
+- **Smaže**: Aplikační data v PostgreSQL
+- ⚠️ **3 sekundy na zrušení**
+
+#### 🧹 **Úplné Čištění**
+```bash
+make clean
+```
+- **SMAŽE VŠECHNA DATA** + rebuild všech images
+- Kompletně čisté prostředí od začátku
+- **Použití**: Před důležitými testy, po velkých změnách
+
+### Správa Keycloak Customizací
+
+#### ⚠️ Ztráta Customizací
+Pokud si v Keycloak admin konzoli upravíte uživatele, role nebo nastavení:
+
+- **`make restart`** → **Vaše změny ZŮSTANOU** ✅
+- **`make fresh`** → **Vaše změny SE ZTRATÍ** ❌
+- **`make reset-kc`** → **Vaše změny SE ZTRATÍ** ❌
+- **`make clean`** → **Vaše změny SE ZTRATÍ** ❌
+
+#### 💡 Best Practices
+```bash
+# Pro běžný vývoj - zachová customizace
+make restart
+
+# Pro testování s čistým Keycloak
+make reset-kc
+
+# Pro kompletní reset prostředí
+make clean
+```
+
+#### 🔒 Výchozí Přihlašovací Údaje
+Po každém reset Keycloak (`fresh`, `reset-kc`, `clean`):
+
+**Keycloak Admin:**
+- URL: http://localhost:8081/admin
+- Username: `admin`
+- Password: `admin123`
+
+**Test uživatelé:**
+- Username: `test` / Password: `Test.1234`
+- Username: `test_admin` / Password: `Test.1234`
+
 ### Ověření Webhook Funkčnosti
 
 1. **Spusť aplikaci**: `docker compose up --build -d`

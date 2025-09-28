@@ -54,7 +54,7 @@ http {
         ssl_session_cache shared:SSL:10m;
         ssl_session_timeout 10m;
         
-        # Security headers
+        # Security headers - UPRAVENO pro Keycloak admin konzoli
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
@@ -135,8 +135,15 @@ http {
             proxy_set_header X-Forwarded-Port 443;
             proxy_set_header X-Forwarded-Host $host;
             
+            # ✅ NOVÝ: Specifické headers pro admin konzoli
+            proxy_set_header X-Forwarded-Scheme https;
+            proxy_set_header X-Scheme https;
+            
             # ✅ Cookie security pro admin přihlášení
             proxy_cookie_flags ~ secure samesite=lax;
+            
+            # ✅ NOVÝ: Uvolnění CSP pro admin konzoli
+            add_header Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https://$DOMAIN; connect-src 'self' https://$DOMAIN wss://$DOMAIN; img-src 'self' data: https:; font-src 'self' data:;" always;
             
             # WebSocket support pro admin console
             proxy_set_header Upgrade $http_upgrade;

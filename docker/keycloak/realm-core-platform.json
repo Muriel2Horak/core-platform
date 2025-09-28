@@ -132,44 +132,9 @@
           "realm": ["CORE_USER_MANAGER"]
         }
       }
-    ],
-    "client": {
-      "realm-management": [
-        {
-          "name": "manage-users",
-          "description": "Manage users in the realm"
-        },
-        {
-          "name": "view-users", 
-          "description": "View users in the realm"
-        },
-        {
-          "name": "view-realm",
-          "description": "View realm configuration"
-        },
-        {
-          "name": "manage-realm",
-          "description": "Manage realm configuration"
-        }
-      ]
-    }
+    ]
   },
   "clients": [
-    {
-      "clientId": "realm-management",
-      "name": "realm-management",
-      "protocol": "openid-connect",
-      "bearerOnly": true,
-      "enabled": true,
-      "standardFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
-      "publicClient": false,
-      "description": "Keycloak realm management client",
-      "protocolMappers": [],
-      "defaultClientScopes": [],
-      "optionalClientScopes": []
-    },
     {
       "clientId": "api",
       "name": "API",

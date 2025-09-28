@@ -1,10 +1,6 @@
 package cz.muriel.keycloak.webhook;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.jboss.logging.Logger;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
@@ -16,43 +12,55 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class EventWebhookProvider implements EventListenerProvider {
 
   private static final Logger logger = Logger.getLogger(EventWebhookProvider.class);
 
   private final KeycloakSession session;
-  private final String webhookUrl;
-  private final String webhookSecret;
+  private final String endpointUrl;
+  private final String secret;
+  private final Map<String, RealmTenant> realmTenantMap;
+  private final Set<String> enabledTypes;
   private final ObjectMapper objectMapper;
-  private final CloseableHttpClient httpClient;
+  private final WebhookClient webhookClient;
 
-  // Tracked user events
-  private static final Set<EventType> TRACKED_USER_EVENTS = Set.of(EventType.REGISTER,
-      EventType.UPDATE_PROFILE, EventType.DELETE_ACCOUNT);
+  // Event type mappings
+  private static final Map<EventType, String> USER_EVENT_MAPPING = Map.of(EventType.REGISTER,
+      "USER_CREATED", EventType.UPDATE_PROFILE, "USER_UPDATED");
 
-  // Tracked admin events
-  private static final Set<OperationType> TRACKED_OPERATIONS = Set.of(OperationType.CREATE,
-      OperationType.UPDATE, OperationType.DELETE);
+  private static final Map<OperationType, String> ADMIN_OPERATION_MAPPING = Map.of(
+      OperationType.CREATE, "USER_CREATED", OperationType.UPDATE, "USER_UPDATED",
+      OperationType.DELETE, "USER_DELETED");
 
-  private static final Set<ResourceType> TRACKED_RESOURCES = Set.of(ResourceType.USER,
-      ResourceType.REALM_ROLE, ResourceType.CLIENT_ROLE, ResourceType.GROUP_MEMBERSHIP);
-
-  public EventWebhookProvider(KeycloakSession session, String webhookUrl, String webhookSecret) {
+  public EventWebhookProvider(KeycloakSession session, String endpointUrl, String secret,
+      Map<String, RealmTenant> realmTenantMap, Set<String> enabledTypes) {
     this.session = session;
-    this.webhookUrl = webhookUrl;
-    this.webhookSecret = webhookSecret;
+    this.endpointUrl = endpointUrl;
+    this.secret = secret;
+    this.realmTenantMap = realmTenantMap;
+    this.enabledTypes = enabledTypes;
     this.objectMapper = new ObjectMapper();
-    this.httpClient = HttpClients.createDefault();
+    this.webhookClient = new WebhookClient();
   }
 
   @Override
   public void onEvent(Event event) {
-    if (!TRACKED_USER_EVENTS.contains(event.getType())) {
+    String eventType = USER_EVENT_MAPPING.get(event.getType());
+    if (eventType == null) {
+      logger.debugf("Ignoring user event type: %s", event.getType());
+      return;
+    }
+
+    if (!enabledTypes.contains(eventType)) {
+      logger.debugf("Event type %s is not enabled", eventType);
       return;
     }
 
@@ -63,14 +71,27 @@ public class EventWebhookProvider implements EventListenerProvider {
         return;
       }
 
+      String realmName = realm.getName();
+      RealmTenant realmTenant = realmTenantMap.get(realmName);
+      if (realmTenant == null) {
+        logger.warnf("No tenant mapping found for realm: %s", realmName);
+        return;
+      }
+
       UserModel user = session.users().getUserById(realm, event.getUserId());
       if (user == null) {
         logger.warnf("User not found for event: %s", event.getUserId());
         return;
       }
 
-      WebhookPayload payload = createUserEventPayload(event, realm, user);
-      sendWebhookAsync(payload);
+      WebhookPayload payload = new WebhookPayload(eventType, realmName, realmTenant.getTenantKey(),
+          realmTenant.getTenantId(), user.getId(), user.getUsername(), user.getEmail(),
+          user.getFirstName(), user.getLastName());
+
+      logger.infof("Processing user event: type=%s, realm=%s, user=%s", eventType, realmName,
+          user.getUsername());
+
+      sendWebhook(payload, realmName, realmTenant);
 
     } catch (Exception e) {
       logger.errorf(e, "Failed to process user event: %s", event.getType());
@@ -79,8 +100,19 @@ public class EventWebhookProvider implements EventListenerProvider {
 
   @Override
   public void onEvent(AdminEvent adminEvent, boolean includeRepresentation) {
-    if (!TRACKED_OPERATIONS.contains(adminEvent.getOperationType())
-        || !TRACKED_RESOURCES.contains(adminEvent.getResourceType())) {
+    // Only handle USER resource type
+    if (adminEvent.getResourceType() != ResourceType.USER) {
+      return;
+    }
+
+    String eventType = ADMIN_OPERATION_MAPPING.get(adminEvent.getOperationType());
+    if (eventType == null) {
+      logger.debugf("Ignoring admin operation: %s", adminEvent.getOperationType());
+      return;
+    }
+
+    if (!enabledTypes.contains(eventType)) {
+      logger.debugf("Event type %s is not enabled", eventType);
       return;
     }
 
@@ -91,8 +123,43 @@ public class EventWebhookProvider implements EventListenerProvider {
         return;
       }
 
-      WebhookPayload payload = createAdminEventPayload(adminEvent, realm);
-      sendWebhookAsync(payload);
+      String realmName = realm.getName();
+      RealmTenant realmTenant = realmTenantMap.get(realmName);
+      if (realmTenant == null) {
+        logger.warnf("No tenant mapping found for realm: %s", realmName);
+        return;
+      }
+
+      // Extract user ID from resource path
+      String userId = extractUserIdFromPath(adminEvent.getResourcePath());
+      if (userId == null) {
+        logger.warnf("Could not extract user ID from resource path: %s",
+            adminEvent.getResourcePath());
+        return;
+      }
+
+      WebhookPayload payload;
+      UserModel user = session.users().getUserById(realm, userId);
+
+      if (user != null) {
+        // User exists - full data
+        payload = new WebhookPayload(eventType, realmName, realmTenant.getTenantKey(),
+            realmTenant.getTenantId(), user.getId(), user.getUsername(), user.getEmail(),
+            user.getFirstName(), user.getLastName());
+      } else {
+        // User doesn't exist (e.g., DELETE) - minimal data
+        payload = new WebhookPayload(eventType, realmName, realmTenant.getTenantKey(),
+            realmTenant.getTenantId(), userId, null, // username not available
+            null, // email not available
+            null, // firstName not available
+            null // lastName not available
+        );
+      }
+
+      logger.infof("Processing admin event: type=%s, realm=%s, userId=%s", eventType, realmName,
+          userId);
+
+      sendWebhook(payload, realmName, realmTenant);
 
     } catch (Exception e) {
       logger.errorf(e, "Failed to process admin event: %s/%s", adminEvent.getResourceType(),
@@ -100,127 +167,52 @@ public class EventWebhookProvider implements EventListenerProvider {
     }
   }
 
-  private WebhookPayload createUserEventPayload(Event event, RealmModel realm, UserModel user) {
-    String eventType = mapUserEventType(event.getType());
-
-    return WebhookPayload.builder().eventType(eventType)
-        .time(Instant.ofEpochMilli(event.getTime()).toEpochMilli()).realmId(realm.getId())
-        .realmName(realm.getName()).tenantKey(realm.getName()) // Use realm name as tenant key
-        .userId(user.getId()).username(user.getUsername()).email(user.getEmail())
-        .firstName(user.getFirstName()).lastName(user.getLastName()).enabled(user.isEnabled())
-        .attributes(flattenAttributes(user.getAttributes())).roles(getUserRoles(user, realm))
-        .groups(getUserGroups(user)).build();
-  }
-
-  private WebhookPayload createAdminEventPayload(AdminEvent adminEvent, RealmModel realm) {
-    String eventType = mapAdminEventType(adminEvent.getResourceType(),
-        adminEvent.getOperationType());
-
-    WebhookPayload.WebhookPayloadBuilder builder = WebhookPayload.builder().eventType(eventType)
-        .time(adminEvent.getTime()).realmId(realm.getId()).realmName(realm.getName())
-        .tenantKey(realm.getName()); // Use realm name as tenant key
-
-    // Extract user ID from resource path if it's a user-related event
-    String resourcePath = adminEvent.getResourcePath();
-    if (adminEvent.getResourceType() == ResourceType.USER && resourcePath != null) {
-      String userId = extractUserIdFromPath(resourcePath);
-      if (userId != null) {
-        UserModel user = session.users().getUserById(realm, userId);
-        if (user != null) {
-          builder.userId(user.getId()).username(user.getUsername()).email(user.getEmail())
-              .firstName(user.getFirstName()).lastName(user.getLastName()).enabled(user.isEnabled())
-              .attributes(flattenAttributes(user.getAttributes())).roles(getUserRoles(user, realm))
-              .groups(getUserGroups(user));
-        }
-      }
+  private void sendWebhook(WebhookPayload payload, String realmName, RealmTenant realmTenant) {
+    if (endpointUrl == null || endpointUrl.trim().isEmpty()) {
+      logger.debug("Webhook endpoint URL not configured, skipping");
+      return;
     }
 
-    return builder.build();
-  }
+    try {
+      // Serialize payload to JSON
+      String jsonPayload = objectMapper.writeValueAsString(payload);
+      byte[] body = jsonPayload.getBytes(StandardCharsets.UTF_8);
 
-  private String mapUserEventType(EventType eventType) {
-    return switch (eventType) {
-    case REGISTER -> "USER_CREATED";
-    case UPDATE_PROFILE -> "USER_UPDATED";
-    case DELETE_ACCOUNT -> "USER_DELETED";
-    default -> "USER_UPDATED";
-    };
-  }
+      // Compute HMAC-SHA256 signature
+      String signature = computeHmacSha256(body, secret);
 
-  private String mapAdminEventType(ResourceType resourceType, OperationType operationType) {
-    String prefix = switch (resourceType) {
-    case USER -> "USER";
-    case REALM_ROLE -> "ROLE";
-    case CLIENT_ROLE -> "ROLE";
-    case GROUP_MEMBERSHIP -> "GROUP_MEMBERSHIP";
-    default -> "UNKNOWN";
-    };
+      // Prepare headers
+      Map<String, String> headers = new HashMap<>();
+      headers.put("Content-Type", "application/json");
+      headers.put("X-KC-Signature", "sha256=" + signature);
+      headers.put("X-Realm", realmName);
+      headers.put("X-Tenant-Key", realmTenant.getTenantKey());
+      headers.put("X-Tenant-Id", realmTenant.getTenantId());
 
-    String suffix = switch (operationType) {
-    case CREATE -> "CREATED";
-    case UPDATE -> "UPDATED";
-    case DELETE -> "DELETED";
-    default -> "UPDATED";
-    };
+      logger.debugf("Sending webhook: url=%s, type=%s, signature=%s", endpointUrl,
+          payload.getType(), signature.substring(0, 8) + "...");
 
-    return prefix + "_" + suffix;
-  }
+      // Send request
+      HttpResponse<String> response = webhookClient.sendJson(endpointUrl, body, headers);
+      int statusCode = response.statusCode();
 
-  private Map<String, String> flattenAttributes(Map<String, List<String>> attributes) {
-    Map<String, String> flattened = new HashMap<>();
+      if (statusCode >= 200 && statusCode < 300) {
+        logger.infof("Webhook sent successfully: type=%s, status=%d", payload.getType(),
+            statusCode);
+      } else {
+        logger.warnf("Webhook failed: type=%s, status=%d, response=%s", payload.getType(),
+            statusCode, response.body());
+      }
 
-    if (attributes != null) {
-      attributes.forEach((key, values) -> {
-        if (values != null && !values.isEmpty()) {
-          // Join multiple values with semicolon
-          flattened.put(key, String.join(";", values));
-        }
-      });
+    } catch (Exception e) {
+      logger.warnf(e, "Failed to send webhook for event: %s", payload.getType());
     }
-
-    return flattened;
   }
 
-  private Map<String, Object> getUserRoles(UserModel user, RealmModel realm) {
-    Map<String, Object> roles = new HashMap<>();
-
-    // Realm roles
-    Set<String> realmRoles = user.getRealmRoleMappingsStream().map(role -> role.getName())
-        .collect(java.util.stream.Collectors.toSet());
-    roles.put("realm", new ArrayList<>(realmRoles));
-
-    // Client roles
-    Map<String, List<String>> clientRoles = new HashMap<>();
-    realm.getClientsStream().forEach(client -> {
-      Set<String> clientRoleNames = user.getClientRoleMappingsStream(client)
-          .map(role -> role.getName()).collect(java.util.stream.Collectors.toSet());
-      if (!clientRoleNames.isEmpty()) {
-        clientRoles.put(client.getClientId(), new ArrayList<>(clientRoleNames));
-      }
-    });
-    roles.put("clients", clientRoles);
-
-    return roles;
-  }
-
-  private List<String> getUserGroups(UserModel user) {
-    return user.getGroupsStream().map(group -> {
-      // Build full path for group
-      var current = group;
-      var pathSegments = new ArrayList<String>();
-
-      while (current != null) {
-        pathSegments.add(0, current.getName());
-        current = current.getParent();
-      }
-
-      return "/" + String.join("/", pathSegments);
-    }).collect(java.util.stream.Collectors.toList());
-  }
-
-  private String extractUserIdFromPath(String resourcePath) {
+  // Package-private methods for testing
+  String extractUserIdFromPath(String resourcePath) {
     // Resource path format: "users/{userId}" or "users/{userId}/..."
-    if (resourcePath.startsWith("users/")) {
+    if (resourcePath != null && resourcePath.startsWith("users/")) {
       String[] parts = resourcePath.split("/");
       if (parts.length >= 2) {
         return parts[1];
@@ -229,50 +221,35 @@ public class EventWebhookProvider implements EventListenerProvider {
     return null;
   }
 
-  private void sendWebhookAsync(WebhookPayload payload) {
-    CompletableFuture.runAsync(() -> {
-      try {
-        sendWebhook(payload);
-      } catch (Exception e) {
-        logger.errorf(e, "Failed to send webhook for event: %s", payload.getEventType());
-      }
-    });
+  String computeHmacSha256(byte[] data, String secret) {
+    try {
+      Mac mac = Mac.getInstance("HmacSHA256");
+      SecretKeySpec secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8),
+          "HmacSHA256");
+      mac.init(secretKey);
+      byte[] hmacBytes = mac.doFinal(data);
+      return bytesToHex(hmacBytes);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to compute HMAC-SHA256", e);
+    }
   }
 
-  private void sendWebhook(WebhookPayload payload) throws Exception {
-    if (webhookUrl == null || webhookUrl.isEmpty()) {
-      logger.debug("Webhook URL not configured, skipping event");
-      return;
+  String bytesToHex(byte[] bytes) {
+    StringBuilder result = new StringBuilder();
+    for (byte b : bytes) {
+      result.append(String.format("%02x", b));
     }
-
-    HttpPost request = new HttpPost(webhookUrl);
-    request.setHeader("Content-Type", "application/json");
-    request.setHeader("X-Webhook-Secret", webhookSecret);
-
-    String jsonPayload = objectMapper.writeValueAsString(payload);
-    request.setEntity(new StringEntity(jsonPayload, StandardCharsets.UTF_8));
-
-    httpClient.execute(request, response -> {
-      int statusCode = response.getCode();
-      if (statusCode >= 200 && statusCode < 300) {
-        logger.debugf("Webhook sent successfully for event: %s (status: %d)",
-            payload.getEventType(), statusCode);
-      } else {
-        logger.warnf("Webhook failed for event: %s (status: %d)", payload.getEventType(),
-            statusCode);
-      }
-      return null;
-    });
+    return result.toString();
   }
 
   @Override
   public void close() {
     try {
-      if (httpClient != null) {
-        httpClient.close();
+      if (webhookClient != null) {
+        webhookClient.close();
       }
     } catch (Exception e) {
-      logger.warn("Failed to close HTTP client", e);
+      logger.warn("Failed to close webhook client", e);
     }
   }
 }

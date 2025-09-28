@@ -1,42 +1,28 @@
-# Multi-stage build for Keycloak with custom SPI
-FROM maven:3.9.4-eclipse-temurin-21-alpine AS spi-builder
-
-# Copy SPI source code
-COPY . /workspace
+# -- build SPI (Maven) --
+FROM maven:3.9-eclipse-temurin-17 AS spi-build
 WORKDIR /workspace
 
-# Build the SPI JAR file
-RUN mvn clean package -DskipTests
+# stáhni dependency do cache
+COPY keycloak-spi-event-webhook/pom.xml keycloak-spi-event-webhook/pom.xml
+RUN --mount=type=cache,target=/root/.m2 mvn -q -f keycloak-spi-event-webhook/pom.xml -DskipTests dependency:go-offline
 
-# Production Keycloak image - změněno na funkční verzi 24.0.5
-FROM quay.io/keycloak/keycloak:24.0.5
+# build JAR
+COPY keycloak-spi-event-webhook/src keycloak-spi-event-webhook/src
+RUN --mount=type=cache,target=/root/.m2 mvn -q -f keycloak-spi-event-webhook/pom.xml -DskipTests package
 
-# Copy our SPI JAR from build stage
-COPY --from=spi-builder /workspace/target/keycloak-spi-event-webhook-1.0.0.jar /opt/keycloak/providers/
+# -- Keycloak runtime image --
+FROM quay.io/keycloak/keycloak:24.0.4
 
-# Set ownership and permissions for SPI JAR
-USER root
-RUN chown keycloak:keycloak /opt/keycloak/providers/keycloak-spi-event-webhook-1.0.0.jar
-
-# Switch back to keycloak user
-USER keycloak
-
-# Build Keycloak with our provider
-RUN /opt/keycloak/bin/kc.sh build
-
-# Set production mode
-ENV KC_HOSTNAME_STRICT=false
-ENV KC_HOSTNAME_STRICT_HTTPS=false
-ENV KC_HTTP_ENABLED=true
 ENV KC_HEALTH_ENABLED=true
-ENV KC_METRICS_ENABLED=true
 
-# Enable event listener
-ENV KC_SPI_EVENTS_LISTENER_CORE_PLATFORM_WEBHOOK_ENABLED=true
+# zkopíruj SPI provider
+COPY --from=spi-build /workspace/keycloak-spi-event-webhook/target/*.jar /opt/keycloak/providers/
 
-# Set default log level
-ENV KC_LOG_LEVEL=DEBUG
-ENV ROOT_LOGLEVEL=DEBUG
+# zkopíruj custom témata
+COPY themes/ /opt/keycloak/themes/
+
+# sestav KC distribuci, aby se provider zaregistroval
+RUN /opt/keycloak/bin/kc.sh build --db=postgres
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
-CMD ["start", "--verbose"]
+CMD ["start-dev", "--http-enabled=true", "--http-port=8080", "--hostname-strict=false"]
