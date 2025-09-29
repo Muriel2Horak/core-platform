@@ -86,11 +86,27 @@ class KeycloakService {
 
       // Initialization options
       const initOptions = {
-        onLoad: 'login-required', // 🔧 OPRAVENO: Přímé zobrazení login stránky místo silent check
-        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+        onLoad: 'check-sso', // 🔧 FIX: Změna z 'login-required' na 'check-sso' pro lepší UX
         pkceMethod: 'S256',
-        checkLoginIframe: false, // Disable iframe checking for better compatibility
-        enableLogging: true, // 🔧 PŘIDÁNO: Enable logging pro debug
+        
+        // 🔧 FIX: KOMPLETNÍ VYPNUTÍ všech iframe mechanismů pro odstranění sandbox warnings
+        checkLoginIframe: false, // Vypneme login-status-iframe.html
+        checkLoginIframeInterval: 0, // Vypneme interval checking
+        silentCheckSsoFallback: false, // Vypneme 3p-cookies detekci (step1/step2.html)
+        
+        // 🔧 FIX: Vypneme i silent SSO iframe (způsobuje další sandbox warning)
+        // silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html', // VYPNUTO
+        
+        // 🔧 FIX: Modernější nastavení pro čistě token-based autentizaci
+        enableLogging: false, // Disable Keycloak logging to reduce console noise
+        messageReceiveTimeout: 10000, // Timeout pro zprávy (i když nepoužíváme iframe)
+        
+        // 🔧 FIX: Token-only session tracking - bez jakýchkoli iframe
+        flow: 'standard', // Standard Authorization Code Flow
+        responseMode: 'fragment', // Fragment mode pro lepší bezpečnost
+        
+        // 🔧 FIX: Explicitně zakážeme všechny iframe mechanismy
+        silentCheckSsoRedirectUri: undefined, // Úplně vypneme silent SSO iframe
       };
 
       const authenticated = await this.keycloak.init(initOptions);
@@ -383,21 +399,46 @@ class KeycloakService {
   setupTokenRefresh() {
     if (!this.keycloak) return;
 
-    // Refresh token when it's about to expire
-    setInterval(async () => {
+    // 🔧 FIX: Modernější token refresh bez iframe dependency
+    // Používáme pouze token-based refresh místo iframe session monitoring
+    const refreshInterval = setInterval(async () => {
       try {
-        if (this.keycloak.isTokenExpired(30)) { // Refresh 30s before expiry
-          const refreshed = await this.keycloak.updateToken(30);
+        // Kontrola pouze pokud je uživatel stále přihlášen
+        if (!this.keycloak.authenticated) {
+          clearInterval(refreshInterval);
+          return;
+        }
+
+        // Refresh token když je blízko expirace (60s před expirací)
+        if (this.keycloak.isTokenExpired(60)) {
+          console.log('🔄 Token is expiring, attempting refresh...');
+          
+          const refreshed = await this.keycloak.updateToken(60);
           if (refreshed) {
-            console.log('🔄 Token refreshed');
+            console.log('✅ Token refreshed successfully');
             localStorage.setItem('keycloak-token', this.keycloak.token);
+            
+            // Notifikuj o úspěšném refresh
+            window.dispatchEvent(new CustomEvent('keycloak-token-refreshed', {
+              detail: { token: this.keycloak.token }
+            }));
+          } else {
+            console.log('ℹ️ Token still valid, no refresh needed');
           }
         }
       } catch (error) {
         console.error('❌ Token refresh failed:', error);
-        this.logout();
+        
+        // Při chybě refresh se pokus o logout pouze pokud je token skutečně expirovaný
+        if (this.keycloak.isTokenExpired(0)) {
+          console.log('🚪 Token expired, logging out...');
+          this.logout();
+        }
       }
-    }, 10000); // Check every 10 seconds
+    }, 30000); // Kontroluj každých 30 sekund (místo 10s pro lepší performance)
+
+    // Uložíme interval reference pro možné čištění
+    this._refreshInterval = refreshInterval;
   }
 
   /**
@@ -421,7 +462,16 @@ class KeycloakService {
     }
 
     console.log('🚪 Logging out');
+    
+    // 🔧 FIX: Vyčistíme token refresh interval
+    if (this._refreshInterval) {
+      clearInterval(this._refreshInterval);
+      this._refreshInterval = null;
+    }
+    
     localStorage.removeItem('keycloak-token');
+    localStorage.removeItem('keycloak-user-info');
+    
     return this.keycloak.logout();
   }
 

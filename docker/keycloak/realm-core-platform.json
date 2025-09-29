@@ -22,7 +22,7 @@
     "frontendUrl": "https://core-platform.local",
     "userProfileEnabled": "false",
     "requirePasswordUpdateOnFirstLogin": "false",
-    "_browser_header.contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://core-platform.local https://*.core-platform.local; frame-ancestors 'self' https://core-platform.local https://*.core-platform.local; object-src 'none';",
     "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains",
     "_browser_header.xFrameOptions": "SAMEORIGIN",
     "_browser_header.xContentTypeOptions": "nosniff",

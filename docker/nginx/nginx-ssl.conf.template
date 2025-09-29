@@ -54,11 +54,13 @@ http {
         ssl_session_cache shared:SSL:10m;
         ssl_session_timeout 10m;
         
-        # Security headers - UPRAVENO pro Keycloak admin konzoli
+        # Security headers - UPRAVENO pro Keycloak admin konzoli a iframe podporu
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
+        # 🔧 FIX: CSP pro Keycloak iframe support (login-status-iframe, 3p-cookies)
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; frame-src 'self' https://$DOMAIN https://*.$DOMAIN; frame-ancestors 'self' https://$DOMAIN https://*.$DOMAIN; connect-src 'self' https://$DOMAIN https://*.$DOMAIN wss://$DOMAIN wss://*.$DOMAIN; img-src 'self' data: https:; font-src 'self' data:;" always;
         
         # ✅ KEYCLOAK 26.x PROXY KONFIGURACE - Keycloak běží na root path
         
