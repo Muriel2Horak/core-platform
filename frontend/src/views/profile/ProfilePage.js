@@ -516,7 +516,7 @@ const ProfilePage = () => {
               </Typography>
               
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Jméno"
@@ -538,7 +538,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Příjmení"
@@ -560,7 +560,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Email"
@@ -583,7 +583,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Telefon"
@@ -605,7 +605,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Uživatelské jméno"
@@ -622,7 +622,7 @@ const ProfilePage = () => {
                 </Grid>
 
                 {isEditing && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Box display="flex" gap={2} justifyContent="center" mt={3}>
                       <Button
                         variant="outlined"
@@ -676,7 +676,7 @@ const ProfilePage = () => {
               </Typography>
               
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Oddělení"
@@ -698,7 +698,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Pozice"
@@ -720,7 +720,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Autocomplete
                     options={userSuggestions}
                     value={userSuggestions.find(u => u.value === editedProfile.manager) || null}
@@ -750,7 +750,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Nákladové středisko"
@@ -769,7 +769,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Lokace / Pobočka"
@@ -792,7 +792,7 @@ const ProfilePage = () => {
                 </Grid>
 
                 {(profile?.managerName || profile?.department) && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Card 
                       sx={{ 
                         background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)',
@@ -820,7 +820,7 @@ const ProfilePage = () => {
                 )}
 
                 {isEditing && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Box display="flex" gap={2} justifyContent="center" mt={3}>
                       <Button
                         variant="outlined"
@@ -874,7 +874,7 @@ const ProfilePage = () => {
               </Typography>
               
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Autocomplete
                     options={userSuggestions}
                     value={userSuggestions.find(u => u.value === editedProfile.deputy) || null}
@@ -904,7 +904,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth disabled={!isEditing} variant="outlined">
                     <InputLabel>Důvod zastupování</InputLabel>
                     <Select
@@ -927,7 +927,7 @@ const ProfilePage = () => {
                   </FormControl>
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <DatePicker
                     label="Zastupování od"
                     value={editedProfile.deputyFrom}
@@ -955,7 +955,7 @@ const ProfilePage = () => {
                   />
                 </Grid>
                 
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <DatePicker
                     label="Zastupování do"
                     value={editedProfile.deputyTo}
@@ -984,7 +984,7 @@ const ProfilePage = () => {
                 </Grid>
 
                 {(profile?.deputyName || profile?.deputyReason) && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Card 
                       sx={{ 
                         background: 'linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%)',
@@ -1017,7 +1017,7 @@ const ProfilePage = () => {
                 )}
 
                 {isEditing && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Box display="flex" gap={2} justifyContent="center" mt={3}>
                       <Button
                         variant="outlined"
@@ -1072,7 +1072,7 @@ const ProfilePage = () => {
               
               <Grid container spacing={3}>
                 {/* Role a oprávnění */}
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card 
                     sx={{ 
                       background: 'linear-gradient(135deg, #f3e5f5 0%, #e1f5fe 100%)',
@@ -1118,7 +1118,7 @@ const ProfilePage = () => {
                   </Card>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card 
                     sx={{ 
                       height: '100%',
@@ -1161,7 +1161,7 @@ const ProfilePage = () => {
                   </Card>
                 </Grid>
                 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Card 
                     sx={{ 
                       height: '100%',
@@ -1247,7 +1247,7 @@ const ProfilePage = () => {
             )}
             
             <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Současné heslo"
@@ -1265,7 +1265,7 @@ const ProfilePage = () => {
                 />
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Nové heslo"
@@ -1284,7 +1284,7 @@ const ProfilePage = () => {
                 />
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Potvrzení nového hesla"
