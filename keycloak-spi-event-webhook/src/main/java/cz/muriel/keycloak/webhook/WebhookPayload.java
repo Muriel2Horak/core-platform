@@ -7,6 +7,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class WebhookPayload {
 
+  @JsonProperty("eventType")
+  private String eventType;
+
+  @JsonProperty("time")
+  private long time;
+
   @JsonProperty("type")
   private String type;
 
@@ -39,8 +45,11 @@ public class WebhookPayload {
   }
 
   // Constructor
-  public WebhookPayload(String type, String realm, String tenantKey, String tenantId, String userId,
-      String username, String email, String firstName, String lastName) {
+  public WebhookPayload(String eventType, long time, String type, String realm, String tenantKey,
+      String tenantId, String userId, String username, String email, String firstName,
+      String lastName) {
+    this.eventType = eventType;
+    this.time = time;
     this.type = type;
     this.realm = realm;
     this.tenantKey = tenantKey;
@@ -53,6 +62,22 @@ public class WebhookPayload {
   }
 
   // Getters and Setters
+  public String getEventType() {
+    return eventType;
+  }
+
+  public void setEventType(String eventType) {
+    this.eventType = eventType;
+  }
+
+  public long getTime() {
+    return time;
+  }
+
+  public void setTime(long time) {
+    this.time = time;
+  }
+
   public String getType() {
     return type;
   }
@@ -127,9 +152,10 @@ public class WebhookPayload {
 
   @Override
   public String toString() {
-    return "WebhookPayload{" + "type='" + type + '\'' + ", realm='" + realm + '\'' + ", tenantKey='"
-        + tenantKey + '\'' + ", tenantId='" + tenantId + '\'' + ", userId='" + userId + '\''
-        + ", username='" + username + '\'' + ", email='" + email + '\'' + ", firstName='"
-        + firstName + '\'' + ", lastName='" + lastName + '\'' + '}';
+    return "WebhookPayload{" + "eventType='" + eventType + '\'' + ", time=" + time + ", type='"
+        + type + '\'' + ", realm='" + realm + '\'' + ", tenantKey='" + tenantKey + '\''
+        + ", tenantId='" + tenantId + '\'' + ", userId='" + userId + '\'' + ", username='"
+        + username + '\'' + ", email='" + email + '\'' + ", firstName='" + firstName + '\''
+        + ", lastName='" + lastName + '\'' + '}';
   }
 }

@@ -22,7 +22,7 @@ public class KeycloakClient {
   private final String preferredScopes;
 
   public KeycloakClient(ObjectMapper om,
-      @Value("${OIDC_ISSUER:http://localhost:8080/realms/core-platform}") String issuer,
+      @Value("${OIDC_ISSUER:http://keycloak:8080/realms/core-platform}") String issuer,
       @Value("${keycloak.client-id:web}") String clientId,
       @Value("${keycloak.token-scopes:openid profile email}") String preferredScopes) {
     this.om = om;

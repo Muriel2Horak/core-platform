@@ -20,7 +20,7 @@ DOMAIN=${DOMAIN:-core-platform.local}
 echo "🌐 Generating Keycloak realm export for domain: $DOMAIN"
 
 # Nahraď všechny template proměnné v realm exportu
-envsubst '$DOMAIN' < "$REALM_TEMPLATE" > "$REALM_OUTPUT"
+envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET' < "$REALM_TEMPLATE" > "$REALM_OUTPUT"
 
 echo "✅ Realm export generated: $REALM_OUTPUT"
 echo "   - Frontend URL: https://$DOMAIN"

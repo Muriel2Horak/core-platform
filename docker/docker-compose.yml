@@ -11,7 +11,8 @@ services:
     volumes:
       - ./nginx/nginx-ssl.conf.template:/etc/nginx/templates/nginx-ssl.conf.template:ro
       - ./nginx/start-nginx.sh:/usr/local/bin/start-nginx.sh:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      # 🔒 Updated to use new wildcard SSL certificates
+      - ../ssl:/etc/nginx/ssl:ro
       - certbot-www:/var/www/certbot:ro
     command: [ "/usr/local/bin/start-nginx.sh" ]
     depends_on:
@@ -74,7 +75,7 @@ services:
       - DOMAIN=${DOMAIN:-core-platform.local}
       # 🔧 FIX: OIDC Configuration - opravené issuery pro JWT validaci
       - OIDC_ISSUER_URI=https://${DOMAIN:-core-platform.local}/realms/core-platform
-      - OIDC_JWK_SET_URI=http://keycloak:8080/realms/core-platform/protocol/openid-connect/certs
+      - OIDC_JWK_SET_URI=https://keycloak:8443/realms/core-platform/protocol/openid-connect/certs
       - OIDC_API_AUDIENCE=api
       # 🔧 FIX: CORS origins - použijeme environment proměnnou
       - CORS_ORIGINS=https://${DOMAIN:-core-platform.local}
@@ -84,21 +85,28 @@ services:
       - SPRING_PROFILES_ACTIVE=development
       # 🔐 Service Account Credentials
       - KEYCLOAK_ADMIN_CLIENT_ID=backend-admin-service
-      - KEYCLOAK_ADMIN_CLIENT_SECRET=lYHZXQHv1lHEn1bToLzySIchd7dVIFmm
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
       - KEYCLOAK_ADMIN_REALM=core-platform
       - KEYCLOAK_TARGET_REALM=core-platform
-      - KEYCLOAK_ADMIN_BASE_URL=http://keycloak:8080
+      - KEYCLOAK_ADMIN_BASE_URL=https://keycloak:8443
       # 🏢 MULTITENANCY Configuration
       - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-test-tenant}
       - AUTH_JWT_TENANT_CLAIM=${AUTH_JWT_TENANT_CLAIM:-tenant}
       # 🔗 KEYCLOAK WEBHOOK Configuration - OPRAVENO: používá stejný secret jako Keycloak SPI
       - APP_KEYCLOAK_WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
+      - KC_EVENT_WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
+      - keycloak.webhook.hmac-secret=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
       # 📅 KEYCLOAK BACKFILL Configuration
       - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
       - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
       - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # 🔒 SSL Configuration for HTTPS communication with Keycloak
+      - JAVA_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=JKS
+    volumes:
+      # 🔒 Updated to use new wildcard SSL certificates
+      - ../ssl:/etc/ssl/backend:ro
     logging:
       driver: loki
       options:
@@ -156,48 +164,95 @@ services:
     container_name: core-keycloak
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "8081:8443" # 🔒 HTTPS port mapping
     environment:
       # 🔐 Admin credentials
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
       
-      # ✅ NOVÝ: HTTPS Proxy konfigurace pro admin konzoli
+      # 👥 Test User Credentials (DEVELOPMENT ONLY)
+      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-Test.1234}
+      TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-Test.1234}
+
+      # 🔒 HTTPS Production Mode Configuration
       KC_PROXY: "edge"
       KC_HOSTNAME: ${DOMAIN:-core-platform.local}
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_HTTP_ENABLED: "true"
+      KC_HTTP_ENABLED: "false" # 🔒 Disable HTTP
+      KC_HTTPS_PORT: "8443" # 🔒 HTTPS port
       KC_HTTPS_CLIENT_AUTH: "none"
-      
-      # ✅ NOVÝ: CSP a frame options pro admin konzoli
-      KC_SPI_LOGIN_PROTOCOL_OPENID_CONNECT_SUPPRESS_LOGOUT_CONFIRMATION_SCREEN: "true"
-      
+      # 🔒 SSL Certificate configuration
+      KC_HTTPS_CERTIFICATE_FILE: /etc/ssl/keycloak/cert.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/ssl/keycloak/key.pem
+
       # 🔗 Event listeners configuration
       KC_EVENTS_LISTENERS: "jboss-logging,muriel-webhook"
-      
+
       # 🪝 Webhook SPI configuration
       KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_ENDPOINT_URL: ${KC_WEBHOOK_ENDPOINT_URL:-http://backend:8080/internal/keycloak/events}
       KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_SECRET: ${KC_WEBHOOK_SECRET:-}
       KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_REALM_TENANT_MAP: ${KC_REALM_TENANT_MAP:-}
       KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_ENABLED_TYPES: ${KC_ENABLED_TYPES:-USER_CREATED,USER_UPDATED,USER_DELETED}
-      
+
       # 📊 Logging and health
       KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO,cz.muriel.keycloak.webhook:DEBUG}
       KC_HEALTH_ENABLED: "true"
-    
+
     volumes:
       - keycloak_data:/opt/keycloak/data
-    
-    command: 
-      - "start-dev"
-      - "--http-enabled=true"
-      - "--http-port=8080"
-      - "--hostname-strict=false"
-      - "--proxy=edge"
-    
+      # 🔒 Updated to use new wildcard SSL certificates
+      - ../ssl:/etc/ssl/keycloak:ro
+
+    # 🔒 Production HTTPS mode - removes dev mode
+    # Note: CMD is defined in Dockerfile now
+
     networks:
       - core-net
+
+  # 🏗️ Volitelná bootstrap služba pro automatické nastavení tenant realmů
+  # Aktivuje se pouze když jsou nastaveny env proměnné AUTO_BOOTSTRAP_*
+  kc-bootstrap:
+    image: core-platform/keycloak:local
+    container_name: core-kc-bootstrap
+    profiles:
+      - bootstrap # Aktivuje se pouze s --profile bootstrap
+    depends_on:
+      keycloak:
+        condition: service_started
+    environment:
+      # 📋 Bootstrap parametry
+      - REALM=${AUTO_BOOTSTRAP_REALM:-}
+      - WEBHOOK_URL=${AUTO_BOOTSTRAP_WEBHOOK_URL:-http://backend:8080/internal/keycloak/events}
+      - WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-}
+      - TENANT_ADMIN=${AUTO_BOOTSTRAP_TENANT_ADMIN:-tenant-admin}
+      - TENANT_ADMIN_PASSWORD=${AUTO_BOOTSTRAP_TENANT_ADMIN_PASSWORD:-}
+      - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      - KC_BASE_URL=https://keycloak:8443
+    volumes:
+      - ../scripts:/scripts:ro
+    command: >
+      sh -c "
+        if [ -z \"$$REALM\" ]; then
+          echo '⚠️  AUTO_BOOTSTRAP_REALM not set, skipping bootstrap';
+          exit 0;
+        fi;
+        echo '🏗️ Auto-bootstrapping realm: '$$REALM;
+        echo '⏳ Waiting for Keycloak to be ready...';
+        for i in \$$(seq 1 120); do
+          if wget -q --spider https://keycloak:8443/health/ready 2>/dev/null; then
+            break;
+          fi;
+          sleep 2;
+        done;
+        echo '✅ Keycloak is ready, starting bootstrap...';
+        /scripts/kc_bootstrap_realm.sh;
+        echo '🎉 Bootstrap completed, container will exit';
+      "
+    networks:
+      - core-net
+    restart: "no" # Spustí se pouze jednou
 
   # 📊 Monitoring Stack
   grafana:
@@ -307,6 +362,7 @@ volumes:
   promtail_positions:
   certbot-www:
   keycloak_data:
+
 
 networks:
   core-net:

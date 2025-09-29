@@ -28,9 +28,8 @@ class TenantControllerTest {
 
   @Test
   void shouldReturnCurrentTenant() throws Exception {
-    // Given
-    Tenant tenant = Tenant.builder().key("test-tenant").name("Test Tenant").realm("core-platform")
-        .build();
+    // Given - 🎯 SIMPLIFIED: Using only key field, name is derived from key
+    Tenant tenant = Tenant.builder().key("test-tenant").build();
 
     when(tenantService.getCurrentTenant()).thenReturn(Optional.of(tenant));
 
@@ -42,8 +41,9 @@ class TenantControllerTest {
             .authorities(List.of(new SimpleGrantedAuthority("CORE_ROLE_USER")))))
         .andExpect(status().isOk()).andExpect(content().contentType("application/json"))
         .andExpect(jsonPath("$.key").value("test-tenant"))
-        .andExpect(jsonPath("$.name").value("Test Tenant"))
-        .andExpect(jsonPath("$.realm").value("core-platform"));
+        .andExpect(jsonPath("$.name").value("Tenant test-tenant")) // getName() returns "Tenant " +
+                                                                   // key
+        .andExpect(jsonPath("$.realm").value("test-tenant")); // realm = key
   }
 
   @Test

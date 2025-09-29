@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Silent Check SSO</title>
+</head>
+<body>
+    <script>
+        // Keycloak Silent Check SSO Handler
+        // Tento soubor je vyžadován Keycloak JS adapterem pro "silent" authentication check
+        
+        const keycloakUrl = window.location.origin;
+        const src = keycloakUrl + '/js/keycloak.js';
+        
+        // Dynamicky načti Keycloak JS adapter
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = function() {
+            // Zpracuj Keycloak callback pro silent check
+            if (parent && parent.postMessage) {
+                try {
+                    // Pošli výsledek zpět do parent window
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const fragment = window.location.hash;
+                    
+                    parent.postMessage({
+                        type: 'keycloak-silent-check-sso',
+                        url: window.location.href,
+                        params: Object.fromEntries(urlParams),
+                        fragment: fragment
+                    }, window.location.origin);
+                } catch (error) {
+                    console.error('Silent check SSO error:', error);
+                    parent.postMessage({
+                        type: 'keycloak-silent-check-sso-error',
+                        error: error.message
+                    }, window.location.origin);
+                }
+            }
+        };
+        script.onerror = function() {
+            console.error('Failed to load Keycloak JS adapter');
+            if (parent && parent.postMessage) {
+                parent.postMessage({
+                    type: 'keycloak-silent-check-sso-error',
+                    error: 'Failed to load Keycloak adapter'
+                }, window.location.origin);
+            }
+        };
+        
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

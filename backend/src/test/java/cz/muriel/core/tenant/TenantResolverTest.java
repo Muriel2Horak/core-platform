@@ -1,8 +1,5 @@
 package cz.muriel.core.tenant;
 
-import cz.muriel.core.entity.Tenant;
-import cz.muriel.core.repository.TenantRepository;
-import cz.muriel.core.cache.TenantCache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,21 +13,12 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TenantResolverTest {
-
-  @Mock
-  private TenantRepository tenantRepository;
-
-  @Mock
-  private TenantCache tenantCache;
 
   @Mock
   private SecurityContext securityContext;
@@ -38,15 +26,12 @@ class TenantResolverTest {
   @InjectMocks
   private TenantResolver tenantResolver;
 
-  private final UUID testTenantId = UUID.randomUUID();
   private final String testTenantKey = "test-tenant";
-  private final String defaultTenantKey = "default-tenant";
 
   @BeforeEach
   void setUp() {
     SecurityContextHolder.setContext(securityContext);
     ReflectionTestUtils.setField(tenantResolver, "tenantClaimName", "tenant");
-    ReflectionTestUtils.setField(tenantResolver, "defaultTenantKey", defaultTenantKey);
   }
 
   @Test
@@ -64,73 +49,27 @@ class TenantResolverTest {
   }
 
   @Test
-  void shouldUseDefaultWhenJwtClaimMissing() {
+  void shouldThrowExceptionWhenJwtClaimMissing() {
     // Given
     Jwt jwt = createJwtWithoutTenantClaim();
     JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt);
     when(securityContext.getAuthentication()).thenReturn(auth);
 
-    // When
-    String result = tenantResolver.resolveTenantKey();
-
-    // Then
-    assertThat(result).isEqualTo(defaultTenantKey);
+    // When & Then
+    assertThatThrownBy(() -> tenantResolver.resolveTenantKey())
+        .isInstanceOf(TenantNotFoundException.class)
+        .hasMessage("Tenant could not be determined - access denied");
   }
 
   @Test
-  void shouldUseDefaultWhenNoAuthentication() {
+  void shouldThrowExceptionWhenNoAuthentication() {
     // Given
     when(securityContext.getAuthentication()).thenReturn(null);
 
-    // When
-    String result = tenantResolver.resolveTenantKey();
-
-    // Then
-    assertThat(result).isEqualTo(defaultTenantKey);
-  }
-
-  @Test
-  void shouldResolveTenantIdFromCache() {
-    // Given
-    Tenant cachedTenant = Tenant.builder().id(testTenantId).key(testTenantKey).name("Test Tenant")
-        .realm("core-platform").build();
-    when(tenantCache.get(testTenantKey)).thenReturn(Optional.of(cachedTenant));
-
-    // When
-    UUID result = tenantResolver.resolveTenantId(testTenantKey);
-
-    // Then
-    assertThat(result).isEqualTo(testTenantId);
-    verify(tenantRepository, never()).findByKey(anyString());
-  }
-
-  @Test
-  void shouldResolveTenantIdFromDatabaseAndCache() {
-    // Given
-    when(tenantCache.get(testTenantKey)).thenReturn(Optional.empty());
-
-    Tenant tenant = Tenant.builder().id(testTenantId).key(testTenantKey).name("Test Tenant")
-        .realm("core-platform").build();
-    when(tenantRepository.findByKey(testTenantKey)).thenReturn(Optional.of(tenant));
-
-    // When
-    UUID result = tenantResolver.resolveTenantId(testTenantKey);
-
-    // Then
-    assertThat(result).isEqualTo(testTenantId);
-    verify(tenantCache).put(testTenantKey, tenant);
-  }
-
-  @Test
-  void shouldThrowExceptionWhenTenantNotFound() {
-    // Given
-    when(tenantCache.get(testTenantKey)).thenReturn(Optional.empty());
-    when(tenantRepository.findByKey(testTenantKey)).thenReturn(Optional.empty());
-
     // When & Then
-    assertThatThrownBy(() -> tenantResolver.resolveTenantId(testTenantKey))
+    assertThatThrownBy(() -> tenantResolver.resolveTenantKey())
         .isInstanceOf(TenantNotFoundException.class)
-        .hasMessage("Tenant not found: " + testTenantKey);
+        .hasMessage("Tenant could not be determined - access denied");
   }
 
   @Test

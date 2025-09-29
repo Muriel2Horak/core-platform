@@ -1,0 +1,188 @@
+{
+  "realm": "${TENANT_KEY}",
+  "enabled": true,
+  "displayName": "${TENANT_DISPLAY_NAME}",
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "verifyEmail": false,
+  "editUsernameAllowed": false,
+  "registrationEmailAsUsername": false,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "cs",
+    "en"
+  ],
+  "defaultLocale": "cs",
+  "loginTheme": "core-material",
+  "accountTheme": "keycloak",
+  "adminTheme": "keycloak",
+  "emailTheme": "keycloak",
+  "attributes": {
+    "frontendUrl": "https://${TENANT_KEY}.${DOMAIN}",
+    "userProfileEnabled": "false",
+    "requirePasswordUpdateOnFirstLogin": "false",
+    "_browser_header.contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains",
+    "_browser_header.xFrameOptions": "SAMEORIGIN",
+    "_browser_header.xContentTypeOptions": "nosniff",
+    "_browser_header.referrerPolicy": "no-referrer"
+  },
+  "users": [
+    {
+      "username": "tenant_admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Tenant",
+      "lastName": "Administrator",
+      "email": "admin@${TENANT_KEY}.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${TENANT_ADMIN_PASSWORD}",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "CORE_ROLE_ADMIN"
+      ],
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "attributes": {
+        "tenant": [
+          "${TENANT_KEY}"
+        ],
+        "department": [
+          "Administration"
+        ],
+        "position": [
+          "Tenant Administrator"
+        ]
+      }
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "CORE_ROLE_USER",
+        "description": "Basic user role for ${TENANT_DISPLAY_NAME}"
+      },
+      {
+        "name": "CORE_USER_MANAGER",
+        "description": "User manager role for ${TENANT_DISPLAY_NAME}"
+      },
+      {
+        "name": "CORE_ROLE_ADMIN",
+        "description": "Administrator role for ${TENANT_DISPLAY_NAME}",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "CORE_USER_MANAGER"
+          ]
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "api",
+      "name": "API",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": true,
+      "enabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "web",
+      "name": "web",
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "enabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "https://${TENANT_KEY}.${DOMAIN}/",
+      "redirectUris": [
+        "https://${TENANT_KEY}.${DOMAIN}/*",
+        "http://localhost:3000/*",
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "https://${TENANT_KEY}.${DOMAIN}",
+        "+"
+      ],
+      "protocolMappers": [
+        {
+          "name": "audience-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "tenant-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "tenant",
+            "claim.value": "${TENANT_KEY}",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "eventsEnabled": true,
+  "eventsListeners": [
+    "jboss-logging",
+    "muriel-webhook"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 30,
+  "defaultSignatureAlgorithm": "RS256",
+  "revokeRefreshToken": false,
+  "refreshTokenMaxReuse": 0,
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionIdleTimeoutRememberMe": 0,
+  "ssoSessionMaxLifespanRememberMe": 0,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
+  "offlineSessionMaxLifespan": 5184000,
+  "clientSessionIdleTimeout": 0,
+  "clientSessionMaxLifespan": 0,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
+  "smtpServer": {}
+}

@@ -36,7 +36,7 @@ http {
     }
     
     upstream keycloak {
-        server keycloak:8080;
+        server keycloak:8443;
     }
     
     # 🔒 HTTPS server - Primary configuration
@@ -49,7 +49,7 @@ http {
         ssl_certificate /etc/nginx/ssl/cert.pem;
         ssl_certificate_key /etc/nginx/ssl/key.pem;
         ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA128-SHA256:ECDHE-RSA-AES256-SHA384;
         ssl_prefer_server_ciphers off;
         ssl_session_cache shared:SSL:10m;
         ssl_session_timeout 10m;
@@ -64,7 +64,7 @@ http {
         
         # Keycloak Account Console (personal-info, password, sessions, MFA) - NEJVYŠŠÍ PRIORITA
         location /realms/core-platform/account/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             # ✅ Sjednocené X-Forwarded hlavičky pro Keycloak 26.x hostname v2
             proxy_set_header Host $host;
@@ -92,11 +92,14 @@ http {
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
             proxy_buffering off;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # Keycloak realms API (OpenID Connect, SAML endpointy) - DRUHÁ PRIORITA
         location /realms/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             # ✅ Sjednocené X-Forwarded hlavičky pro Keycloak 26.x hostname v2
             proxy_set_header Host $host;
@@ -122,11 +125,14 @@ http {
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
             proxy_buffering off;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # Keycloak admin konzole - TŘETÍ PRIORITA
         location /admin/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -155,11 +161,14 @@ http {
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
             proxy_buffering off;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # Keycloak statické resources (CSS, JS, images) - ČTVRTÁ PRIORITA
         location /resources/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -175,11 +184,14 @@ http {
             proxy_connect_timeout 30s;
             proxy_send_timeout 30s;
             proxy_read_timeout 30s;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
 
         # ✅ NOVÝ: Specifický blok pro core-material theme resources
         location /resources/core-material/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -193,14 +205,16 @@ http {
                 add_header Content-Type text/css;
                 expires 1h;
                 add_header Cache-Control "public, max-age=3600";
-                proxy_pass http://keycloak;
+                proxy_pass https://keycloak;
+                proxy_ssl_verify off;
             }
             
             location ~* \.(js)$ {
                 add_header Content-Type application/javascript;
                 expires 1h;
                 add_header Cache-Control "public, max-age=3600";
-                proxy_pass http://keycloak;
+                proxy_pass https://keycloak;
+                proxy_ssl_verify off;
             }
             
             # Fallback pro ostatní soubory
@@ -210,11 +224,14 @@ http {
             proxy_connect_timeout 30s;
             proxy_send_timeout 30s;
             proxy_read_timeout 30s;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # Keycloak JS adapter a ostatní JS soubory
         location /js/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -230,11 +247,14 @@ http {
             proxy_connect_timeout 30s;
             proxy_send_timeout 30s;
             proxy_read_timeout 30s;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # Keycloak themes (custom core-material theme assets)
         location /themes/ {
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -250,13 +270,16 @@ http {
             proxy_connect_timeout 30s;
             proxy_send_timeout 30s;
             proxy_read_timeout 30s;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # ✅ OPRAVENO: /auth/* cesty pro zpětnou kompatibilitu s frontendem
         # Rewrite /auth/* na root path pro Keycloak 26.x
         location /auth/ {
             rewrite ^/auth/(.*)$ /$1 break;
-            proxy_pass http://keycloak;
+            proxy_pass https://keycloak;
             
             # ✅ Kompletní X-Forwarded hlavičky pro Keycloak 26.x reverse proxy
             proxy_set_header Host $host;
@@ -279,6 +302,9 @@ http {
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
             proxy_buffering off;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
         }
         
         # ✅ BACKEND API s CORS a JWT validací
@@ -344,11 +370,141 @@ http {
         }
     }
     
+    # 🌟 NEW: WILDCARD SERVER BLOCK pro tenant subdomény (*.core-platform.local)
+    server {
+        listen 443 ssl http2;
+        server_name ~^(?<tenant>[^.]+)\.$DOMAIN$;
+        
+        # Same SSL configuration as main domain
+        ssl_certificate /etc/nginx/ssl/cert.pem;
+        ssl_certificate_key /etc/nginx/ssl/key.pem;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA128-SHA256:ECDHE-RSA-AES256-SHA384;
+        ssl_prefer_server_ciphers off;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
+        
+        # Security headers
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        
+        # 🔐 TENANT-SPECIFIC: Keycloak realms with tenant context
+        location /realms/ {
+            proxy_pass https://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            
+            # 🎯 KLÍČOVÉ: Předej tenant key do backendu
+            proxy_set_header X-Tenant-Key $tenant;
+            
+            proxy_cookie_flags ~ secure samesite=lax;
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering off;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
+        }
+        
+        # 🔐 TENANT-SPECIFIC: Admin console paths 
+        location /admin/ {
+            proxy_pass https://keycloak;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Tenant-Key $tenant;
+            
+            proxy_cookie_flags ~ secure samesite=lax;
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            proxy_buffering off;
+            
+            # ✅ SSL verification pro HTTPS backend
+            proxy_ssl_verify off;
+        }
+        
+        # 🔒 TENANT-SPECIFIC: Backend API with tenant context
+        location /api/ {
+            proxy_pass http://backend;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Authorization $http_authorization;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Port 443;
+            
+            # 🎯 KLÍČOVÉ: Předej tenant key do backendu  
+            proxy_set_header X-Tenant-Key $tenant;
+            
+            # CORS headers pro tenant subdomény
+            add_header 'Access-Control-Allow-Origin' 'https://$host' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' 'https://$host';
+                add_header 'Access-Control-Allow-Credentials' 'true';
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
+                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
+                add_header 'Access-Control-Max-Age' 86400;
+                add_header 'Content-Type' 'text/plain charset=UTF-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+            
+            proxy_connect_timeout 30s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+        
+        # 🌐 TENANT-SPECIFIC: Frontend with tenant context
+        location / {
+            proxy_pass http://frontend;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Tenant-Key $tenant;
+            
+            # Vite HMR support
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_http_version 1.1;
+            proxy_cache_bypass $http_upgrade;
+            
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }
+    }
+    
     # 🔀 HTTP -> HTTPS redirect
     server {
         listen 80;
-        # ✅ OPRAVENO: používá $DOMAIN proměnnou (envsubst syntax)
-        server_name $DOMAIN;
-        return 301 https://$server_name$request_uri;
+        server_name ${DOMAIN} *.${DOMAIN};
+        
+        # Redirect HTTP to HTTPS
+        return 301 https://$host$request_uri;
     }
 }

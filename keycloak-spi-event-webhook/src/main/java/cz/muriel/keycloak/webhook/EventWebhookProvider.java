@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jboss.logging.Logger;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
-import org.keycloak.events.EventType;
 import org.keycloak.events.admin.AdminEvent;
-import org.keycloak.events.admin.OperationType;
-import org.keycloak.events.admin.ResourceType;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
@@ -27,25 +24,15 @@ public class EventWebhookProvider implements EventListenerProvider {
   private final KeycloakSession session;
   private final String endpointUrl;
   private final String secret;
-  private final Map<String, RealmTenant> realmTenantMap;
   private final Set<String> enabledTypes;
   private final ObjectMapper objectMapper;
   private final WebhookClient webhookClient;
 
-  // Event type mappings
-  private static final Map<EventType, String> USER_EVENT_MAPPING = Map.of(EventType.REGISTER,
-      "USER_CREATED", EventType.UPDATE_PROFILE, "USER_UPDATED");
-
-  private static final Map<OperationType, String> ADMIN_OPERATION_MAPPING = Map.of(
-      OperationType.CREATE, "USER_CREATED", OperationType.UPDATE, "USER_UPDATED",
-      OperationType.DELETE, "USER_DELETED");
-
   public EventWebhookProvider(KeycloakSession session, String endpointUrl, String secret,
-      Map<String, RealmTenant> realmTenantMap, Set<String> enabledTypes) {
+      Set<String> enabledTypes) {
     this.session = session;
     this.endpointUrl = endpointUrl;
     this.secret = secret;
-    this.realmTenantMap = realmTenantMap;
     this.enabledTypes = enabledTypes;
     this.objectMapper = new ObjectMapper();
     this.webhookClient = new WebhookClient();
@@ -53,172 +40,112 @@ public class EventWebhookProvider implements EventListenerProvider {
 
   @Override
   public void onEvent(Event event) {
-    String eventType = USER_EVENT_MAPPING.get(event.getType());
-    if (eventType == null) {
-      logger.debugf("Ignoring user event type: %s", event.getType());
-      return;
-    }
-
-    if (!enabledTypes.contains(eventType)) {
-      logger.debugf("Event type %s is not enabled", eventType);
+    if (!enabledTypes.contains(event.getType().name())) {
       return;
     }
 
     try {
-      RealmModel realm = session.realms().getRealm(event.getRealmId());
-      if (realm == null) {
-        logger.warnf("Realm not found for event: %s", event.getRealmId());
-        return;
-      }
-
-      String realmName = realm.getName();
-      RealmTenant realmTenant = realmTenantMap.get(realmName);
-      if (realmTenant == null) {
-        logger.warnf("No tenant mapping found for realm: %s", realmName);
-        return;
-      }
-
+      RealmModel realm = session.getContext().getRealm();
       UserModel user = session.users().getUserById(realm, event.getUserId());
+
       if (user == null) {
         logger.warnf("User not found for event: %s", event.getUserId());
         return;
       }
 
-      WebhookPayload payload = new WebhookPayload(eventType, realmName, realmTenant.getTenantKey(),
-          realmTenant.getTenantId(), user.getId(), user.getUsername(), user.getEmail(),
-          user.getFirstName(), user.getLastName());
+      // 🎯 CLEAN ARCHITECTURE: realm name IS the tenant key
+      String tenantKey = realm.getName();
 
-      logger.infof("Processing user event: type=%s, realm=%s, user=%s", eventType, realmName,
-          user.getUsername());
+      // Skip events from core-platform realm (system admin realm)
+      if ("core-platform".equals(tenantKey)) {
+        logger.debugf("Skipping event from core-platform realm (system admin realm)");
+        return;
+      }
 
-      sendWebhook(payload, realmName, realmTenant);
+      WebhookPayload payload = new WebhookPayload();
+      payload.setEventType(event.getType().name());
+      payload.setTime(event.getTime());
+      payload.setRealm(realm.getName());
+      payload.setTenantKey(tenantKey); // realm name IS the tenant key
+      payload.setUserId(event.getUserId());
+      payload.setUsername(user.getUsername());
+      payload.setEmail(user.getEmail());
+      payload.setFirstName(user.getFirstName());
+      payload.setLastName(user.getLastName());
+
+      sendWebhook(payload);
 
     } catch (Exception e) {
-      logger.errorf(e, "Failed to process user event: %s", event.getType());
+      logger.errorf(e, "Failed to process event: %s", event.getType());
     }
   }
 
   @Override
   public void onEvent(AdminEvent adminEvent, boolean includeRepresentation) {
-    // Only handle USER resource type
-    if (adminEvent.getResourceType() != ResourceType.USER) {
-      return;
-    }
-
-    String eventType = ADMIN_OPERATION_MAPPING.get(adminEvent.getOperationType());
-    if (eventType == null) {
-      logger.debugf("Ignoring admin operation: %s", adminEvent.getOperationType());
-      return;
-    }
-
-    if (!enabledTypes.contains(eventType)) {
-      logger.debugf("Event type %s is not enabled", eventType);
+    if (!enabledTypes.contains(adminEvent.getOperationType().name())) {
       return;
     }
 
     try {
-      RealmModel realm = session.realms().getRealm(adminEvent.getRealmId());
-      if (realm == null) {
-        logger.warnf("Realm not found for admin event: %s", adminEvent.getRealmId());
+      RealmModel realm = session.getContext().getRealm();
+
+      // 🎯 CLEAN ARCHITECTURE: realm name IS the tenant key
+      String tenantKey = realm.getName();
+
+      // Skip events from core-platform realm (system admin realm)
+      if ("core-platform".equals(tenantKey)) {
+        logger.debugf("Skipping admin event from core-platform realm");
         return;
       }
 
-      String realmName = realm.getName();
-      RealmTenant realmTenant = realmTenantMap.get(realmName);
-      if (realmTenant == null) {
-        logger.warnf("No tenant mapping found for realm: %s", realmName);
-        return;
-      }
+      WebhookPayload payload = new WebhookPayload();
+      payload.setEventType(adminEvent.getOperationType().name());
+      payload.setTime(adminEvent.getTime());
+      payload.setRealm(realm.getName());
+      payload.setTenantKey(tenantKey); // realm name IS the tenant key
 
-      // Extract user ID from resource path
-      String userId = extractUserIdFromPath(adminEvent.getResourcePath());
-      if (userId == null) {
-        logger.warnf("Could not extract user ID from resource path: %s",
-            adminEvent.getResourcePath());
-        return;
-      }
-
-      WebhookPayload payload;
-      UserModel user = session.users().getUserById(realm, userId);
-
-      if (user != null) {
-        // User exists - full data
-        payload = new WebhookPayload(eventType, realmName, realmTenant.getTenantKey(),
-            realmTenant.getTenantId(), user.getId(), user.getUsername(), user.getEmail(),
-            user.getFirstName(), user.getLastName());
-      } else {
-        // User doesn't exist (e.g., DELETE) - minimal data
-        payload = new WebhookPayload(eventType, realmName, realmTenant.getTenantKey(),
-            realmTenant.getTenantId(), userId, null, // username not available
-            null, // email not available
-            null, // firstName not available
-            null // lastName not available
-        );
-      }
-
-      logger.infof("Processing admin event: type=%s, realm=%s, userId=%s", eventType, realmName,
-          userId);
-
-      sendWebhook(payload, realmName, realmTenant);
+      sendWebhook(payload);
 
     } catch (Exception e) {
-      logger.errorf(e, "Failed to process admin event: %s/%s", adminEvent.getResourceType(),
-          adminEvent.getOperationType());
+      logger.errorf(e, "Failed to process admin event: %s", adminEvent.getOperationType());
     }
   }
 
-  private void sendWebhook(WebhookPayload payload, String realmName, RealmTenant realmTenant) {
+  private void sendWebhook(WebhookPayload payload) {
     if (endpointUrl == null || endpointUrl.trim().isEmpty()) {
       logger.debug("Webhook endpoint URL not configured, skipping");
       return;
     }
 
     try {
-      // Serialize payload to JSON
       String jsonPayload = objectMapper.writeValueAsString(payload);
       byte[] body = jsonPayload.getBytes(StandardCharsets.UTF_8);
 
-      // Compute HMAC-SHA256 signature
       String signature = computeHmacSha256(body, secret);
 
-      // Prepare headers
       Map<String, String> headers = new HashMap<>();
       headers.put("Content-Type", "application/json");
       headers.put("X-KC-Signature", "sha256=" + signature);
-      headers.put("X-Realm", realmName);
-      headers.put("X-Tenant-Key", realmTenant.getTenantKey());
-      headers.put("X-Tenant-Id", realmTenant.getTenantId());
+      headers.put("X-Realm", payload.getRealm());
+      headers.put("X-Tenant-Key", payload.getTenantKey());
 
       logger.debugf("Sending webhook: url=%s, type=%s, signature=%s", endpointUrl,
-          payload.getType(), signature.substring(0, 8) + "...");
+          payload.getEventType(), signature.substring(0, 8) + "...");
 
-      // Send request
       HttpResponse<String> response = webhookClient.sendJson(endpointUrl, body, headers);
       int statusCode = response.statusCode();
 
       if (statusCode >= 200 && statusCode < 300) {
-        logger.infof("Webhook sent successfully: type=%s, status=%d", payload.getType(),
+        logger.infof("Webhook sent successfully: type=%s, status=%d", payload.getEventType(),
             statusCode);
       } else {
-        logger.warnf("Webhook failed: type=%s, status=%d, response=%s", payload.getType(),
+        logger.warnf("Webhook failed: type=%s, status=%d, response=%s", payload.getEventType(),
             statusCode, response.body());
       }
 
     } catch (Exception e) {
-      logger.warnf(e, "Failed to send webhook for event: %s", payload.getType());
+      logger.warnf(e, "Failed to send webhook for event: %s", payload.getEventType());
     }
-  }
-
-  // Package-private methods for testing
-  String extractUserIdFromPath(String resourcePath) {
-    // Resource path format: "users/{userId}" or "users/{userId}/..."
-    if (resourcePath != null && resourcePath.startsWith("users/")) {
-      String[] parts = resourcePath.split("/");
-      if (parts.length >= 2) {
-        return parts[1];
-      }
-    }
-    return null;
   }
 
   String computeHmacSha256(byte[] data, String secret) {
@@ -240,6 +167,23 @@ public class EventWebhookProvider implements EventListenerProvider {
       result.append(String.format("%02x", b));
     }
     return result.toString();
+  }
+
+  /**
+   * Extracts user ID from resource path like "users/user-123" -> "user-123"
+   */
+  String extractUserIdFromPath(String resourcePath) {
+    if (resourcePath == null || resourcePath.trim().isEmpty()) {
+      return null;
+    }
+
+    String[] parts = resourcePath.split("/");
+    if (parts.length < 2 || !"users".equals(parts[0])) {
+      return null;
+    }
+
+    String userId = parts[1];
+    return userId.isEmpty() ? null : userId;
   }
 
   @Override

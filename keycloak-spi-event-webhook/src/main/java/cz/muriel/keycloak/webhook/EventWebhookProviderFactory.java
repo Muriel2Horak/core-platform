@@ -1,49 +1,54 @@
 package cz.muriel.keycloak.webhook;
 
-import org.jboss.logging.Logger;
 import org.keycloak.Config;
 import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.EventListenerProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.jboss.logging.Logger;
 
-import java.util.*;
+import java.util.Set;
+import java.util.HashSet;
 
 public class EventWebhookProviderFactory implements EventListenerProviderFactory {
 
   private static final Logger logger = Logger.getLogger(EventWebhookProviderFactory.class);
-  private static final String PROVIDER_ID = "muriel-webhook";
 
   private String endpointUrl;
   private String secret;
-  private Map<String, RealmTenant> realmTenantMap;
   private Set<String> enabledTypes;
+
+  // Default event types to process
+  private static final Set<String> DEFAULT_ENABLED_TYPES = Set.of("USER_CREATED", "USER_UPDATED",
+      "USER_DELETED", "ROLE_CREATED", "ROLE_UPDATED", "ROLE_DELETED");
 
   @Override
   public EventListenerProvider create(KeycloakSession session) {
-    return new EventWebhookProvider(session, endpointUrl, secret, realmTenantMap, enabledTypes);
+    return new EventWebhookProvider(session, endpointUrl, secret, enabledTypes);
   }
 
   @Override
-  public void init(Config.Scope config) {
-    // Load configuration with fallback to environment variables
-    endpointUrl = getConfigValue(config, "endpoint-url",
-        "KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_ENDPOINT_URL");
-    secret = getConfigValue(config, "secret", "KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_SECRET");
+  public void init(Config.Scope scope) {
+    logger.info("🔧 Initializing EventWebhookProvider (SIMPLIFIED)...");
 
-    String realmTenantMapStr = getConfigValue(config, "realm-tenant-map",
-        "KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_REALM_TENANT_MAP");
-    String enabledTypesStr = getConfigValue(config, "enabled-types",
-        "KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_ENABLED_TYPES");
+    // Get webhook configuration
+    this.endpointUrl = getConfigValue(scope, "KC_EVENT_WEBHOOK_URL", "endpoint-url", null);
+    this.secret = getConfigValue(scope, "KC_EVENT_WEBHOOK_SECRET", "secret",
+        "webhook-secret-change-me");
 
-    // Parse realm-tenant-map
-    realmTenantMap = parseRealmTenantMap(realmTenantMapStr);
+    // Parse enabled event types
+    String enabledTypesStr = getConfigValue(scope, "KC_ENABLED_TYPES", "enabled-types", null);
+    this.enabledTypes = parseEnabledTypes(enabledTypesStr);
 
-    // Parse enabled-types (default to all if not specified)
-    enabledTypes = parseEnabledTypes(enabledTypesStr);
+    logger.infof("✅ EventWebhookProvider initialized:");
+    logger.infof("   📍 Endpoint URL: %s", endpointUrl != null ? endpointUrl : "NOT CONFIGURED");
+    logger.infof("   🔐 Secret configured: %s", secret != null ? "YES" : "NO");
+    logger.infof("   📋 Enabled types: %s", enabledTypes);
+    logger.infof("   🎯 SIMPLIFIED: Using realm name as tenant key (no mapping needed)");
 
-    logger.infof("Muriel webhook provider initialized: endpoint=%s, realms=%d, enabledTypes=%s",
-        endpointUrl, realmTenantMap.size(), enabledTypes);
+    if (endpointUrl == null || endpointUrl.trim().isEmpty()) {
+      logger.warn("⚠️  Webhook endpoint URL not configured - webhooks will be skipped");
+    }
   }
 
   @Override
@@ -53,69 +58,54 @@ public class EventWebhookProviderFactory implements EventListenerProviderFactory
 
   @Override
   public void close() {
-    // No cleanup needed
+    logger.info("🔒 EventWebhookProviderFactory closed");
   }
 
   @Override
   public String getId() {
-    return PROVIDER_ID;
+    return "muriel-webhook";
   }
 
-  // Package-private methods for testing
-  String getConfigValue(Config.Scope config, String configKey, String envKey) {
-    String value = config.get(configKey);
-    if (value == null) {
-      value = System.getenv(envKey);
+  // Helper method to get configuration values with fallbacks
+  String getConfigValue(Config.Scope scope, String envVar, String configKey, String defaultValue) {
+    // Try environment variable first
+    String envValue = System.getenv(envVar);
+    if (envValue != null && !envValue.trim().isEmpty()) {
+      return envValue.trim();
     }
-    return value;
+
+    // Try Keycloak config
+    String configValue = scope.get(configKey);
+    if (configValue != null && !configValue.trim().isEmpty()) {
+      return configValue.trim();
+    }
+
+    // Return default
+    return defaultValue;
   }
 
-  Map<String, RealmTenant> parseRealmTenantMap(String mapStr) {
-    Map<String, RealmTenant> result = new HashMap<>();
-
-    if (mapStr == null || mapStr.trim().isEmpty()) {
-      logger.warn("Realm-tenant-map not configured");
-      return result;
-    }
-
-    try {
-      String[] entries = mapStr.split(",");
-      for (String entry : entries) {
-        String[] parts = entry.trim().split(":");
-        if (parts.length == 3) {
-          String realm = parts[0].trim();
-          String tenantKey = parts[1].trim();
-          String tenantId = parts[2].trim();
-          result.put(realm, new RealmTenant(tenantKey, tenantId));
-        } else {
-          logger.warnf(
-              "Invalid realm-tenant-map entry format: %s (expected realm:tenantKey:tenantId)",
-              entry);
-        }
-      }
-    } catch (Exception e) {
-      logger.errorf(e, "Failed to parse realm-tenant-map: %s", mapStr);
-    }
-
-    return result;
-  }
-
+  // Parse enabled event types
   Set<String> parseEnabledTypes(String typesStr) {
     if (typesStr == null || typesStr.trim().isEmpty()) {
-      // Default to all supported types
-      return Set.of("USER_CREATED", "USER_UPDATED", "USER_DELETED");
+      logger.debug("No custom enabled types configured, using defaults");
+      return new HashSet<>(DEFAULT_ENABLED_TYPES);
     }
 
+    Set<String> result = new HashSet<>();
     try {
       String[] types = typesStr.split(",");
-      Set<String> result = new HashSet<>();
       for (String type : types) {
-        result.add(type.trim());
+        String trimmed = type.trim().toUpperCase();
+        if (!trimmed.isEmpty()) {
+          result.add(trimmed);
+        }
       }
-      return result;
+      logger.debugf("Parsed enabled types: %s", result);
     } catch (Exception e) {
-      logger.errorf(e, "Failed to parse enabled-types: %s", typesStr);
-      return Set.of("USER_CREATED", "USER_UPDATED", "USER_DELETED");
+      logger.errorf(e, "Failed to parse enabled types: %s", typesStr);
+      return new HashSet<>(DEFAULT_ENABLED_TYPES);
     }
+
+    return result.isEmpty() ? new HashSet<>(DEFAULT_ENABLED_TYPES) : result;
   }
 }

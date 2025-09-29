@@ -19,6 +19,83 @@ Enterprise-ready **multitenantní** aplikace postavená na **Java 21 + Spring Bo
 - **Caching**: Optimalizované cachování tenant dat s TTL
 - **Logging**: Tenant-aware logování s MDC kontextem
 
+### 🌐 Subdomain Architecture
+- **1 realm = 1 tenant**: Každý tenant má vlastní Keycloak realm a subdoménu
+- **Wildcard SSL**: `*.core-platform.local` certifikát pro neomezené subdomény
+- **Automatic routing**: Nginx automaticky routuje `{tenant}.core-platform.local` na správný tenant kontext
+
+### 🚀 Tenant Creation Workflow
+
+#### 1. **Automatický setup (doporučeno)**
+```bash
+# První setup - nastaví domény automaticky
+make dev-setup
+
+# Spustí celé prostředí
+make up
+
+# Vytvoření nového tenantu přes API
+curl -X POST https://core-platform.local/api/admin/tenants \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -d '{"key": "acme-corp", "displayName": "ACME Corporation"}'
+```
+
+#### 2. **Manuální setup**
+```bash
+# Přidat doménu pro nový tenant
+make add-tenant-domain TENANT=acme-corp
+
+# Nebo přímo scriptem
+sudo scripts/setup-local-domains.sh add-tenant acme-corp
+```
+
+#### 3. **True Wildcard Support (macOS)**
+```bash
+# Pro neomezené subdomény bez manuálního přidávání
+make setup-wildcard
+
+# Pak funguje JAKÁKOLI subdoména
+# https://anything.core-platform.local
+```
+
+### 🎯 Tenant Management API
+
+**Vytvoření tenantu:**
+```bash
+POST /api/admin/tenants
+{
+  "key": "acme-corp",
+  "displayName": "ACME Corporation"
+}
+```
+
+**Seznam tenantů:**
+```bash
+GET /api/admin/tenants
+```
+
+**Smazání tenantu:**
+```bash
+DELETE /api/admin/tenants/acme-corp
+```
+
+### 🔧 Domain Management Commands
+
+```bash
+# Ukázat současnou konfiguraci domén
+make show-domains
+
+# Přidat doménu pro tenant
+make add-tenant-domain TENANT=my-company
+
+# Odebrat doménu tenantu  
+make remove-tenant-domain TENANT=my-company
+
+# Nastavit wildcard support (macOS)
+make setup-wildcard
+```
+
 ### 🔗 Realtime User Synchronization 
 **Nová funkčnost v Step 2**: Automatická synchronizace uživatelů z Keycloak do lokální `users_directory`.
 

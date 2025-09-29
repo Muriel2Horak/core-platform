@@ -19,7 +19,8 @@ function App() {
     const initKeycloak = async () => {
       try {
         console.log('🚀 App: Inicializuji Keycloak...');
-        const authenticated = await keycloakService.initialize();
+        const keycloak = await keycloakService.init(); // 🔧 FIX: změna z initialize() na init()
+        const authenticated = keycloak?.authenticated || false;
         console.log('✅ App: Keycloak úspěšně inicializován, přihlášen:', authenticated);
         setKeycloakInitialized(true);
         setIsAuthenticated(authenticated);

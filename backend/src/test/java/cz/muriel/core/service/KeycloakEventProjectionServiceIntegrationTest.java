@@ -39,9 +39,8 @@ class KeycloakEventProjectionServiceIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    // Create test tenant
-    testTenant = Tenant.builder().key("test-tenant").name("Test Tenant").realm("core-platform")
-        .build();
+    // Create test tenant - 🎯 SIMPLIFIED: no realm column needed
+    testTenant = Tenant.builder().key("test-tenant").build();
     testTenant = tenantRepository.save(testTenant);
   }
 

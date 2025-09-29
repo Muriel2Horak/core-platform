@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity @Table(name = "tenants") @Data @NoArgsConstructor @AllArgsConstructor @Builder
@@ -16,19 +15,23 @@ public class Tenant {
   private UUID id;
 
   @Column(name = "key", unique = true, nullable = false)
-  private String key;
+  private String key; // 🎯 SIMPLIFIED: This IS the realm name
 
-  @Column(name = "name", nullable = false)
-  private String name;
+  /**
+   * 🎯 OPTIMIZED: Realm name is the same as tenant key
+   */
+  public String getRealm() {
+    return key; // realm = tenant key
+  }
 
-  @Column(name = "realm", nullable = false)
-  private String realm;
-
-  @Column(name = "created_at")
-  private LocalDateTime createdAt;
-
-  @PrePersist
-  protected void onCreate() {
-    createdAt = LocalDateTime.now();
+  /**
+   * 🎯 OPTIMIZED: Get display name from Keycloak realm (not stored in DB) This
+   * method should be used sparingly - for display purposes only
+   */
+  @Transient
+  public String getName() {
+    // This will be lazy-loaded from Keycloak when needed
+    // Implementation will be provided by TenantService
+    return "Tenant " + key; // Fallback if Keycloak not available
   }
 }

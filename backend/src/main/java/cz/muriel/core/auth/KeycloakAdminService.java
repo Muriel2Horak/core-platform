@@ -908,6 +908,336 @@ public class KeycloakAdminService {
     return username; // fallback
   }
 
+  /**
+   * 🆕 REALM MANAGEMENT: Create new Keycloak realm
+   */
+  public void createRealm(Map<String, Object> realmConfig) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      String requestBody = objectMapper.writeValueAsString(realmConfig);
+      HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+
+      ResponseEntity<Void> response = restTemplate.exchange(url, HttpMethod.POST, request,
+          Void.class);
+
+      if (response.getStatusCode().is2xxSuccessful()) {
+        log.info("✅ Realm created successfully: {}", realmConfig.get("realm"));
+        auditLogger.info("REALM_CREATED: realm={}", realmConfig.get("realm"));
+      } else {
+        throw new RuntimeException("Failed to create realm: " + response.getStatusCode());
+      }
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to create realm: {}", realmConfig.get("realm"), ex);
+      throw new RuntimeException("Failed to create realm: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 🆕 REALM MANAGEMENT: Delete Keycloak realm
+   */
+  public void deleteRealm(String realmName) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<Void> response = restTemplate.exchange(url, HttpMethod.DELETE,
+          new HttpEntity<>(headers), Void.class);
+
+      if (response.getStatusCode().is2xxSuccessful()) {
+        log.info("✅ Realm deleted successfully: {}", realmName);
+        auditLogger.info("REALM_DELETED: realm={}", realmName);
+      } else {
+        throw new RuntimeException("Failed to delete realm: " + response.getStatusCode());
+      }
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to delete realm: {}", realmName, ex);
+      throw new RuntimeException("Failed to delete realm: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 🆕 REALM MANAGEMENT: List all realms
+   */
+  public List<Map<String, Object>> getAllRealms() {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode realms = objectMapper.readTree(response.getBody());
+      List<Map<String, Object>> realmList = new ArrayList<>();
+
+      for (JsonNode realm : realms) {
+        Map<String, Object> realmInfo = Map.of("realm", realm.path("realm").asText(), "displayName",
+            realm.path("displayName").asText(""), "enabled", realm.path("enabled").asBoolean(),
+            "id", realm.path("id").asText());
+        realmList.add(realmInfo);
+      }
+
+      return realmList;
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get realms list", ex);
+      throw new RuntimeException("Failed to get realms: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 🆕 USER MANAGEMENT: Create user in specific realm
+   */
+  public void createUser(String realmName, Map<String, Object> userData) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/users";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      String requestBody = objectMapper.writeValueAsString(userData);
+      HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+
+      ResponseEntity<Void> response = restTemplate.exchange(url, HttpMethod.POST, request,
+          Void.class);
+
+      if (response.getStatusCode().is2xxSuccessful()) {
+        log.info("✅ User created successfully in realm {}: {}", realmName,
+            userData.get("username"));
+        auditLogger.info("USER_CREATED: realm={}, username={}", realmName,
+            userData.get("username"));
+      } else {
+        throw new RuntimeException("Failed to create user: " + response.getStatusCode());
+      }
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to create user in realm {}: {}", realmName, userData.get("username"), ex);
+      throw new RuntimeException("Failed to create user: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 🆕 CLIENT MANAGEMENT: Update protocol mapper for client
+   */
+  public void updateClientProtocolMapper(String realmName, String clientId, String mapperName,
+      Map<String, Object> config) {
+    try {
+      log.debug("Updating protocol mapper '{}' for client '{}' in realm '{}'", mapperName, clientId,
+          realmName);
+
+      String adminToken = getSecureAdminToken();
+
+      // First, get client UUID
+      String clientUuid = getClientUuid(realmName, clientId, adminToken);
+      if (clientUuid == null) {
+        log.warn("Client '{}' not found in realm '{}'", clientId, realmName);
+        return;
+      }
+
+      // Get existing protocol mappers
+      String mappersUrl = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients/" + clientUuid
+          + "/protocol-mappers/models";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> mappersResponse = restTemplate.exchange(mappersUrl, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      if (!mappersResponse.getStatusCode().is2xxSuccessful()) {
+        log.warn("Failed to get protocol mappers for client '{}' in realm '{}'", clientId,
+            realmName);
+        return;
+      }
+
+      // Find the specific mapper
+      JsonNode mappers = objectMapper.readTree(mappersResponse.getBody());
+      String mapperId = null;
+
+      for (JsonNode mapper : mappers) {
+        if (mapperName.equals(mapper.path("name").asText())) {
+          mapperId = mapper.path("id").asText();
+          break;
+        }
+      }
+
+      if (mapperId == null) {
+        log.warn("Protocol mapper '{}' not found for client '{}' in realm '{}'", mapperName,
+            clientId, realmName);
+        return;
+      }
+
+      // Update the mapper
+      String updateUrl = mappersUrl + "/" + mapperId;
+
+      // Get current mapper config and update it
+      Map<String, Object> mapperUpdate = new HashMap<>();
+      mapperUpdate.put("id", mapperId);
+      mapperUpdate.put("name", mapperName);
+      mapperUpdate.put("protocol", "openid-connect");
+      mapperUpdate.put("protocolMapper", "oidc-hardcoded-claim-mapper");
+      mapperUpdate.put("consentRequired", false);
+      mapperUpdate.put("config", config);
+
+      String requestBody = objectMapper.writeValueAsString(mapperUpdate);
+      HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+
+      ResponseEntity<Void> updateResponse = restTemplate.exchange(updateUrl, HttpMethod.PUT,
+          request, Void.class);
+
+      if (updateResponse.getStatusCode().is2xxSuccessful()) {
+        log.debug("✅ Protocol mapper '{}' updated successfully", mapperName);
+      } else {
+        log.warn("Failed to update protocol mapper '{}': {}", mapperName,
+            updateResponse.getStatusCode());
+      }
+
+    } catch (Exception ex) {
+      log.warn("Failed to update protocol mapper '{}' for client '{}' in realm '{}': {}",
+          mapperName, clientId, realmName, ex.getMessage());
+    }
+  }
+
+  /**
+   * 🔍 HELPER: Get client UUID by client ID
+   */
+  private String getClientUuid(String realmName, String clientId, String adminToken) {
+    try {
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients?clientId=" + clientId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      if (response.getStatusCode().is2xxSuccessful()) {
+        JsonNode clients = objectMapper.readTree(response.getBody());
+        if (clients.size() > 0) {
+          return clients.get(0).path("id").asText();
+        }
+      }
+
+    } catch (Exception ex) {
+      log.debug("Failed to get client UUID for '{}' in realm '{}': {}", clientId, realmName,
+          ex.getMessage());
+    }
+
+    return null;
+  }
+
+  /**
+   * 🔍 USER SEARCH: Find user by email
+   */
+  public JsonNode findUserByEmail(String email) {
+    // Note: This is a simplified version - in real implementation,
+    // you'd need to specify the realm or search across all tenant realms
+    try {
+      String adminToken = getSecureAdminToken();
+      // This would need to be adapted for multi-realm search
+      String url = keycloakBaseUrl + "/admin/realms/master/users?email=" + email;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      if (response.getStatusCode().is2xxSuccessful()) {
+        JsonNode users = objectMapper.readTree(response.getBody());
+        return users.size() > 0 ? users.get(0) : null;
+      }
+
+    } catch (Exception ex) {
+      log.debug("Failed to find user by email '{}': {}", email, ex.getMessage());
+    }
+
+    return null;
+  }
+
+  /**
+   * 🆕 REALM MANAGEMENT: Create realm from JSON string
+   */
+  public void createRealm(String realmJson) {
+    try {
+      @SuppressWarnings("unchecked")
+      Map<String, Object> realmConfig = objectMapper.readValue(realmJson, Map.class);
+      createRealm(realmConfig);
+    } catch (Exception ex) {
+      log.error("❌ Failed to parse realm JSON", ex);
+      throw new RuntimeException("Failed to parse realm configuration: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 🔍 REALM MANAGEMENT: Check if realm exists
+   */
+  public boolean realmExists(String realmName) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      return response.getStatusCode().is2xxSuccessful();
+
+    } catch (Exception ex) {
+      log.debug("Realm '{}' does not exist or is not accessible", realmName);
+      return false;
+    }
+  }
+
+  /**
+   * 🔍 REALM MANAGEMENT: Get realm info
+   */
+  public Map<String, Object> getRealmInfo(String realmName) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      if (response.getStatusCode().is2xxSuccessful()) {
+        JsonNode realmInfo = objectMapper.readTree(response.getBody());
+
+        return Map.of("realm", realmInfo.path("realm").asText(), "displayName",
+            realmInfo.path("displayName").asText(""), "enabled",
+            realmInfo.path("enabled").asBoolean(), "id", realmInfo.path("id").asText(),
+            "registrationAllowed", realmInfo.path("registrationAllowed").asBoolean(),
+            "loginWithEmailAllowed", realmInfo.path("loginWithEmailAllowed").asBoolean());
+      }
+
+      return Map.of();
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get realm info for {}: {}", realmName, ex.getMessage());
+      return Map.of("error", ex.getMessage());
+    }
+  }
+
   private static class TokenCache {
     final String token;
     final long expiresAt;

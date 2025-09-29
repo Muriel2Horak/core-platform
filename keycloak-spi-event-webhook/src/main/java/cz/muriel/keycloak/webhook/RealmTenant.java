@@ -1,7 +1,7 @@
 package cz.muriel.keycloak.webhook;
 
 /**
- * Data class representing tenant mapping for a realm
+ * Simple data class representing a realm-tenant mapping for testing purposes
  */
 public class RealmTenant {
   private final String tenantKey;
@@ -24,21 +24,5 @@ public class RealmTenant {
   public String toString() {
     return "RealmTenant{" + "tenantKey='" + tenantKey + '\'' + ", tenantId='" + tenantId + '\''
         + '}';
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o)
-      return true;
-    if (o == null || getClass() != o.getClass())
-      return false;
-    RealmTenant that = (RealmTenant) o;
-    return java.util.Objects.equals(tenantKey, that.tenantKey)
-        && java.util.Objects.equals(tenantId, that.tenantId);
-  }
-
-  @Override
-  public int hashCode() {
-    return java.util.Objects.hash(tenantKey, tenantId);
   }
 }

@@ -22,7 +22,7 @@
     "@tabler/icons-react": "^3.33.0",
     "apexcharts": "^4.7.0",
     "dayjs": "^1.11.13",
-    "keycloak-js": "^26.2.0",
+    "keycloak-js": "^24.0.4",
     "lodash": "^4.17.21",
     "prop-types": "^15.8.1",
     "react": "^19.0.0",

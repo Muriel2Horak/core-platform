@@ -1,73 +1,72 @@
 package cz.muriel.core.tenant;
 
-import cz.muriel.core.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component @RequiredArgsConstructor @Slf4j
 public class TenantResolver {
 
-  private final TenantRepository tenantRepository;
-  private final TenantIdCache tenantIdCache;
-
-  @Value("${auth.jwt.tenant-claim:tenant}")
-  private String tenantClaimName;
-
-  @Value("${tenancy.default-tenant-key:test-tenant}")
-  private String defaultTenantKey;
-
   /**
-   * Resolve tenant key from JWT token or use default
+   * 🎯 SIMPLE ARCHITECTURE: Resolve tenant key from JWT realm JWT realm = tenant
+   * key (much simpler than complex header/hostname logic)
    */
   public String resolveTenantKey() {
-    String tenantKey = getTenantFromJwt();
+    String tenantKey = getTenantFromJwtRealm();
 
-    if (tenantKey == null || tenantKey.trim().isEmpty()) {
-      log.debug("No tenant claim found in JWT, using default: {}", defaultTenantKey);
-      tenantKey = defaultTenantKey;
+    if (tenantKey != null) {
+      log.debug("🔐 Tenant resolved from JWT realm: {}", tenantKey);
+      return tenantKey;
     }
 
-    return tenantKey;
+    // 🔒 STRICT SECURITY: If no tenant resolved, FAIL
+    log.warn("🚫 No tenant could be resolved from JWT realm");
+    throw new TenantNotFoundException("Tenant could not be determined - access denied");
   }
 
   /**
-   * Resolve and validate tenant, returns tenant ID
+   * 🔐 JWT REALM: Extract tenant from JWT realm (realm = tenant)
    */
-  public UUID resolveTenantId(String tenantKey) {
-    // Check cache first
-    UUID tenantId = tenantIdCache.getTenantId(tenantKey);
-    if (tenantId != null) {
-      return tenantId;
-    }
-
-    // Load from database
-    var tenant = tenantRepository.findByKey(tenantKey);
-    if (tenant.isEmpty()) {
-      log.error("Tenant not found: {}", tenantKey);
-      throw new TenantNotFoundException("Tenant not found: " + tenantKey);
-    }
-
-    tenantId = tenant.get().getId();
-    tenantIdCache.putTenantId(tenantKey, tenantId);
-
-    return tenantId;
-  }
-
-  private String getTenantFromJwt() {
+  private String getTenantFromJwtRealm() {
     try {
       var authentication = SecurityContextHolder.getContext().getAuthentication();
       if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-        return jwt.getClaimAsString(tenantClaimName);
+        // Use 'iss' (issuer) claim which contains realm info
+        String issuer = jwt.getIssuer().toString();
+        if (issuer != null && issuer.contains("/realms/")) {
+          // Extract realm from issuer URL: http://localhost:8081/realms/core-platform
+          String realm = issuer.substring(issuer.lastIndexOf("/realms/") + 8);
+          if (realm != null && !realm.trim().isEmpty()) {
+            return realm.trim();
+          }
+        }
+
+        // Fallback: try 'realm' claim if exists
+        String realmClaim = jwt.getClaimAsString("realm");
+        if (realmClaim != null && !realmClaim.trim().isEmpty()) {
+          return realmClaim.trim();
+        }
       }
     } catch (Exception e) {
-      log.warn("Failed to extract tenant from JWT: {}", e.getMessage());
+      log.debug("Failed to extract tenant from JWT realm: {}", e.getMessage());
     }
     return null;
+  }
+
+  /**
+   * 🔍 UTILITY: Get current JWT info for debugging
+   */
+  public String getRequestDebugInfo() {
+    try {
+      var authentication = SecurityContextHolder.getContext().getAuthentication();
+      if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+        return String.format("JWT Issuer: %s, Subject: %s", jwt.getIssuer(), jwt.getSubject());
+      }
+    } catch (Exception e) {
+      return "JWT debug info unavailable: " + e.getMessage();
+    }
+    return "No JWT authentication";
   }
 }

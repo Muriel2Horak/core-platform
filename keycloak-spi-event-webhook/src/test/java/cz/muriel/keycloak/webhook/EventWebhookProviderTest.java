@@ -105,7 +105,6 @@ class EventWebhookProviderTest {
     // Create a test provider with minimal configuration
     return new EventWebhookProvider(null, // session - not needed for these tests
         "http://test.com/webhook", "test-secret",
-        java.util.Map.of("test-realm", new RealmTenant("test-tenant", "test-uuid")),
         java.util.Set.of("USER_CREATED", "USER_UPDATED", "USER_DELETED"));
   }
 }

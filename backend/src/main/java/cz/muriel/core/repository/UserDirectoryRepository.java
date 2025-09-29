@@ -21,6 +21,9 @@ public interface UserDirectoryRepository extends JpaRepository<UserDirectoryEnti
 
   Optional<UserDirectoryEntity> findByEmail(String email);
 
+  // 🔍 MISSING METHOD: Case-insensitive email search
+  Optional<UserDirectoryEntity> findByEmailIgnoreCase(String email);
+
   @Query("SELECT u FROM UserDirectoryEntity u WHERE "
       + "(LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%')) OR "
       + " LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%')) OR "
@@ -35,7 +38,36 @@ public interface UserDirectoryRepository extends JpaRepository<UserDirectoryEnti
       + " LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :q, '%')))")
   Page<UserDirectoryEntity> searchWithPagination(@Param("q") String query, Pageable pageable);
 
+  /**
+   * 🆕 Search by directory source (AD/Local)
+   */
+  Page<UserDirectoryEntity> findByIsFederated(boolean isFederated, Pageable pageable);
+
+  /**
+   * 🆕 Search by query and directory source
+   */
+  @Query("SELECT u FROM UserDirectoryEntity u WHERE " + "u.isFederated = :isFederated AND ("
+      + " LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%')) OR "
+      + " LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%')) OR "
+      + " LOWER(u.displayName) LIKE LOWER(CONCAT('%', :q, '%')) OR "
+      + " LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :q, '%')))")
+  Page<UserDirectoryEntity> searchByQueryAndSource(@Param("q") String query,
+      @Param("isFederated") boolean isFederated, Pageable pageable);
+
   List<UserDirectoryEntity> findByManagerId(UUID managerId);
 
   List<UserDirectoryEntity> findByStatus(String status);
+
+  // 🔍 EXTENDED SEARCH: Rozšířené vyhledávání pro tenant discovery
+  List<UserDirectoryEntity> findByFirstNameContainingIgnoreCaseAndLastNameContainingIgnoreCase(
+      String firstName, String lastName);
+
+  List<UserDirectoryEntity> findByDisplayNameContainingIgnoreCase(String displayName);
+
+  List<UserDirectoryEntity> findByFirstNameContainingIgnoreCase(String firstName);
+
+  List<UserDirectoryEntity> findByLastNameContainingIgnoreCase(String lastName);
+
+  // 📊 TENANT STATISTICS: Počítání uživatelů
+  long countByTenantId(UUID tenantId);
 }

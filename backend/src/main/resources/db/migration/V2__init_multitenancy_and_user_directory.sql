@@ -9,7 +9,6 @@ CREATE TABLE tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     key TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
-    realm TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -54,6 +53,6 @@ CREATE TRIGGER update_users_directory_updated_at BEFORE UPDATE ON users_director
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Seed data: insert test tenant
-INSERT INTO tenants (key, name, realm) VALUES 
-('test-tenant', 'Test Tenant', 'core-platform')
+INSERT INTO tenants (key, name) VALUES 
+('test-tenant', 'Test Tenant')
 ON CONFLICT (key) DO NOTHING;

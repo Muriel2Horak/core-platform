@@ -1,10 +1,8 @@
 package cz.muriel.core.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.dto.KeycloakWebhookEventDto;
 import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.entity.UserDirectoryEntity;
-import cz.muriel.core.repository.TenantRepository;
 import cz.muriel.core.repository.UserDirectoryRepository;
 import cz.muriel.core.repository.KeycloakEventLogRepository;
 import cz.muriel.core.entity.KeycloakEventLog;
@@ -18,15 +16,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service @RequiredArgsConstructor @Slf4j @Transactional
 public class KeycloakEventProjectionService {
 
   private final UserDirectoryRepository userDirectoryRepository;
-  private final TenantRepository tenantRepository;
   private final KeycloakEventLogRepository eventLogRepository;
-  private final ObjectMapper objectMapper;
+  private final TenantService tenantService; // 🆕 Added for simplified tenant management
 
   public void processEvent(KeycloakWebhookEventDto event) {
     // Set tenant context for logging
@@ -40,12 +38,17 @@ public class KeycloakEventProjectionService {
         return;
       }
 
-      // Validate tenant exists
-      Optional<Tenant> tenant = tenantRepository.findByKey(event.getTenantKey());
+      // 🎯 CLEAN ARCHITECTURE: Tenant must exist in DB registry
+      // We don't auto-create tenants - they must be properly set up first
+      Optional<Tenant> tenant = tenantService.findTenantByKey(event.getTenantKey());
+
       if (tenant.isEmpty()) {
-        log.warn("Tenant not found for event: {}", event.getTenantKey());
+        log.warn("🚫 Event rejected - tenant not found in registry: {}", event.getTenantKey());
+        log.warn("💡 Tenant must be created first through admin interface");
         return;
       }
+
+      log.debug("Processing event for registered tenant: {}", tenant.get().getName());
 
       // Process the event
       processUserEvent(event, tenant.get());
@@ -125,10 +128,21 @@ public class KeycloakEventProjectionService {
     // Store roles and groups as JSON
     try {
       if (event.getRoles() != null) {
-        user.setRolesJson(objectMapper.writeValueAsString(event.getRoles()));
+        // Roles is a Map<String, Object>, need to serialize it properly
+        StringBuilder rolesJson = new StringBuilder();
+        event.getRoles().forEach((key, value) -> {
+          if (value instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<String> roleList = (List<String>) value;
+            if (!roleList.isEmpty()) {
+              rolesJson.append(key).append(":").append(String.join(",", roleList)).append(";");
+            }
+          }
+        });
+        user.setRolesJson(rolesJson.toString());
       }
       if (event.getGroups() != null) {
-        user.setGroupsJson(objectMapper.writeValueAsString(event.getGroups()));
+        user.setGroupsJson(String.join(",", event.getGroups()));
       }
     } catch (Exception e) {
       log.warn("Failed to serialize roles/groups for user {}: {}", user.getUsername(),

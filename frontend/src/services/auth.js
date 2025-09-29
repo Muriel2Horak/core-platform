@@ -1,10 +1,15 @@
 // Auth utility pro správu JWT tokenů a API volání
 class AuthService {
   constructor() {
-    // Backend používá cookies, ale pro kompatibilitu kontrolujeme i localStorage
-    this.token = localStorage.getItem('keycloak-token');
-    // 🔧 FIX: Odstraněno - logger se neinicializuje zde kvůli cyklické závislosti
-    console.log('🔧 AUTHSERVICE: Inicializace', { hasToken: !!this.token });
+    const token = localStorage.getItem('keycloak-token');
+    console.log('🔧 AUTHSERVICE: Inicializace', { hasToken: !!token });
+    
+    // 🔧 OPRAVENO: Poslouchej na keycloak-authenticated event
+    window.addEventListener('keycloak-authenticated', (event) => {
+      console.log('🎉 AuthService: Received keycloak-authenticated event', event.detail);
+      // Refresh user info při autentizaci
+      this.refreshUserInfo();
+    });
   }
 
   // 🔧 FIX: Zjednodušené logování bez importu loggeru (kvůli cyklické závislosti)
@@ -83,23 +88,58 @@ class AuthService {
     return this.token || localStorage.getItem('keycloak-token');
   }
 
-  // Získání informací o uživateli z tokenu
-  async getUserInfo() {
-    const token = localStorage.getItem('keycloak-token');
-    if (!token) return null;
-
+  /**
+   * 🔄 Refresh user info z localStorage
+   */
+  refreshUserInfo() {
     try {
+      const userInfoStr = localStorage.getItem('keycloak-user-info');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        console.log('🔄 AuthService: User info refreshed', userInfo);
+        return userInfo;
+      }
+    } catch (error) {
+      console.warn('Failed to parse user info from localStorage:', error);
+    }
+    return null;
+  }
+
+  /**
+   * 👤 Získání informací o aktuálním uživateli
+   */
+  getUserInfo() {
+    try {
+      const token = localStorage.getItem('keycloak-token');
+      if (!token) {
+        console.log('🔍 AUTHSERVICE: No token found');
+        return null;
+      }
+
+      // 🔧 OPRAVENO: Nejdříve zkus načíst z localStorage (kde ukládá keycloakService)
+      const userInfoStr = localStorage.getItem('keycloak-user-info');
+      if (userInfoStr) {
+        const userInfo = JSON.parse(userInfoStr);
+        console.log('✅ AUTHSERVICE: User info loaded from localStorage', userInfo);
+        return userInfo;
+      }
+
+      // 🔧 Fallback: Zkus parsovat z tokenu (původní logika)
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return {
-        username: payload.preferred_username || payload.sub,
+      
+      const userInfo = {
+        username: payload.preferred_username,
         email: payload.email,
-        name: payload.name,
         firstName: payload.given_name,
         lastName: payload.family_name,
-        roles: payload.realm_access?.roles || []
+        roles: payload.realm_access?.roles || [],
+        tenant: payload.tenant
       };
+      
+      console.log('✅ AUTHSERVICE: User info extracted from token', userInfo);
+      return userInfo;
     } catch (error) {
-      console.error('🔧 AUTHSERVICE: Chyba při získávání user info:', error);
+      console.error('❌ AUTHSERVICE: Error getting user info', error);
       return null;
     }
   }
@@ -215,6 +255,35 @@ class AuthService {
     
     // Přidej Authorization token pokud je dostupný
     if (token) {
+      // 🔧 DEBUG: Log token pro diagnostiku "Invalid JWT format"
+      console.log('🔍 DEBUG: Sending token to backend:', {
+        tokenLength: token.length,
+        tokenStart: token.substring(0, 50),
+        tokenParts: token.split('.').length,
+        tokenSource: tokenSource,
+        isValidJWT: token.split('.').length === 3
+      });
+      
+      // Zkus parsovat token pro validaci
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+          console.error('❌ Invalid JWT: Wrong number of parts', parts.length);
+        } else {
+          const header = JSON.parse(atob(parts[0]));
+          const payload = JSON.parse(atob(parts[1]));
+          console.log('✅ JWT Header:', header);
+          console.log('✅ JWT Payload preview:', {
+            sub: payload.sub,
+            iss: payload.iss,
+            exp: new Date(payload.exp * 1000),
+            preferred_username: payload.preferred_username
+          });
+        }
+      } catch (parseError) {
+        console.error('❌ Token parsing failed:', parseError);
+      }
+      
       headers.set('Authorization', `Bearer ${token}`);
     }
     

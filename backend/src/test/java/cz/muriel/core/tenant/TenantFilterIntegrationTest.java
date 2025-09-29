@@ -34,14 +34,12 @@ class TenantFilterIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    // Create two test tenants
-    Tenant tenant1 = Tenant.builder().key("tenant-1").name("Tenant One").realm("core-platform")
-        .build();
+    // Create test tenants - 🎯 SIMPLIFIED: using only key field
+    Tenant tenant1 = Tenant.builder().key("tenant1").build();
     tenant1 = tenantRepository.save(tenant1);
     tenant1Id = tenant1.getId();
 
-    Tenant tenant2 = Tenant.builder().key("tenant-2").name("Tenant Two").realm("core-platform")
-        .build();
+    Tenant tenant2 = Tenant.builder().key("tenant2").build();
     tenant2 = tenantRepository.save(tenant2);
     tenant2Id = tenant2.getId();
 

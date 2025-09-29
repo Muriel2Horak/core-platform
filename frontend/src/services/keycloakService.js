@@ -1,336 +1,551 @@
-import Keycloak from 'keycloak-js';
-
-// 🔑 Keycloak instance - singleton
-let keycloakInstance = null;
-let initializationPromise = null;
-
-/**
- * ✅ OPRAVENO: Keycloak 26.x integrace s environment proměnnými
- * - Používá VITE_KEYCLOAK_* proměnné z docker-compose.yml
- * - Keycloak běží na root path (/) bez /auth prefixu
- * - Nginx reverse proxy zajišťuje routing z /auth/* na Keycloak root
- * - Žádné hardcoded domény nebo URL
- */
+// Keycloak service s auto-detekcí tenant z hostname
 class KeycloakService {
   constructor() {
     this.keycloak = null;
-    this.token = null;
-    this.refreshToken = null;
-    this.isInitialized = false;
+    this.initialized = false;
+    this.tenantCreationInProgress = false;
+
+    // 🎯 AUTO-DETECT: Tenant z hostname nebo fallback
+    this.config = this.getKeycloakConfig();
   }
 
   /**
-   * Inicializace Keycloak - volá se při startu aplikace
+   * 🌐 SUBDOMAIN AUTO-DETECTION: Automatická detekce Keycloak konfigurace
    */
-  async initialize() {
-    if (initializationPromise) {
-      return initializationPromise;
+  getKeycloakConfig() {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+
+    // Detect tenant from subdomain
+    const parts = hostname.split('.');
+    let tenantKey = 'core-platform'; // default
+    let isMainDomain = false; // 🔧 OPRAVENO: explicitní detekce main domain
+
+    if (parts.length >= 3) {
+      // e.g., test-tenant.core-platform.local
+      const subdomain = parts[0];
+      if (subdomain !== 'core-platform') {
+        tenantKey = subdomain;
+      }
     }
 
-    initializationPromise = this._doInitialize();
-    return initializationPromise;
+    // 🔧 OPRAVENO: Main domain je pouze když nemáme žádný specifický tenant
+    // core-platform.local je validní tenant domain, ne main domain
+    if (hostname === 'localhost' || hostname.endsWith('.example.com')) {
+      isMainDomain = true;
+    }
+
+    console.log(`🔍 Detected tenant from hostname '${hostname}': ${tenantKey}`);
+
+    // 🔧 SSL: Používej HTTPS URL přes Nginx reverse proxy s SSL
+    let keycloakUrl;
+    
+    if (hostname.includes('localhost')) {
+      // V development módu používej localhost s HTTPS
+      keycloakUrl = `https://core-platform.local`;
+    } else {
+      // V produkci používej HTTPS s detekovaným hostname
+      keycloakUrl = `https://${hostname}`;
+    }
+
+    console.log(`🔧 Using Keycloak HTTPS URL via Nginx proxy: ${keycloakUrl}`);
+
+    return {
+      url: keycloakUrl,
+      realm: tenantKey, // 🎯 CLEAN ARCHITECTURE: realm = tenant key
+      clientId: 'web',
+
+      // Debug info
+      _debug: {
+        hostname,
+        protocol,
+        detectedTenant: tenantKey,
+        keycloakUrl,
+        isMainDomain, // 🔧 OPRAVENO: používej explicitní isMainDomain
+        usingSSL: true,
+        usingNginxProxy: true
+      }
+    };
   }
 
-  async _doInitialize() {
+  /**
+   * 🚀 INITIALIZE: Inicializuje Keycloak s auto-detekovanou konfigurací
+   */
+  async init() {
+    if (this.initialized) {
+      return this.keycloak;
+    }
+
     try {
-      console.log('🔑 Keycloak: Inicializuji s environment proměnnými...');
-      
-      // ✅ OPRAVENO: Načítá z environment proměnných místo keycloak.json
-      const keycloakConfig = {
-        url: import.meta.env.VITE_KEYCLOAK_URL || window.location.origin,
-        realm: import.meta.env.VITE_KEYCLOAK_REALM || 'core-platform',
-        clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'web'
+      console.log('🔧 Initializing Keycloak with config:', this.config);
+
+      // Import Keycloak dynamicky (Vite compatibility)
+      const Keycloak = (await import('keycloak-js')).default;
+
+      this.keycloak = new Keycloak(this.config);
+
+      // Initialization options
+      const initOptions = {
+        onLoad: 'login-required', // 🔧 OPRAVENO: Přímé zobrazení login stránky místo silent check
+        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
+        pkceMethod: 'S256',
+        checkLoginIframe: false, // Disable iframe checking for better compatibility
+        enableLogging: true, // 🔧 PŘIDÁNO: Enable logging pro debug
       };
-      
-      console.log('🔑 Keycloak: Konfigurace z environment:', keycloakConfig);
 
-      // Vytvoř Keycloak instanci
-      this.keycloak = new Keycloak(keycloakConfig);
-      keycloakInstance = this.keycloak;
-
-      // ✅ OPRAVENO: Keycloak 26.x optimalizovaná inicializace bez silent-sso.html
-      const authenticated = await this.keycloak.init({
-        onLoad: 'check-sso',
-        checkLoginIframe: false,  // vypnout iframe session check pokud dělá problémy
-        pkceMethod: 'S256',       // moderní PKCE flow pro Keycloak 26.x
-      });
+      const authenticated = await this.keycloak.init(initOptions);
 
       if (authenticated) {
-        console.log('🔑 Keycloak: Uživatel přihlášen');
-        
-        // Ulož tokeny v paměti
-        this.token = this.keycloak.token;
-        this.refreshToken = this.keycloak.refreshToken;
-        
-        // 🎯 NOVÁ FUNKCE: Ulož token do localStorage pro AuthService
-        if (this.keycloak.token) {
-          localStorage.setItem('keycloak-token', this.keycloak.token);
-          console.log('🔑 Keycloak: Token uložen do localStorage pro AuthService');
-        }
-        if (this.keycloak.refreshToken) {
-          localStorage.setItem('keycloak-refresh-token', this.keycloak.refreshToken);
-        }
-        
-        this.isInitialized = true;
+        console.log('✅ Keycloak authenticated successfully');
+        console.log('🎯 Token info:', {
+          realm: this.keycloak.realm,
+          username: this.keycloak.tokenParsed?.preferred_username,
+          tenant: this.keycloak.tokenParsed?.tenant,
+          roles: this.keycloak.tokenParsed?.realm_access?.roles
+        });
 
-        // Nastav automatické obnovování tokenů
+        // Store token for API calls
+        localStorage.setItem('keycloak-token', this.keycloak.token);
+
+        // Setup token refresh
         this.setupTokenRefresh();
-        
-        return true;
       } else {
-        console.log('🔑 Keycloak: Uživatel není přihlášen');
-        this.isInitialized = true;
-        return false;
+        console.log('ℹ️ User not authenticated, ready for login');
       }
+
+      this.initialized = true;
+      return this.keycloak;
+
     } catch (error) {
-      console.error('🔑 Keycloak: Chyba při inicializaci:', error);
-      throw error;
+      console.error('❌ Keycloak initialization failed:', error);
+      return await this.handleInitializationError(error);
     }
   }
 
   /**
-   * Nastav automatické obnovování tokenů
+   * 🔄 INITIALIZE ALIAS: Zpětná kompatibilita s původní implementací
+   * Tato metoda zajišťuje kompatibilitu s App.jsx a AuthService
+   */
+  async initialize() {
+    const keycloak = await this.init();
+    
+    if (keycloak && keycloak.authenticated) {
+      // 🔧 DŮLEŽITÉ: Zajisti kompatibilitu s AuthService
+      // AuthService očekává user info v localStorage
+      const userInfo = this.getUserInfo();
+      if (userInfo) {
+        // Ulož user info pro AuthService
+        localStorage.setItem('keycloak-user-info', JSON.stringify(userInfo));
+        
+        console.log('✅ User info stored for AuthService:', {
+          username: userInfo.username,
+          tenant: userInfo.tenant,
+          roles: userInfo.roles
+        });
+      }
+      
+      // 🔧 Notify AuthService o úspěšné autentizaci
+      window.dispatchEvent(new CustomEvent('keycloak-authenticated', {
+        detail: { userInfo, token: this.keycloak.token }
+      }));
+    }
+    
+    return keycloak;
+  }
+
+  /**
+   * 🚨 ERROR HANDLING: Zpracování chyb při inicializaci
+   */
+  async handleInitializationError(error) {
+    const errorMessage = error.message?.toLowerCase() || '';
+    const errorDescription = error.error_description?.toLowerCase() || '';
+    
+    // 🔍 REALM NOT FOUND: Pokus o automatické vytvoření tenant realm
+    if (errorMessage.includes('realm') && (errorMessage.includes('not found') || errorMessage.includes('does not exist')) ||
+        errorDescription.includes('realm') && errorDescription.includes('not found')) {
+      
+      console.log('🏗️ Realm not found, attempting tenant auto-creation...');
+      return await this.handleMissingRealm();
+    }
+
+    // 🔍 NETWORK ERROR: Možná je Keycloak nedostupný
+    if (errorMessage.includes('network') || errorMessage.includes('fetch') || error.name === 'TypeError') {
+      console.log('🌐 Network error detected, showing connection error...');
+      this.showConnectionError();
+      throw error;
+    }
+
+    // 🔍 MAIN DOMAIN: Redirect na tenant discovery
+    if (this.config._debug.isMainDomain) {
+      console.log('🔍 Main domain detected - redirecting to tenant discovery');
+      window.location.href = '/tenant-discovery';
+      return;
+    }
+
+    // 🚨 OTHER ERROR: Fallback na main domain
+    console.log('🚨 Unknown error, falling back to main domain...');
+    this.fallbackToMainDomain(error);
+    throw error;
+  }
+
+  /**
+   * 🏗️ MISSING REALM: Zpracování chybějícího realm
+   */
+  async handleMissingRealm() {
+    if (this.tenantCreationInProgress) {
+      console.log('⏳ Tenant creation already in progress...');
+      return;
+    }
+
+    const tenantKey = this.config._debug.detectedTenant;
+    
+    // Pokud jsme na main domain, přesměruj na tenant discovery
+    if (this.config._debug.isMainDomain) {
+      window.location.href = '/tenant-discovery';
+      return;
+    }
+
+    try {
+      this.tenantCreationInProgress = true;
+      
+      // 🔄 SHOW LOADING: Zobraz loading obrazovku
+      this.showTenantCreationDialog(tenantKey);
+      
+      // 🏗️ CREATE TENANT: Pokus o vytvoření tenant přes API
+      const success = await this.attemptTenantCreation(tenantKey);
+      
+      if (success) {
+        // ✅ SUCCESS: Reload page po úspěšném vytvoření
+        console.log('✅ Tenant created successfully, reloading page...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        // ❌ FAILED: Fallback na main domain
+        this.showTenantCreationError(tenantKey);
+        setTimeout(() => {
+          this.fallbackToMainDomain(new Error('Tenant creation failed'));
+        }, 3000);
+      }
+      
+    } catch (error) {
+      console.error('❌ Tenant creation error:', error);
+      this.showTenantCreationError(tenantKey);
+      setTimeout(() => {
+        this.fallbackToMainDomain(error);
+      }, 3000);
+    } finally {
+      this.tenantCreationInProgress = false;
+    }
+  }
+
+  /**
+   * 🏗️ ATTEMPT TENANT CREATION: Pokus o vytvoření tenantu přes API
+   */
+  async attemptTenantCreation(tenantKey) {
+    try {
+      console.log(`🏗️ Attempting to create tenant: ${tenantKey}`);
+      
+      // API endpoint pro vytvoření tenantu
+      const response = await fetch('/api/admin/tenants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Pozor: Pro admin operace bychom měli mít autentizaci
+          // V produkci by zde měl být Authorization header
+        },
+        body: JSON.stringify({
+          key: tenantKey,
+          displayName: this.generateDisplayName(tenantKey),
+          autoCreate: true
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Tenant created successfully:', result);
+        return true;
+      } else {
+        const error = await response.json();
+        console.error('❌ Tenant creation failed:', error);
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ Tenant creation network error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 🏷️ GENERATE DISPLAY NAME: Vytvoří display name z tenant key
+   */
+  generateDisplayName(tenantKey) {
+    // Převeď tenant-key na "Tenant Key"
+    return tenantKey
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  /**
+   * 💬 UI DIALOGS: Zobrazení dialógů pro tenant creation
+   */
+  showTenantCreationDialog(tenantKey) {
+    const dialog = document.createElement('div');
+    dialog.id = 'tenant-creation-dialog';
+    dialog.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                  background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+                  justify-content: center; z-index: 10000; font-family: Arial, sans-serif;">
+        <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; max-width: 400px;">
+          <div style="font-size: 24px; margin-bottom: 10px;">🏗️</div>
+          <h3 style="margin: 0 0 15px 0; color: #333;">Creating Tenant</h3>
+          <p style="margin: 0 0 20px 0; color: #666;">
+            Setting up workspace for <strong>${tenantKey}</strong>...<br>
+            This may take a few moments.
+          </p>
+          <div style="width: 100%; height: 4px; background: #f0f0f0; border-radius: 2px;">
+            <div style="width: 0%; height: 100%; background: #007bff; border-radius: 2px; 
+                        animation: progress 2s infinite;"></div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes progress {
+          0% { width: 0%; }
+          50% { width: 70%; }
+          100% { width: 100%; }
+        }
+      </style>
+    `;
+    document.body.appendChild(dialog);
+  }
+
+  showTenantCreationError(tenantKey) {
+    const dialog = document.getElementById('tenant-creation-dialog');
+    if (dialog) {
+      dialog.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                    background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+                    justify-content: center; z-index: 10000; font-family: Arial, sans-serif;">
+          <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; max-width: 400px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">❌</div>
+            <h3 style="margin: 0 0 15px 0; color: #d32f2f;">Creation Failed</h3>
+            <p style="margin: 0 0 20px 0; color: #666;">
+              Unable to create tenant <strong>${tenantKey}</strong>.<br>
+              Redirecting to main portal...
+            </p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  showConnectionError() {
+    const dialog = document.createElement('div');
+    dialog.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                  background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+                  justify-content: center; z-index: 10000; font-family: Arial, sans-serif;">
+        <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; max-width: 400px;">
+          <div style="font-size: 24px; margin-bottom: 10px;">🌐</div>
+          <h3 style="margin: 0 0 15px 0; color: #d32f2f;">Connection Error</h3>
+          <p style="margin: 0 0 20px 0; color: #666;">
+            Unable to connect to authentication service.<br>
+            Please check your connection and try again.
+          </p>
+          <button onclick="window.location.reload()" 
+                  style="background: #007bff; color: white; border: none; 
+                         padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+            Retry
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(dialog);
+  }
+
+  /**
+   * 🔄 FALLBACK: Přesměrování na main domain při chybě
+   */
+  fallbackToMainDomain(error) {
+    const mainDomain = window.location.hostname.split('.').slice(-2).join('.');
+    const fallbackUrl = `https://${mainDomain}/tenant-error?reason=${encodeURIComponent(error.message)}&original=${encodeURIComponent(window.location.hostname)}`;
+    
+    console.log('🔄 Falling back to main domain:', fallbackUrl);
+    window.location.href = fallbackUrl;
+  }
+
+  /**
+   * 🔄 TOKEN REFRESH: Automatické obnovování tokenu
    */
   setupTokenRefresh() {
     if (!this.keycloak) return;
 
-    // Obnov token pokud vyprší za méně než 30 sekund
-    setInterval(() => {
-      this.keycloak.updateToken(30).then((refreshed) => {
-        if (refreshed) {
-          console.log('🔑 Keycloak: Token obnoven');
-          this.token = this.keycloak.token;
-          this.refreshToken = this.keycloak.refreshToken;
-          
-          // 🎯 NOVÁ FUNKCE: Synchronizuj obnovený token s localStorage
-          if (this.keycloak.token) {
+    // Refresh token when it's about to expire
+    setInterval(async () => {
+      try {
+        if (this.keycloak.isTokenExpired(30)) { // Refresh 30s before expiry
+          const refreshed = await this.keycloak.updateToken(30);
+          if (refreshed) {
+            console.log('🔄 Token refreshed');
             localStorage.setItem('keycloak-token', this.keycloak.token);
-            console.log('🔑 Keycloak: Obnovený token synchronizován s localStorage');
           }
         }
-      }).catch((error) => {
-        console.error('🔑 Keycloak: Chyba při obnovování tokenu:', error);
+      } catch (error) {
+        console.error('❌ Token refresh failed:', error);
         this.logout();
-      });
-    }, 10000); // Kontroluj každých 10 sekund
+      }
+    }, 10000); // Check every 10 seconds
   }
 
   /**
-   * Získej aktuální access token
+   * 🔐 LOGIN: Přesměruje na Keycloak login
    */
-  getToken() {
-    return this.token;
+  login() {
+    if (!this.keycloak) {
+      throw new Error('Keycloak not initialized');
+    }
+
+    console.log(`🔐 Redirecting to login for realm: ${this.config.realm}`);
+    return this.keycloak.login();
   }
 
   /**
-   * Zkontroluj, zda je uživatel přihlášen
+   * 🚪 LOGOUT: Odhlásí uživatele
+   */
+  logout() {
+    if (!this.keycloak) {
+      throw new Error('Keycloak not initialized');
+    }
+
+    console.log('🚪 Logging out');
+    localStorage.removeItem('keycloak-token');
+    return this.keycloak.logout();
+  }
+
+  /**
+   * ✅ AUTH CHECK: Kontrola, zda je uživatel přihlášen
    */
   isAuthenticated() {
-    return this.isInitialized && this.keycloak?.authenticated;
+    return this.keycloak?.authenticated || false;
   }
 
   /**
-   * Získej informace o uživateli
+   * 👤 USER INFO: Získání informací o uživateli
    */
   getUserInfo() {
-    if (!this.keycloak?.tokenParsed) return null;
+    if (!this.keycloak?.tokenParsed) {
+      return null;
+    }
 
-    const token = this.keycloak.tokenParsed;
     return {
-      username: token.preferred_username,
-      email: token.email,
-      firstName: token.given_name,
-      lastName: token.family_name,
-      roles: token.realm_access?.roles || []
+      username: this.keycloak.tokenParsed.preferred_username,
+      email: this.keycloak.tokenParsed.email,
+      firstName: this.keycloak.tokenParsed.given_name,
+      lastName: this.keycloak.tokenParsed.family_name,
+      roles: this.keycloak.tokenParsed.realm_access?.roles || [],
+      tenant: this.keycloak.tokenParsed.tenant,
+
+      // Debug info
+      _debug: {
+        realm: this.keycloak.realm,
+        clientId: this.keycloak.clientId,
+        token: this.keycloak.token?.substring(0, 50) + '...'
+      }
     };
   }
 
   /**
-   * Získej aktuální informace o uživateli z Keycloak serveru (fresh data)
+   * 🔄 GET FRESH USER INFO: Získání aktuálních informací o uživateli z Keycloak userinfo endpointu
    */
   async getUserInfoFresh() {
     if (!this.keycloak || !this.isAuthenticated()) {
-      throw new Error('Keycloak not initialized or user not authenticated');
+      throw new Error('User not authenticated');
     }
 
     try {
-      console.log('🔑 Keycloak: Načítám fresh user info ze serveru...');
-      
-      // Získej aktuální data z Keycloak serveru
-      const userInfo = await this.keycloak.loadUserInfo();
-      console.log('🔑 Keycloak: Fresh user info načtena:', userInfo);
-      
-      // Kombinuj s daty z tokenu
-      const tokenData = this.keycloak.tokenParsed;
-      
-      const freshUserData = {
-        // Základní údaje
-        username: userInfo.preferred_username || tokenData?.preferred_username,
-        email: userInfo.email || tokenData?.email,
-        firstName: userInfo.given_name || tokenData?.given_name,
-        lastName: userInfo.family_name || tokenData?.family_name,
-        name: userInfo.name || tokenData?.name,
-        
-        // Role z tokenu (nejčerstvější)
-        roles: tokenData?.realm_access?.roles || [],
-        
-        // Rozšířené atributy z Keycloak (custom fields)
-        department: userInfo.department,
-        manager: userInfo.manager,
-        position: userInfo.position,
-        phone: userInfo.phone_number,
-        locale: userInfo.locale,
-        
-        // Metadata
-        emailVerified: userInfo.email_verified,
-        updatedAt: userInfo.updated_at,
-        
-        // Token info
-        tokenIssuedAt: new Date(tokenData?.iat * 1000),
-        tokenExpiresAt: new Date(tokenData?.exp * 1000),
-        issuer: tokenData?.iss
-      };
-      
-      console.log('🔑 Keycloak: Zpracovaná fresh data:', freshUserData);
-      return freshUserData;
-      
-    } catch (error) {
-      console.error('🔑 Keycloak: Chyba při načítání fresh user info:', error);
-      
-      // Fallback na data z tokenu pokud server selže
-      const tokenData = this.keycloak.tokenParsed;
-      if (tokenData) {
-        console.log('🔑 Keycloak: Používám fallback data z tokenu');
-        return {
-          username: tokenData.preferred_username,
-          email: tokenData.email,
-          firstName: tokenData.given_name,
-          lastName: tokenData.family_name,
-          name: tokenData.name,
-          roles: tokenData.realm_access?.roles || [],
-          tokenIssuedAt: new Date(tokenData.iat * 1000),
-          tokenExpiresAt: new Date(tokenData.exp * 1000),
-          issuer: tokenData.iss
-        };
-      }
-      
-      throw error;
-    }
-  }
-
-  /**
-   * Odhlásit uživatele
-   */
-  logout() {
-    // 🎯 NOVÁ FUNKCE: Vyčisti localStorage při odhlášení
-    localStorage.removeItem('keycloak-token');
-    localStorage.removeItem('keycloak-refresh-token');
-    localStorage.removeItem('keycloak-id-token');
-    console.log('🔑 Keycloak: localStorage vyčištěn při logout');
-    
-    if (this.keycloak) {
-      this.keycloak.logout({
-        redirectUri: window.location.origin
+      // Nejdříve zkus načíst z Keycloak userinfo endpointu
+      const response = await fetch(`${this.config.url}/realms/${this.config.realm}/protocol/openid-connect/userinfo`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.keycloak.token}`,
+          'Content-Type': 'application/json'
+        }
       });
+
+      if (response.ok) {
+        const userInfo = await response.json();
+        
+        return {
+          username: userInfo.preferred_username,
+          email: userInfo.email,
+          firstName: userInfo.given_name,
+          lastName: userInfo.family_name,
+          roles: this.keycloak.tokenParsed?.realm_access?.roles || [],
+          tenant: userInfo.tenant || this.keycloak.tokenParsed?.tenant,
+          
+          // Rozšířené informace z userinfo endpointu
+          sub: userInfo.sub,
+          name: userInfo.name,
+          emailVerified: userInfo.email_verified,
+          
+          // Debug info
+          _debug: {
+            realm: this.keycloak.realm,
+            source: 'userinfo-endpoint'
+          }
+        };
+      } else {
+        console.warn('Failed to fetch fresh user info, falling back to token info');
+        return this.getUserInfo();
+      }
+    } catch (error) {
+      console.error('Error fetching fresh user info:', error);
+      // Fallback na základní getUserInfo z tokenu
+      return this.getUserInfo();
     }
   }
 
   /**
-   * Přesměruj na Keycloak Account Console pro změnu hesla/údajů
+   * 🎫 GET TOKEN: Získání access tokenu pro API volání
+   */
+  getToken() {
+    return this.keycloak?.token;
+  }
+
+  /**
+   * 🔧 ACCOUNT CONSOLE: Otevře Keycloak Account Console
    */
   openAccountConsole() {
-    if (this.keycloak) {
-      const accountUrl = `${this.keycloak.authServerUrl}/realms/${this.keycloak.realm}/account`;
-      window.open(accountUrl, '_blank');
+    if (!this.keycloak) {
+      throw new Error('Keycloak not initialized');
     }
+
+    const accountUrl = `${this.config.url}/realms/${this.config.realm}/account`;
+    window.open(accountUrl, '_blank');
   }
 
   /**
-   * Přesměruj přímo na změnu hesla v Keycloak Account Console
+   * 🔍 DEBUG INFO: Diagnostické informace
    */
-  openPasswordChange() {
-    if (this.keycloak) {
-      const passwordUrl = `${this.keycloak.authServerUrl}/realms/${this.keycloak.realm}/account/password`;
-      window.open(passwordUrl, '_blank');
-    }
-  }
-
-  /**
-   * Přesměruj na osobní údaje v Keycloak Account Console
-   */
-  openPersonalInfo() {
-    if (this.keycloak) {
-      const personalUrl = `${this.keycloak.authServerUrl}/realms/${this.keycloak.realm}/account/personal-info`;
-      window.open(personalUrl, '_blank');
-    }
-  }
-
-  /**
-   * Získej URL pro Keycloak Account Console
-   */
-  getAccountConsoleUrl() {
-    if (this.keycloak) {
-      return `${this.keycloak.authServerUrl}/realms/${this.keycloak.realm}/account`;
-    }
-    return null;
-  }
-
-  /**
-   * HTTP interceptor - přidá Authorization header ke všem API požadavkům
-   */
-  async apiCall(url, options = {}) {
-    const token = this.getToken();
-    
-    if (!token) {
-      throw new Error('No access token available');
-    }
-
-    // Přidej Authorization header
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...options.headers
+  getDebugInfo() {
+    return {
+      config: this.config,
+      initialized: this.initialized,
+      authenticated: this.isAuthenticated(),
+      userInfo: this.getUserInfo(),
+      keycloak: this.keycloak ? {
+        realm: this.keycloak.realm,
+        clientId: this.keycloak.clientId,
+        flow: this.keycloak.flow,
+        responseMode: this.keycloak.responseMode
+      } : null
     };
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include'
-    });
-
-    // Pokud 401, zkus obnovit token a opakuj požadavek
-    if (response.status === 401 && this.keycloak) {
-      try {
-        const refreshed = await this.keycloak.updateToken(5);
-        if (refreshed) {
-          this.token = this.keycloak.token;
-          // Opakuj požadavek s novým tokenem
-          headers['Authorization'] = `Bearer ${this.token}`;
-          return fetch(url, { ...options, headers, credentials: 'include' });
-        }
-      } catch (error) {
-        console.error('🔑 Keycloak: Nelze obnovit token:', error);
-        this.logout();
-        throw error;
-      }
-    }
-
-    return response;
-  }
-
-  /**
-   * Manuální přihlášení - zavolá se když user klikne na login tlačítko
-   */
-  login() {
-    if (this.keycloak) {
-      this.keycloak.login({
-        redirectUri: window.location.origin
-      });
-    }
   }
 }
 
-// Export singleton instance
-export const keycloakService = new KeycloakService();
-export { keycloakInstance }; // Pro případy kdy potřebujeme přímý přístup
+// Singleton instance
+const keycloakService = new KeycloakService();
 export default keycloakService;

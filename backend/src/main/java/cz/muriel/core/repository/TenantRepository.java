@@ -13,4 +13,7 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
   Optional<Tenant> findByKey(String key);
 
   boolean existsByKey(String key);
+
+  // Nepotrebujeme žádné další metody - používáme pouze findByKey, findById a
+  // findAll
 }

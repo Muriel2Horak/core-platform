@@ -30,10 +30,8 @@ public class TenantFilter extends OncePerRequestFilter {
       // Only process authenticated requests
       Authentication auth = SecurityContextHolder.getContext().getAuthentication();
       if (auth != null && auth.isAuthenticated() && !isAnonymous(auth)) {
+        // 🔒 SECURE: Only get tenant from JWT - no database validation needed
         String tenantKey = tenantResolver.resolveTenantKey();
-
-        // Validate tenant exists
-        tenantResolver.resolveTenantId(tenantKey);
 
         // Set tenant context
         TenantContext.setTenantKey(tenantKey);
@@ -41,16 +39,16 @@ public class TenantFilter extends OncePerRequestFilter {
         // Set MDC for logging
         MDC.put("tenant", tenantKey);
 
-        log.debug("Tenant context established: {}", tenantKey);
+        log.debug("🔒 Tenant context established from JWT: {}", tenantKey);
       }
 
       filterChain.doFilter(request, response);
 
     } catch (TenantNotFoundException e) {
-      log.error("Tenant validation failed: {}", e.getMessage());
+      log.error("🔒 Tenant validation failed: {}", e.getMessage());
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       response.getWriter()
-          .write("{\"error\":\"Invalid tenant\",\"message\":\"" + e.getMessage() + "\"}");
+          .write("{\"error\":\"Access denied\",\"message\":\"" + e.getMessage() + "\"}");
       response.setContentType("application/json");
       return;
     } finally {

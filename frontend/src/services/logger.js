@@ -1,376 +1,320 @@
-// Structured logger pro frontend - loguje do console A posílá na backend/Loki
-// 🔧 FIX: Odstraněn import authService kvůli cyklické závislosti
+// Logger service pro aplikaci
+// Poskytuje strukturované logování pro různé typy událostí
 
-class FrontendLogger {
+class Logger {
   constructor() {
-    this.service = 'core-platform-frontend';
-    this.enabled = true; // 🔧 ZAPNUTO ZPĚT - opravil jsem tokenSource logiku v auth.js
+    this.initialized = false;
+    this.userInfo = null;
+    this.sessionId = this.generateSessionId();
+    this.startTime = Date.now();
     
-    // Detekce prostředí a nastavení endpointů
-    this.isProduction = import.meta.env.PROD;
-    this.isDevelopment = import.meta.env.DEV;
+    // Konfigurace podle prostředí  
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+    this.logLevel = this.isDevelopment ? 'DEBUG' : 'INFO';
     
-    // Konfigurace log levelů podle prostředí
-    this.logLevels = {
-      DEBUG: 0,
-      INFO: 1,
-      WARN: 2,
-      ERROR: 3,
-      SECURITY: 4,
-      AUDIT: 5
-    };
-    
-    // V produkci logujeme jen od INFO výš, v developmentu vše
-    this.minLogLevel = this.isProduction ? this.logLevels.INFO : this.logLevels.DEBUG;
-    
-    // Backend endpoint - MUSÍ jít přes Nginx proxy, ne přímo na port 8080
-    this.backendLogUrl = '/frontend-logs'; // bude prefikxováno v authService.apiCall na /api
-  }
-
-  // Získání user info pro logy - opraveno pro keycloak token
-  _getUserInfo() {
-    try {
-      const token = localStorage.getItem('keycloak-token');
-      if (!token) {
-        return {
-          userId: 'anonymous',
-          login: 'anonymous',
-          roles: []
-        };
-      }
-
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return {
-        userId: payload.sid || payload.preferred_username || 'unknown',
-        login: payload.preferred_username || payload.email || 'unknown',
-        roles: payload.realm_access?.roles || []
-      };
-    } catch {
-      return {
-        userId: 'anonymous',
-        login: 'anonymous',
-        roles: []
-      };
-    }
-  }
-
-  _getClientInfo() {
-    const userInfo = this._getUserInfo();
-    
-    return {
-      clientIp: 'unknown',
-      userAgent: navigator.userAgent.substring(0, 200),
-      url: window.location.href,
-      referrer: document.referrer || '',
-      sessionId: userInfo.userId !== 'anonymous' ? userInfo.userId : 'unknown'
-    };
-  }
-
-  _logStructured(level, operation, message, details = {}) {
-    const levelNum = this.logLevels[level.toUpperCase()];
-    if (levelNum < this.minLogLevel) {
-      return;
-    }
-
-    const userInfo = this._getUserInfo();
-    const clientInfo = this._getClientInfo();
-    
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      level: level.toUpperCase(),
-      clientIp: clientInfo.clientIp,
-      login: userInfo.login,
-      userId: userInfo.userId,
-      operation: operation,
-      message: message,
-      
-      details: {
-        service: this.service,
-        url: clientInfo.url,
-        userAgent: clientInfo.userAgent,
-        referrer: clientInfo.referrer,
-        sessionId: clientInfo.sessionId,
-        roles: userInfo.roles,
-        ...details
-      }
-    };
-
-    this._logToConsole(level, operation, message, logEntry);
-    // 🔧 FIX: _sendToServer je nyní async, ale nečekáme na výsledek (fire-and-forget)
-    this._sendToServer(logEntry).catch(error => {
-      console.warn('⚠️ LOGGER: Async send failed:', error);
+    console.log('🔧 Logger initialized:', {
+      sessionId: this.sessionId,
+      environment: process.env.NODE_ENV,
+      logLevel: this.logLevel
     });
   }
 
-  _logToConsole(level, operation, message, logEntry) {
-    const emoji = this._getEmoji(level);
-    const prefix = `${emoji} [${level}] ${operation}:`;
-    
-    switch (level.toLowerCase()) {
-      case 'error':
-      case 'security':
-        console.error(prefix, message, logEntry.details);
-        break;
-      case 'warn':
-        console.warn(prefix, message, logEntry.details);
-        break;
-      case 'debug':
-        console.debug(prefix, message, logEntry.details);
-        break;
-      default:
-        console.log(prefix, message, logEntry.details);
-    }
-  }
-
-  // 🔧 FIX: Inteligentní získání platného tokenu
-  async _getValidToken() {
+  /**
+   * 📊 Inicializace logger s user info
+   */
+  async initializeUserInfo(userInfo) {
     try {
-      // 1. Nejdříve zkus keycloakService (nejčerstvější token)
-      try {
-        const ksModule = await import('./keycloakService.js');
-        const ks = ksModule.default;
-        if (ks?.keycloak && ks.isAuthenticated()) {
-          // Vždy obnov token před použitím
-          await ks.keycloak.updateToken(30);
-          const freshToken = ks.getToken();
-          if (freshToken) {
-            // Synchronizuj s localStorage
-            localStorage.setItem('keycloak-token', freshToken);
-            console.log('✅ LOGGER: Získal jsem fresh token z keycloakService');
-            return freshToken;
-          }
-        }
-      } catch (ksError) {
-        console.warn('⚠️ LOGGER: keycloakService nedostupný:', ksError.message);
-      }
-
-      // 2. Fallback na localStorage, ale ověř platnost
-      const token = localStorage.getItem('keycloak-token');
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const currentTime = Math.floor(Date.now() / 1000);
-          
-          // Pokud token vyprší za méně než 1 minutu, zkus refresh
-          if (payload.exp && payload.exp < currentTime + 60) {
-            console.warn('⚠️ LOGGER: Token brzy vyprší, pokouším se o refresh');
-            
-            // Zkus refresh přes keycloakService
-            try {
-              const ksModule = await import('./keycloakService.js');
-              const ks = ksModule.default;
-              if (ks?.keycloak && ks.isAuthenticated()) {
-                await ks.keycloak.updateToken(30);
-                const freshToken = ks.getToken();
-                if (freshToken && freshToken !== token) {
-                  localStorage.setItem('keycloak-token', freshToken);
-                  console.log('✅ LOGGER: Token úspěšně obnoven');
-                  return freshToken;
-                }
-              }
-            } catch (refreshError) {
-              console.warn('⚠️ LOGGER: Refresh tokenu selhal:', refreshError);
-            }
-          }
-          
-          // Pokud token je stále platný (nebo se nepodařil refresh), použij ho
-          if (payload.exp && payload.exp > currentTime) {
-            return token;
-          } else {
-            console.warn('⚠️ LOGGER: Token vypršel, odstraňujem z localStorage');
-            localStorage.removeItem('keycloak-token');
-          }
-          
-        } catch {
-          console.warn('⚠️ LOGGER: Nelze parsovat token z localStorage');
-          localStorage.removeItem('keycloak-token');
-        }
-      }
-
-      // 3. Žádný platný token
-      console.warn('⚠️ LOGGER: Žádný platný token dostupný pro odeslání logu');
-      return null;
+      this.userInfo = userInfo;
+      this.initialized = true;
       
-    } catch (error) {
-      console.error('🔴 LOGGER: Chyba při získávání tokenu:', error);
-      return null;
-    }
-  }
-
-  async _sendToServer(logEntry) {
-    if (!this.enabled) return;
-    
-    try {
-      // 🔧 FIX: Získej platný token přímo zde místo spoléhání na authService
-      const token = await this._getValidToken();
-      if (!token) {
-        console.warn('⚠️ LOGGER: Žádný platný token - log se neodešle na backend');
-        return;
-      }
-
-      console.log('🔧 LOGGER: Odesílám log přímo s platným tokenem', {
-        operation: logEntry.operation,
-        level: logEntry.level,
-        endpoint: this.backendLogUrl,
-        hasToken: !!token
+      this.info('LOGGER_INITIALIZED', 'Logger initialized with user info', {
+        username: userInfo?.username,
+        roles: userInfo?.roles,
+        tenant: userInfo?.tenant
       });
+    } catch (error) {
+      console.error('Failed to initialize user info for logging:', error);
+    }
+  }
+
+  /**
+   * 🆔 Generování session ID
+   */
+  generateSessionId() {
+    return 'sess_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+  }
+
+  /**
+   * 📝 Základní info log
+   */
+  info(event, message, extra = {}) {
+    this.logEvent('INFO', event, message, extra);
+  }
+
+  /**
+   * ⚠️ Warning log  
+   */
+  warn(event, message, extra = {}) {
+    this.logEvent('WARN', event, message, extra);
+  }
+
+  /**
+   * ❌ Error log
+   */
+  error(event, message, extra = {}) {
+    this.logEvent('ERROR', event, message, extra);
+  }
+
+  /**
+   * 🐛 Debug log (pouze v development)
+   */
+  debug(event, message, extra = {}) {
+    if (this.isDevelopment) {
+      this.logEvent('DEBUG', event, message, extra);
+    }
+  }
+
+  /**
+   * 👤 User action log
+   */
+  userAction(action, details = {}) {
+    this.logEvent('USER_ACTION', action, `User performed action: ${action}`, {
+      action,
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * 📄 Page view log
+   */
+  pageView(page, details = {}) {
+    this.logEvent('PAGE_VIEW', 'PAGE_NAVIGATION', `User viewed page: ${page}`, {
+      page,
+      url: window.location.href,
+      referrer: document.referrer,
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * 🌐 API call log
+   */
+  apiCall(method, endpoint, status, duration, details = {}) {
+    const isError = status >= 400;
+    const level = isError ? 'ERROR' : 'INFO';
+    
+    this.logEvent(level, 'API_CALL', `API ${method} ${endpoint} - ${status}`, {
+      method,
+      endpoint, 
+      status,
+      duration,
+      success: !isError,
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * 🔐 Auth event log
+   */
+  authEvent(event, details = {}) {
+    this.logEvent('AUTH', event, `Authentication event: ${event}`, {
+      event,
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * 📊 Performance log
+   */
+  performance(metric, value, details = {}) {
+    this.logEvent('PERFORMANCE', metric, `Performance metric: ${metric} = ${value}`, {
+      metric,
+      value,
+      ...details,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * 🎯 Core logging method
+   */
+  logEvent(level, event, message, extra = {}) {
+    const logEntry = {
+      level,
+      event,
+      message,
+      timestamp: new Date().toISOString(),
+      sessionId: this.sessionId,
+      user: this.userInfo ? {
+        username: this.userInfo.username,
+        tenant: this.userInfo.tenant,
+        roles: this.userInfo.roles
+      } : null,
+      browser: {
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        viewport: `${window.innerWidth}x${window.innerHeight}`
+      },
+      ...extra
+    };
+
+    // Console output v development
+    if (this.isDevelopment || level === 'ERROR') {
+      const emoji = this.getLevelEmoji(level);
+      const style = this.getLevelStyle(level);
       
-      // Přímé volání s tokenem (bez authService kvůli cyklické závislosti)
-      const response = await fetch(`/api${this.backendLogUrl}`, {
+      console.groupCollapsed(`${emoji} [${level}] ${event}: ${message}`);
+      console.log('%c' + JSON.stringify(logEntry, null, 2), style);
+      console.groupEnd();
+    }
+
+    // V produkci by zde bylo odeslání na logging server
+    if (!this.isDevelopment) {
+      this.sendToLoggingService(logEntry);
+    }
+  }
+
+  /**
+   * 🎨 Styling pro console logy
+   */
+  getLevelEmoji(level) {
+    const emojis = {
+      'DEBUG': '🐛',
+      'INFO': 'ℹ️',
+      'WARN': '⚠️', 
+      'ERROR': '❌',
+      'USER_ACTION': '👤',
+      'PAGE_VIEW': '📄',
+      'API_CALL': '🌐',
+      'AUTH': '🔐',
+      'PERFORMANCE': '📊'
+    };
+    return emojis[level] || 'ℹ️';
+  }
+
+  getLevelStyle(level) {
+    const styles = {
+      'DEBUG': 'color: #6c757d; font-size: 11px;',
+      'INFO': 'color: #0d6efd; font-size: 12px;',  
+      'WARN': 'color: #fd7e14; font-size: 12px;',
+      'ERROR': 'color: #dc3545; font-size: 12px; font-weight: bold;',
+      'USER_ACTION': 'color: #198754; font-size: 12px;',
+      'PAGE_VIEW': 'color: #6f42c1; font-size: 12px;',
+      'API_CALL': 'color: #0dcaf0; font-size: 12px;',
+      'AUTH': 'color: #fd7e14; font-size: 12px;',
+      'PERFORMANCE': 'color: #20c997; font-size: 12px;'
+    };
+    return styles[level] || styles['INFO'];
+  }
+
+  /**
+   * 📤 Odeslání logů na server (v produkci)
+   */
+  async sendToLoggingService(logEntry) {
+    try {
+      // V produkci by zde bylo volání na logging API
+      // Například Loki, ELK stack, nebo jiný logging service
+      
+      if (logEntry.level === 'ERROR') {
+        // Kritické chyby pošli okamžitě 
+        await fetch('/api/logs/error', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.getAuthToken()}`
+          },
+          body: JSON.stringify(logEntry)
+        });
+      } else {
+        // Ostatní logy můžeme batchovat
+        this.bufferLog(logEntry);
+      }
+    } catch (error) {
+      // Nesmíme způsobit crash aplikace kvůli logování
+      console.error('Failed to send log to service:', error);
+    }
+  }
+
+  /**
+   * 📥 Buffering logů pro batch odeslání
+   */
+  bufferLog(logEntry) {
+    if (!this.logBuffer) {
+      this.logBuffer = [];
+    }
+    
+    this.logBuffer.push(logEntry);
+    
+    // Pošli batch každých 50 logů nebo každé 2 minuty
+    if (this.logBuffer.length >= 50) {
+      this.flushLogBuffer();
+    } else if (!this.flushTimer) {
+      this.flushTimer = setTimeout(() => {
+        this.flushLogBuffer();
+      }, 120000); // 2 minuty
+    }
+  }
+
+  /**
+   * 🚿 Flush log buffer
+   */
+  async flushLogBuffer() {
+    if (!this.logBuffer || this.logBuffer.length === 0) return;
+    
+    try {
+      await fetch('/api/logs/batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${this.getAuthToken()}`
         },
-        body: JSON.stringify(logEntry),
-        credentials: 'include'
+        body: JSON.stringify({
+          logs: this.logBuffer,
+          sessionId: this.sessionId
+        })
       });
-
-      if (!response || !response.ok) {
-        // 🔧 FIX: Bezpečné zpracování non-JSON odpovědí
-        let errorMessage = `HTTP ${response?.status}`;
-        try {
-          const contentType = response?.headers?.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } else {
-            // Plain text odpověď - načteme jako text
-            const textError = await response.text();
-            errorMessage = textError || errorMessage;
-          }
-        } catch (parseError) {
-          // Fallback pokud ani text parsing nefunguje
-          errorMessage = `HTTP ${response?.status} (parsing failed)`;
-        }
-        
-        console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response?.status, errorMessage);
-      } else {
-        console.log('✅ LOGGER: Log úspěšně odeslán přímo na backend');
+      
+      this.logBuffer = [];
+      if (this.flushTimer) {
+        clearTimeout(this.flushTimer);
+        this.flushTimer = null;
       }
     } catch (error) {
-      console.error('🔴 LOGGER: Chyba při odesílání na backend:', error);
+      console.error('Failed to flush log buffer:', error);
     }
   }
 
-  _getEmoji(level) {
-    switch (level.toLowerCase()) {
-      case 'error': return '❌';
-      case 'warn': return '⚠️';
-      case 'info': return 'ℹ️';
-      case 'debug': return '🐛';
-      case 'security': return '🔒';
-      case 'audit': return '📋';
-      default: return 'ℹ️';
-    }
+  /**
+   * 🎫 Získání auth tokenu
+   */
+  getAuthToken() {
+    // V reálné aplikaci by se získal z auth service
+    return localStorage.getItem('keycloak-token') || '';
   }
 
-  // Veřejné API
-  debug(operation, message, details = {}) {
-    this._logStructured('DEBUG', operation, message, details);
-  }
-
-  info(operation, message, details = {}) {
-    this._logStructured('INFO', operation, message, details);
-  }
-
-  warn(operation, message, details = {}) {
-    this._logStructured('WARN', operation, message, details);
-  }
-
-  error(operation, message, details = {}) {
-    this._logStructured('ERROR', operation, message, details);
-  }
-
-  security(operation, message, details = {}) {
-    this._logStructured('SECURITY', operation, message, {
-      ...details,
-      category: 'security',
-      requires_attention: true
-    });
-  }
-
-  audit(operation, message, details = {}) {
-    this._logStructured('AUDIT', operation, message, {
-      ...details,
-      category: 'audit',
-      compliance: true
-    });
-  }
-
-  userAction(action, details = {}) {
-    this._logStructured('INFO', 'USER_ACTION', action, {
-      ...details,
-      category: 'user_interaction'
-    });
-  }
-
-  securityViolation(violation, details = {}) {
-    this._logStructured('SECURITY', 'SECURITY_VIOLATION', violation, {
-      ...details,
-      category: 'security_violation',
-      requires_immediate_attention: true
-    });
-  }
-
-  pageView(page, details = {}) {
-    this._logStructured('DEBUG', 'PAGE_VIEW', `Navigated to ${page}`, {
-      ...details,
-      page: page,
-      category: 'navigation'
-    });
-  }
-
-  // ✅ Přidáno: Kompatibilní metoda pro logování API volání používaná v ostatních službách
-  //   - signature: apiCall(method, url, statusOrStart, duration, details)
-  //   - neprovádí žádné přímé HTTP requesty kromě odeslání logu přes authService.apiCall
-  apiCall(method, url, statusOrStart, duration = 0, details = {}) {
-    try {
-      const isStart = typeof statusOrStart === 'string' && statusOrStart.toLowerCase() === 'start';
-      const statusNum = !isStart && typeof statusOrStart === 'number' ? statusOrStart : null;
-
-      let level = 'INFO';
-      if (isStart) level = 'DEBUG';
-      else if (statusNum !== null) {
-        if (statusNum >= 500) level = 'ERROR';
-        else if (statusNum >= 400) level = 'WARN';
-        else level = 'INFO';
-      }
-
-      const message = isStart
-        ? `API ${method} ${url} start`
-        : `API ${method} ${url} finished${statusNum !== null ? ` (${statusNum})` : ''}`;
-
-      // Nepřepisujeme existující details, pouze doplňujeme standardizovaná pole
-      this._logStructured(level, 'API_CALL', message, {
-        category: 'api',
-        method: method,
-        request_url: url,
-        http_status: statusNum ?? undefined,
-        duration: duration || undefined,
-        ...details
-      });
-    } catch (e) {
-      // Bezpečný fallback, aby logování nerozbilo aplikaci
-      console.warn('LOGGER.apiCall fallback', e);
-    }
-  }
-
-  // 🔧 FIX: Přidáno pro kompatibilitu s authService
-  service(operation, message, details = {}) {
-    this.info(operation, message, { ...details, category: 'service' });
-  }
-
-  // 🔧 FIX: Přidáno pro auth logy
-  authLogout(details = {}) {
-    this.audit('AUTH_LOGOUT', 'User logged out', {
-      ...details,
-      category: 'authentication',
-      action: 'logout'
-    });
+  /**
+   * 📈 Session statistiky
+   */
+  getSessionStats() {
+    return {
+      sessionId: this.sessionId,
+      duration: Date.now() - this.startTime,
+      userInfo: this.userInfo,
+      initialized: this.initialized,
+      bufferSize: this.logBuffer?.length || 0
+    };
   }
 }
 
-// Export singleton instance
-export const logger = new FrontendLogger();
+// Singleton instance
+const logger = new Logger();
+
+// Export default instance
 export default logger;
+
+// Export také class pro custom instances
+export { Logger };

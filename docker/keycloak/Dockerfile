@@ -21,8 +21,26 @@ COPY --from=spi-build /workspace/keycloak-spi-event-webhook/target/*.jar /opt/ke
 # zkopíruj custom témata
 COPY themes/ /opt/keycloak/themes/
 
+# 🔒 SSL CERTIFICATES: zkopíruj SSL certifikáty
+COPY ssl/ /opt/keycloak/conf/
+
+# 🔧 SSL PERMISSIONS: nastav správná oprávnění pro SSL certifikáty
+USER root
+RUN chmod 644 /opt/keycloak/conf/cert.pem && \
+  chmod 600 /opt/keycloak/conf/key.pem && \
+  chown keycloak:root /opt/keycloak/conf/cert.pem && \
+  chown keycloak:root /opt/keycloak/conf/key.pem
+USER keycloak
+
 # sestav KC distribuci, aby se provider zaregistroval
 RUN /opt/keycloak/bin/kc.sh build --db=postgres
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
-CMD ["start-dev", "--http-enabled=true", "--http-port=8080", "--hostname-strict=false"]
+
+# 🔒 HTTPS MODE: HTTPS mód s SSL certifikáty
+CMD ["start", \
+  "--https-port=8443", \
+  "--https-certificate-file=/opt/keycloak/conf/cert.pem", \
+  "--https-certificate-key-file=/opt/keycloak/conf/key.pem", \
+  "--hostname-strict=false", \
+  "--proxy=edge"]

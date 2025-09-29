@@ -76,7 +76,10 @@ public class KeycloakUserBackfillService {
       }
 
       // Fetch users from Keycloak for this realm (tenant)
-      List<Map<String, Object>> users = fetchUsersFromKeycloak(tenant.getRealm(), accessToken);
+      List<Map<String, Object>> users = fetchUsersFromKeycloak(tenant.getKey(), accessToken); // 🎯
+                                                                                              // FIXED:
+                                                                                              // Use
+                                                                                              // getKey()
       log.debug("Fetched {} users from Keycloak for tenant: {}", users.size(), tenant.getKey());
 
       // Process each user through the same projection service
@@ -168,7 +171,7 @@ public class KeycloakUserBackfillService {
     event.setEventType("USER_UPDATED"); // Backfill is always an update/upsert
     event.setTime(System.currentTimeMillis());
     event.setRealmId(tenant.getId().toString());
-    event.setRealmName(tenant.getRealm());
+    event.setRealmName(tenant.getKey()); // 🎯 FIXED: Use getKey() - realm = key
     event.setTenantKey(tenant.getKey());
 
     // Map basic user fields
