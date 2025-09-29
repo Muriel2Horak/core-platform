@@ -89,6 +89,71 @@ public class FrontendLogsController {
       enriched.put("level", level.toUpperCase());
     }
 
+    // 🎯 FIX: Mapování username z frontend struktury
+    String username = (String) enriched.get("username");
+    if (username != null && !username.isEmpty() && !"null".equals(username)) {
+      enriched.put("login", username); // Backend očekává "login"
+    }
+
+    // 🎯 FIX: Mapování tenant
+    String tenant = (String) enriched.get("tenant");
+    if (tenant != null) {
+      enriched.put("tenant", tenant);
+    }
+
+    // 🎯 FIX: Vytvoření details objektu z frontend dat
+    Map<String, Object> details = new HashMap<>();
+
+    // Přidáme všechna relevantní pole do details
+    if (enriched.get("operation") != null) {
+      details.put("operation", enriched.get("operation"));
+    }
+    if (enriched.get("page") != null) {
+      details.put("page", enriched.get("page"));
+    }
+    if (enriched.get("result") != null) {
+      details.put("result", enriched.get("result"));
+    }
+    if (enriched.get("context") != null) {
+      Object context = enriched.get("context");
+      if (context instanceof Map) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> contextMap = (Map<String, Object>) context;
+        details.putAll(contextMap);
+      }
+    }
+    if (enriched.get("http") != null) {
+      Object http = enriched.get("http");
+      if (http instanceof Map) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> httpMap = (Map<String, Object>) http;
+        details.put("method", httpMap.get("method"));
+        details.put("http_status", httpMap.get("status"));
+        details.put("duration", httpMap.get("duration"));
+        details.put("endpoint", httpMap.get("endpoint"));
+      }
+    }
+
+    // Přidáme původní extra data
+    if (enriched.get("method") != null)
+      details.put("method", enriched.get("method"));
+    if (enriched.get("endpoint") != null)
+      details.put("endpoint", enriched.get("endpoint"));
+    if (enriched.get("status") != null)
+      details.put("http_status", enriched.get("status"));
+    if (enriched.get("duration") != null)
+      details.put("duration", enriched.get("duration"));
+    if (enriched.get("success") != null)
+      details.put("success", enriched.get("success"));
+    if (enriched.get("component") != null)
+      details.put("component", enriched.get("component"));
+    if (enriched.get("category") != null)
+      details.put("category", enriched.get("category"));
+    if (enriched.get("action") != null)
+      details.put("action", enriched.get("action"));
+
+    enriched.put("details", details);
+
     // Přidáme session info pokud je dostupné
     String sessionId = request.getSession(false) != null ? request.getSession().getId() : null;
     if (sessionId != null) {

@@ -9,13 +9,18 @@ class Logger {
     this.startTime = Date.now();
     
     // Konfigurace podle prostředí  
-    this.isDevelopment = process.env.NODE_ENV === 'development';
+    this.isDevelopment = import.meta.env.DEV;
     this.logLevel = this.isDevelopment ? 'DEBUG' : 'INFO';
+    
+    // Backend endpoint pro Loki logging
+    this.backendLogUrl = '/api/frontend-logs';
+    this.enabled = true;
     
     console.log('🔧 Logger initialized:', {
       sessionId: this.sessionId,
-      environment: process.env.NODE_ENV,
-      logLevel: this.logLevel
+      environment: import.meta.env.MODE,
+      logLevel: this.logLevel,
+      backendLogUrl: this.backendLogUrl
     });
   }
 
@@ -172,8 +177,10 @@ class Logger {
       console.groupEnd();
     }
 
-    // V produkci by zde bylo odeslání na logging server
-    if (!this.isDevelopment) {
+    // Odešli logy na server (v development i production pro testování)
+    // Původně: if (!this.isDevelopment) 
+    // Změněno: odesílej vždy když je logger povolen
+    if (this.enabled) {
       this.sendToLoggingService(logEntry);
     }
   }
@@ -215,28 +222,128 @@ class Logger {
    * 📤 Odeslání logů na server (v produkci)
    */
   async sendToLoggingService(logEntry) {
+    if (!this.enabled) return;
+
     try {
-      // V produkci by zde bylo volání na logging API
-      // Například Loki, ELK stack, nebo jiný logging service
+      console.log('📤 LOGGER: Odesílám log na backend...', logEntry);
       
-      if (logEntry.level === 'ERROR') {
-        // Kritické chyby pošli okamžitě 
-        await fetch('/api/logs/error', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.getAuthToken()}`
-          },
-          body: JSON.stringify(logEntry)
-        });
+      // Strukturovaný log podle původní implementace + rozšíření
+      const structuredLog = {
+        timestamp: logEntry.timestamp,
+        level: logEntry.level.toUpperCase(),
+        service: 'core-platform-frontend',
+        message: logEntry.message,
+        url: window.location.href,
+        userAgent: navigator.userAgent.substring(0, 100),
+        sessionId: logEntry.sessionId,
+        event: logEntry.event,
+        
+        // ✨ Rozšíření o požadované pole
+        tenant: this.userInfo?.tenant || logEntry.tenant || null,
+        username: this.userInfo?.username || logEntry.username || null,
+        operation: logEntry.operation || logEntry.event || null,
+        page: this.extractPageFromUrl(window.location.href),
+        context: {
+          component: logEntry.component || null,
+          category: logEntry.category || null,
+          action: logEntry.action || null,
+          ...logEntry.context
+        },
+        result: this.determineResult(logEntry),
+        
+        // Původní user objekt pro zpětnou kompatibilitu
+        user: logEntry.user || (this.userInfo ? {
+          username: this.userInfo.username,
+          tenant: this.userInfo.tenant,
+          roles: this.userInfo.roles
+        } : null),
+        
+        // HTTP specifické informace
+        http: logEntry.method ? {
+          method: logEntry.method,
+          endpoint: logEntry.endpoint,
+          status: logEntry.status,
+          duration: logEntry.duration
+        } : null,
+        
+        ...logEntry
+      };
+
+      console.log('📡 LOGGER: POST request na', this.backendLogUrl);
+      const response = await fetch(this.backendLogUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`
+        },
+        body: JSON.stringify(structuredLog)
+      });
+      
+      if (response.ok) {
+        console.log('✅ LOGGER: Log úspěšně odeslán na backend');
       } else {
-        // Ostatní logy můžeme batchovat
-        this.bufferLog(logEntry);
+        console.warn('⚠️ LOGGER: Backend odpověděl s chybou:', response.status);
       }
     } catch (error) {
-      // Nesmíme způsobit crash aplikace kvůli logování
-      console.error('Failed to send log to service:', error);
+      console.error('🔴 LOGGER: Chyba při odesílání na backend:', error);
+      // V případě chyby je to ok - logy jsou nice-to-have, ne kritické
     }
+  }
+
+  /**
+   * 🌍 Extrakce názvu stránky z URL
+   */
+  extractPageFromUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      
+      // Mapování cest na názvy stránek
+      const pageMapping = {
+        '/': 'dashboard',
+        '/dashboard': 'dashboard',
+        '/profile': 'profile',
+        '/admin/users': 'user_management',
+        '/admin/tenants': 'tenant_management',
+        '/directory': 'user_directory',
+        '/utilities/typography': 'typography',
+        '/utilities/shadow': 'shadow',
+        '/test/keycloak': 'keycloak_test'
+      };
+      
+      // Dynamické stránky s parametry
+      if (pathname.startsWith('/directory/')) {
+        return 'user_detail';
+      }
+      
+      return pageMapping[pathname] || pathname.replace(/^\//, '').replace(/\//g, '_') || 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  /**
+   * ✅ Určení výsledku operace
+   */
+  determineResult(logEntry) {
+    // HTTP status kódy
+    if (logEntry.status) {
+      if (logEntry.status >= 200 && logEntry.status < 300) return 'SUCCESS';
+      if (logEntry.status >= 400 && logEntry.status < 500) return 'CLIENT_ERROR';
+      if (logEntry.status >= 500) return 'SERVER_ERROR';
+      return 'UNKNOWN';
+    }
+    
+    // Explicitní success flag
+    if (logEntry.success === true) return 'SUCCESS';
+    if (logEntry.success === false) return 'FAILURE';
+    
+    // Level-based result
+    if (logEntry.level === 'ERROR') return 'FAILURE';
+    if (logEntry.level === 'WARN') return 'WARNING';
+    if (logEntry.level === 'INFO' || logEntry.level === 'USER_ACTION') return 'SUCCESS';
+    
+    return 'INFO';
   }
 
   /**
@@ -266,17 +373,10 @@ class Logger {
     if (!this.logBuffer || this.logBuffer.length === 0) return;
     
     try {
-      await fetch('/api/logs/batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getAuthToken()}`
-        },
-        body: JSON.stringify({
-          logs: this.logBuffer,
-          sessionId: this.sessionId
-        })
-      });
+      // Odešli každý log jednotlivě přes sendToLoggingService
+      for (const logEntry of this.logBuffer) {
+        await this.sendToLoggingService(logEntry);
+      }
       
       this.logBuffer = [];
       if (this.flushTimer) {
