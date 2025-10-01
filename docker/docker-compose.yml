@@ -16,9 +16,12 @@ services:
       - certbot-www:/var/www/certbot:ro
     command: [ "/usr/local/bin/start-nginx.sh" ]
     depends_on:
-      - frontend
-      - backend
-      - keycloak
+      frontend:
+        condition: service_healthy  # ✅ OPRAVENO: Čeká na frontend health check
+      backend:
+        condition: service_started
+      keycloak:
+        condition: service_started
     networks:
       - core-net
     restart: unless-stopped
@@ -59,8 +62,8 @@ services:
   # 🏗️ Backend
   backend:
     build:
-      context: ../backend
-      dockerfile: ../docker/backend/Dockerfile
+      context: ..
+      dockerfile: docker/backend/Dockerfile
     container_name: core-backend
     depends_on:
       db:
@@ -101,7 +104,7 @@ services:
       - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
       - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
       - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
       # 🔒 SSL Configuration for HTTPS communication with Keycloak
       - JAVA_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=JKS
     volumes:
@@ -116,27 +119,15 @@ services:
       - core-net
     restart: unless-stopped
 
-  # 🛡️ Frontend  
+  # 🛡️ Frontend - PRODUKČNÍ BUILD PRO DEV PARITY
   frontend:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend/Dockerfile
-      target: development
+      # target: production  # ODSTRANĚNO - náš Dockerfile nemá stage s tímto názvem
     container_name: core-frontend
-    environment:
-      - HOST=0.0.0.0
-      # 🌐 Používá DOMAIN místo hardcoded URLs
-      - VITE_API_TARGET=https://${DOMAIN:-core-platform.local}/api
-      - VITE_LOKI_TARGET=http://loki:3100
-      - VITE_KEYCLOAK_URL=https://${DOMAIN:-core-platform.local}
-      - VITE_KEYCLOAK_REALM=core-platform
-      - VITE_KEYCLOAK_CLIENT_ID=web
-    volumes:
-      - ../frontend:/app
-      - ../frontend/node_modules:/app/node_modules
-    command: [ "sh", "-c", "npm install && npm run dev -- --port 3000 --host 0.0.0.0" ]
     healthcheck:
-      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/ || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -150,7 +141,7 @@ services:
       driver: loki
       options:
         loki-url: "http://localhost:3100/loki/api/v1/push"
-        loki-external-labels: "service=frontend,environment=${ENVIRONMENT:-development}"
+        loki-external-labels: "service=frontend,environment=production"
     networks:
       - core-net
     restart: unless-stopped

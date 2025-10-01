@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>silent-check-sso</title>
+</head>
+<body>
+    <script>
+        // 🔧 FIX: Silent SSO iframe handler pro Keycloak
+        // Tento soubor je potřeba pro správnou funkci silentCheckSsoRedirectUri
+        parent.postMessage(location.href, location.origin);
+    </script>
+</body>
+</html>

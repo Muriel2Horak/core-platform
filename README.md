@@ -338,6 +338,60 @@ cd backend && ./mvnw test
 make test-and-report
 ```
 
+## 🔍 Kvalita kódu & preflight checks
+
+Před každým commitem je důležité spustit kontroly kvality kódu, aby se předešlo chybám v runtime.
+
+### Povinné kontroly před commitem
+
+```bash
+# Spusť v adresáři frontend/
+npm run lint && npm run typecheck
+```
+
+### Detailní popis kontrol
+
+**ESLint** - kontroluje:
+- ✅ Správnost importů a exportů (default vs named)
+- ✅ Neexistující moduly a komponenty  
+- ✅ React best practices (hooks rules, JSX syntax)
+- ✅ Nepoužité proměnné a importy
+
+**TypeScript typecheck** - kontroluje:
+- ✅ Typovou správnost kódu
+- ✅ Kompatibilitu importů s `esModuleInterop: false`
+- ✅ Správnost cest a aliasů
+
+### VS Code integrace
+
+Projekt má nakonfigurované `.vscode/settings.json` pro:
+- 🔄 ESLint validaci v reálném čase (`onType`)
+- 🎯 Použití workspace TypeScript verze
+- ⚡ Okamžité zvýraznění chyb v editoru
+
+### Runtime safety
+
+Aplikace obsahuje:
+- 🛡️ **ErrorBoundary** - zachytává chyby komponent místo pádu celé aplikace
+- 🔒 **Component guards** - kontrolují platnost komponent před renderem
+- 📋 **Jasné error hlášky** - místo cryptic React error #130
+
+### CI/CD integrace
+
+V CI pipeline by měly být tyto kroky povinné:
+```yaml
+- name: Lint check
+  run: npm run lint
+- name: Type check  
+  run: npm run typecheck
+```
+
+### Poznámky k nastavení
+
+- `allowSyntheticDefaultImports` a `esModuleInterop` jsou dočasně vypnuty pro přísné odhalení default/named záměn
+- Po vyčištění všech chyb lze tyto volby vrátit na `true` pro pohodlnější development
+- CI musí i nadále procházet bez chyb
+
 ## 📋 Troubleshooting
 
 ### Webhook Issues

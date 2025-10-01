@@ -80,33 +80,60 @@ public class AuthController {
   public ResponseEntity<?> establishSession(
       @RequestHeader(value = "Authorization", required = false) String authHeader,
       HttpServletResponse resp) {
+
+    auditLogger.info("🔄 SESSION_REQUEST: New session request");
+
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+      auditLogger.warn("❌ SESSION_FAILED: Missing or invalid Authorization header");
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "missing_bearer"));
     }
+
     String token = authHeader.substring(7);
+    auditLogger.debug("🎫 SESSION_TOKEN: Extracted token with length: {}", token.length());
+
     try {
+      auditLogger.debug("🔍 SESSION_JWT_DECODE: Decoding JWT token...");
       Jwt jwt = jwtDecoder.decode(token);
+
+      auditLogger.info("✅ SESSION_JWT_DECODED: JWT successfully decoded for subject: {}",
+          jwt.getSubject());
+
       Instant now = Instant.now();
       Instant exp = jwt.getExpiresAt();
       Duration maxAge = (exp != null && exp.isAfter(now)) ? Duration.between(now, exp)
           : Duration.ofMinutes(5);
+
+      auditLogger.debug("🍪 SESSION_COOKIE: Setting access token cookie with maxAge: {} seconds",
+          maxAge.getSeconds());
       setCookie(resp, ACCESS_COOKIE, token, maxAge);
 
       Map<String, Object> userMap = new HashMap<>(basicUserFromJwt(token));
+
+      auditLogger.debug("👤 SESSION_USERINFO: Getting user info from Keycloak...");
+
       try {
         JsonNode me = kc.userinfo(token);
         @SuppressWarnings("unchecked")
         Map<String, Object> ui = om.convertValue(me, Map.class);
-        if (ui != null)
+        if (ui != null) {
           userMap.putAll(ui);
-      } catch (Exception ignore) {
+          auditLogger.debug("✅ SESSION_KEYCLOAK_USERINFO: Keycloak userinfo retrieved");
+        }
+      } catch (Exception e) {
+        auditLogger.warn("⚠️ SESSION_KEYCLOAK_USERINFO_FAILED: Failed to get Keycloak userinfo: {}",
+            e.getMessage());
       }
 
       Map<String, Object> body = new HashMap<>();
       body.putAll(userMap);
       body.put("roles", rolesFromJwt(token));
+
+      auditLogger.info("✅ SESSION_SUCCESS: Session established successfully for user: {}",
+          body.get("username"));
+
       return ResponseEntity.ok(body);
     } catch (Exception e) {
+      auditLogger.error("❌ SESSION_FAILED: Failed to establish session: {}", e.getMessage());
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid_token"));
     }
   }
@@ -116,8 +143,136 @@ public class AuthController {
    */
   @GetMapping("/auth/userinfo")
   public Map<String, Object> getUserInfo(@AuthenticationPrincipal Jwt jwt) {
-    return Map.of("username", jwt.getClaimAsString("preferred_username"), "email",
-        jwt.getClaimAsString("email"), "roles", jwt.getClaimAsStringList("realm_access.roles"));
+    auditLogger.info("👤 USERINFO_REQUEST: User info requested");
+
+    // 🔧 NULL CHECK: Prevent 500 error when JWT is null
+    if (jwt == null) {
+      auditLogger.error("❌ USERINFO_FAILED: JWT token is null");
+      throw new org.springframework.security.access.AccessDeniedException(
+          "No valid JWT token found");
+    }
+
+    auditLogger.debug("🔍 USERINFO_JWT: Processing JWT token for subject: {}", jwt.getSubject());
+
+    try {
+      Map<String, Object> userInfo = new HashMap<>();
+
+      // Basic user info
+      userInfo.put("username", jwt.getClaimAsString("preferred_username"));
+      userInfo.put("email", jwt.getClaimAsString("email"));
+      userInfo.put("name", jwt.getClaimAsString("name"));
+      userInfo.put("firstName", jwt.getClaimAsString("given_name"));
+      userInfo.put("lastName", jwt.getClaimAsString("family_name"));
+
+      auditLogger.debug("📋 USERINFO_BASIC: Basic user info extracted");
+
+      // Extract roles properly
+      List<String> roles = new ArrayList<>();
+      Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+      if (realmAccess != null && realmAccess.get("roles") instanceof List) {
+        @SuppressWarnings("unchecked")
+        List<String> realmRoles = (List<String>) realmAccess.get("roles");
+        roles.addAll(realmRoles);
+        auditLogger.debug("🎭 USERINFO_ROLES: Extracted {} roles from realm_access", roles.size());
+      } else {
+        auditLogger.warn("⚠️ USERINFO_ROLES: No realm_access roles found");
+      }
+      userInfo.put("roles", roles);
+
+      // Extract tenant from JWT - either from direct claim or from issuer (realm)
+      String tenant = extractTenantFromJwt(jwt);
+      if (tenant != null && !tenant.isEmpty()) {
+        userInfo.put("tenant", tenant);
+        auditLogger.debug("✅ USERINFO_TENANT: Tenant extracted: {}", tenant);
+      }
+
+      auditLogger.info("✅ USERINFO_SUCCESS: User info retrieved successfully");
+
+      return userInfo;
+    } catch (Exception e) {
+      // Log the error for debugging
+      auditLogger.error("❌ USERINFO_FAILED: Error getting user info from JWT: {}", e.getMessage(),
+          e);
+
+      // 🔧 SAFE FALLBACK: Only try to extract data if JWT is not null
+      if (jwt != null) {
+        try {
+          auditLogger.debug("🔄 USERINFO_FALLBACK: Attempting fallback user info extraction...");
+          Map<String, Object> fallback = new HashMap<>();
+          fallback.put("username", jwt.getClaimAsString("preferred_username"));
+          fallback.put("email", jwt.getClaimAsString("email"));
+          fallback.put("roles", List.of());
+
+          // Try to extract tenant even in error case
+          String tenant = extractTenantFromJwt(jwt);
+          if (tenant != null && !tenant.isEmpty()) {
+            fallback.put("tenant", tenant);
+          }
+
+          auditLogger.info("✅ USERINFO_FALLBACK_SUCCESS: Fallback user info returned");
+          return fallback;
+        } catch (Exception ignored) {
+          auditLogger.error("❌ USERINFO_FALLBACK_FAILED: Even fallback extraction failed");
+        }
+      }
+
+      // Final fallback - throw proper authentication exception
+      auditLogger
+          .error("💥 USERINFO_FINAL_FAILURE: All attempts failed, throwing AccessDeniedException");
+      throw new org.springframework.security.access.AccessDeniedException(
+          "Failed to extract user info from JWT");
+    }
+  }
+
+  /**
+   * 📝 Frontend logging endpoint - receives logs from frontend with tenant
+   * context
+   */
+  @PostMapping("/auth/logs")
+  public ResponseEntity<?> receiveFrontendLogs(@RequestBody Map<String, Object> logData,
+      @AuthenticationPrincipal Jwt jwt) {
+
+    try {
+      String level = (String) logData.get("level");
+      String message = (String) logData.get("message");
+      Object dataObj = logData.get("data");
+
+      // Safe cast for data object
+      Map<String, Object> data = null;
+      if (dataObj instanceof Map) {
+        try {
+          @SuppressWarnings("unchecked")
+          Map<String, Object> castedData = (Map<String, Object>) dataObj;
+          data = castedData;
+        } catch (ClassCastException e) {
+          // If cast fails, log the error and continue without data
+          auditLogger.warn("⚠️ FRONTEND_LOG: Invalid data format in log entry");
+        }
+      }
+
+      // Log based on level - MDC context will automatically include tenant info
+      switch (level != null ? level.toUpperCase() : "INFO") {
+      case "ERROR":
+        auditLogger.error("🌐 FRONTEND_ERROR: {} - {}", message, data);
+        break;
+      case "WARN":
+        auditLogger.warn("🌐 FRONTEND_WARN: {} - {}", message, data);
+        break;
+      case "DEBUG":
+        auditLogger.debug("🌐 FRONTEND_DEBUG: {} - {}", message, data);
+        break;
+      default:
+        auditLogger.info("🌐 FRONTEND_INFO: {} - {}", message, data);
+      }
+
+      return ResponseEntity.ok(Map.of("status", "logged"));
+
+    } catch (Exception e) {
+      auditLogger.error("❌ FRONTEND_LOG_FAILED: Failed to process frontend log: {}",
+          e.getMessage());
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+          .body(Map.of("error", "Failed to process log"));
+    }
   }
 
   // Utility methods
@@ -184,5 +339,26 @@ public class AuthController {
     ResponseCookie cookie = ResponseCookie.from(name, "").httpOnly(true).secure(false).path("/")
         .sameSite("Lax").maxAge(Duration.ZERO).build();
     resp.addHeader("Set-Cookie", cookie.toString());
+  }
+
+  // Extract tenant from JWT helper method
+  private String extractTenantFromJwt(Jwt jwt) {
+    if (jwt == null)
+      return "unknown";
+
+    String tenant = jwt.getClaimAsString("tenant");
+    if (tenant == null || tenant.isEmpty()) {
+      String issuer = jwt.getClaimAsString("iss");
+      if (issuer != null && issuer.contains("/realms/")) {
+        tenant = issuer.substring(issuer.lastIndexOf("/realms/") + 8);
+        if (tenant.contains("/")) {
+          tenant = tenant.substring(0, tenant.indexOf("/"));
+        }
+        if (tenant.contains("?")) {
+          tenant = tenant.substring(0, tenant.indexOf("?"));
+        }
+      }
+    }
+    return tenant != null && !tenant.isEmpty() ? tenant : "unknown";
   }
 }

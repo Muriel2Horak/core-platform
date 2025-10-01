@@ -35,6 +35,12 @@ help:
 	@echo "  logs-keycloak       - Show keycloak logs only (Docker)"
 	@echo "  logs-db             - Show database logs only (Docker)"
 	@echo ""
+	@echo "🚀 Frontend Development (Production Build):"
+	@echo "  dev-frontend        - Build & deploy frontend changes quickly"
+	@echo "  dev-watch           - Watch frontend changes and auto-rebuild"
+	@echo "  dev-build           - Build frontend only (no container restart)"
+	@echo "  dev-hot             - Hot rebuild frontend from outside Docker"
+	@echo ""
 	@echo "📊 Loki Logs (Better for debugging restarts):"
 	@echo "  loki-logs-backend     - Show backend logs from Loki (last 10min)"
 	@echo "  loki-logs-frontend    - Show frontend logs from Loki (last 10min)"
@@ -104,7 +110,7 @@ up: validate-env kc-image
 	@echo ""
 	@echo "✅ Environment started successfully!"
 	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"
-	@echo "🔐 Keycloak: http://localhost:8081"
+	@echo "🔐 Keycloak: https://localhost:8081"
 	@echo "📊 Grafana: http://localhost:3001"
 	@echo "🗄️  PgAdmin: http://localhost:5050"
 	@echo ""
@@ -297,31 +303,38 @@ wait-for-services:
 	done
 	@echo "✅ Database ready"
 	@echo "⏳ Waiting for Keycloak..."
-	@for i in $$(seq 1 60); do \
-		if curl -s http://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
+	@# 🔧 FIX: Simplified Keycloak readiness check using admin CLI
+	@for i in $$(seq 1 120); do \
+		echo "📋 DEBUG: Keycloak readiness check attempt $$i/120..."; \
+		if docker exec core-keycloak /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password $${KEYCLOAK_ADMIN_PASSWORD:-admin123} >/dev/null 2>&1; then \
+			echo "✅ Keycloak admin CLI ready"; \
 			break; \
 		fi; \
-		sleep 2; \
+		sleep 3; \
 	done
 	@echo "✅ Keycloak ready"
 	@echo "🏗️  Setting up core-platform realm..."
-	@bash docker/keycloak/generate-realm.sh >/dev/null 2>&1
-	@sleep 5
-	@# 🔧 FIX: Check if realm exists before creating
-	@ACCESS_TOKEN=$$(curl -s -X POST "http://localhost:8081/realms/master/protocol/openid-connect/token" \
-		-H "Content-Type: application/x-www-form-urlencoded" \
-		-d "username=admin&password=$${KEYCLOAK_ADMIN_PASSWORD:-admin123}&grant_type=password&client_id=admin-cli" | jq -r '.access_token'); \
-	REALM_EXISTS=$$(curl -s -H "Authorization: Bearer $$ACCESS_TOKEN" \
-		"http://localhost:8081/admin/realms/core-platform" | jq -r '.realm // empty' 2>/dev/null); \
-	if [ -z "$$REALM_EXISTS" ]; then \
-		echo "🆕 Creating core-platform realm..."; \
-		curl -s -X POST "http://localhost:8081/admin/realms" \
-			-H "Content-Type: application/json" \
-			-H "Authorization: Bearer $$ACCESS_TOKEN" \
-			-d @docker/keycloak/realm-core-platform.json >/dev/null 2>&1 && \
-		echo "✅ Realm created successfully" || echo "❌ Failed to create realm"; \
+	@echo "📋 DEBUG: Running generate-realm.sh script..."
+	@bash docker/keycloak/generate-realm.sh && echo "✅ generate-realm.sh completed" || echo "⚠️  generate-realm.sh failed"
+	@sleep 2
+	@echo "📋 DEBUG: Checking if realm already exists..."
+	@# 🔧 FIX: Use admin CLI instead of external HTTPS calls
+	@REALM_CHECK=$$(docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get realms/core-platform 2>/dev/null | jq -r '.realm // empty' 2>/dev/null); \
+	echo "📋 DEBUG: Realm check result: $$REALM_CHECK"; \
+	if [ -z "$$REALM_CHECK" ] || [ "$$REALM_CHECK" = "null" ] || [ "$$REALM_CHECK" = "empty" ]; then \
+		echo "🆕 Realm does not exist, creating core-platform realm..."; \
+		echo "📋 DEBUG: Copying realm JSON to container..."; \
+		docker cp docker/keycloak/realm-core-platform.json core-keycloak:/tmp/realm-core-platform.json; \
+		echo "📋 DEBUG: Creating realm using admin CLI..."; \
+		CREATE_RESULT=$$(docker exec core-keycloak /opt/keycloak/bin/kcadm.sh create realms -f /tmp/realm-core-platform.json 2>&1); \
+		if echo "$$CREATE_RESULT" | grep -q "Created new realm"; then \
+			echo "✅ Realm created successfully: $$CREATE_RESULT"; \
+		else \
+			echo "❌ Failed to create realm: $$CREATE_RESULT"; \
+			exit 1; \
+		fi; \
 	else \
-		echo "✅ Realm core-platform already exists"; \
+		echo "✅ Realm core-platform already exists ($$REALM_CHECK)"; \
 	fi
 	@echo "✅ Keycloak realm configured"
 	@echo "⏳ Waiting for backend..."
@@ -335,7 +348,7 @@ wait-for-services:
 	@echo ""
 	@echo "🎉 All services are ready!"
 	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"
-	@echo "🔐 Keycloak: http://localhost:8081 (admin/$${KEYCLOAK_ADMIN_PASSWORD:-admin123})"
+	@echo "🔐 Keycloak: https://localhost:8081 (admin/$${KEYCLOAK_ADMIN_PASSWORD:-admin123})"
 	@echo "📊 Grafana: http://localhost:3001"
 
 # =============================================================================
@@ -458,6 +471,15 @@ kc-up-dev:
 kc-restart:
 	@echo "🔄 Restarting Keycloak..."
 	docker compose -f docker/docker-compose.yml restart keycloak
+	@echo "✅ Keycloak restarted"
+	@echo "⏳ Waiting for Keycloak to be ready..."
+	@for i in $$(seq 1 45); do \
+		if curl -k -s https://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
+			echo "✅ Keycloak is ready!"; \
+			break; \
+		fi; \
+		sleep 2; \
+	done
 
 # Stop and remove Keycloak container (clean restart)
 .PHONY: kc-clean
@@ -571,7 +593,7 @@ rebuild-keycloak:
 	@echo "✅ Keycloak rebuilt and restarted"
 	@echo "⏳ Waiting for Keycloak to be ready..."
 	@for i in $$(seq 1 45); do \
-		if curl -s http://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
+		if curl -k -s https://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
 			echo "✅ Keycloak is ready!"; \
 			break; \
 		fi; \
@@ -608,7 +630,7 @@ restart-keycloak:
 	@echo "✅ Keycloak restarted"
 	@echo "⏳ Waiting for Keycloak to be ready..."
 	@for i in $$(seq 1 45); do \
-		if curl -s http://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
+		if curl -k -s https://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
 			echo "✅ Keycloak is ready!"; \
 			break; \
 		fi; \
@@ -724,3 +746,54 @@ loki-search:
 	fi; \
 	curl -s "http://localhost:3100/loki/api/v1/query_range?query=\{container=~\"core-.*\"$$SERVICE_FILTER\}|~\"$(PATTERN)\"\&start=$$(($$(date '+%s') - $$((MINUTES * 60))))000000000&end=$$(date '+%s')000000000&limit=50" | \
 	jq -r '.data.result[]?.values[]?[1]' 2>/dev/null | head -20 || echo "❌ No logs found or Loki error"
+
+# =============================================================================
+# 🚀 FRONTEND DEVELOPMENT WORKFLOW (Production Build)
+# =============================================================================
+
+# Quick frontend development cycle - build & deploy changes
+.PHONY: dev-frontend
+dev-frontend:
+	@echo "🚀 Quick frontend rebuild & deploy..."
+	@echo "⏳ Building frontend (this takes ~30-60s)..."
+	@cd frontend && npm run build
+	@echo "🔨 Rebuilding Docker container..."
+	docker compose -f docker/docker-compose.yml build frontend
+	@echo "🔄 Restarting frontend container..."
+	docker compose -f docker/docker-compose.yml up -d frontend
+	@echo "✅ Frontend deployed! Check: https://$${DOMAIN:-core-platform.local}"
+
+# Watch frontend changes and auto-rebuild (requires chokidar-cli)
+.PHONY: dev-watch
+dev-watch:
+	@echo "👀 Watching frontend for changes..."
+	@echo "📝 Edit files in frontend/src/ - changes will auto-rebuild"
+	@echo "⚠️  Each change takes ~30-60s to build & deploy"
+	@echo "Press Ctrl+C to stop watching"
+	@cd frontend && npm run dev:watch
+
+# Build frontend only (no Docker restart) - useful for testing build
+.PHONY: dev-build
+dev-build:
+	@echo "🔨 Building frontend only..."
+	@cd frontend && npm run build
+	@echo "✅ Frontend build complete - files in frontend/dist/"
+
+# Hot rebuild from outside Docker - build, copy to container, restart nginx
+.PHONY: dev-hot
+dev-hot:
+	@echo "🔥 Hot rebuilding frontend..."
+	@cd frontend && npm run build
+	@echo "📋 Copying built files to container..."
+	@docker cp frontend/dist/. core-frontend:/usr/share/nginx/html/
+	@echo "🔄 Reloading nginx configuration..."
+	@docker exec core-frontend nginx -s reload
+	@echo "✅ Hot reload complete! Check: https://$${DOMAIN:-core-platform.local}"
+
+# Install chokidar-cli for file watching (one-time setup)
+.PHONY: dev-setup-watch
+dev-setup-watch:
+	@echo "🔧 Setting up file watching for development..."
+	@cd frontend && npm install chokidar-cli --save-dev
+	@echo "✅ File watching setup complete!"
+	@echo "💡 Now you can use 'make dev-watch' for auto-rebuilds"

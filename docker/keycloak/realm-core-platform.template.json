@@ -67,7 +67,7 @@
       "lastName": "User",
       "email": "test.user@example.com",
       "credentials": [
-        { "type": "password", "value": "${TEST_USER_PASSWORD:TempPass123!}", "temporary": false }
+        { "type": "password", "value": "${TEST_USER_PASSWORD:Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER"],
       "requiredActions": [],
@@ -92,7 +92,7 @@
       "lastName": "Administrator",
       "email": "test.admin@example.com",
       "credentials": [
-        { "type": "password", "value": "${TEST_ADMIN_PASSWORD:TempAdminPass123!}", "temporary": false }
+        { "type": "password", "value": "${TEST_ADMIN_PASSWORD:Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_ADMIN"],
       "requiredActions": [],

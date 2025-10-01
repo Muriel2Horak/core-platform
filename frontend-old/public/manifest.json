@@ -1,0 +1,60 @@
+{
+  "name": "CORE Platform",
+  "short_name": "CORE Platform",
+  "description": "Enterprise platform pro správu firemních procesů",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#5D87FF",
+  "theme_color": "#5D87FF",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "cs",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Přejít na hlavní dashboard",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/vite.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Profil",
+      "short_name": "Profil",
+      "description": "Zobrazit uživatelský profil",
+      "url": "/profile",
+      "icons": [
+        {
+          "src": "/vite.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+core",
+      "url": "/?action=%s"
+    }
+  ]
+}

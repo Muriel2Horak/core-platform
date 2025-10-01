@@ -1,0 +1,76 @@
+/* Critical CSS - načte se okamžitě pro rychlé zobrazení loading screen */
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #fafbfb;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* 🚀 CRITICAL - Loading screen styles (zobrazí se okamžitě) */
+.critical-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-family: inherit;
+  z-index: 9999;
+}
+
+.critical-loading .spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.critical-loading h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.critical-loading p {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.875rem;
+  opacity: 0.8;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* MUI Reset optimalizace */
+.css-lpesjx-MuiPaper-root-MuiDrawer-paper{
+    top: 65px !important;
+}
+.MuiPaper-root.MuiPaper-elevation.MuiPaper-elevation0.MuiDrawer-paper.MuiDrawer-paperAnchorLeft.MuiDrawer-paperAnchorDockedLeft.css-1bdav0j{
+    top: 65px !important;
+}
+
+.MuiOutlinedInput-notchedOutline {
+    border-color: #efefef !important;
+}
+
+.MuiTypography-root,
+.MuiListSubheader-root,
+.MuiChip-label {
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
