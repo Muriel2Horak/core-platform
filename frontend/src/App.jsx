@@ -9,8 +9,10 @@ import keycloakService from './services/keycloakService.js';
 import Layout from './components/Layout.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Users from './components/Users.jsx';
+import UserDirectory from './components/UserDirectory.jsx';
 import Profile from './components/Profile.jsx';
 import Tenants from './components/Tenants.jsx';
+import TenantManagement from './components/TenantManagement.jsx';
 
 // Loading component
 const LoadingScreen = ({ message = 'Načítání aplikace...' }) => (
@@ -238,7 +240,9 @@ function App() {
             <Route path="/dashboard" element={<Dashboard user={user} />} />
             <Route path="/profile" element={<Profile user={user} />} />
             <Route path="/users" element={<Users user={user} />} />
+            <Route path="/user-directory" element={<UserDirectory user={user} />} />
             <Route path="/tenants" element={<Tenants user={user} />} />
+            <Route path="/tenant-management" element={<TenantManagement user={user} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
