@@ -249,9 +249,19 @@ class KeycloakService {
   /**
    * 🔐 Redirect to Keycloak login
    */
-  login() {
+  async login() {
+    // 🔧 FIXED: Auto-initialize if not ready
+    if (!this.keycloak || !isInitialized) {
+      logger.info('⏳ Keycloak not ready for login, initializing...');
+      try {
+        await this.initKeycloakOnce();
+      } catch (error) {
+        console.error('❌ [AUTH] Failed to initialize Keycloak for login:', error.message);
+        throw new Error('Keycloak initialization failed');
+      }
+    }
+
     if (!this.keycloak) {
-      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
       console.error('❌ [AUTH] Keycloak not initialized');
       throw new Error('Keycloak not initialized');
     }

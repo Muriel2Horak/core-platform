@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }) => {
   }, []); // 🔧 Prázdné dependencies - spustí se pouze jednou
 
   // 🔧 Handle manual login s ref guard
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (hasTriedLoginRef.current) {
       logger.debug('Login already attempted, ignoring duplicate call');
       return;
@@ -111,6 +111,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('prevent-auto-login');
     
     try {
+      // 🔧 FIXED: Ensure Keycloak is initialized before login attempt
+      if (!keycloakInitialized || !keycloakService.keycloak) {
+        logger.info('⏳ Keycloak not ready, initializing first...');
+        await keycloakService.initKeycloakOnce();
+        setKeycloakInitialized(true);
+      }
+      
       keycloakService.login();
     } catch (error) {
       // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
