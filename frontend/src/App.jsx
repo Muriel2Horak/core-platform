@@ -58,33 +58,6 @@ const ErrorScreen = ({ message, onRetry }) => (
   </Box>
 );
 
-// Login screen with manual login button
-const LoginScreen = ({ onLogin }) => (
-  <Box
-    display="flex"
-    flexDirection="column"
-    justifyContent="center"
-    alignItems="center"
-    minHeight="100vh"
-    sx={{ backgroundColor: 'background.default', p: 3 }}
-  >
-    <Typography variant="h4" color="primary" gutterBottom>
-      🔐 Přihlášení
-    </Typography>
-    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
-      Pro pokračování se přihlaste do aplikace.
-    </Typography>
-    <Button 
-      onClick={onLogin}
-      variant="contained"
-      color="primary"
-      size="large"
-    >
-      Přihlásit se
-    </Button>
-  </Box>
-);
-
 // Main App Content - uses Auth Context
 const AppContent = () => {
   const { loading, error, user, isAuthenticated, login, logout } = useAuth();
@@ -99,9 +72,14 @@ const AppContent = () => {
     return <ErrorScreen message={error} onRetry={() => window.location.reload()} />;
   }
 
-  // Show login screen if not authenticated
+  // Redirect to Keycloak login if not authenticated - NO STEP 1!
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={login} />;
+    // Trigger login immediately - no intermediate screen
+    React.useEffect(() => {
+      login();
+    }, [login]);
+    
+    return <LoadingScreen message="Přesměrování na přihlášení..." />;
   }
 
   // Main application

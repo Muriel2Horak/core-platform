@@ -453,5 +453,58 @@ Database Update → MDC Logging → Event Log Entry
 
 ---
 
-**Development Team**: Core Platform Engineering  
-**Last Updated**: Step 2 - Realtime User Sync Implementation
+# 🌐 Síťová Architektura
+
+## Rozdělení External vs Internal sítě
+
+⚠️ **DŮLEŽITÉ**: Nepomíchej externí domény s interní Docker sítí!
+
+### 🌍 **EXTERNÍ - Uživatelské URL (před nginx)**
+```
+https://admin.core-platform.local      → Admin frontend + Keycloak admin realm
+https://tenant1.core-platform.local    → Tenant1 frontend + tenant1 realm  
+https://tenant2.core-platform.local    → Tenant2 frontend + tenant2 realm
+https://company-a.core-platform.local  → Company-A frontend + company-a realm
+```
+
+### 🐳 **INTERNÍ - Docker síť (za nginx)**
+```
+nginx:443 → frontend:80    (React app)
+nginx:443 → backend:8080   (Spring Boot API)  
+nginx:443 → keycloak:8443  (Keycloak server - HTTPS)
+nginx:443 → db:5432        (PostgreSQL)
+```
+
+### 🔧 **Konfigurace pravidla:**
+
+| Komponenta | Externí doména | Interní hostname | Účel |
+|------------|---------------|------------------|------|
+| **Nginx** | `*.core-platform.local:443` | `nginx:443` | Revere proxy + SSL termination |
+| **Frontend** | Přes nginx | `frontend:80` | React SPA |
+| **Backend** | Přes nginx `/api/*` | `backend:8080` | REST API |
+| **Keycloak** | Přes nginx `/realms/*`, `/admin/*` | `keycloak:8443` | Auth server |
+| **Database** | Nedostupná zvenčí | `db:5432` | PostgreSQL |
+
+### 🎯 **Keycloak konfigurace:**
+```yaml
+# ✅ SPRÁVNĚ - Keycloak hostname je interní Docker název
+KC_HOSTNAME: keycloak  # nebo admin.core-platform.local pro external
+
+# ✅ SPRÁVNĚ - Realm templates používají externí domény pro redirecty  
+"frontendUrl": "https://admin.${DOMAIN}"
+"redirectUris": ["https://admin.${DOMAIN}/*"]
+
+# ❌ ŠPATNĚ - Míchat interní a externí!
+KC_HOSTNAME: core-platform.local  # externí v interní konfiguraci
+```
+
+### 🔄 **Workflow:**
+1. **DNS**: `admin.core-platform.local` → `127.0.0.1` (dnsmasq)
+2. **Nginx**: Zachytí external request na port 443
+3. **Routing**: `admin.core-platform.local/realms/*` → `keycloak:8443/realms/*`
+4. **Keycloak**: Vrací response s correct external URLs
+5. **Browser**: Redirecty používají external domény
+
+---
+
+# Core Platform

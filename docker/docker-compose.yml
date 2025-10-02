@@ -77,8 +77,8 @@ services:
       # 🌐 DOMAIN pro všechny external URLs
       - DOMAIN=${DOMAIN:-core-platform.local}
       # 🔧 FIX: OIDC Configuration - opravené issuery pro JWT validaci
-      - OIDC_ISSUER_URI=https://${DOMAIN:-core-platform.local}/realms/core-platform
-      - OIDC_JWK_SET_URI=https://keycloak:8443/realms/core-platform/protocol/openid-connect/certs
+      - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
+      - OIDC_JWK_SET_URI=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
       - OIDC_API_AUDIENCE=api
       # 🔧 FIX: CORS origins - použijeme environment proměnnou
       - CORS_ORIGINS=https://${DOMAIN:-core-platform.local}
@@ -90,8 +90,8 @@ services:
       - KEYCLOAK_ADMIN_CLIENT_ID=backend-admin-service
       - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
-      - KEYCLOAK_ADMIN_REALM=core-platform
-      - KEYCLOAK_TARGET_REALM=core-platform
+      - KEYCLOAK_ADMIN_REALM=admin
+      - KEYCLOAK_TARGET_REALM=admin
       - KEYCLOAK_ADMIN_BASE_URL=https://keycloak:8443
       # 🏢 MULTITENANCY Configuration
       - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-test-tenant}
@@ -165,9 +165,8 @@ services:
       TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-Test.1234}
       TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-Test.1234}
 
-      # 🔒 HTTPS Production Mode Configuration
+      # 🔒 HTTPS Production Mode Configuration - OPRAVENO: dynamické hostname detection
       KC_PROXY: "edge"
-      KC_HOSTNAME: ${DOMAIN:-core-platform.local}
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "false" # 🔒 Disable HTTP

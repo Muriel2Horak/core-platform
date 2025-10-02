@@ -21,6 +21,9 @@ COPY --from=spi-build /workspace/keycloak-spi-event-webhook/target/*.jar /opt/ke
 # zkopíruj custom témata
 COPY themes/ /opt/keycloak/themes/
 
+# 🏗️ ADMIN REALM: zkopíruj admin realm konfiguraci pro automatický import
+COPY docker/keycloak/realm-admin.json /opt/keycloak/data/import/
+
 # 🔒 SSL CERTIFICATES: zkopíruj SSL certifikáty
 COPY ssl/ /opt/keycloak/conf/
 
@@ -29,7 +32,9 @@ USER root
 RUN chmod 644 /opt/keycloak/conf/cert.pem && \
   chmod 600 /opt/keycloak/conf/key.pem && \
   chown keycloak:root /opt/keycloak/conf/cert.pem && \
-  chown keycloak:root /opt/keycloak/conf/key.pem
+  chown keycloak:root /opt/keycloak/conf/key.pem && \
+  mkdir -p /opt/keycloak/data/import && \
+  chown -R keycloak:root /opt/keycloak/data
 USER keycloak
 
 # sestav KC distribuci, aby se provider zaregistroval
@@ -37,10 +42,11 @@ RUN /opt/keycloak/bin/kc.sh build --db=postgres
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 
-# 🔒 HTTPS MODE: HTTPS mód s SSL certifikáty
+# 🔒 HTTPS MODE: HTTPS mód s SSL certifikáty + import realm
 CMD ["start", \
   "--https-port=8443", \
   "--https-certificate-file=/opt/keycloak/conf/cert.pem", \
   "--https-certificate-key-file=/opt/keycloak/conf/key.pem", \
   "--hostname-strict=false", \
-  "--proxy=edge"]
+  "--proxy=edge", \
+  "--import-realm"]

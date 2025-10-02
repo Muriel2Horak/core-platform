@@ -4,14 +4,15 @@ import { coreMaterialTheme } from './theme';
 import Login from './Login';
 
 // Simulace Keycloak props - v reálném prostředí by tyto hodnoty poskytl Keycloak
-const keycloakProps = {
+const kcContext = {
+  realm: {
+    name: 'admin',  // Updated from core-platform to admin
+    displayName: 'Admin Realm'
+  },
   url: {
     loginAction: window.location.href,
-    registrationUrl: '/auth/realms/core-platform/login-actions/registration',
-    loginResetCredentialsUrl: '/auth/realms/core-platform/login-actions/reset-credentials'
-  },
-  realm: {
-    displayName: 'Core Platform'
+    registrationUrl: '/auth/realms/admin/login-actions/registration',
+    loginResetCredentialsUrl: '/auth/realms/admin/login-actions/reset-credentials'
   },
   client: {
     clientId: 'web'
@@ -33,6 +34,6 @@ const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(
   <ThemeProvider theme={coreMaterialTheme}>
     <CssBaseline />
-    <Login {...keycloakProps} />
+    <Login {...kcContext} />
   </ThemeProvider>
 );

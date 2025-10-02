@@ -1,27 +1,27 @@
--- Seed data for multitenancy testing
--- This script ensures core-platform tenant exists and creates test users for smoke tests
+-- Seed data for multitenancy smoke tests
+-- This script ensures admin tenant exists and creates test users for smoke tests
 
 -- Ensure pgcrypto extension exists (for UUID generation)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- FIXED: Ensure core-platform tenant exists (instead of creating test tenants)
-INSERT INTO tenants (key, name, realm) 
-VALUES ('core-platform', 'Core Platform', 'core-platform')
+-- Insert admin tenant if not exists (renamed from core-platform)
+INSERT INTO tenants (key, created_at, updated_at) 
+VALUES ('admin', NOW(), NOW()) 
 ON CONFLICT (key) DO NOTHING;
 
--- Get core-platform tenant ID for foreign key references
+-- Get admin tenant ID for foreign key references
 DO $$
 DECLARE
-    core_tenant_id UUID;
+    admin_tenant_id UUID;
 BEGIN
-    -- Get core-platform tenant ID
-    SELECT id INTO core_tenant_id FROM tenants WHERE key = 'core-platform';
+    -- Get admin tenant ID
+    SELECT id INTO admin_tenant_id FROM tenants WHERE key = 'admin';
     
-    -- Insert test users for core-platform tenant (for testing user directory search)
+    -- Insert test users for admin tenant (for testing user directory search)
     INSERT INTO users_directory (tenant_id, username, email, first_name, last_name, display_name, is_federated, status)
     VALUES 
-        (core_tenant_id, 'alice_core', 'alice@core-platform.local', 'Alice', 'Core', 'Alice Core', false, 'ACTIVE'),
-        (core_tenant_id, 'bob_core', 'bob@core-platform.local', 'Bob', 'Core', 'Bob Core', false, 'ACTIVE')
+        (admin_tenant_id, 'alice_core', 'alice@core-platform.local', 'Alice', 'Core', 'Alice Core', false, 'ACTIVE'),
+        (admin_tenant_id, 'bob_core', 'bob@core-platform.local', 'Bob', 'Core', 'Bob Core', false, 'ACTIVE')
     ON CONFLICT (tenant_id, username) DO NOTHING;
     
 END $$;

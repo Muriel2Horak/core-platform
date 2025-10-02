@@ -9,7 +9,7 @@ echo "🧪 Testing Tenant Management API"
 echo "=================================="
 
 # Base URL
-BASE_URL="https://core-platform.local"
+BASE_URL="https://admin.core-platform.local"
 API_URL="${BASE_URL}/api"
 
 # Test data
@@ -53,7 +53,7 @@ get_admin_token() {
     
     # Get token for test_admin user (should have CORE_ROLE_ADMIN)
     local token_response=$(curl -s -X POST \
-        "${BASE_URL}/realms/core-platform/protocol/openid-connect/token" \
+        "${BASE_URL}/realms/admin/protocol/openid-connect/token" \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -d "grant_type=password" \
         -d "client_id=web" \

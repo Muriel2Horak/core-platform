@@ -56,9 +56,9 @@ public class EventWebhookProvider implements EventListenerProvider {
       // 🎯 CLEAN ARCHITECTURE: realm name IS the tenant key
       String tenantKey = realm.getName();
 
-      // Skip events from core-platform realm (system admin realm)
-      if ("core-platform".equals(tenantKey)) {
-        logger.debugf("Skipping event from core-platform realm (system admin realm)");
+      // Skip events from admin realm (system admin realm)
+      if ("admin".equals(tenantKey)) {
+        logger.debugf("Skipping event from admin realm (system admin realm)");
         return;
       }
 
@@ -92,9 +92,9 @@ public class EventWebhookProvider implements EventListenerProvider {
       // 🎯 CLEAN ARCHITECTURE: realm name IS the tenant key
       String tenantKey = realm.getName();
 
-      // Skip events from core-platform realm (system admin realm)
-      if ("core-platform".equals(tenantKey)) {
-        logger.debugf("Skipping admin event from core-platform realm");
+      // Skip events from admin realm (system admin realm)
+      if ("admin".equals(tenantKey)) {
+        logger.debugf("Skipping admin event from admin realm");
         return;
       }
 

@@ -1,30 +1,27 @@
 {
-  "exp": 1759418835,
-  "iat": 1759418535,
-  "jti": "01d80b9c-c7a1-4700-aa78-5d58de7c4bb0",
-  "iss": "https://core-platform.local/realms/core-platform",
+  "exp": 1759430882,
+  "iat": 1759430582,
+  "jti": "1396aabc-8f75-4c96-ba47-a8fd51985266",
+  "iss": "https://admin.admin.core-platform.local/realms/admin",
   "aud": "api",
-  "sub": "95582b8e-9ac4-41ac-ab41-2b6d81ee9d7a",
+  "sub": "46c71d62-55fb-4d20-83b0-8bdee913a1cb",
   "typ": "Bearer",
   "azp": "web",
-  "session_state": "296b4d58-1efa-4126-9add-b88ae50e3ef9",
+  "session_state": "8fc91ccc-2b43-4830-a9af-ca15190e5b79",
   "acr": "1",
   "allowed-origins": [
+    "https://admin.admin.core-platform.local",
     "http://localhost",
-    "https://core-platform.local",
     "http://localhost:3000"
   ],
   "realm_access": {
     "roles": [
-      "CORE_ROLE_USER"
+      "CORE_ROLE_ADMIN",
+      "CORE_USER_MANAGER"
     ]
   },
   "scope": "email profile",
-  "sid": "296b4d58-1efa-4126-9add-b88ae50e3ef9",
+  "sid": "8fc91ccc-2b43-4830-a9af-ca15190e5b79",
   "email_verified": true,
-  "name": "Test User",
-  "preferred_username": "test",
-  "given_name": "Test",
-  "family_name": "User",
-  "email": "test.user@example.com"
+  "preferred_username": "test_admin"
 }

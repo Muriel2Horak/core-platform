@@ -191,7 +191,7 @@ verify_tenant_claim() {
     fi
     
     # FIXED: Extract tenant from issuer URL instead of looking for explicit tenant claim
-    # Backend uses issuer URL to determine tenant: https://core-platform.local/realms/core-platform
+    # Backend uses issuer URL to determine tenant: https://admin.core-platform.local/realms/admin
     local issuer
     issuer=$(jq -r '.iss // empty' "$jwt_file")
     

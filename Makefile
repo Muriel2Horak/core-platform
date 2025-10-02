@@ -131,14 +131,12 @@ up: validate-env kc-image
 	@if [ -z "$$KC_WEBHOOK_SECRET" ]; then \
 		echo "🔑 Auto-generating webhook secret..."; \
 		export KC_WEBHOOK_SECRET=$$(openssl rand -base64 32); \
-		export KC_REALM_TENANT_MAP="core-platform:test-tenant:1"; \
 	fi; \
 	KC_WEBHOOK_SECRET=$${KC_WEBHOOK_SECRET:-$$(openssl rand -base64 32)} \
-	KC_REALM_TENANT_MAP=$${KC_REALM_TENANT_MAP:-core-platform:test-tenant:1} \
 	docker compose -f docker/docker-compose.yml up -d
 	@echo ""
 	@echo "✅ Environment started successfully!"
-	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"
+	@echo "🌐 Admin Frontend: https://admin.$${DOMAIN:-core-platform.local}"
 	@echo "🔐 Keycloak: https://localhost:8081"
 	@echo "📊 Grafana: http://localhost:3001"
 	@echo "🗄️  PgAdmin: http://localhost:5050"
@@ -342,20 +340,20 @@ wait-for-services:
 		sleep 3; \
 	done
 	@echo "✅ Keycloak ready"
-	@echo "🏗️  Setting up core-platform realm..."
+	@echo "🏗️  Setting up admin realm..."
 	@echo "📋 DEBUG: Running generate-realm.sh script..."
 	@bash docker/keycloak/generate-realm.sh && echo "✅ generate-realm.sh completed" || echo "⚠️  generate-realm.sh failed"
 	@sleep 2
 	@echo "📋 DEBUG: Checking if realm already exists..."
 	@# 🔧 FIX: Use admin CLI instead of external HTTPS calls
-	@REALM_CHECK=$$(docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get realms/core-platform 2>/dev/null | jq -r '.realm // empty' 2>/dev/null); \
+	@REALM_CHECK=$$(docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get realms/admin 2>/dev/null | jq -r '.realm // empty' 2>/dev/null); \
 	echo "📋 DEBUG: Realm check result: $$REALM_CHECK"; \
 	if [ -z "$$REALM_CHECK" ] || [ "$$REALM_CHECK" = "null" ] || [ "$$REALM_CHECK" = "empty" ]; then \
-		echo "🆕 Realm does not exist, creating core-platform realm..."; \
+		echo "🆕 Realm does not exist, creating admin realm..."; \
 		echo "📋 DEBUG: Copying realm JSON to container..."; \
-		docker cp docker/keycloak/realm-core-platform.json core-keycloak:/tmp/realm-core-platform.json; \
+		docker cp docker/keycloak/realm-admin.json core-keycloak:/tmp/realm-admin.json; \
 		echo "📋 DEBUG: Creating realm using admin CLI..."; \
-		CREATE_RESULT=$$(docker exec core-keycloak /opt/keycloak/bin/kcadm.sh create realms -f /tmp/realm-core-platform.json 2>&1); \
+		CREATE_RESULT=$$(docker exec core-keycloak /opt/keycloak/bin/kcadm.sh create realms -f /tmp/realm-admin.json 2>&1); \
 		if echo "$$CREATE_RESULT" | grep -q "Created new realm"; then \
 			echo "✅ Realm created successfully: $$CREATE_RESULT"; \
 		else \
@@ -363,7 +361,7 @@ wait-for-services:
 			exit 1; \
 		fi; \
 	else \
-		echo "✅ Realm core-platform already exists ($$REALM_CHECK)"; \
+		echo "✅ Realm admin already exists ($$REALM_CHECK)"; \
 	fi
 	@echo "✅ Keycloak realm configured"
 	@echo "⏳ Waiting for backend..."
@@ -405,9 +403,9 @@ kc-help:
 	@echo "  kc.bootstrap-auto - Bootstrap with auto-generated values"
 	@echo ""
 	@echo "🔐 Keycloak Data Management:"
-	@echo "  kc-export-realm   - Export core-platform realm to backup file"
+	@echo "  kc-export-realm   - Export admin realm to backup file"
 	@echo "  kc-backup         - Create backup of entire Keycloak data"
-	@echo "  kc-show-users     - Show all users in core-platform realm"
+	@echo "  kc-show-users     - Show all users in admin realm"
 
 # Bootstrap new tenant realm (parametrized)
 .PHONY: kc.bootstrap
@@ -497,7 +495,6 @@ kc-up:
 kc-up-dev:
 	@echo "🧪 Starting Keycloak with development webhook configuration..."
 	@KC_WEBHOOK_SECRET=$$(openssl rand -base64 32) \
-	KC_REALM_TENANT_MAP=core-platform:test-tenant:1 \
 	docker compose -f docker/docker-compose.yml up -d keycloak
 	@echo "✅ Keycloak started with auto-generated webhook secret"
 
@@ -561,14 +558,14 @@ kc-generate-secret:
 	@echo "📝 Add this to your .env file as:"
 	@echo "KC_WEBHOOK_SECRET=$$(openssl rand -base64 32)"
 
-# Export core-platform realm to backup file
+# Export admin realm to backup file
 .PHONY: kc-export-realm
 kc-export-realm:
-	@echo "💾 Exporting core-platform realm..."
+	@echo "💾 Exporting admin realm..."
 	@mkdir -p backups
 	@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
 	docker exec core-keycloak /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password $${KEYCLOAK_ADMIN_PASSWORD:-admin} >/dev/null 2>&1; \
-	docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get realms/core-platform > "backups/realm-core-platform-$$TIMESTAMP.json"
+	docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get realms/admin > "backups/realm-admin-$$TIMESTAMP.json"
 	@echo "✅ Realm exported to backups/"
 
 # Create backup of entire Keycloak data
@@ -581,12 +578,12 @@ kc-backup:
 		sh -c "cd /source && tar czf /backup/keycloak-data-$$TIMESTAMP.tar.gz ."
 	@echo "✅ Keycloak data backed up to backups/"
 
-# Show all users in core-platform realm
+# Show all users in admin realm
 .PHONY: kc-show-users
 kc-show-users:
-	@echo "👥 Users in core-platform realm:"
+	@echo "👥 Users in admin realm:"
 	@docker exec core-keycloak /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password $${KEYCLOAK_ADMIN_PASSWORD:-admin} >/dev/null 2>&1; \
-	docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get users -r core-platform --fields username,email,enabled | jq -r '.[] | "\(.username) - \(.email // "no email") - \(if .enabled then "enabled" else "disabled" end)"' 2>/dev/null || echo "❌ Failed to retrieve users"
+	docker exec core-keycloak /opt/keycloak/bin/kcadm.sh get users -r admin --fields username,email,enabled | jq -r '.[] | "\(.username) - \(.email // "no email") - \(if .enabled then "enabled" else "disabled" end)"' 2>/dev/null || echo "❌ Failed to retrieve users"
 
 # =============================================================================
 # 🔧 SINGLE SERVICE MANAGEMENT TARGETS  

@@ -90,10 +90,10 @@ public class TenantManagementController {
     try {
       log.warn("🗑️ Deleting tenant: {}", tenantKey);
 
-      // Prevent deletion of core tenant
-      if ("core-platform".equals(tenantKey)) {
+      // Prevent deletion of admin tenant (renamed from core-platform)
+      if ("admin".equals(tenantKey)) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body(Map.of("success", false, "message", "Cannot delete core platform tenant"));
+            .body(Map.of("success", false, "message", "Cannot delete admin tenant"));
       }
 
       // Delete tenant using realm management service

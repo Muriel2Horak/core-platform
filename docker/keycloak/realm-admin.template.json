@@ -1,5 +1,5 @@
 {
-  "realm": "core-platform",
+  "realm": "admin",
   "enabled": true,
   "displayName": "Core Platform",
   "sslRequired": "external",
@@ -19,10 +19,10 @@
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",
   "attributes": {
-    "frontendUrl": "https://core-platform.local",
+    "frontendUrl": "https://admin.${DOMAIN}",
     "userProfileEnabled": "false",
     "requirePasswordUpdateOnFirstLogin": "false",
-    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://core-platform.local https://*.core-platform.local; frame-ancestors 'self' https://core-platform.local https://*.core-platform.local; object-src 'none';",
+    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://admin.${DOMAIN} https://*.${DOMAIN}; frame-ancestors 'self' https://admin.${DOMAIN} https://*.${DOMAIN}; object-src 'none';",
     "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains",
     "_browser_header.xFrameOptions": "SAMEORIGIN",
     "_browser_header.xContentTypeOptions": "nosniff",
@@ -67,7 +67,7 @@
       "lastName": "User",
       "email": "test.user@example.com",
       "credentials": [
-        { "type": "password", "value": "Test.1234", "temporary": false }
+        { "type": "password", "value": "${TEST_USER_PASSWORD:Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER"],
       "requiredActions": [],
@@ -92,7 +92,7 @@
       "lastName": "Administrator",
       "email": "test.admin@example.com",
       "credentials": [
-        { "type": "password", "value": "Test.1234", "temporary": false }
+        { "type": "password", "value": "${TEST_ADMIN_PASSWORD:Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_ADMIN"],
       "requiredActions": [],
@@ -158,7 +158,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
-      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm"
+      "secret": "${KEYCLOAK_ADMIN_CLIENT_SECRET}"
     },
     {
       "clientId": "web",
@@ -170,14 +170,14 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
-      "rootUrl": "https://core-platform.local/",
+      "rootUrl": "https://admin.${DOMAIN}/",
       "redirectUris": [
-        "https://core-platform.local/*",
+        "https://admin.${DOMAIN}/*",
         "http://localhost:3000/*",
         "http://localhost/*"
       ],
       "webOrigins": [
-        "https://core-platform.local",
+        "https://admin.${DOMAIN}",
         "+"
       ],
       "protocolMappers": [

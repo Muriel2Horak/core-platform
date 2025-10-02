@@ -25,7 +25,7 @@ jobs:
           # These are safe default values for GitHub Actions CI
           
           # OIDC Configuration (CI defaults)
-          OIDC_ISSUER=http://keycloak:8080/realms/core-platform
+          OIDC_ISSUER=http://keycloak:8080/realms/admin
           OIDC_API_AUDIENCE=api
           CORS_ORIGINS=http://localhost:3000
           

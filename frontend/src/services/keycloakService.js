@@ -21,24 +21,16 @@ class KeycloakService {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
 
-    // Use realm from hostname as initial hint
+    // Use realm from hostname - unified logic for all realms
     const realm = hostname.split('.')[0];
-    logger.debug('Using initial realm hint from hostname', { 
+    logger.debug('Using realm from hostname', { 
       hostname, 
       realm,
       component: 'auth' 
     });
 
-    // 🔧 SSL: Use HTTPS URL via Nginx reverse proxy
-    let keycloakUrl;
-
-    if (hostname.includes('localhost')) {
-      // In development use localhost with HTTPS
-      keycloakUrl = `https://core-platform.local`;
-    } else {
-      // In production use HTTPS with detected hostname
-      keycloakUrl = `https://${hostname}`;
-    }
+    // 🔧 Simple: Use the current hostname with HTTPS
+    const keycloakUrl = `https://${hostname}`;
 
     logger.info('Keycloak config detected', { 
       keycloakUrl, 
@@ -56,7 +48,7 @@ class KeycloakService {
       _debug: {
         hostname,
         protocol,
-        initialRealmHint: realm,
+        realmFromHostname: realm,
         keycloakUrl,
         usingSSL: true,
         usingNginxProxy: true
@@ -176,7 +168,7 @@ class KeycloakService {
     const iss = this.keycloak?.tokenParsed?.iss;
     
     if (iss) {
-      // Extract realm from issuer URL like: https://core-platform.local/auth/realms/test-tenant
+      // Extract realm from issuer URL like: https://admin.core-platform.local/auth/realms/admin
       const match = iss.match(/\/realms\/([^\/\?#]+)/);
       if (match) {
         const tenant = match[1];
@@ -189,11 +181,11 @@ class KeycloakService {
       }
     }
 
-    logger.warn('Could not derive tenant from issuer. Fallback to core-platform', { 
+    logger.warn('Could not derive tenant from issuer. Fallback to admin', { 
       issuer: iss,
       component: 'auth' 
     });
-    return 'core-platform';
+    return 'admin';
   }
 
   /**

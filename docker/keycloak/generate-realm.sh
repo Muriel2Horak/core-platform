@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Script to generate Keycloak realm configuration from template
+# Usage: ./generate-realm.sh
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Input template and output file
+REALM_TEMPLATE="$SCRIPT_DIR/realm-admin.template.json"
+REALM_OUTPUT="$SCRIPT_DIR/realm-admin.json"
+
 # 🌐 Dynamické generování Keycloak realm exportu s aktuální DOMAIN
 # Použije environment proměnnou DOMAIN pro generování správných redirect URIs
 # 
@@ -7,8 +18,6 @@
 #   ./generate-realm.sh           # běžný režim
 #   ./generate-realm.sh --debug   # s debug výstupy
 #   DEBUG=true ./generate-realm.sh # s debug výstupy přes env
-
-set -e
 
 # Kontrola debug režimu
 DEBUG_MODE=${DEBUG:-false}
@@ -25,10 +34,6 @@ debug_echo() {
 debug_echo "Starting generate-realm.sh script"
 debug_echo "Script arguments: $@"
 debug_echo "Current working directory: $(pwd)"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REALM_TEMPLATE="$SCRIPT_DIR/realm-core-platform.template.json"
-REALM_OUTPUT="$SCRIPT_DIR/realm-core-platform.json"
 
 debug_echo "SCRIPT_DIR = $SCRIPT_DIR"
 debug_echo "REALM_TEMPLATE = $REALM_TEMPLATE"
@@ -60,20 +65,28 @@ fi
 
 # Fallback na default hodnotu
 DOMAIN=${DOMAIN:-core-platform.local}
+
+# 🔧 FIX: Admin realm používá admin subdoménu pro konzistenci s ostatními realmy
+ADMIN_DOMAIN="admin.${DOMAIN}"
+
 debug_echo "Final DOMAIN value: $DOMAIN"
+debug_echo "Final ADMIN_DOMAIN value: $ADMIN_DOMAIN"
 debug_echo "KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-'NOT SET'}"
 debug_echo "TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-'NOT SET'}"
 debug_echo "TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-'NOT SET'}"
 
-echo "🌐 Generating Keycloak realm export for domain: $DOMAIN"
+echo "🌐 Generating Keycloak realm export for admin realm"
+echo "   - Base domain: $DOMAIN"
+echo "   - Admin subdomain: $ADMIN_DOMAIN"
 
 # Nahraď všechny template proměnné v realm exportu
 debug_echo "Running envsubst command..."
 
 # 🔧 FIX: Nejprve nahradíme fallback syntaxi standardní syntaxí pro envsubst
+# Používáme ADMIN_DOMAIN místo DOMAIN pro admin realm
 debug_echo "Processing fallback syntax..."
 sed 's/\${TEST_USER_PASSWORD:[^}]*}/${TEST_USER_PASSWORD}/g; s/\${TEST_ADMIN_PASSWORD:[^}]*}/${TEST_ADMIN_PASSWORD}/g' "$REALM_TEMPLATE" | \
-envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET $TEST_USER_PASSWORD $TEST_ADMIN_PASSWORD' > "$REALM_OUTPUT"
+DOMAIN="$ADMIN_DOMAIN" envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET $TEST_USER_PASSWORD $TEST_ADMIN_PASSWORD' > "$REALM_OUTPUT"
 
 # Kontrola, že výstupní soubor byl vytvořen
 if [[ ! -f "$REALM_OUTPUT" ]]; then
@@ -82,7 +95,7 @@ if [[ ! -f "$REALM_OUTPUT" ]]; then
 fi
 
 echo "✅ Realm export generated: $REALM_OUTPUT"
-echo "   - Frontend URL: https://$DOMAIN"
-echo "   - Redirect URIs include: https://$DOMAIN/*"
+echo "   - Frontend URL: https://$ADMIN_DOMAIN"
+echo "   - Redirect URIs include: https://$ADMIN_DOMAIN/*"
 debug_echo "Output file size: $(wc -c < "$REALM_OUTPUT") bytes"
 debug_echo "generate-realm.sh completed"
