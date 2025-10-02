@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Silent SSO Check</title>
+    <meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+    <script>
+        // Silent SSO check for Keycloak
+        // This page is loaded in an iframe by Keycloak to check authentication status
+        parent.postMessage(location.href, location.origin);
+    </script>
+</body>
+</html>

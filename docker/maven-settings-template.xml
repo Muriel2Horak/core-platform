@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 
+          http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <!-- Maven Reliability Configuration -->
+  <profiles>
+    <profile>
+      <id>ci</id>
+      <properties>
+        <!-- HTTP retry and timeout settings -->
+        <maven.wagon.http.retryHandler.count>5</maven.wagon.http.retryHandler.count>
+        <maven.wagon.http.retryHandler.requestSentEnabled>true</maven.wagon.http.retryHandler.requestSentEnabled>
+        <maven.wagon.http.connectionTimeout>30000</maven.wagon.http.connectionTimeout>
+        <maven.wagon.http.readTimeout>60000</maven.wagon.http.readTimeout>
+        <maven.wagon.httpconnectionManager.ttlSeconds>120</maven.wagon.httpconnectionManager.ttlSeconds>
+        
+        <!-- Retry for other protocols -->
+        <maven.wagon.rto>60000</maven.wagon.rto>
+        
+        <!-- Additional reliability settings -->
+        <maven.artifact.threads>1</maven.artifact.threads>
+        <maven.resolver.transport>wagon</maven.resolver.transport>
+      </properties>
+      
+      <!-- Repositories for non-central artifacts -->
+      <repositories>
+        <repository>
+          <id>spring-milestones</id>
+          <name>Spring Milestones</name>
+          <url>https://repo.spring.io/milestone</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+        <repository>
+          <id>jitpack</id>
+          <name>JitPack</name>
+          <url>https://jitpack.io</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+      </repositories>
+      
+      <pluginRepositories>
+        <pluginRepository>
+          <id>spring-milestones</id>
+          <name>Spring Milestones</name>
+          <url>https://repo.spring.io/milestone</url>
+          <releases><enabled>true</enabled></releases>
+          <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+
+  <!-- Uncomment for corporate Nexus mirror -->
+  <!--
+  <mirrors>
+    <mirror>
+      <id>corporate-nexus</id>
+      <name>Corporate Nexus Repository</name>
+      <url>${env.NEXUS_URL}</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+  -->
+
+  <!-- Server credentials from ENV variables -->
+  <servers>
+    <!-- Example for corporate Nexus -->
+    <!--
+    <server>
+      <id>corporate-nexus</id>
+      <username>${env.NEXUS_USERNAME}</username>
+      <password>${env.NEXUS_PASSWORD}</password>
+    </server>
+    -->
+    
+    <!-- Example for private repositories -->
+    <!--
+    <server>
+      <id>jitpack</id>
+      <username>${env.JITPACK_USERNAME}</username>
+      <password>${env.JITPACK_TOKEN}</password>
+    </server>
+    -->
+  </servers>
+
+  <!-- Activate the ci profile by default -->
+  <activeProfiles>
+    <activeProfile>ci</activeProfile>
+  </activeProfiles>
+
+</settings>

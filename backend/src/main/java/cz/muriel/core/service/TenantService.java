@@ -101,13 +101,16 @@ public class TenantService {
   }
 
   /**
-   * ⚠️ ADMIN ONLY: Create new tenant registry entry 🎯 OPTIMIZED: Only stores
-   * minimal data - display names from Keycloak
+   * ⚠️ ADMIN ONLY: Create new tenant registry entry 🎯 OPTIMIZED: Uses
+   * deterministic UUID generation for consistent tenant IDs
    */
   public Tenant createTenantRegistry(String tenantKey) {
-    log.info("🆕 Creating minimal tenant registry entry: key={}", tenantKey);
+    log.info("🆕 Creating tenant registry entry with deterministic UUID: key={}", tenantKey);
 
-    Tenant newTenant = Tenant.builder().key(tenantKey).build();
+    // 🔧 NEW: Use deterministic UUID generation
+    Tenant newTenant = Tenant.builder().key(tenantKey).id(Tenant.generateUuidFromKey(tenantKey)) // Deterministické
+                                                                                                 // UUID
+        .build();
 
     return tenantRepository.save(newTenant);
   }
@@ -126,17 +129,5 @@ public class TenantService {
     } else {
       log.warn("⚠️ Tenant not found in registry: {}", tenantKey);
     }
-  }
-
-  /**
-   * 🆕 OPTIMIZED: Helper methods for backward compatibility with controllers
-   */
-  public String getTenantNameById(UUID tenantId) {
-    return tenantRepository.findById(tenantId).map(tenant -> getTenantDisplayName(tenant.getKey()))
-        .orElse("Unknown Tenant");
-  }
-
-  public String getTenantKeyById(UUID tenantId) {
-    return tenantRepository.findById(tenantId).map(Tenant::getKey).orElse(null);
   }
 }

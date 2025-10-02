@@ -55,7 +55,6 @@ const menuItems = [
     label: 'User Directory', 
     icon: <DirectoryIcon />, 
     path: '/user-directory', 
-    roles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
     description: 'Vyhledávání uživatelů',
     badge: 'NEW' 
   },

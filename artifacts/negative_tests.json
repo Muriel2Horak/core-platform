@@ -1,7 +1,7 @@
 {
   "no_token_test": {
-    "status": "FAIL",
-    "http_code": "000",
+    "status": "PASS",
+    "http_code": "401",
     "description": "Request without authentication token"
   }
 }

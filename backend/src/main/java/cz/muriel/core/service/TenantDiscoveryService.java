@@ -60,43 +60,13 @@ public class TenantDiscoveryService {
    */
   private List<TenantInfo> findTenantsInUserDirectory(String identifier) {
     try {
-      List<UserDirectoryEntity> users = new ArrayList<>();
+      log.debug("🔍 Searching in Users Directory for: {}", identifier);
 
-      String lowerIdentifier = identifier.toLowerCase().trim();
+      List<UserDirectoryEntity> users = userDirectoryRepository
+          .findByUsernameOrEmailIgnoreCase(identifier, identifier);
 
-      if (lowerIdentifier.contains("@")) {
-        // Email search - FIXED: Correct Optional handling
-        userDirectoryRepository.findByEmailIgnoreCase(lowerIdentifier).ifPresent(users::add);
-      } else if (lowerIdentifier.contains(" ")) {
-        // Full name search (firstName + lastName)
-        String[] nameParts = lowerIdentifier.split("\\s+");
-        if (nameParts.length >= 2) {
-          String firstName = nameParts[0];
-          String lastName = nameParts[nameParts.length - 1];
-
-          // Search by first name and last name combination
-          users.addAll(userDirectoryRepository
-              .findByFirstNameContainingIgnoreCaseAndLastNameContainingIgnoreCase(firstName,
-                  lastName));
-        }
-
-        // Also try as display name
-        users
-            .addAll(userDirectoryRepository.findByDisplayNameContainingIgnoreCase(lowerIdentifier));
-      } else {
-        // Username search - Optional handling
-        userDirectoryRepository.findByUsernameIgnoreCase(lowerIdentifier).ifPresent(users::add);
-
-        // Also try partial matches in first/last name
-        users.addAll(userDirectoryRepository.findByFirstNameContainingIgnoreCase(lowerIdentifier));
-        users.addAll(userDirectoryRepository.findByLastNameContainingIgnoreCase(lowerIdentifier));
-        users
-            .addAll(userDirectoryRepository.findByDisplayNameContainingIgnoreCase(lowerIdentifier));
-      }
-
-      // Convert to TenantInfo and remove duplicates
-      return users.stream().filter(user -> user.getTenantId() != null).map(user -> {
-        Tenant tenant = tenantRepository.findById(user.getTenantId()).orElse(null);
+      return users.stream().filter(user -> user.getTenantKey() != null).map(user -> {
+        Tenant tenant = tenantRepository.findByKey(user.getTenantKey()).orElse(null);
         return tenant != null ? new TenantInfo(tenant.getKey(), tenant.getName()) : null;
       }).filter(tenantInfo -> tenantInfo != null).distinct().toList();
 

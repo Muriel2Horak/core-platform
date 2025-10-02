@@ -36,14 +36,14 @@ public class UserDirectoryController {
   @GetMapping @PreAuthorize("isAuthenticated()") // Všichni přihlášení uživatelé mohou číst
                                                  // directory
   public ResponseEntity<Map<String, Object>> getUsersDirectory(
-      @RequestParam(required = false) String q, @RequestParam(required = false) String tenantId,
+      @RequestParam(required = false) String q, @RequestParam(required = false) String tenantKey,
       @RequestParam(required = false) String source, @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size,
       @RequestParam(defaultValue = "username") String sort, @AuthenticationPrincipal Jwt jwt) {
 
     log.info(
-        "🔍 User Directory API called by user: {} - q={}, tenantId={}, source={}, page={}, size={}",
-        jwt.getSubject(), q, tenantId, source, page, size);
+        "🔍 User Directory API called by user: {} - q={}, tenantKey={}, source={}, page={}, size={}",
+        jwt.getSubject(), q, tenantKey, source, page, size);
 
     try {
       // Permission check - všichni přihlášení mohou číst
@@ -51,10 +51,9 @@ public class UserDirectoryController {
 
       // Tenant scoping logic
       String effectiveTenantKey = null;
-      if (isCoreAdmin && tenantId != null && !tenantId.isEmpty()) {
-        // Core admin s konkrétním tenant filtrem
-        // tenantId může být buď UUID nebo tenant key - zkusíme oba formáty
-        effectiveTenantKey = resolveTenantKey(tenantId);
+      if (isCoreAdmin && tenantKey != null && !tenantKey.isEmpty()) {
+        // Core admin s konkrétním tenant filtrem - použij přímo tenant key
+        effectiveTenantKey = tenantKey;
       } else if (!isCoreAdmin) {
         // Běžný user/tenant-admin - pouze svůj tenant
         effectiveTenantKey = TenantContext.getTenantKey();
@@ -125,7 +124,7 @@ public class UserDirectoryController {
     boolean isTenantAdmin = hasRole(jwt, "CORE_ROLE_TENANT_ADMIN")
         || hasRole(jwt, "CORE_ROLE_USER_MANAGER");
     boolean isMe = currentUserId.equals(user.getKeycloakUserId());
-    boolean sameTenant = user.getTenantId().toString().equals(getCurrentTenantId(jwt));
+    boolean sameTenant = user.getTenantKey().equals(getCurrentTenantKey(jwt));
 
     // Access control
     if (!isCoreAdmin && !isMe && !(isTenantAdmin && sameTenant)) {
@@ -221,33 +220,13 @@ public class UserDirectoryController {
     }
   }
 
-  private String getCurrentTenantId(Jwt jwt) {
-    // Try different tenant claim names
-    String tenantId = jwt.getClaimAsString("tenant_id");
-    if (tenantId != null)
-      return tenantId;
-
-    String tenant = jwt.getClaimAsString("tenant");
-    if (tenant != null)
-      return tenant;
-
-    // Fallback to current tenant context
-    try {
-      UUID currentTenantId = tenantService.getCurrentTenantIdOrThrow();
-      return currentTenantId.toString();
-    } catch (Exception e) {
-      log.warn("No tenant found in JWT or context", e);
-      return null;
-    }
-  }
-
   private boolean canEditUser(UserDirectoryEntity user, Jwt jwt) {
     String currentUserId = jwt.getSubject();
     boolean isCoreAdmin = hasRole(jwt, "CORE_ROLE_ADMIN");
     boolean isTenantAdmin = hasRole(jwt, "CORE_ROLE_TENANT_ADMIN")
         || hasRole(jwt, "CORE_ROLE_USER_MANAGER");
     boolean isMe = currentUserId.equals(user.getKeycloakUserId());
-    boolean sameTenant = user.getTenantId().toString().equals(getCurrentTenantId(jwt));
+    boolean sameTenant = user.getTenantKey().equals(getCurrentTenantKey(jwt));
 
     return isMe || isCoreAdmin || (isTenantAdmin && sameTenant);
   }
@@ -256,7 +235,7 @@ public class UserDirectoryController {
     boolean isCoreAdmin = hasRole(jwt, "CORE_ROLE_ADMIN");
     boolean isTenantAdmin = hasRole(jwt, "CORE_ROLE_TENANT_ADMIN")
         || hasRole(jwt, "CORE_ROLE_USER_MANAGER");
-    boolean sameTenant = user.getTenantId().toString().equals(getCurrentTenantId(jwt));
+    boolean sameTenant = user.getTenantKey().equals(getCurrentTenantKey(jwt));
 
     return isCoreAdmin || (isTenantAdmin && sameTenant);
   }
@@ -265,8 +244,8 @@ public class UserDirectoryController {
     return Map.of("id", user.getId(), "username", user.getUsername(), "firstName",
         user.getFirstName() != null ? user.getFirstName() : "", "lastName",
         user.getLastName() != null ? user.getLastName() : "", "email",
-        user.getEmail() != null ? user.getEmail() : "", "tenantId", user.getTenantId(),
-        "tenantName", getTenantName(user.getTenantId()), "directorySource",
+        user.getEmail() != null ? user.getEmail() : "", "tenantKey", user.getTenantKey(),
+        "tenantName", getTenantNameByKey(user.getTenantKey()), "directorySource",
         user.getIsFederated() ? "AD" : "LOCAL", "isFederated", user.getIsFederated(), "updatedAt",
         user.getUpdatedAt());
   }
@@ -308,23 +287,27 @@ public class UserDirectoryController {
     // Note: email, username jsou read-only pro AD uživatele
   }
 
-  private String getTenantName(UUID tenantId) {
+  private String getTenantNameByKey(String tenantKey) {
     try {
-      return tenantService.getTenantNameById(tenantId);
+      return tenantService.getTenantDisplayName(tenantKey);
     } catch (Exception e) {
-      log.warn("Failed to get tenant name for ID: {}", tenantId);
+      log.warn("Failed to get tenant name for key: {}", tenantKey);
       return "Unknown Tenant";
     }
   }
 
-  private String resolveTenantKey(String tenantId) {
+  private String getCurrentTenantKey(Jwt jwt) {
+    // Try different tenant claim names
+    String tenantKey = jwt.getClaimAsString("tenant");
+    if (tenantKey != null)
+      return tenantKey;
+
+    // Fallback to current tenant context
     try {
-      // Try to parse as UUID
-      UUID tenantUuid = UUID.fromString(tenantId);
-      return tenantService.getTenantKeyById(tenantUuid);
-    } catch (IllegalArgumentException e) {
-      // Not a UUID, assume it's already a tenant key
-      return tenantId;
+      return TenantContext.getTenantKey();
+    } catch (Exception e) {
+      log.warn("No tenant found in JWT or context", e);
+      return null;
     }
   }
 }

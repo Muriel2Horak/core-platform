@@ -41,6 +41,12 @@ public class KeycloakInitializationService implements ApplicationRunner {
     log.info("Starting Keycloak initialization...");
 
     try {
+      // 🔧 FIX: Wait for Keycloak to be ready before initialization
+      if (!waitForKeycloakReady()) {
+        log.warn("Keycloak is not ready after waiting - skipping initialization");
+        return;
+      }
+
       // 1. Ensure CORE_USER_ADMIN role exists
       ensureAdminRoleExists();
 
@@ -303,5 +309,51 @@ public class KeycloakInitializationService implements ApplicationRunner {
           userId, e.getMessage());
       throw e;
     }
+  }
+
+  /**
+   * 🔧 FIX: Wait for Keycloak to be ready before attempting initialization
+   */
+  private boolean waitForKeycloakReady() {
+    log.info("Waiting for Keycloak to be ready...");
+
+    int maxRetries = 30; // 30 attempts = 150 seconds max wait
+    int retryDelaySeconds = 5;
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        log.debug("Keycloak readiness check attempt {}/{}", attempt, maxRetries);
+
+        // Try to get all roles as a simple test to verify Keycloak is ready
+        // This method uses getSecureAdminToken internally
+        keycloakAdminService.getAllRoles();
+
+        log.info("✅ Keycloak is ready after {} attempts ({} seconds)", attempt,
+            (attempt - 1) * retryDelaySeconds);
+        return true;
+
+      } catch (Exception e) {
+        log.debug("Keycloak not ready yet (attempt {}/{}): {}", attempt, maxRetries,
+            e.getMessage());
+
+        if (attempt == maxRetries) {
+          log.warn(
+              "⚠️ Keycloak still not ready after {} attempts ({} seconds total). "
+                  + "Keycloak initialization will be skipped.",
+              maxRetries, maxRetries * retryDelaySeconds);
+          return false;
+        }
+
+        try {
+          Thread.sleep(retryDelaySeconds * 1000);
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt();
+          log.warn("Interrupted while waiting for Keycloak readiness");
+          return false;
+        }
+      }
+    }
+
+    return false;
   }
 }

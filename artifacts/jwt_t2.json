@@ -1,0 +1,30 @@
+{
+  "exp": 1759418835,
+  "iat": 1759418535,
+  "jti": "01d80b9c-c7a1-4700-aa78-5d58de7c4bb0",
+  "iss": "https://core-platform.local/realms/core-platform",
+  "aud": "api",
+  "sub": "95582b8e-9ac4-41ac-ab41-2b6d81ee9d7a",
+  "typ": "Bearer",
+  "azp": "web",
+  "session_state": "296b4d58-1efa-4126-9add-b88ae50e3ef9",
+  "acr": "1",
+  "allowed-origins": [
+    "http://localhost",
+    "https://core-platform.local",
+    "http://localhost:3000"
+  ],
+  "realm_access": {
+    "roles": [
+      "CORE_ROLE_USER"
+    ]
+  },
+  "scope": "email profile",
+  "sid": "296b4d58-1efa-4126-9add-b88ae50e3ef9",
+  "email_verified": true,
+  "name": "Test User",
+  "preferred_username": "test",
+  "given_name": "Test",
+  "family_name": "User",
+  "email": "test.user@example.com"
+}

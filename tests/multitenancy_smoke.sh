@@ -108,7 +108,8 @@ get_access_token() {
     local username="$1"
     local password="$2"
     
-    log_info "Getting access token for user: $username"
+    # FIXED: Log to stderr instead of stdout to avoid contaminating token output
+    log_info "Getting access token for user: $username" >&2
     
     local token_data
     if [[ -n "${OIDC_CLIENT_SECRET:-}" ]]; then
@@ -131,7 +132,7 @@ get_access_token() {
     fi
     
     if [[ -z "$token_data" ]] || echo "$token_data" | jq -e '.error' >/dev/null 2>&1; then
-        log_error "Failed to get token for $username: $(echo "$token_data" | jq -r '.error_description // .error // "Unknown error"')"
+        log_error "Failed to get token for $username: $(echo "$token_data" | jq -r '.error_description // .error // "Unknown error"')" >&2
         return 1
     fi
     
@@ -139,10 +140,11 @@ get_access_token() {
     access_token=$(echo "$token_data" | jq -r '.access_token')
     
     if [[ "$access_token" == "null" ]] || [[ -z "$access_token" ]]; then
-        log_error "Access token is null or empty for user $username"
+        log_error "Access token is null or empty for user $username" >&2
         return 1
     fi
     
+    # FIXED: Output only the token to stdout, no log messages
     echo "$access_token"
 }
 
@@ -188,17 +190,30 @@ verify_tenant_claim() {
         return 1
     fi
     
-    local tenant_claim
-    tenant_claim=$(jq -r '.tenant // empty' "$jwt_file")
+    # FIXED: Extract tenant from issuer URL instead of looking for explicit tenant claim
+    # Backend uses issuer URL to determine tenant: https://core-platform.local/realms/core-platform
+    local issuer
+    issuer=$(jq -r '.iss // empty' "$jwt_file")
     
-    if [[ -z "$tenant_claim" ]]; then
-        log_error "No tenant claim found in JWT"
+    if [[ -z "$issuer" ]]; then
+        log_error "No issuer claim found in JWT"
         return 1
-    elif [[ "$tenant_claim" != "$expected_tenant" ]]; then
-        log_error "Tenant claim mismatch: expected '$expected_tenant', got '$tenant_claim'"
+    fi
+    
+    # Extract realm (tenant) from issuer URL
+    local tenant_from_issuer
+    if [[ "$issuer" =~ /realms/([^/]+)$ ]]; then
+        tenant_from_issuer="${BASH_REMATCH[1]}"
+    else
+        log_error "Cannot extract tenant from issuer URL: $issuer"
+        return 1
+    fi
+    
+    if [[ "$tenant_from_issuer" != "$expected_tenant" ]]; then
+        log_error "Tenant from issuer mismatch: expected '$expected_tenant', got '$tenant_from_issuer'"
         return 1
     else
-        log_success "Tenant claim verified: $tenant_claim"
+        log_success "Tenant verified from issuer: $tenant_from_issuer"
         return 0
     fi
 }
@@ -216,11 +231,14 @@ api_call() {
     local response
     local status_code
     
-    response=$(curl -s -w "\n%{http_code}" \
+    # FIX: Přidáno -k pro SSL a --connect-timeout pro lepší error handling
+    response=$(curl -k -s -w "\n%{http_code}" \
+        --connect-timeout 30 \
+        --max-time 60 \
         -X "$method" \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
-        "$BE_BASE$endpoint")
+        "$BE_BASE$endpoint" 2>/dev/null)
     
     status_code=$(echo "$response" | tail -n1)
     response=$(echo "$response" | sed '$d')  # Remove last line (more compatible than head -n -1)
@@ -232,6 +250,10 @@ api_call() {
     else
         log_error "API call failed (status: $status_code, expected: $expected_status)"
         echo "$response" > "$output_file"
+        # Log response for debugging
+        if [[ -s "$output_file" ]]; then
+            log_info "Response body saved to: $output_file"
+        fi
         return 1
     fi
 }
@@ -301,8 +323,9 @@ run_negative_tests() {
     local temp_response="$ARTIFACTS_DIR/temp_negative.json"
     
     # Test without token (should get 401/403)
+    # FIX: Přidáno -k pro SSL
     local status_no_token
-    status_no_token=$(curl -s -o "$temp_response" -w "%{http_code}" "$BE_BASE/api/tenants/me")
+    status_no_token=$(curl -k -s -o "$temp_response" -w "%{http_code}" "$BE_BASE/api/tenants/me")
     
     local no_token_result
     if [[ "$status_no_token" == "401" ]] || [[ "$status_no_token" == "403" ]]; then
@@ -326,6 +349,54 @@ run_negative_tests() {
         }' > "$negative_results"
     
     [[ "$no_token_result" == "PASS" ]]
+}
+
+# Test API endpoints function
+test_api_endpoints() {
+    local step_results=()
+    
+    echo "[INFO] Testing API endpoints..."
+    
+    # Test existing endpoints with correct paths
+    if api_call "GET" "/api/tenants/me" "$token_t1" "$ARTIFACTS_DIR/tenants_me_t1.json"; then
+        step_results+=("tenants_api_t1:PASS")
+    else
+        step_results+=("tenants_api_t1:FAIL")
+    fi
+    
+    if api_call "GET" "/api/tenants/me" "$token_t2" "$ARTIFACTS_DIR/tenants_me_t2.json"; then
+        step_results+=("tenants_api_t2:PASS")
+    else
+        step_results+=("tenants_api_t2:FAIL")
+    fi
+    
+    # FIXED: Use /api/me instead of /api/users/me
+    if api_call "GET" "/api/me" "$token_t1" "$ARTIFACTS_DIR/users_me_t1.json"; then
+        step_results+=("users_api_t1:PASS")
+    else
+        step_results+=("users_api_t1:FAIL")
+    fi
+    
+    if api_call "GET" "/api/me" "$token_t2" "$ARTIFACTS_DIR/users_me_t2.json"; then
+        step_results+=("users_api_t2:PASS")
+    else
+        step_results+=("users_api_t2:FAIL")
+    fi
+    
+    # FIXED: Use /api/users-directory?q= instead of /api/users/search
+    if api_call "GET" "/api/users-directory?q=a" "$token_t1" "$ARTIFACTS_DIR/search_t1.json"; then
+        step_results+=("users_search_t1:PASS")
+    else
+        step_results+=("users_search_t1:FAIL")
+    fi
+    
+    if api_call "GET" "/api/users-directory?q=a" "$token_t2" "$ARTIFACTS_DIR/search_t2.json"; then
+        step_results+=("users_search_t2:PASS")
+    else
+        step_results+=("users_search_t2:FAIL")
+    fi
+    
+    # ...existing code...
 }
 
 # Main test execution
@@ -433,27 +504,27 @@ main() {
             step_results+=("tenants_api_t2:FAIL")
         fi
         
-        # Test /api/users/me
-        if api_call "GET" "/api/users/me" "$token_t1" "$ARTIFACTS_DIR/users_me_t1.json"; then
+        # Test /api/me (user profile)
+        if api_call "GET" "/api/me" "$token_t1" "$ARTIFACTS_DIR/users_me_t1.json"; then
             step_results+=("users_api_t1:PASS")
         else
             step_results+=("users_api_t1:FAIL")
         fi
         
-        if api_call "GET" "/api/users/me" "$token_t2" "$ARTIFACTS_DIR/users_me_t2.json"; then
+        if api_call "GET" "/api/me" "$token_t2" "$ARTIFACTS_DIR/users_me_t2.json"; then
             step_results+=("users_api_t2:PASS")
         else
             step_results+=("users_api_t2:FAIL")
         fi
         
-        # Test /api/users/search
-        if api_call "GET" "/api/users/search?q=a" "$token_t1" "$ARTIFACTS_DIR/search_t1.json"; then
+        # Test /api/users-directory (user search)
+        if api_call "GET" "/api/users-directory?q=a" "$token_t1" "$ARTIFACTS_DIR/search_t1.json"; then
             step_results+=("users_search_t1:PASS")
         else
             step_results+=("users_search_t1:FAIL")
         fi
         
-        if api_call "GET" "/api/users/search?q=a" "$token_t2" "$ARTIFACTS_DIR/search_t2.json"; then
+        if api_call "GET" "/api/users-directory?q=a" "$token_t2" "$ARTIFACTS_DIR/search_t2.json"; then
             step_results+=("users_search_t2:PASS")
         else
             step_results+=("users_search_t2:FAIL")

@@ -3,12 +3,23 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS builder
 WORKDIR /app
 
+# 📋 Copy Maven settings for reliability
+COPY docker/maven-settings-template.xml /root/.m2/settings.xml
+
+# 🏗️ Layer 1: Copy only pom.xml for dependency caching
 # Build context je nyní root (.), takže backend soubory jsou v backend/
 COPY backend/pom.xml .
+
+# 🚀 Download dependencies with cache mount - better reliability
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -U dependency:go-offline
+
+# 🏗️ Layer 2: Copy source code (separate layer for better cache)
 COPY backend/src ./src
 
-RUN mvn -B dependency:go-offline
-RUN mvn -B package -DskipTests
+# 🚀 Package with cache mount - reuse dependencies
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -U package -DskipTests
 
 FROM eclipse-temurin:21
 WORKDIR /app

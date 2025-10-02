@@ -102,7 +102,7 @@ public class KeycloakEventProjectionService {
       log.debug("Updating existing user: {}", user.getUsername());
     } else {
       user = new UserDirectoryEntity();
-      user.setTenantId(tenant.getId());
+      user.setTenantKey(tenant.getKey());
       user.setCreatedAt(LocalDateTime.now());
       log.debug("Creating new user: {}", event.getUsername());
     }

@@ -1,4 +1,12 @@
 // Keycloak service with auto-detection from hostname
+import Keycloak from 'keycloak-js';
+import logger from './logger.js';
+
+// 🔧 MODULE-LEVEL SINGLETON PATTERN - prevence duplicitní inicializace
+let initPromise = null;
+let keycloakInstance = null;
+let isInitialized = false;
+
 class KeycloakService {
   constructor() {
     this.keycloak = null;
@@ -15,7 +23,11 @@ class KeycloakService {
 
     // Use realm from hostname as initial hint
     const realm = hostname.split('.')[0];
-    console.log(`🔧 Using initial realm hint from hostname '${hostname}': ${realm}`);
+    logger.debug('Using initial realm hint from hostname', { 
+      hostname, 
+      realm,
+      component: 'auth' 
+    });
 
     // 🔧 SSL: Use HTTPS URL via Nginx reverse proxy
     let keycloakUrl;
@@ -28,7 +40,12 @@ class KeycloakService {
       keycloakUrl = `https://${hostname}`;
     }
 
-    console.log(`🔧 Using Keycloak HTTPS URL via Nginx proxy: ${keycloakUrl}`);
+    logger.info('Keycloak config detected', { 
+      keycloakUrl, 
+      realm, 
+      clientId: 'web',
+      component: 'auth' 
+    });
 
     return {
       url: keycloakUrl,
@@ -48,48 +65,70 @@ class KeycloakService {
   }
 
   /**
-   * 🚀 Initialize Keycloak with auto-detected configuration
+   * 🚀 SINGLETON INIT - Initialize Keycloak only once
+   * Returns the same promise for all callers to prevent duplicate initialization
    */
-  async init() {
-    if (this.initialized) {
-      return this.keycloak;
+  async initKeycloakOnce() {
+    // 🔧 Return existing promise if initialization is in progress
+    if (initPromise) {
+      logger.debug('Keycloak initialization already in progress, returning existing promise');
+      return initPromise;
     }
 
+    // 🔧 Return existing instance if already initialized
+    if (isInitialized && keycloakInstance) {
+      logger.debug('Keycloak already initialized, returning existing instance');
+      return keycloakInstance;
+    }
+
+    // 🔧 Create and store the initialization promise
+    initPromise = this._doInitKeycloak();
+    
     try {
-      console.log('🔧 Initializing Keycloak with config:', this.config);
+      const result = await initPromise;
+      isInitialized = true;
+      keycloakInstance = result;
+      return result;
+    } catch (error) {
+      // Reset promise on error to allow retry
+      initPromise = null;
+      isInitialized = false;
+      keycloakInstance = null;
+      throw error;
+    }
+  }
 
-      // Import Keycloak dynamically (ES modules compatibility)
-      const Keycloak = (await import('keycloak-js')).default;
+  /**
+   * 🔧 Internal initialization method
+   */
+  async _doInitKeycloak() {
+    try {
+      logger.auth('Keycloak initialization started', { 
+        config: this.config, 
+        url: window.location.href 
+      });
 
+      // 🔧 Create new Keycloak instance
       this.keycloak = new Keycloak(this.config);
 
-      // Initialization options
-      const initOptions = {
+      // 🔧 Initialize with disabled checkLoginIframe and custom silentCheckSsoRedirectUri
+      const authenticated = await this.keycloak.init({
         onLoad: 'check-sso',
-        pkceMethod: 'S256',
-
-        // Disable all iframe mechanisms to prevent sandbox warnings
-        checkLoginIframe: false,
-        checkLoginIframeInterval: 0,
-        silentCheckSsoFallback: false,
-
-        // Modern token-based authentication settings
-        enableLogging: false,
-        messageReceiveTimeout: 10000,
-        flow: 'standard',
-        responseMode: 'fragment',
-        silentCheckSsoRedirectUri: undefined,
-      };
-
-      const authenticated = await this.keycloak.init(initOptions);
+        checkLoginIframe: false, // 🔧 VYPNUTO podle požadavku
+        silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html` // 🔧 Explicit URI
+      });
 
       if (authenticated) {
-        console.log('✅ Keycloak authenticated successfully');
-        console.log('🎯 Token info:', {
+        const userInfo = {
           realm: this.keycloak.realm,
           username: this.keycloak.tokenParsed?.preferred_username,
           tenant: this.getTenant(),
           roles: this.keycloak.tokenParsed?.realm_access?.roles
+        };
+
+        logger.auth('Keycloak authentication successful', {
+          ...userInfo,
+          tokenLength: this.keycloak.token?.length
         });
 
         // Store token for API calls
@@ -97,17 +136,36 @@ class KeycloakService {
 
         // Setup token refresh
         this.setupTokenRefresh();
+        
+        // Set logger context and authentication status
+        logger.setTenantContext(userInfo.tenant, userInfo.username);
+        logger.setAuthenticated(true);
+
+        this.initialized = true;
       } else {
-        console.log('ℹ️ User not authenticated, ready for login');
+        logger.auth('Keycloak check-sso completed - user not authenticated');
+        logger.setAuthenticated(false);
+        this.initialized = true;
       }
 
-      this.initialized = true;
       return this.keycloak;
-
     } catch (error) {
-      console.error('❌ Keycloak initialization failed:', error);
+      logger.error('Keycloak initialization failed', { 
+        error: error.message, 
+        stack: error.stack 
+      });
+      logger.setAuthenticated(false);
+      this.initialized = false;
       throw error;
     }
+  }
+
+  /**
+   * 🚀 Legacy init method - now uses singleton
+   * @deprecated Use initKeycloakOnce() instead
+   */
+  async init() {
+    return this.initKeycloakOnce();
   }
 
   /**
@@ -121,12 +179,19 @@ class KeycloakService {
       const match = iss.match(/\/realms\/([^\/\?#]+)/);
       if (match) {
         const tenant = match[1];
-        console.log(`ℹ️ Tenant '${tenant}' derived from token issuer: ${iss}`);
+        logger.info('Tenant derived from token issuer', { 
+          tenant, 
+          issuer: iss,
+          component: 'auth' 
+        });
         return tenant;
       }
     }
 
-    console.warn(`⚠️ Could not derive tenant from issuer. Fallback to 'core-platform'. Issuer: ${iss}`);
+    logger.warn('Could not derive tenant from issuer. Fallback to core-platform', { 
+      issuer: iss,
+      component: 'auth' 
+    });
     return 'core-platform';
   }
 
@@ -145,11 +210,13 @@ class KeycloakService {
 
         // Refresh token when close to expiration (60s before expiry)
         if (this.keycloak.isTokenExpired(60)) {
-          console.log('🔄 Token is expiring, attempting refresh...');
+          logger.auth('Token is expiring, attempting refresh...');
 
           const refreshed = await this.keycloak.updateToken(60);
           if (refreshed) {
-            console.log('✅ Token refreshed successfully');
+            logger.auth('Token refreshed successfully', {
+              tokenLength: this.keycloak.token?.length
+            });
             localStorage.setItem('keycloak-token', this.keycloak.token);
 
             // Notify about successful refresh
@@ -162,10 +229,14 @@ class KeycloakService {
           }
         }
       } catch (error) {
-        console.error('❌ Token refresh failed:', error);
+        logger.error('Token refresh failed', { 
+          error: error.message,
+          stack: error.stack,
+          component: 'auth' 
+        });
 
         if (this.keycloak.isTokenExpired(0)) {
-          console.log('🚪 Token expired, logging out...');
+          logger.auth('Token expired, logging out...');
           this.logout();
         }
       }
@@ -182,27 +253,91 @@ class KeycloakService {
       throw new Error('Keycloak not initialized');
     }
 
-    console.log(`🔐 Redirecting to login for realm: ${this.config.realm}`);
+    logger.auth('Redirecting to login', { 
+      realm: this.config.realm,
+      component: 'auth' 
+    });
     return this.keycloak.login();
   }
 
   /**
    * 🚪 Logout user
    */
-  logout() {
+  async logout() {
     if (!this.keycloak) {
       throw new Error('Keycloak not initialized');
     }
 
-    console.log('🚪 Logging out');
+    logger.auth('Logging out', { component: 'auth' });
 
+    // Stop token refresh immediately
     if (this._refreshInterval) {
       clearInterval(this._refreshInterval);
       this._refreshInterval = null;
     }
 
-    localStorage.removeItem('keycloak-token');
-    return this.keycloak.logout();
+    // Clear ALL possible storage locations
+    try {
+      // Clear localStorage
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('keycloak') || key.includes('kc-') || key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Clear sessionStorage
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.includes('keycloak') || key.includes('kc-') || key.includes('auth')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+      
+      // Set logout flag BEFORE logout attempt
+      localStorage.setItem('logout-completed', Date.now().toString());
+      localStorage.setItem('prevent-auto-login', 'true');
+      
+    } catch (error) {
+      logger.warn('Error clearing storage', { 
+        error: error.message,
+        stack: error.stack,
+        component: 'auth' 
+      });
+    }
+
+    try {
+      // Get current tokens before clearing
+      const idToken = this.keycloak.idToken;
+      
+      // Clear Keycloak instance tokens
+      this.keycloak.token = null;
+      this.keycloak.refreshToken = null;
+      this.keycloak.idToken = null;
+      this.keycloak.authenticated = false;
+      
+      // Construct logout URL manually for better control
+      const logoutUrl = `${this.config.url}/realms/${this.config.realm}/protocol/openid-connect/logout`;
+      const postLogoutRedirectUri = encodeURIComponent(window.location.origin + '/logged-out');
+      const idTokenHint = idToken ? `&id_token_hint=${idToken}` : '';
+      
+      const fullLogoutUrl = `${logoutUrl}?post_logout_redirect_uri=${postLogoutRedirectUri}&client_id=${this.config.clientId}${idTokenHint}`;
+      
+      logger.auth('Redirecting to logout URL', { 
+        logoutUrl: fullLogoutUrl,
+        component: 'auth' 
+      });
+      
+      // Force redirect to logout
+      window.location.href = fullLogoutUrl;
+      
+    } catch (error) {
+      logger.error('Logout error', { 
+        error: error.message,
+        stack: error.stack,
+        component: 'auth' 
+      });
+      // Fallback - just redirect to logged-out page
+      window.location.href = '/logged-out';
+    }
   }
 
   /**

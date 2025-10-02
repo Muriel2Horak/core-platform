@@ -1,4 +1,3 @@
-import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { coreMaterialTheme } from './theme';
@@ -25,11 +24,10 @@ const keycloakProps = {
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
+// 🔧 ODEBRÁN React.StrictMode - způsoboval duplicitní renderování
 root.render(
-  <React.StrictMode>
-    <ThemeProvider theme={coreMaterialTheme}>
-      <CssBaseline />
-      <Account {...keycloakProps} />
-    </ThemeProvider>
-  </React.StrictMode>
+  <ThemeProvider theme={coreMaterialTheme}>
+    <CssBaseline />
+    <Account {...keycloakProps} />
+  </ThemeProvider>
 );

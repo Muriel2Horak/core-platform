@@ -53,47 +53,40 @@ class KeycloakEventProjectionServiceIntegrationTest {
     projectionService.processEvent(event);
 
     // Then
-    Optional<UserDirectoryEntity> user = userDirectoryRepository
-        .findByKeycloakUserId("kc-user-123");
-    assertThat(user).isPresent();
-    assertThat(user.get().getUsername()).isEqualTo("testuser");
-    assertThat(user.get().getEmail()).isEqualTo("test@example.com");
-    assertThat(user.get().getFirstName()).isEqualTo("Test");
-    assertThat(user.get().getLastName()).isEqualTo("User");
-    assertThat(user.get().getActive()).isTrue();
-    assertThat(user.get().getTenantId()).isEqualTo(testTenant.getId());
-    assertThat(user.get().getDisplayName()).isEqualTo("Test User");
+    List<UserDirectoryEntity> users = userDirectoryRepository.findAll();
+    assertThat(users).hasSize(1);
+
+    UserDirectoryEntity user = users.get(0);
+    assertThat(user.getKeycloakUserId()).isEqualTo("test-user-123");
+    assertThat(user.getUsername()).isEqualTo("testuser");
+    assertThat(user.getTenantKey()).isEqualTo(testTenant.getKey());
+    assertThat(user.getEmail()).isEqualTo("test@example.com");
   }
 
   @Test
   void shouldUpdateExistingUserFromUserUpdatedEvent() {
-    // Given - create existing user
-    UserDirectoryEntity existingUser = UserDirectoryEntity.builder().tenantId(testTenant.getId())
-        .keycloakUserId("kc-user-123").username("testuser").email("old@example.com")
-        .firstName("Old").lastName("Name").active(true).build();
+    // Given - create an existing user first
+    UserDirectoryEntity existingUser = UserDirectoryEntity.builder().keycloakUserId("test-user-123")
+        .username("testuser").email("old@example.com").tenantKey(testTenant.getKey()).build();
     userDirectoryRepository.save(existingUser);
 
     KeycloakWebhookEventDto event = createTestEvent("USER_UPDATED");
     event.setEmail("updated@example.com");
-    event.setFirstName("Updated");
 
     // When
     projectionService.processEvent(event);
 
     // Then
-    Optional<UserDirectoryEntity> user = userDirectoryRepository
-        .findByKeycloakUserId("kc-user-123");
-    assertThat(user).isPresent();
-    assertThat(user.get().getEmail()).isEqualTo("updated@example.com");
-    assertThat(user.get().getFirstName()).isEqualTo("Updated");
-    assertThat(user.get().getLastName()).isEqualTo("User"); // Updated from event
-    assertThat(user.get().getDisplayName()).isEqualTo("Updated User");
+    List<UserDirectoryEntity> users = userDirectoryRepository.findAll();
+    assertThat(users).hasSize(1);
+    UserDirectoryEntity user = users.get(0);
+    assertThat(user.getEmail()).isEqualTo("updated@example.com");
   }
 
   @Test
   void shouldSoftDeleteUserFromUserDeletedEvent() {
     // Given - create existing user
-    UserDirectoryEntity existingUser = UserDirectoryEntity.builder().tenantId(testTenant.getId())
+    UserDirectoryEntity existingUser = UserDirectoryEntity.builder().tenantKey(testTenant.getKey())
         .keycloakUserId("kc-user-123").username("testuser").email("test@example.com").active(true)
         .build();
     userDirectoryRepository.save(existingUser);

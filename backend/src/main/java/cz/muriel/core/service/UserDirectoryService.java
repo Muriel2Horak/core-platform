@@ -1,8 +1,8 @@
 package cz.muriel.core.service;
 
-import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.repository.UserDirectoryRepository;
+import cz.muriel.core.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,7 +20,6 @@ import java.util.UUID;
 public class UserDirectoryService {
 
   private final UserDirectoryRepository userDirectoryRepository;
-  private final TenantService tenantService;
 
   /**
    * Find user by username (case insensitive)
@@ -101,14 +100,21 @@ public class UserDirectoryService {
   }
 
   /**
-   * Create or update user in directory
+   * 🆕 CREATE/UPDATE: Vytvoří nebo aktualizuje uživatele v current tenant
+   * kontextu
    */
   public UserDirectoryEntity createOrUpdate(UserDirectoryEntity user) {
-    UUID tenantId = tenantService.getCurrentTenantIdOrThrow();
-    user.setTenantId(tenantId);
+    String currentTenantKey = TenantContext.getTenantKey();
 
-    log.debug("Creating/updating user in directory: {} for tenant: {}", user.getUsername(),
-        tenantId);
+    if (currentTenantKey == null) {
+      throw new IllegalStateException("No tenant context available");
+    }
+
+    // 🎯 AUTO-SET: Automaticky nastav tenant key z kontextu
+    user.setTenantKey(currentTenantKey);
+
+    log.debug("Creating/updating user {} in tenant {}", user.getUsername(), currentTenantKey);
+
     return userDirectoryRepository.save(user);
   }
 
@@ -148,35 +154,10 @@ public class UserDirectoryService {
   }
 
   /**
-   * 📊 COUNT USERS BY TENANT: Spočítá uživatele v tenantu
-   */
-  public long countUsersByTenant(UUID tenantId) {
-    try {
-      return userDirectoryRepository.countByTenantId(tenantId);
-    } catch (Exception e) {
-      log.warn("Failed to count users for tenant {}: {}", tenantId, e.getMessage());
-      return 0;
-    }
-  }
-
-  /**
-   * 📊 COUNT USERS BY TENANT KEY: Spočítá uživatele v tenantu podle klíče
+   * 📊 STATS: Počet uživatelů v tenantu podle tenant key
    */
   public long countUsersByTenantKey(String tenantKey) {
-    try {
-      // Get tenant by key first
-      Optional<Tenant> tenant = tenantService.findTenantByKey(tenantKey);
-      if (tenant.isEmpty()) {
-        log.warn("Tenant not found for key: {}", tenantKey);
-        return 0;
-      }
-
-      return userDirectoryRepository.countByTenantId(tenant.get().getId());
-
-    } catch (Exception e) {
-      log.warn("Failed to count users for tenant key {}: {}", tenantKey, e.getMessage());
-      return 0;
-    }
+    return userDirectoryRepository.countByTenantKey(tenantKey);
   }
 
   // Private helper methods

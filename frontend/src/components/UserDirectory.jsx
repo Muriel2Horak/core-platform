@@ -64,7 +64,7 @@ function UserDirectory({ user }) {
   const [searchFilters, setSearchFilters] = useState({
     q: '',
     source: '',
-    tenantId: ''
+    tenantKey: ''
   });
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
@@ -97,7 +97,7 @@ function UserDirectory({ user }) {
     if (canManageUsers) {
       loadUsers();
     }
-  }, [page, debouncedQuery, searchFilters.source, searchFilters.tenantId, canManageUsers]);
+  }, [page, debouncedQuery, searchFilters.source, searchFilters.tenantKey, canManageUsers]);
 
   // Load tenants for admin
   useEffect(() => {
@@ -145,8 +145,8 @@ function UserDirectory({ user }) {
         });
       }
       
-      if (searchFilters.tenantId && canViewAllTenants) {
-        filteredUsers = filteredUsers.filter(u => u.tenant === searchFilters.tenantId);
+      if (searchFilters.tenantKey && canViewAllTenants) {
+        filteredUsers = filteredUsers.filter(u => u.tenant === searchFilters.tenantKey);
       }
       
       // Simple pagination for demo
@@ -387,8 +387,8 @@ function UserDirectory({ user }) {
                 <FormControl fullWidth>
                   <InputLabel>Tenant</InputLabel>
                   <Select
-                    value={searchFilters.tenantId}
-                    onChange={(e) => handleSearchChange('tenantId', e.target.value)}
+                    value={searchFilters.tenantKey}
+                    onChange={(e) => handleSearchChange('tenantKey', e.target.value)}
                     label="Tenant"
                     disabled={tenantsLoading}
                     sx={{ borderRadius: 2 }}

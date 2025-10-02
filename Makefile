@@ -40,6 +40,7 @@ help:
 	@echo "  dev-watch           - Watch frontend changes and auto-rebuild"
 	@echo "  dev-build           - Build frontend only (no container restart)"
 	@echo "  dev-hot             - Hot rebuild frontend from outside Docker"
+	@echo "  nuclear-rebuild-frontend - Complete frontend cleanup and rebuild"
 	@echo ""
 	@echo "📊 Loki Logs (Better for debugging restarts):"
 	@echo "  loki-logs-backend     - Show backend logs from Loki (last 10min)"
@@ -57,6 +58,13 @@ help:
 	@echo "  report-mt       - Generate test report from artifacts"
 	@echo "  test-and-report - Run tests and generate report"
 	@echo ""
+	@echo "🧪 Backend Testing:"
+	@echo "  test-backend-unit           - Run backend unit tests only"
+	@echo "  test-backend-integration    - Run backend integration tests"
+	@echo "  test-backend-health         - Run backend health checks"
+	@echo "  test-backend-all            - Run all backend tests"
+	@echo "  show-backend-test-results   - Show backend test results summary"
+	@echo ""
 	@echo "🌐 Domain Management:"
 	@echo "  setup-domains        - Setup local development domains"
 	@echo "  add-tenant-domain    - Add tenant domain (TENANT=name)"
@@ -69,6 +77,7 @@ help:
 	@echo ""
 	@echo "📋 Other:"
 	@echo "  clean-artifacts - Clean test artifacts"
+	@echo "  clear-browser-cache - Clear browser cache and localStorage"
 
 # Run multitenancy smoke tests
 test-mt:
@@ -92,6 +101,26 @@ clean-artifacts:
 	@rm -rf artifacts/
 	@rm -f TEST_REPORT.md
 	@echo "✅ Artifacts cleaned"
+
+# Complete Docker cleanup - removes everything
+.PHONY: docker-cleanup
+docker-cleanup:
+	@echo "🧹 Complete Docker cleanup - removing containers, images, volumes, networks..."
+	@echo "⚠️  This will remove ALL Docker data for this project!"
+	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo "🛑 Stopping all containers..."
+	-docker compose -f docker/docker-compose.yml down -v --remove-orphans
+	@echo "🗑️  Removing all project images..."
+	-docker rmi $$(docker images --filter=reference="*core-platform*" -q) 2>/dev/null || true
+	-docker rmi $$(docker images --filter=reference="docker-*" -q) 2>/dev/null || true
+	@echo "🧽 Pruning unused Docker resources..."
+	-docker system prune -af --volumes
+	@echo "✅ Docker cleanup completed!"
+
+# Quick rebuild from scratch
+.PHONY: rebuild-clean
+rebuild-clean: docker-cleanup build up
+	@echo "✅ Complete rebuild from scratch completed!"
 
 # Start complete environment with auto-setup
 .PHONY: up
@@ -190,7 +219,7 @@ reset-db:
 build:
 	@echo "🔨 Building all images..."
 	@$(MAKE) kc-image
-	docker compose -f docker/docker-compose.yml build
+	docker compose -f docker/docker-compose.yml build --no-cache
 
 # Show services status
 .PHONY: status 
@@ -243,7 +272,7 @@ setup-domains:
 # Add tenant domain (for manual tenant creation)
 .PHONY: add-tenant-domain
 add-tenant-domain:
-	@if [ -z "$(TENANT)" ]; then \
+	@if [ -z "$(TENANT)" ]; then \ ap
 		echo "❌ TENANT parameter required"; \
 		echo "Usage: make add-tenant-domain TENANT=my-tenant"; \
 		exit 1; \
@@ -443,6 +472,12 @@ kc-image:
 	@echo "🔨 Building Keycloak image with webhook SPI..."
 	docker build -f docker/keycloak/Dockerfile -t core-platform/keycloak:local .
 
+# Build Keycloak image with SPI (no cache)
+.PHONY: kc-image-no-cache
+kc-image-no-cache:
+	@echo "🔨 Building Keycloak image with webhook SPI (no cache)..."
+	docker build --no-cache -f docker/keycloak/Dockerfile -t core-platform/keycloak:local .
+
 # Start Keycloak with webhook configuration (requires .env file)
 .PHONY: kc-up
 kc-up: 
@@ -561,8 +596,10 @@ kc-show-users:
 .PHONY: rebuild-backend
 rebuild-backend:
 	@echo "🔨 Rebuilding backend service..."
+	@echo "🧪 Running unit tests before rebuild..."
+	@$(MAKE) test-backend-unit || (echo "❌ Unit tests failed - aborting rebuild" && exit 1)
 	docker compose -f docker/docker-compose.yml stop backend
-	docker compose -f docker/docker-compose.yml build backend
+	docker compose -f docker/docker-compose.yml build --no-cache backend
 	docker compose -f docker/docker-compose.yml up -d backend
 	@echo "✅ Backend rebuilt and restarted"
 	@echo "⏳ Waiting for backend to be ready..."
@@ -573,32 +610,8 @@ rebuild-backend:
 		fi; \
 		sleep 2; \
 	done
-
-# Rebuild & restart frontend only
-.PHONY: rebuild-frontend
-rebuild-frontend:
-	@echo "🔨 Rebuilding frontend service..."
-	docker compose -f docker/docker-compose.yml stop frontend
-	docker compose -f docker/docker-compose.yml build frontend
-	docker compose -f docker/docker-compose.yml up -d frontend
-	@echo "✅ Frontend rebuilt and restarted"
-
-# Rebuild & restart keycloak only
-.PHONY: rebuild-keycloak
-rebuild-keycloak:
-	@echo "🔨 Rebuilding Keycloak service..."
-	docker compose -f docker/docker-compose.yml stop keycloak
-	@$(MAKE) kc-image
-	docker compose -f docker/docker-compose.yml up -d keycloak
-	@echo "✅ Keycloak rebuilt and restarted"
-	@echo "⏳ Waiting for Keycloak to be ready..."
-	@for i in $$(seq 1 45); do \
-		if curl -k -s https://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
-			echo "✅ Keycloak is ready!"; \
-			break; \
-		fi; \
-		sleep 2; \
-	done
+	@echo "🧪 Running integration tests after rebuild..."
+	@$(MAKE) test-backend-integration
 
 # Restart backend service only
 .PHONY: restart-backend
@@ -610,6 +623,61 @@ restart-backend:
 	@for i in $$(seq 1 30); do \
 		if curl -s http://localhost:8080/api/health >/dev/null 2>&1; then \
 			echo "✅ Backend is ready!"; \
+			@echo "🧪 Running health check tests..."; \
+			@$(MAKE) test-backend-health; \
+			break; \
+		fi; \
+		sleep 2; \
+	done
+
+# Rebuild & restart frontend only
+.PHONY: rebuild-frontend
+rebuild-frontend:
+	@echo "🔨 Rebuilding frontend service with deep cleanup..."
+	@echo "🛑 Stopping frontend service..."
+	docker compose -f docker/docker-compose.yml stop frontend
+	@echo "🗑️  Removing frontend container completely..."
+	-docker rm core-frontend 2>/dev/null || echo "Container already removed"
+	@echo "🧹 Removing frontend image to force complete rebuild..."
+	-docker rmi docker-frontend:latest 2>/dev/null || echo "Image already removed"
+	@echo "🚿 Clearing Docker build cache for frontend..."
+	-docker builder prune -f --filter label=stage=frontend-build 2>/dev/null || true
+	@echo "🏗️  Building fresh frontend image (no cache)..."
+	docker compose -f docker/docker-compose.yml build --no-cache frontend
+	@echo "🚀 Starting fresh frontend container..."
+	docker compose -f docker/docker-compose.yml up -d frontend
+	@echo ""
+	@echo "✅ Frontend rebuilt and restarted with complete cleanup!"
+	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"
+	@echo ""
+	@echo "💡 Browser cache cleanup recommendation:"
+	@echo "   1. Open DevTools (F12)"
+	@echo "   2. Right-click refresh button → 'Empty Cache and Hard Reload'"
+	@echo "   3. Or open Application tab → Storage → Clear site data"
+	@echo ""
+	@echo "🧹 To clear browser data automatically, run: make clear-browser-cache"
+
+# Rebuild & restart keycloak only
+.PHONY: rebuild-keycloak
+rebuild-keycloak:
+	@echo "🔨 Rebuilding Keycloak service with deep cleanup..."
+	@echo "🛑 Stopping Keycloak service..."
+	docker compose -f docker/docker-compose.yml stop keycloak
+	@echo "🗑️  Removing Keycloak container completely..."
+	-docker rm core-keycloak 2>/dev/null || echo "Container already removed"
+	@echo "🧹 Removing Keycloak image to force complete rebuild..."
+	-docker rmi core-platform/keycloak:local 2>/dev/null || echo "Image already removed"
+	@echo "🚿 Clearing Docker build cache..."
+	-docker builder prune -f 2>/dev/null || true
+	@echo "🏗️  Building fresh Keycloak image (no cache)..."
+	@$(MAKE) kc-image-no-cache
+	@echo "🚀 Starting fresh Keycloak container..."
+	docker compose -f docker/docker-compose.yml up -d keycloak
+	@echo "✅ Keycloak rebuilt and restarted with complete cleanup!"
+	@echo "⏳ Waiting for Keycloak to be ready..."
+	@for i in $$(seq 1 45); do \
+		if curl -k -s https://localhost:8081/health/ready | grep -q "UP" >/dev/null 2>&1; then \
+			echo "✅ Keycloak is ready!"; \
 			break; \
 		fi; \
 		sleep 2; \
@@ -655,8 +723,17 @@ restart-db:
 # Show backend logs only
 .PHONY: logs-backend
 logs-backend:
-	@echo "📋 Backend logs:"
-	docker compose -f docker/docker-compose.yml logs -f backend
+	@echo "📋 Backend logs (Docker + recent test results):"
+	@echo "=== Docker Logs ==="
+	@docker compose -f docker/docker-compose.yml logs --tail=50 backend
+	@echo ""
+	@echo "=== Recent Test Results ==="
+	@if [ -f artifacts/backend_tests.log ]; then \
+		echo "🧪 Last unit test results:"; \
+		tail -20 artifacts/backend_tests.log; \
+	else \
+		echo "No recent test results found"; \
+	fi
 
 # Show frontend logs only
 .PHONY: logs-frontend
@@ -797,3 +874,128 @@ dev-setup-watch:
 	@cd frontend && npm install chokidar-cli --save-dev
 	@echo "✅ File watching setup complete!"
 	@echo "💡 Now you can use 'make dev-watch' for auto-rebuilds"
+
+# Clear browser cache and localStorage (macOS Chrome/Safari)
+.PHONY: clear-browser-cache
+clear-browser-cache:
+	@echo "🧹 Clearing browser cache and data for core-platform.local..."
+	@echo "⚠️  This will close Chrome if running and clear site data"
+	@echo "Press Ctrl+C within 3 seconds to cancel..."
+	@sleep 3
+	@# Close Chrome
+	@pkill -f "Google Chrome" 2>/dev/null || echo "Chrome not running"
+	@sleep 2
+	@# Clear Chrome cache for our domain (macOS)
+	@if [ -d "$$HOME/Library/Application Support/Google/Chrome/Default" ]; then \
+		echo "🧽 Clearing Chrome cache..."; \
+		rm -rf "$$HOME/Library/Application Support/Google/Chrome/Default/Service Worker/CacheStorage/"*core-platform* 2>/dev/null || true; \
+		rm -rf "$$HOME/Library/Application Support/Google/Chrome/Default/Local Storage/leveldb/"*core-platform* 2>/dev/null || true; \
+		echo "✅ Chrome cache cleared"; \
+	else \
+		echo "⚠️  Chrome profile not found"; \
+	fi
+	@# Clear Safari cache (macOS)
+	@if [ -d "$$HOME/Library/Safari" ]; then \
+		echo "🧽 Clearing Safari cache..."; \
+		rm -rf "$$HOME/Library/Caches/com.apple.Safari/"* 2>/dev/null || true; \
+		echo "✅ Safari cache cleared"; \
+	fi
+	@echo ""
+	@echo "✅ Browser cache cleared!"
+	@echo "💡 You can now open https://core-platform.local with fresh cache"
+
+# Nuclear option - complete rebuild of specific service with all cleanup
+.PHONY: nuclear-rebuild-frontend
+nuclear-rebuild-frontend:
+	@echo "☢️  NUCLEAR REBUILD: Complete frontend cleanup and rebuild"
+	@echo "⚠️  This will remove EVERYTHING related to frontend Docker state"
+	@echo "Press Ctrl+C within 5 seconds to cancel..."
+	@sleep 5
+	@echo "🛑 Stopping all services..."
+	docker compose -f docker/docker-compose.yml stop
+	@echo "🗑️  Removing frontend container and image completely..."
+	-docker rm core-frontend 2>/dev/null || true
+	-docker rmi docker-frontend:latest 2>/dev/null || true
+	@echo "🧹 Clearing ALL Docker build cache..."
+	docker builder prune -af
+	@echo "🚿 Removing dangling images..."
+	-docker image prune -af
+	@echo "🧽 Clearing npm cache in frontend..."
+	@cd frontend && npm cache clean --force 2>/dev/null || true
+	@echo "🗑️  Removing node_modules and dist..."
+	@cd frontend && rm -rf node_modules dist 2>/dev/null || true
+	@echo "📦 Fresh npm install..."
+	@cd frontend && npm install
+	@echo "🏗️  Building fresh frontend image (no cache)..."
+	docker compose -f docker/docker-compose.yml build --no-cache frontend
+	@echo "🚀 Starting all services..."
+	@$(MAKE) up
+	@echo ""
+	@echo "☢️  NUCLEAR REBUILD COMPLETE!"
+	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"
+	@echo "💡 Consider running: make clear-browser-cache"
+
+# =============================================================================
+# 🧪 BACKEND TESTING TARGETS
+# =============================================================================
+
+# Run backend unit tests only
+.PHONY: test-backend-unit
+test-backend-unit:
+	@echo "🧪 Running backend unit tests..."
+	@mkdir -p artifacts
+	@cd backend && ./mvnw test -Dtest="**/*Test" > ../artifacts/backend_unit_tests.log 2>&1 || \
+		(echo "❌ Unit tests failed - check artifacts/backend_unit_tests.log" && exit 1)
+	@echo "✅ Unit tests passed"
+
+# Run backend integration tests
+.PHONY: test-backend-integration
+test-backend-integration:
+	@echo "🧪 Running backend integration tests..."
+	@mkdir -p artifacts
+	@cd backend && ./mvnw test -Dtest="**/*IT,**/*IntegrationTest" > ../artifacts/backend_integration_tests.log 2>&1 || \
+		(echo "❌ Integration tests failed - check artifacts/backend_integration_tests.log" && exit 1)
+	@echo "✅ Integration tests passed"
+
+# Run backend health check tests
+.PHONY: test-backend-health
+test-backend-health:
+	@echo "🧪 Running backend health checks..."
+	@mkdir -p artifacts
+	@echo "Testing basic health endpoint..." > artifacts/backend_health.log
+	@if curl -s http://localhost:8080/actuator/health | jq -e '.status == "UP"' >/dev/null 2>&1; then \
+		echo "✅ Health check: UP" | tee -a artifacts/backend_health.log; \
+	else \
+		echo "❌ Health check: DOWN" | tee -a artifacts/backend_health.log; \
+		exit 1; \
+	fi
+	@echo "Testing API endpoints..." >> artifacts/backend_health.log
+	@if curl -s http://localhost:8080/api/health >/dev/null 2>&1; then \
+		echo "✅ API health: OK" | tee -a artifacts/backend_health.log; \
+	else \
+		echo "❌ API health: FAIL" | tee -a artifacts/backend_health.log; \
+		exit 1; \
+	fi
+
+# Run all backend tests
+.PHONY: test-backend-all
+test-backend-all: test-backend-unit test-backend-integration test-backend-health
+	@echo "🎉 All backend tests completed successfully!"
+
+# Show backend test results
+.PHONY: show-backend-test-results
+show-backend-test-results:
+	@echo "📊 Backend Test Results Summary:"
+	@echo "================================"
+	@if [ -f artifacts/backend_unit_tests.log ]; then \
+		echo "🧪 Unit Tests:"; \
+		grep -E "(Tests run:|BUILD SUCCESS|BUILD FAILURE)" artifacts/backend_unit_tests.log | tail -2; \
+	fi
+	@if [ -f artifacts/backend_integration_tests.log ]; then \
+		echo "🔗 Integration Tests:"; \
+		grep -E "(Tests run:|BUILD SUCCESS|BUILD FAILURE)" artifacts/backend_integration_tests.log | tail -2; \
+	fi
+	@if [ -f artifacts/backend_health.log ]; then \
+		echo "🏥 Health Checks:"; \
+		cat artifacts/backend_health.log; \
+	fi
