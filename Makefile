@@ -630,11 +630,11 @@ restart-backend:
 		sleep 2; \
 	done
 
-# Rebuild & restart frontend only
+# Rebuild & restart frontend only - FIXED: Only frontend, no dependencies
 .PHONY: rebuild-frontend
 rebuild-frontend:
 	@echo "🔨 Rebuilding frontend service with deep cleanup..."
-	@echo "🛑 Stopping frontend service..."
+	@echo "🛑 Stopping frontend service only..."
 	docker compose -f docker/docker-compose.yml stop frontend
 	@echo "🗑️  Removing frontend container completely..."
 	-docker rm core-frontend 2>/dev/null || echo "Container already removed"
@@ -644,8 +644,8 @@ rebuild-frontend:
 	-docker builder prune -f --filter label=stage=frontend-build 2>/dev/null || true
 	@echo "🏗️  Building fresh frontend image (no cache)..."
 	docker compose -f docker/docker-compose.yml build --no-cache frontend
-	@echo "🚀 Starting fresh frontend container..."
-	docker compose -f docker/docker-compose.yml up -d frontend
+	@echo "🚀 Starting ONLY frontend container (no dependencies)..."
+	docker compose -f docker/docker-compose.yml up -d --no-deps frontend
 	@echo ""
 	@echo "✅ Frontend rebuilt and restarted with complete cleanup!"
 	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"

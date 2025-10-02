@@ -44,17 +44,14 @@ export const AuthProvider = ({ children }) => {
         const preventAutoLogin = localStorage.getItem('prevent-auto-login') === 'true';
         const currentPath = window.location.pathname;
         
-        // If we're on logged-out page or logout flags are set, don't auto-login
-        if (currentPath === '/logged-out' || preventAutoLogin || logoutCompleted) {
-          logger.info('🚪 User was logged out, showing login option');
-          setKeycloakInitialized(true);
-          setIsAuthenticated(false);
-          setShowLoggedOut(true);
-          setLoading(false);
-          return;
+        // 🔧 FIXED: Always initialize Keycloak, but skip auto-login if logged out
+        const shouldSkipAutoLogin = currentPath === '/logged-out' || preventAutoLogin || logoutCompleted;
+        
+        if (shouldSkipAutoLogin) {
+          logger.info('🚪 User was logged out, initializing Keycloak without auto-login');
         }
 
-        // 🔧 Use singleton initialization
+        // 🔧 Always initialize Keycloak (needed for manual login)
         const keycloakInstance = await keycloakService.initKeycloakOnce();
         
         if (keycloakInstance && keycloakInstance.authenticated) {
@@ -87,10 +84,8 @@ export const AuthProvider = ({ children }) => {
         
         setKeycloakInitialized(true);
       } catch (error) {
-        logger.error('❌ Auth initialization failed', { 
-          error: error.message,
-          stack: error.stack 
-        });
+        // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
+        console.error('❌ [AUTH] Auth initialization failed:', error.message);
         setError(`Chyba při inicializaci: ${error.message}`);
       } finally {
         setLoading(false);
@@ -118,7 +113,8 @@ export const AuthProvider = ({ children }) => {
     try {
       keycloakService.login();
     } catch (error) {
-      logger.error('Login failed', { error: error.message });
+      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
+      console.error('❌ [AUTH] Login failed:', error.message);
       hasTriedLoginRef.current = false; // Reset on error
     }
   };
@@ -147,7 +143,8 @@ export const AuthProvider = ({ children }) => {
       await keycloakService.logout();
       
     } catch (error) {
-      logger.error('❌ Logout failed', { error: error.message });
+      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
+      console.error('❌ [AUTH] Logout failed:', error.message);
     }
   };
 

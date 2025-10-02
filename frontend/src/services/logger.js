@@ -20,6 +20,8 @@ class FrontendLogger {
     } else {
       // Clear any stored tokens when not authenticated
       localStorage.removeItem('keycloak-token');
+      // Clear the queue when user logs out to prevent 401 errors
+      this.queue = [];
     }
   }
 
@@ -60,8 +62,8 @@ class FrontendLogger {
       consoleMethod(`[${level.toUpperCase()}] [${this.tenant}] [${this.username}] ${message}`);
     }
 
-    // Only queue logs that should be sent to backend
-    if (this.isAuthenticated || level === 'error') {
+    // 🔐 FIXED: Only queue logs if user is authenticated - no exceptions for errors
+    if (this.isAuthenticated) {
       this.queue.push(logEntry);
       
       // Auto-flush for errors or auth events
@@ -87,29 +89,21 @@ class FrontendLogger {
   }
 
   async flush() {
-    // 🔐 Don't send logs to backend if not authenticated (except errors)
-    if (this.isProcessing || this.queue.length === 0) {
-      return;
-    }
-
-    // Filter logs - only send if authenticated or if it's an error
-    const logsToSend = this.queue.filter(log => 
-      this.isAuthenticated || log.level === 'ERROR'
-    );
-    
-    if (logsToSend.length === 0) {
+    // 🔐 Early exit if not authenticated, processing, or empty queue
+    if (this.isProcessing || this.queue.length === 0 || !this.isAuthenticated) {
       return;
     }
 
     this.isProcessing = true;
-    // Remove sent logs from queue
-    this.queue = this.queue.filter(log => !logsToSend.includes(log));
+    const logsToSend = [...this.queue]; // Copy all logs to send
+    this.queue = []; // Clear queue immediately
 
     try {
       const token = localStorage.getItem('keycloak-token');
       
-      // Only send to backend if we have a token or it's an error
-      if (!token && !logsToSend.some(log => log.level === 'ERROR')) {
+      // 🔐 FIXED: Strict check - don't send anything without token
+      if (!token) {
+        this.setAuthenticated(false);
         return;
       }
 
@@ -119,30 +113,46 @@ class FrontendLogger {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` })
+              'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(logEntry),
             timeout: 5000
           });
 
           if (!response.ok) {
+            // 🔐 FIXED: Handle 401 specifically to prevent auth loops
+            if (response.status === 401) {
+              this.setAuthenticated(false);
+              return; // Stop processing and exit
+            }
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
         } catch (error) {
-          // If individual log fails, put it back in queue (but limit queue size)
+          // 🔐 FIXED: Handle 401 errors to prevent loops
+          if (error.message.includes('401')) {
+            this.setAuthenticated(false);
+            return;
+          }
+          
+          // For other errors, put the log back in queue (but limit queue size)
           if (this.queue.length < 50) {
             this.queue.push(logEntry);
           }
-          // Don't log to console for 401 errors during non-auth requests
-          if (error.message !== 'HTTP 401: Unauthorized' || logEntry.level === 'ERROR') {
-            console.warn('⚠️ Failed to send log to backend:', error.message);
-          }
+          
+          // Only log non-auth errors to console
+          console.warn('⚠️ Failed to send log to backend:', error.message);
         }
       }
 
     } catch (error) {
+      // 🔐 FIXED: Handle auth errors gracefully
+      if (error.message.includes('401')) {
+        this.setAuthenticated(false);
+        return;
+      }
+      
       // Put all logs back in queue for retry, but limit queue size
-      if (this.queue.length < 50) {
+      if (this.queue.length + logsToSend.length <= 50) {
         this.queue.unshift(...logsToSend);
       }
       

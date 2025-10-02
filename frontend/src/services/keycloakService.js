@@ -150,13 +150,14 @@ class KeycloakService {
 
       return this.keycloak;
     } catch (error) {
-      logger.error('Keycloak initialization failed', { 
-        error: error.message, 
-        stack: error.stack 
-      });
+      // 🔐 FIXED: Better error handling - check if error exists and has message
+      const errorMessage = error?.message || 'Unknown initialization error';
+      const errorStack = error?.stack || 'No stack trace available';
+      
+      console.error('❌ [AUTH] Keycloak initialization failed:', errorMessage, error);
       logger.setAuthenticated(false);
       this.initialized = false;
-      throw error;
+      throw new Error(`Keycloak initialization failed: ${errorMessage}`);
     }
   }
 
@@ -250,6 +251,8 @@ class KeycloakService {
    */
   login() {
     if (!this.keycloak) {
+      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
+      console.error('❌ [AUTH] Keycloak not initialized');
       throw new Error('Keycloak not initialized');
     }
 
@@ -265,16 +268,27 @@ class KeycloakService {
    */
   async logout() {
     if (!this.keycloak) {
+      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
+      console.error('❌ [AUTH] Keycloak not initialized');
       throw new Error('Keycloak not initialized');
     }
 
     logger.auth('Logging out', { component: 'auth' });
+
+    // 🔐 FIXED: Set logger as unauthenticated immediately to prevent 401 loops
+    logger.setAuthenticated(false);
 
     // Stop token refresh immediately
     if (this._refreshInterval) {
       clearInterval(this._refreshInterval);
       this._refreshInterval = null;
     }
+
+    // 🔧 FIXED: Reset singleton states to allow fresh initialization after logout
+    initPromise = null;
+    keycloakInstance = null;
+    isInitialized = false;
+    this.initialized = false;
 
     // Clear ALL possible storage locations
     try {
@@ -297,11 +311,8 @@ class KeycloakService {
       localStorage.setItem('prevent-auto-login', 'true');
       
     } catch (error) {
-      logger.warn('Error clearing storage', { 
-        error: error.message,
-        stack: error.stack,
-        component: 'auth' 
-      });
+      // 🔐 FIXED: Use console.warn instead of logger.warn to avoid auth issues
+      console.warn('⚠️ [AUTH] Error clearing storage:', error.message);
     }
 
     try {
@@ -313,6 +324,9 @@ class KeycloakService {
       this.keycloak.refreshToken = null;
       this.keycloak.idToken = null;
       this.keycloak.authenticated = false;
+      
+      // 🔧 FIXED: Clear the Keycloak instance reference completely
+      this.keycloak = null;
       
       // Construct logout URL manually for better control
       const logoutUrl = `${this.config.url}/realms/${this.config.realm}/protocol/openid-connect/logout`;
@@ -330,11 +344,8 @@ class KeycloakService {
       window.location.href = fullLogoutUrl;
       
     } catch (error) {
-      logger.error('Logout error', { 
-        error: error.message,
-        stack: error.stack,
-        component: 'auth' 
-      });
+      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
+      console.error('❌ [AUTH] Logout error:', error.message);
       // Fallback - just redirect to logged-out page
       window.location.href = '/logged-out';
     }
