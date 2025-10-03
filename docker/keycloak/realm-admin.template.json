@@ -19,10 +19,10 @@
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",
   "attributes": {
-    "frontendUrl": "https://admin.${DOMAIN}",
+    "frontendUrl": "https://${DOMAIN}",
     "userProfileEnabled": "false",
     "requirePasswordUpdateOnFirstLogin": "false",
-    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://admin.${DOMAIN} https://*.${DOMAIN}; frame-ancestors 'self' https://admin.${DOMAIN} https://*.${DOMAIN}; object-src 'none';",
+    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://${DOMAIN} https://*.core-platform.local; frame-ancestors 'self' https://${DOMAIN} https://*.core-platform.local; object-src 'none';",
     "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains",
     "_browser_header.xFrameOptions": "SAMEORIGIN",
     "_browser_header.xContentTypeOptions": "nosniff",
@@ -170,14 +170,14 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
-      "rootUrl": "https://admin.${DOMAIN}/",
+      "rootUrl": "https://${DOMAIN}/",
       "redirectUris": [
-        "https://admin.${DOMAIN}/*",
+        "https://${DOMAIN}/*",
         "http://localhost:3000/*",
         "http://localhost/*"
       ],
       "webOrigins": [
-        "https://admin.${DOMAIN}",
+        "https://${DOMAIN}",
         "+"
       ],
       "protocolMappers": [

@@ -11,6 +11,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * 🔐 DYNAMIC JWT DECODER
@@ -20,12 +22,19 @@ import java.util.Map;
  * https://admin.core-platform.local/realms/admin - ivigee:
  * https://ivigee.core-platform.local/realms/ivigee - acme:
  * https://acme.core-platform.local/realms/acme
+ * 
+ * 🔧 FIX: Používá interní Docker síť pro stažení JWK Set, ale validuje externí
+ * issuer
  */
 @Component @Slf4j
 public class DynamicJwtDecoder implements JwtDecoder {
 
   @Value("${DOMAIN:core-platform.local}")
   private String baseDomain;
+
+  // 🔧 NEW: Internal Keycloak URL for JWK Set download
+  @Value("${KEYCLOAK_INTERNAL_BASE_URL:https://keycloak:8443}")
+  private String keycloakInternalBaseUrl;
 
   private final Map<String, JwtDecoder> decoderCache = new ConcurrentHashMap<>();
 
@@ -99,14 +108,53 @@ public class DynamicJwtDecoder implements JwtDecoder {
   }
 
   /**
-   * 🏗️ CREATE JWT DECODER: Vytvoří nový JWT decoder pro tenant
+   * 🏗️ CREATE JWT DECODER: Vytvoří nový JWT decoder pro tenant 🔧 FIX: Používá
+   * interní Keycloak URL pro JWK Set, ale validuje externí issuer
    */
   private JwtDecoder createJwtDecoder(String tenantKey) {
-    // Unified issuer URI construction - no special cases
-    String issuerUri = String.format("https://%s.%s/realms/%s", tenantKey, baseDomain, tenantKey);
+    // 1. External issuer URI (for token validation) - what's in the JWT token
+    String expectedIssuer = String.format("https://%s.%s/realms/%s", tenantKey, baseDomain,
+        tenantKey);
 
-    log.info("🔧 Creating JWT decoder for tenant: {} with issuer: {}", tenantKey, issuerUri);
+    // 2. Internal JWK Set URI (for key download) - Docker network
+    String jwkSetUri = String.format("%s/realms/%s/protocol/openid-connect/certs",
+        keycloakInternalBaseUrl, tenantKey);
 
-    return JwtDecoders.fromIssuerLocation(issuerUri);
+    log.info("🔧 Creating JWT decoder for tenant: {}", tenantKey);
+    log.info("   Expected issuer: {}", expectedIssuer);
+    log.info("   JWK Set URI: {}", jwkSetUri);
+
+    try {
+      // 🔧 FIX: Use NimbusJwtDecoder with custom JWK Set URI and issuer validation
+      NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri)
+          .jwsAlgorithm(org.springframework.security.oauth2.jose.jws.SignatureAlgorithm.RS256)
+          .build();
+
+      // Set the expected issuer for validation
+      decoder.setJwtValidator(createJwtValidator(expectedIssuer));
+
+      return decoder;
+
+    } catch (Exception e) {
+      log.error("🔧 Failed to create JWT decoder for tenant {}: {}", tenantKey, e.getMessage());
+      throw new RuntimeException("Failed to create JWT decoder for tenant: " + tenantKey, e);
+    }
+  }
+
+  /**
+   * 🛡️ CREATE JWT VALIDATOR: Creates validator that checks issuer and expiration
+   */
+  private org.springframework.security.oauth2.core.OAuth2TokenValidator<Jwt> createJwtValidator(
+      String expectedIssuer) {
+    List<org.springframework.security.oauth2.core.OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
+
+    // Issuer validation
+    validators.add(new JwtIssuerValidator(expectedIssuer));
+
+    // Timestamp validation (not expired)
+    validators.add(new JwtTimestampValidator());
+
+    return new org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator<>(
+        validators);
   }
 }

@@ -133,7 +133,7 @@ up: validate-env kc-image
 		export KC_WEBHOOK_SECRET=$$(openssl rand -base64 32); \
 	fi; \
 	KC_WEBHOOK_SECRET=$${KC_WEBHOOK_SECRET:-$$(openssl rand -base64 32)} \
-	docker compose -f docker/docker-compose.yml up -d
+	docker compose -f docker/docker-compose.yml --env-file .env up -d
 	@echo ""
 	@echo "✅ Environment started successfully!"
 	@echo "🌐 Admin Frontend: https://admin.$${DOMAIN:-core-platform.local}"
@@ -148,7 +148,7 @@ up: validate-env kc-image
 .PHONY: down
 down:
 	@echo "🛑 Stopping Core Platform environment..."
-	docker compose -f docker/docker-compose.yml down
+	docker compose -f docker/docker-compose.yml --env-file .env down
 
 # Restart all services
 .PHONY: restart
@@ -161,7 +161,7 @@ restart:
 .PHONY: clean
 clean:
 	@echo "🧹 Clean restart - rebuilding all images..."
-	docker compose -f docker/docker-compose.yml down --rmi local --volumes
+	docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes
 	@$(MAKE) build
 	@$(MAKE) up
 
@@ -173,7 +173,7 @@ fresh:
 	@echo "Press Ctrl+C within 5 seconds to cancel..."
 	@sleep 5
 	@echo "🛑 Stopping services..."
-	docker compose -f docker/docker-compose.yml stop keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env stop keycloak
 	@echo "🗑️  Removing Keycloak volume..."
 	docker volume rm docker_keycloak_data 2>/dev/null || echo "Volume already removed"
 	@echo "🚀 Starting fresh Keycloak..."
@@ -187,11 +187,11 @@ reset-kc:
 	@echo "Press Ctrl+C within 3 seconds to cancel..."
 	@sleep 3
 	@echo "🛑 Stopping Keycloak..."
-	docker compose -f docker/docker-compose.yml stop keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env stop keycloak
 	@echo "🗑️  Removing Keycloak data..."
 	docker volume rm docker_keycloak_data 2>/dev/null || echo "Volume already removed"
 	@echo "🚀 Starting clean Keycloak..."
-	docker compose -f docker/docker-compose.yml start keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env start keycloak
 	@echo "⏳ Waiting for Keycloak and setting up realm..."
 	@$(MAKE) wait-for-services
 
@@ -203,11 +203,11 @@ reset-db:
 	@echo "Press Ctrl+C within 3 seconds to cancel..."
 	@sleep 3
 	@echo "🛑 Stopping backend and database..."
-	docker compose -f docker/docker-compose.yml stop backend db postgres-exporter
+	docker compose -f docker/docker-compose.yml --env-file .env stop backend db postgres-exporter
 	@echo "🗑️  Removing database volume..."
 	docker volume rm docker_core_db_data 2>/dev/null || echo "Volume already removed"
 	@echo "🚀 Starting fresh database..."
-	docker compose -f docker/docker-compose.yml start db postgres-exporter backend
+	docker compose -f docker/docker-compose.yml --env-file .env start db postgres-exporter backend
 	@echo "⏳ Waiting for services..."
 	@sleep 10
 	@echo "✅ Database reset complete"
@@ -217,20 +217,20 @@ reset-db:
 build:
 	@echo "🔨 Building all images..."
 	@$(MAKE) kc-image
-	docker compose -f docker/docker-compose.yml build --no-cache
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache
 
 # Show services status
 .PHONY: status 
 status:
 	@echo "📊 Core Platform Services Status:"
 	@echo "=================================="
-	docker compose -f docker/docker-compose.yml ps
+	docker compose -f docker/docker-compose.yml --env-file .env ps
 
 # Show all services logs
 .PHONY: logs
 logs:
 	@echo "📋 Core Platform Services Logs:"
-	docker compose -f docker/docker-compose.yml logs -f
+	docker compose -f docker/docker-compose.yml --env-file .env logs -f
 
 # First-time development setup
 .PHONY: dev-setup
@@ -488,21 +488,21 @@ kc-up:
 		echo "❌ KC_WEBHOOK_SECRET not found in .env file! Please add webhook configuration."; \
 		exit 1; \
 	fi
-	docker compose -f docker/docker-compose.yml up -d keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env up -d keycloak
 
 # Start Keycloak with explicit env vars (for development)
 .PHONY: kc-up-dev
 kc-up-dev:
 	@echo "🧪 Starting Keycloak with development webhook configuration..."
 	@KC_WEBHOOK_SECRET=$$(openssl rand -base64 32) \
-	docker compose -f docker/docker-compose.yml up -d keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env up -d keycloak
 	@echo "✅ Keycloak started with auto-generated webhook secret"
 
 # Restart Keycloak service
 .PHONY: kc-restart
 kc-restart:
 	@echo "🔄 Restarting Keycloak..."
-	docker compose -f docker/docker-compose.yml restart keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env restart keycloak
 	@echo "✅ Keycloak restarted"
 	@echo "⏳ Waiting for Keycloak to be ready..."
 	@for i in $$(seq 1 45); do \
@@ -517,8 +517,8 @@ kc-restart:
 .PHONY: kc-clean
 kc-clean:
 	@echo "🧹 Cleaning Keycloak container..."
-	docker compose -f docker/docker-compose.yml down keycloak
-	docker compose -f docker/docker-compose.yml up -d keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env down keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env up -d keycloak
 
 # Show Keycloak logs
 .PHONY: kc-logs
@@ -595,9 +595,9 @@ rebuild-backend:
 	@echo "🔨 Rebuilding backend service..."
 	@echo "🧪 Running unit tests before rebuild..."
 	@$(MAKE) test-backend-unit || (echo "❌ Unit tests failed - aborting rebuild" && exit 1)
-	docker compose -f docker/docker-compose.yml stop backend
-	docker compose -f docker/docker-compose.yml build --no-cache backend
-	docker compose -f docker/docker-compose.yml up -d backend
+	docker compose -f docker/docker-compose.yml --env-file .env stop backend
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache backend
+	docker compose -f docker/docker-compose.yml --env-file .env up -d backend
 	@echo "✅ Backend rebuilt and restarted"
 	@echo "⏳ Waiting for backend to be ready..."
 	@for i in $$(seq 1 30); do \
@@ -614,7 +614,7 @@ rebuild-backend:
 .PHONY: restart-backend
 restart-backend:
 	@echo "🔄 Restarting backend service..."
-	docker compose -f docker/docker-compose.yml restart backend
+	docker compose -f docker/docker-compose.yml --env-file .env restart backend
 	@echo "✅ Backend restarted"
 	@echo "⏳ Waiting for backend to be ready..."
 	@for i in $$(seq 1 30); do \
@@ -632,7 +632,7 @@ restart-backend:
 rebuild-frontend:
 	@echo "🔨 Rebuilding frontend service with deep cleanup..."
 	@echo "🛑 Stopping frontend service only..."
-	docker compose -f docker/docker-compose.yml stop frontend
+	docker compose -f docker/docker-compose.yml --env-file .env stop frontend
 	@echo "🗑️  Removing frontend container completely..."
 	-docker rm core-frontend 2>/dev/null || echo "Container already removed"
 	@echo "🧹 Removing frontend image to force complete rebuild..."
@@ -640,9 +640,9 @@ rebuild-frontend:
 	@echo "🚿 Clearing Docker build cache for frontend..."
 	-docker builder prune -f --filter label=stage=frontend-build 2>/dev/null || true
 	@echo "🏗️  Building fresh frontend image (no cache)..."
-	docker compose -f docker/docker-compose.yml build --no-cache frontend
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache frontend
 	@echo "🚀 Starting ONLY frontend container (no dependencies)..."
-	docker compose -f docker/docker-compose.yml up -d --no-deps frontend
+	docker compose -f docker/docker-compose.yml --env-file .env up -d --no-deps frontend
 	@echo ""
 	@echo "✅ Frontend rebuilt and restarted with complete cleanup!"
 	@echo "🌐 Frontend: https://$${DOMAIN:-core-platform.local}"
@@ -659,7 +659,7 @@ rebuild-frontend:
 rebuild-keycloak:
 	@echo "🔨 Rebuilding Keycloak service with deep cleanup..."
 	@echo "🛑 Stopping Keycloak service..."
-	docker compose -f docker/docker-compose.yml stop keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env stop keycloak
 	@echo "🗑️  Removing Keycloak container completely..."
 	-docker rm core-keycloak 2>/dev/null || echo "Container already removed"
 	@echo "🧹 Removing Keycloak image to force complete rebuild..."
@@ -669,7 +669,7 @@ rebuild-keycloak:
 	@echo "🏗️  Building fresh Keycloak image (no cache)..."
 	@$(MAKE) kc-image-no-cache
 	@echo "🚀 Starting fresh Keycloak container..."
-	docker compose -f docker/docker-compose.yml up -d keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env up -d keycloak
 	@echo "✅ Keycloak rebuilt and restarted with complete cleanup!"
 	@echo "⏳ Waiting for Keycloak to be ready..."
 	@for i in $$(seq 1 45); do \
@@ -684,14 +684,14 @@ rebuild-keycloak:
 .PHONY: restart-frontend
 restart-frontend:
 	@echo "🔄 Restarting frontend service..."
-	docker compose -f docker/docker-compose.yml restart frontend
+	docker compose -f docker/docker-compose.yml --env-file .env restart frontend
 	@echo "✅ Frontend restarted"
 
 # Restart keycloak service only
 .PHONY: restart-keycloak
 restart-keycloak:
 	@echo "🔄 Restarting Keycloak service..."
-	docker compose -f docker/docker-compose.yml restart keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env restart keycloak
 	@echo "✅ Keycloak restarted"
 	@echo "⏳ Waiting for Keycloak to be ready..."
 	@for i in $$(seq 1 45); do \
@@ -706,7 +706,7 @@ restart-keycloak:
 .PHONY: restart-db
 restart-db:
 	@echo "🔄 Restarting database service..."
-	docker compose -f docker/docker-compose.yml restart db
+	docker compose -f docker/docker-compose.yml --env-file .env restart db
 	@echo "✅ Database restarted"
 	@echo "⏳ Waiting for database to be ready..."
 	@for i in $$(seq 1 30); do \
@@ -722,7 +722,7 @@ restart-db:
 logs-backend:
 	@echo "📋 Backend logs (Docker + recent test results):"
 	@echo "=== Docker Logs ==="
-	@docker compose -f docker/docker-compose.yml logs --tail=50 backend
+	@docker compose -f docker/docker-compose.yml --env-file .env logs --tail=50 backend
 	@echo ""
 	@echo "=== Recent Test Results ==="
 	@if [ -f artifacts/backend_tests.log ]; then \
@@ -736,19 +736,19 @@ logs-backend:
 .PHONY: logs-frontend
 logs-frontend:
 	@echo "📋 Frontend logs:"
-	docker compose -f docker/docker-compose.yml logs -f frontend
+	docker compose -f docker/docker-compose.yml --env-file .env logs -f frontend
 
 # Show keycloak logs only
 .PHONY: logs-keycloak
 logs-keycloak:
 	@echo "📋 Keycloak logs:"
-	docker compose -f docker/docker-compose.yml logs -f keycloak
+	docker compose -f docker/docker-compose.yml --env-file .env logs -f keycloak
 
 # Show database logs only
 .PHONY: logs-db
 logs-db:
 	@echo "📋 Database logs:"
-	docker compose -f docker/docker-compose.yml logs -f db
+	docker compose -f docker/docker-compose.yml --env-file .env logs -f db
 
 # =============================================================================
 # 📊 LOKI LOGS TARGETS (Alternative to Docker logs)

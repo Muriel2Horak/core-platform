@@ -7,10 +7,10 @@ set -e
 
 echo "🔐 Creating secure Service Account in Keycloak..."
 
-# Configuration
+# Configuration - using env variables instead of hardcoded values
 KEYCLOAK_URL="http://localhost:8081"
-ADMIN_USER="admin"
-ADMIN_PASS="admin"
+ADMIN_USER="${KEYCLOAK_ADMIN:-admin}"
+ADMIN_PASS="${KEYCLOAK_ADMIN_PASSWORD:-admin123}"
 REALM="core-platform"
 CLIENT_ID="backend-admin-service"
 CLIENT_NAME="Backend Admin Service"

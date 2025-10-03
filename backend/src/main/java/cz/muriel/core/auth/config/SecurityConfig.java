@@ -137,7 +137,10 @@ public class SecurityConfig {
     CorsConfiguration cfg = new CorsConfiguration();
     List<String> origins = Arrays.stream(corsOrigins.split(",")).map(String::trim)
         .filter(s -> !s.isEmpty()).toList();
-    cfg.setAllowedOrigins(origins);
+
+    // 🔧 FIX: Použijeme setAllowedOriginPatterns místo setAllowedOrigins
+    // pro podporu wildcard patterns jako https://*.core-platform.local
+    cfg.setAllowedOriginPatterns(origins);
     cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
     cfg.setAllowedHeaders(List.of("*"));
     cfg.setAllowCredentials(true);

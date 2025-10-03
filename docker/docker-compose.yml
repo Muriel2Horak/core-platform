@@ -31,9 +31,13 @@ services:
     image: postgres:16
     container_name: core-db
     environment:
-      POSTGRES_USER: core
-      POSTGRES_PASSWORD: core
-      POSTGRES_DB: core
+      POSTGRES_USER: ${DB_INTERNAL_USERNAME}
+      POSTGRES_PASSWORD: ${DB_INTERNAL_PASSWORD}
+      POSTGRES_DB: ${DB_INTERNAL_NAME}
+      # Keycloak database credentials pro init skripty
+      KEYCLOAK_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME}
     volumes:
       - core_db_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -52,8 +56,8 @@ services:
     image: dpage/pgadmin4
     container_name: core-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@local.dev
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
       - "5050:80"
     networks:
@@ -80,8 +84,10 @@ services:
       - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
       - OIDC_JWK_SET_URI=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
       - OIDC_API_AUDIENCE=api
-      # 🔧 FIX: CORS origins - použijeme environment proměnnou
-      - CORS_ORIGINS=https://${DOMAIN:-core-platform.local}
+      # 🔧 NEW: Internal Keycloak URL for JWT decoder to download JWK keys via Docker network
+      - KEYCLOAK_INTERNAL_BASE_URL=https://keycloak:8443
+      # 🔧 FIX: CORS origins - wildcard pro všechny subdomény
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
       - LOKI_URL=http://loki:3100/loki/api/v1/push
       - LOG_LEVEL=DEBUG
@@ -90,8 +96,8 @@ services:
       - KEYCLOAK_ADMIN_CLIENT_ID=backend-admin-service
       - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
-      - KEYCLOAK_ADMIN_REALM=admin
-      - KEYCLOAK_TARGET_REALM=admin
+      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM}
+      - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM}
       - KEYCLOAK_ADMIN_BASE_URL=https://keycloak:8443
       # 🏢 MULTITENANCY Configuration
       - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-test-tenant}
@@ -160,6 +166,12 @@ services:
       # 🔐 Admin credentials
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+      
+      # 🗄️ Database Configuration - používá env proměnné místo hardcoded
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB_NAME}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       
       # 👥 Test User Credentials (DEVELOPMENT ONLY)
       TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-Test.1234}
@@ -339,7 +351,7 @@ services:
     ports:
       - "9187:9187"
     environment:
-      - DATA_SOURCE_NAME=postgresql://core:core@db:5432/core?sslmode=disable
+      - DATA_SOURCE_NAME=postgresql://${DB_INTERNAL_USERNAME}:${DB_INTERNAL_PASSWORD}@db:5432/${DB_INTERNAL_NAME}?sslmode=disable
     depends_on:
       - db
     networks:

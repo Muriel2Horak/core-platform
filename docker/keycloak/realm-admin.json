@@ -19,10 +19,10 @@
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",
   "attributes": {
-    "frontendUrl": "https://admin.admin.core-platform.local",
+    "frontendUrl": "https://admin.core-platform.local",
     "userProfileEnabled": "false",
     "requirePasswordUpdateOnFirstLogin": "false",
-    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://admin.admin.core-platform.local https://*.admin.core-platform.local; frame-ancestors 'self' https://admin.admin.core-platform.local https://*.admin.core-platform.local; object-src 'none';",
+    "_browser_header.contentSecurityPolicy": "frame-src 'self' https://admin.core-platform.local https://*.core-platform.local; frame-ancestors 'self' https://admin.core-platform.local https://*.core-platform.local; object-src 'none';",
     "_browser_header.strictTransportSecurity": "max-age=31536000; includeSubDomains",
     "_browser_header.xFrameOptions": "SAMEORIGIN",
     "_browser_header.xContentTypeOptions": "nosniff",
@@ -170,14 +170,14 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
-      "rootUrl": "https://admin.admin.core-platform.local/",
+      "rootUrl": "https://admin.core-platform.local/",
       "redirectUris": [
-        "https://admin.admin.core-platform.local/*",
+        "https://admin.core-platform.local/*",
         "http://localhost:3000/*",
         "http://localhost/*"
       ],
       "webOrigins": [
-        "https://admin.admin.core-platform.local",
+        "https://admin.core-platform.local",
         "+"
       ],
       "protocolMappers": [
