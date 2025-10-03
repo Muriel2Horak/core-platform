@@ -21,16 +21,18 @@ class KeycloakService {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
 
-    // Use realm from hostname - unified logic for all realms
-    const realm = hostname.split('.')[0];
+    // 🔧 FIXED: Use same logic as backend - extract tenant from hostname with fallback
+    const realm = this.extractRealmFromHostname(hostname);
+    
+    // 🔧 FIXED: Build correct Keycloak URL based on realm
+    const keycloakUrl = this.buildKeycloakUrl(hostname, realm);
+    
     logger.debug('Using realm from hostname', { 
       hostname, 
       realm,
+      keycloakUrl,
       component: 'auth' 
     });
-
-    // 🔧 Simple: Use the current hostname with HTTPS
-    const keycloakUrl = `https://${hostname}`;
 
     logger.info('Keycloak config detected', { 
       keycloakUrl, 
@@ -54,6 +56,43 @@ class KeycloakService {
         usingNginxProxy: true
       }
     };
+  }
+
+  /**
+   * 🔧 BUILD KEYCLOAK URL: Build correct Keycloak URL based on realm
+   */
+  buildKeycloakUrl(hostname, realm) {
+    // If realm is admin and we're on core-platform.local (no subdomain), use admin subdomain
+    if (realm === 'admin' && hostname === 'core-platform.local') {
+      return 'https://admin.core-platform.local';
+    }
+    
+    // For tenant realms, use the current hostname (which should be tenant.core-platform.local)
+    return `https://${hostname}`;
+  }
+
+  /**
+   * 🌐 EXTRACT REALM FROM HOSTNAME: Unified tenant extraction (same logic as backend)
+   */
+  extractRealmFromHostname(hostname) {
+    if (!hostname || hostname === '') {
+      return 'admin'; // fallback
+    }
+
+    logger.debug('🌐 Processing hostname: ' + hostname);
+
+    // Direct hostname mapping - unified logic for all tenants
+    if (hostname.includes('.')) {
+      const parts = hostname.split('.');
+      if (parts.length >= 3) {
+        const subdomain = parts[0];
+        logger.debug('🎯 Extracted subdomain: ' + subdomain);
+        return subdomain; // This will be "admin", "tenant1", "tenant2", etc.
+      }
+    }
+
+    // Fallback for localhost or direct domain access (core-platform.local)
+    return 'admin'; // fallback (same as backend)
   }
 
   /**
