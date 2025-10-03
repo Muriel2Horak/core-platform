@@ -177,6 +177,34 @@ class ApiService {
     return response.data;
   }
 
+  // 🆕 USER DIRECTORY ENDPOINTS - pro běžné uživatele (čtení User Directory)
+  async getUsersDirectory(params = {}) {
+    const queryParams = new URLSearchParams();
+    
+    // Add search parameters
+    if (params.q) queryParams.append('q', params.q);
+    if (params.tenantKey) queryParams.append('tenantKey', params.tenantKey);
+    if (params.source) queryParams.append('source', params.source);
+    if (params.page !== undefined) queryParams.append('page', params.page);
+    if (params.size !== undefined) queryParams.append('size', params.size);
+    if (params.sort) queryParams.append('sort', params.sort);
+    
+    const url = `/api/users-directory${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const response = await axios.get(url);
+    return response.data;
+  }
+
+  async getUserDirectoryDetail(id) {
+    const response = await axios.get(`/api/users-directory/${id}`);
+    return response.data;
+  }
+
+  async updateUserDirectory(id, updates) {
+    const response = await axios.patch(`/api/users-directory/${id}`, updates);
+    return response.data;
+  }
+
+  // USER MANAGEMENT ENDPOINTS - pro admin uživatele (správa uživatelů přes Keycloak)
   async getUsers() {
     const response = await axios.get('/api/users');
     return response.data;
@@ -204,7 +232,7 @@ class ApiService {
 
   // Tenant endpoints (admin only)
   async getTenants() {
-    const response = await axios.get('/api/admin/tenants');
+    const response = await axios.get('/api/tenants');
     return response.data;
   }
 

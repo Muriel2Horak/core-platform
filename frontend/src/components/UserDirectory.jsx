@@ -76,7 +76,7 @@ function UserDirectory({ user }) {
   const isAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
   const isUserManager = user?.roles?.includes('CORE_ROLE_USER_MANAGER');
   const canViewAllTenants = isAdmin;
-  const canManageUsers = isAdmin || isUserManager;
+  // 🗑️ Odebrána proměnná canManageUsers - již není potřeba
 
   // State for user actions
   const [selectedUser, setSelectedUser] = useState(null);
@@ -92,12 +92,10 @@ function UserDirectory({ user }) {
     return () => clearTimeout(timer);
   }, [searchFilters.q]);
 
-  // Load data when filters change
+  // Load data when filters change - 🆕 Všichni autentifikovaní uživatelé mohou načíst User Directory
   useEffect(() => {
-    if (canManageUsers) {
-      loadUsers();
-    }
-  }, [page, debouncedQuery, searchFilters.source, searchFilters.tenantKey, canManageUsers]);
+    loadUsers();
+  }, [page, debouncedQuery, searchFilters.source, searchFilters.tenantKey]);
 
   // Load tenants for admin
   useEffect(() => {
@@ -107,12 +105,6 @@ function UserDirectory({ user }) {
   }, [canViewAllTenants]);
 
   const loadUsers = useCallback(async () => {
-    if (!canManageUsers) {
-      setError('Nemáte oprávnění k zobrazení seznamu uživatelů.');
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
@@ -123,46 +115,26 @@ function UserDirectory({ user }) {
         filters: searchFilters 
       });
       
-      const usersData = await apiService.getUsers();
+      // 🆕 Používáme nový User Directory API místo User Management API
+      const params = {
+        q: debouncedQuery,
+        source: searchFilters.source,
+        tenantKey: searchFilters.tenantKey,
+        page,
+        size: 20,
+        sort: 'username'
+      };
       
-      // Simple filtering for demo - in real app this would be done by backend
-      let filteredUsers = usersData || [];
+      const response = await apiService.getUsersDirectory(params);
       
-      if (debouncedQuery) {
-        const query = debouncedQuery.toLowerCase();
-        filteredUsers = filteredUsers.filter(u => 
-          u.username?.toLowerCase().includes(query) ||
-          u.email?.toLowerCase().includes(query) ||
-          u.firstName?.toLowerCase().includes(query) ||
-          u.lastName?.toLowerCase().includes(query)
-        );
-      }
-      
-      if (searchFilters.source) {
-        filteredUsers = filteredUsers.filter(u => {
-          const source = u.isLocalUser ? 'LOCAL' : 'AD';
-          return source === searchFilters.source;
-        });
-      }
-      
-      if (searchFilters.tenantKey && canViewAllTenants) {
-        filteredUsers = filteredUsers.filter(u => u.tenant === searchFilters.tenantKey);
-      }
-      
-      // Simple pagination for demo
-      const pageSize = 20;
-      const startIndex = page * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-      
-      setUsers(paginatedUsers);
-      setTotalElements(filteredUsers.length);
-      setTotalPages(Math.ceil(filteredUsers.length / pageSize));
+      setUsers(response.content || []);
+      setTotalElements(response.totalElements || 0);
+      setTotalPages(response.totalPages || 1);
       
       logger.userAction('USERS_LOADED', { 
-        count: paginatedUsers.length, 
+        count: response.content?.length || 0, 
         page,
-        totalElements: filteredUsers.length
+        totalElements: response.totalElements || 0
       });
       
     } catch (err) {
@@ -172,7 +144,7 @@ function UserDirectory({ user }) {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedQuery, searchFilters, canManageUsers, canViewAllTenants]);
+  }, [page, debouncedQuery, searchFilters]);
 
   const loadTenants = useCallback(async () => {
     try {
@@ -225,7 +197,8 @@ function UserDirectory({ user }) {
 
     try {
       setLoading(true);
-      await apiService.deleteUser(selectedUser.id);
+      // 🆕 Používáme User Directory API pro mazání uživatelů
+      await apiService.deleteUser(selectedUser.id); // Toto volá /api/users (admin API)
       
       setDeleteConfirmDialog(false);
       setSuccess(`Uživatel ${getDisplayName(selectedUser)} byl úspěšně smazán`);
@@ -267,20 +240,7 @@ function UserDirectory({ user }) {
     return isAdmin || (isUserManager && userData?.tenant === user?.tenant && userData?.id !== user?.id);
   };
 
-  if (!canManageUsers) {
-    return (
-      <Box>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-          User Directory
-        </Typography>
-        
-        <Alert severity="error">
-          Nemáte oprávnění k zobrazení seznamu uživatelů. Vyžaduje se role správce uživatelů nebo administrátora.
-        </Alert>
-      </Box>
-    );
-  }
-
+  // 🆕 OPRAVENO: Odebrána kontrola canManageUsers - všichni autentifikovaní uživatelé mají přístup k User Directory
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
@@ -288,7 +248,7 @@ function UserDirectory({ user }) {
       </Typography>
       
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Vyhledejte a spravujte uživatele ve vaší organizaci.
+        Vyhledejte uživatele ve vaší organizaci.
       </Typography>
 
       {/* Success/Error Messages */}
@@ -395,7 +355,7 @@ function UserDirectory({ user }) {
                   >
                     <MenuItem value="">Všechny tenanty</MenuItem>
                     {tenants.map((tenant) => (
-                      <MenuItem key={tenant.id} value={tenant.id}>
+                      <MenuItem key={tenant.key} value={tenant.key}>
                         {tenant.name}
                       </MenuItem>
                     ))}
@@ -500,7 +460,7 @@ function UserDirectory({ user }) {
                       {canViewAllTenants && (
                         <TableCell>
                           <Chip
-                            label={userData?.tenant || 'Unknown'}
+                            label={userData?.tenantKey || 'Unknown'}
                             size="small"
                             color="primary"
                             variant="outlined"
@@ -511,43 +471,23 @@ function UserDirectory({ user }) {
                       
                       <TableCell>
                         <Chip
-                          icon={userData?.isLocalUser ? <ServerIcon fontSize="small" /> : <CloudIcon fontSize="small" />}
-                          label={userData?.isLocalUser ? 'Local' : 'AD'}
+                          icon={userData?.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
+                          label={userData?.directorySource || (userData?.isFederated ? 'AD' : 'LOCAL')}
                           size="small"
-                          color={userData?.isLocalUser ? 'success' : 'info'}
+                          color={userData?.isFederated ? 'info' : 'success'}
                           sx={{ borderRadius: 2 }}
                         />
                       </TableCell>
                       
                       <TableCell>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {userData?.roles?.length > 0 ? (
-                            userData.roles.slice(0, 2).map((role, roleIndex) => (
-                              <Chip
-                                key={roleIndex}
-                                label={role.replace('CORE_ROLE_', '')}
-                                size="small"
-                                color={role.includes('ADMIN') ? 'error' : 'default'}
-                                variant="outlined"
-                                sx={{ borderRadius: 1, fontSize: '0.7rem' }}
-                              />
-                            ))
-                          ) : (
-                            <Chip
-                              label="USER"
-                              size="small"
-                              variant="outlined"
-                              sx={{ borderRadius: 1, fontSize: '0.7rem' }}
-                            />
-                          )}
-                          {userData?.roles?.length > 2 && (
-                            <Chip
-                              label={`+${userData.roles.length - 2}`}
-                              size="small"
-                              variant="outlined"
-                              sx={{ borderRadius: 1, fontSize: '0.7rem' }}
-                            />
-                          )}
+                          {/* User Directory nevrací role přímo - zobrazíme pouze základní info */}
+                          <Chip
+                            label="USER"
+                            size="small"
+                            variant="outlined"
+                            sx={{ borderRadius: 1, fontSize: '0.7rem' }}
+                          />
                         </Box>
                       </TableCell>
                       

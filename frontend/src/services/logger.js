@@ -88,6 +88,26 @@ class FrontendLogger {
     this.info(message, { ...context, component: 'auth' });
   }
 
+  // 📄 Page view logging
+  pageView(page, context = {}) {
+    this.info(`📄 Page view: ${page}`, { 
+      ...context, 
+      component: 'navigation',
+      page,
+      category: 'page-view'
+    });
+  }
+
+  // 🎯 User action logging
+  userAction(action, context = {}) {
+    this.info(`🎯 User action: ${action}`, { 
+      ...context, 
+      component: 'user-interaction',
+      action,
+      category: 'user-action'
+    });
+  }
+
   async flush() {
     // 🔐 Early exit if not authenticated, processing, or empty queue
     if (this.isProcessing || this.queue.length === 0 || !this.isAuthenticated) {
