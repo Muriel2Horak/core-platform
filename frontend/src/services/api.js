@@ -177,6 +177,15 @@ class ApiService {
     return response.data;
   }
 
+  async updateMe(profileData) {
+    const response = await axios.put('/api/me', profileData);
+    return response.data;
+  }
+
+  async changeMyPassword(passwordData) {
+    await axios.put('/api/me/password', passwordData);
+  }
+
   // 🆕 USER DIRECTORY ENDPOINTS - pro běžné uživatele (čtení User Directory)
   async getUsersDirectory(params = {}) {
     const queryParams = new URLSearchParams();

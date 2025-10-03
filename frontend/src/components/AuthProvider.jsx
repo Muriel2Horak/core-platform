@@ -57,20 +57,46 @@ export const AuthProvider = ({ children }) => {
         if (keycloakInstance && keycloakInstance.authenticated) {
           logger.info('✅ User is authenticated');
           
-          // Get user info
-          const userInfo = keycloakService.getUserInfo();
-          if (userInfo) {
+          // Set token in API service first
+          const token = keycloakService.getToken();
+          await apiService.createSession(token);
+          
+          try {
+            // 🔧 FIXED: Load complete user data from /api/me instead of just JWT data
+            const completeUserData = await apiService.getMe();
+            
+            // Get basic info from JWT as fallback
+            const jwtUserInfo = keycloakService.getUserInfo();
+            
+            // Merge JWT info with API data (API data takes priority)
+            const userInfo = {
+              ...jwtUserInfo,
+              ...completeUserData,
+              // Ensure roles come from JWT (more up-to-date)
+              roles: jwtUserInfo?.roles || completeUserData?.roles || []
+            };
+            
             setUser(userInfo);
             setIsAuthenticated(true);
             
-            // Set token in API service
-            const token = keycloakService.getToken();
-            await apiService.createSession(token);
-            
-            logger.info('✅ User session established', {
+            logger.info('✅ User session established with complete data', {
               username: userInfo.username,
-              tenant: userInfo.tenant
+              tenant: userInfo.tenant,
+              hasCompletData: !!completeUserData
             });
+          } catch (error) {
+            // Fallback to JWT data if API call fails
+            logger.warn('Failed to load complete user data, using JWT fallback', { error: error.message });
+            const userInfo = keycloakService.getUserInfo();
+            if (userInfo) {
+              setUser(userInfo);
+              setIsAuthenticated(true);
+              
+              logger.info('✅ User session established with JWT fallback', {
+                username: userInfo.username,
+                tenant: userInfo.tenant
+              });
+            }
           }
           
           // Clear logout flags on successful authentication

@@ -2,6 +2,7 @@ package cz.muriel.core.controller;
 
 import cz.muriel.core.dto.*;
 import cz.muriel.core.auth.KeycloakAdminService;
+import cz.muriel.core.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,10 @@ public class UserProfileController {
 
     // Místo hledání podle ID použijeme username
     UserDto user = keycloakAdminService.getUserByUsername(username);
+
+    // 🏢 Naplnění tenant informace z aktuálního kontextu
+    user.setTenant(TenantContext.getTenantKey());
+
     return ResponseEntity.ok(user);
   }
 

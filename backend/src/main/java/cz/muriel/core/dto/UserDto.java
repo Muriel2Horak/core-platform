@@ -22,6 +22,9 @@ public class UserDto {
   private Instant createdTimestamp;
   private List<String> roles;
 
+  // 🏢 Tenant informace
+  private String tenant; // Tenant klíč z JWT tokenu
+
   // 🏢 Organizační struktura
   private String department; // Oddělení
   private String position; // Pozice/funkce
