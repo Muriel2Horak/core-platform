@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   Card,
@@ -6,13 +7,9 @@ import {
   Typography,
   Grid,
   Avatar,
-  Chip,
   Alert,
-  Divider,
   Tabs,
   Tab,
-  TextField,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,7 +19,6 @@ import {
   Fade,
   IconButton,
   Badge,
-  CircularProgress,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -30,24 +26,32 @@ import {
   Business as BusinessIcon,
   Security as SecurityIcon,
   Edit as EditIcon,
-  Check as CheckIcon,
   Close as CloseIcon,
   Key as KeyIcon,
   PhotoCamera as CameraIcon,
   Work as WorkIcon,
   LocationOn as LocationIcon,
-  PersonAdd as PersonAddIcon,
   SupervisorAccount as ManagerIcon,
   SwapHoriz as DeputyIcon,
   Phone as PhoneIcon,
   AccountBalance as CostCenterIcon,
-  Event as EventIcon,
-  Assignment as ReasonIcon,
 } from '@mui/icons-material';
+
+// 🎨 Import nového design systému
+import { 
+  PageHeader, 
+  FormField, 
+  AppButton, 
+  Loader, 
+  EmptyState,
+  tokens 
+} from '../shared';
+
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
+import { UserPropType } from '../shared/propTypes.js';
 
-// Tab Panel Component with animations
+// Tab Panel Component s prop validací
 function TabPanel({ children, value, index, ...other }) {
   return (
     <div
@@ -67,6 +71,12 @@ function TabPanel({ children, value, index, ...other }) {
     </div>
   );
 }
+
+TabPanel.propTypes = {
+  children: PropTypes.node,
+  value: PropTypes.number.isRequired,
+  index: PropTypes.number.isRequired,
+};
 
 function Profile({ user }) {
   const [profile, setProfile] = useState(null);
@@ -136,7 +146,6 @@ function Profile({ user }) {
       setError(null);
       setSuccess(null);
 
-      // Volání API pro aktualizaci profilu
       const updatedProfile = await apiService.updateMe(editedProfile);
       
       logger.userAction('PROFILE_UPDATED', { 
@@ -183,7 +192,6 @@ function Profile({ user }) {
 
       setSaving(true);
 
-      // Volání API pro změnu hesla
       await apiService.changeMyPassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
@@ -224,15 +232,31 @@ function Profile({ user }) {
     return name.substring(0, 2).toUpperCase();
   };
 
+  // Loading state
   if (loading) {
     return (
       <Box>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-          Můj profil
-        </Typography>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress size={60} thickness={4} />
-        </Box>
+        <PageHeader title="Můj profil" />
+        <Loader variant="page" text="Načítá se profil..." />
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error && !profile) {
+    return (
+      <Box>
+        <PageHeader title="Můj profil" />
+        <EmptyState
+          icon={<PersonIcon />}
+          title="Chyba při načítání profilu"
+          description={error}
+          action={
+            <AppButton variant="primary" onClick={loadProfile}>
+              Zkusit znovu
+            </AppButton>
+          }
+        />
       </Box>
     );
   }
@@ -241,9 +265,21 @@ function Profile({ user }) {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        Můj profil
-      </Typography>
+      {/* 🎨 Nový PageHeader s akcemi */}
+      <PageHeader
+        title="Můj profil"
+        subtitle="Správa osobních údajů a nastavení účtu"
+        actions={
+          <AppButton
+            variant={isEditing ? 'secondary' : 'primary'}
+            startIcon={isEditing ? <CloseIcon /> : <EditIcon />}
+            onClick={handleEditToggle}
+            loading={saving}
+          >
+            {isEditing ? 'Zrušit' : 'Upravit profil'}
+          </AppButton>
+        }
+      />
 
       {/* Success/Error Messages */}
       {success && (
@@ -251,7 +287,7 @@ function Profile({ user }) {
           <Alert
             severity="success"
             onClose={() => setSuccess(null)}
-            sx={{ mb: 3, borderRadius: 2 }}
+            sx={{ mb: 3, borderRadius: tokens.radius.lg }}
             variant="filled"
           >
             {success}
@@ -264,7 +300,7 @@ function Profile({ user }) {
           <Alert
             severity="error"
             onClose={() => setError(null)}
-            sx={{ mb: 3, borderRadius: 2 }}
+            sx={{ mb: 3, borderRadius: tokens.radius.lg }}
             variant="filled"
           >
             {error}
@@ -272,15 +308,16 @@ function Profile({ user }) {
         </Slide>
       )}
 
-      {/* Profile Header Card - Modern Design */}
+      {/* Profile Header Card - Modern Glassmorphism Design */}
       <Paper
-        elevation={3}
+        elevation={0}
         sx={{
           mb: 3,
-          borderRadius: 3,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: tokens.radius.xl,
+          background: tokens.colors.gradients.primary,
           color: 'white',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          boxShadow: tokens.shadows.glass,
         }}
       >
         <CardContent sx={{ p: 4 }}>
@@ -297,9 +334,14 @@ function Profile({ user }) {
                         size="small"
                         component="label"
                         sx={{
-                          backgroundColor: 'white',
+                          backgroundColor: 'rgba(255,255,255,0.9)',
                           color: 'primary.main',
-                          '&:hover': { backgroundColor: 'grey.100' }
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          '&:hover': { 
+                            backgroundColor: 'rgba(255,255,255,1)',
+                            transform: 'scale(1.1)'
+                          },
+                          transition: 'all 0.3s ease'
                         }}
                       >
                         <CameraIcon fontSize="small" />
@@ -321,12 +363,13 @@ function Profile({ user }) {
                   <Avatar
                     src={data?.profilePicture}
                     sx={{
-                      width: 100,
-                      height: 100,
+                      width: 120,
+                      height: 120,
                       backgroundColor: 'rgba(255,255,255,0.2)',
-                      fontSize: '2.5rem',
+                      fontSize: '3rem',
                       fontWeight: 'bold',
-                      border: '4px solid rgba(255,255,255,0.3)'
+                      border: '4px solid rgba(255,255,255,0.3)',
+                      boxShadow: tokens.shadows.lg,
                     }}
                   >
                     {!data?.profilePicture && getInitials()}
@@ -348,45 +391,25 @@ function Profile({ user }) {
                 </Typography>
               </Box>
             </Box>
-
-            {/* Edit Button */}
-            <Box>
-              <Button
-                variant={isEditing ? "outlined" : "contained"}
-                size="large"
-                startIcon={isEditing ? <CloseIcon /> : <EditIcon />}
-                onClick={handleEditToggle}
-                disabled={saving}
-                sx={{
-                  backgroundColor: isEditing ? 'transparent' : 'rgba(255,255,255,0.9)',
-                  color: isEditing ? 'white' : 'primary.main',
-                  border: isEditing ? '2px solid white' : 'none',
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: 3,
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  '&:hover': {
-                    backgroundColor: isEditing ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,1)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
-                  },
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {isEditing ? 'Zrušit' : 'Upravit profil'}
-              </Button>
-            </Box>
           </Box>
         </CardContent>
       </Paper>
 
       {/* Main Content with Tabs */}
-      <Paper elevation={2} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          borderRadius: tokens.radius.xl, 
+          overflow: 'hidden',
+          background: 'rgba(255,255,255,0.7)',
+          border: `1px solid ${tokens.colors.grey[200]}`,
+          boxShadow: tokens.shadows.md,
+        }}
+      >
         <Box sx={{
           borderBottom: 1,
           borderColor: 'divider',
-          background: 'linear-gradient(to right, #f8f9fa, #e9ecef)'
+          background: `linear-gradient(135deg, ${tokens.colors.grey[50]} 0%, ${tokens.colors.grey[100]} 100%)`,
         }}>
           <Tabs
             value={currentTab}
@@ -398,10 +421,11 @@ function Profile({ user }) {
                 minHeight: 80,
                 fontSize: '1rem',
                 fontWeight: 'bold',
+                color: tokens.colors.grey[600], // ✅ Tmavá barva pro lepší kontrast
                 '&.Mui-selected': {
-                  color: 'primary.main'
+                  color: tokens.colors.primary[600], // ✅ Primární barva pro vybraný tab
                 }
-              }
+              },
             }}
           >
             <Tab
@@ -427,7 +451,7 @@ function Profile({ user }) {
           </Tabs>
         </Box>
 
-        {/* Tab 0: Základní údaje */}
+        {/* Tab 0: Základní údaje - Nový grid layout podle specs */}
         <TabPanel value={currentTab} index={0}>
           <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
             📋 Základní údaje
@@ -437,144 +461,75 @@ function Profile({ user }) {
           </Typography>
 
           <Grid container spacing={3}>
+            {/* ✅ Řádek 1: Jméno (6) + Příjmení (6) */}
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+              <FormField
                 label="Jméno"
                 value={editedProfile.firstName || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, firstName: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <PersonIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main',
-                    }
-                  }
-                }}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<PersonIcon />}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+              <FormField
                 label="Příjmení"
                 value={editedProfile.lastName || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, lastName: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <PersonIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main',
-                    }
-                  }
-                }}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<PersonIcon />}
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
+            {/* ✅ Řádek 2: Email (6) + Username (3) + Tenant (3) */}
+            <Grid item xs={12} sm={6}>
+              <FormField
                 label="Email"
                 type="email"
                 value={editedProfile.email || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, email: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <EmailIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'primary.main',
-                    }
-                  }
-                }}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<EmailIcon />}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+            <Grid item xs={12} sm={3}>
+              <FormField
                 label="Uživatelské jméno"
                 value={data?.username || ''}
-                disabled
-                variant="outlined"
-                helperText="Uživatelské jméno nelze změnit"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  }
-                }}
+                readonly={true} // ✅ Vždy readonly podle specs
+                showEmptyDash={true}
+                helperText="Nelze změnit"
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+            <Grid item xs={12} sm={3}>
+              <FormField
                 label="Tenant"
                 value={data?.tenant || ''}
-                disabled
-                variant="outlined"
-                helperText="Tenant nelze změnit"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  }
-                }}
+                readonly={true} // ✅ Vždy readonly podle specs
+                showEmptyDash={true}
+                helperText="Nelze změnit"
               />
             </Grid>
 
+            {/* Akční tlačítka v edit módu */}
             {isEditing && (
               <Grid item xs={12}>
                 <Box display="flex" gap={2} justifyContent="center" mt={3}>
-                  <Button
-                    variant="outlined"
+                  <AppButton
+                    variant="secondary"
                     size="large"
                     onClick={handleEditToggle}
                     disabled={saving}
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      borderWidth: 2,
-                      '&:hover': { borderWidth: 2 }
-                    }}
-                  >
-                    Zrušit
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={saving ? <CircularProgress size={16} /> : <CheckIcon />}
-                    onClick={handleProfileSave}
-                    disabled={saving}
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #5a6fd8, #6b4190)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
+                    sx={{ mt: 2 }}
                   >
                     {saving ? 'Ukládám...' : 'Uložit změny'}
-                  </Button>
+                  </AppButton>
                 </Box>
               </Grid>
             )}
@@ -592,145 +547,80 @@ function Profile({ user }) {
 
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+              <FormField
                 label="Oddělení"
                 value={editedProfile.department || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, department: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <BusinessIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<BusinessIcon />}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+              <FormField
                 label="Pozice"
                 value={editedProfile.position || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, position: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <WorkIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<WorkIcon />}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Lokace / Pobočka"
-                value={editedProfile.location || ''}
-                onChange={(e) => setEditedProfile(prev => ({ ...prev, location: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <LocationIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
+              <FormField
+                label="Manažer"
+                value={editedProfile.manager || ''}
+                readonly={true}
+                showEmptyDash={true}
+                startIcon={<ManagerIcon />}
+                helperText="Spravováno systémem"
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+              <FormField
+                label="Středisko"
+                value={editedProfile.costCenter || ''}
+                readonly={true}
+                showEmptyDash={true}
+                startIcon={<CostCenterIcon />}
+                helperText="Spravováno systémem"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <FormField
                 label="Telefon"
                 value={editedProfile.phone || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, phone: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <PhoneIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<PhoneIcon />}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Nákladové středisko"
-                value={editedProfile.costCenter || ''}
-                onChange={(e) => setEditedProfile(prev => ({ ...prev, costCenter: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <CostCenterIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
-              />
-            </Grid>
-
-            {/* Informace o nadřízeném */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }}>
-                <Chip 
-                  icon={<ManagerIcon />} 
-                  label="👔 Nadřízený" 
-                  color="primary" 
-                  variant="outlined" 
-                />
-              </Divider>
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Nadřízený (username)"
-                value={editedProfile.manager || ''}
-                onChange={(e) => setEditedProfile(prev => ({ ...prev, manager: e.target.value }))}
-                disabled={!isEditing}
-                variant="outlined"
-                InputProps={{
-                  startAdornment: <ManagerIcon sx={{ mr: 1, color: '#667eea' }} />
-                }}
-                helperText="Uživatelské jméno nadřízeného"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Jméno nadřízeného"
-                value={editedProfile.managerName || ''}
-                disabled
-                variant="outlined"
-                helperText="Jméno se načte automaticky"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'grey.50'
-                  }
-                }}
+              <FormField
+                label="Lokace"
+                value={editedProfile.location || ''}
+                onChange={(e) => setEditedProfile(prev => ({ ...prev, location: e.target.value }))}
+                readonly={!isEditing}
+                showEmptyDash={!isEditing}
+                startIcon={<LocationIcon />}
               />
             </Grid>
 
             {isEditing && (
               <Grid item xs={12}>
                 <Box display="flex" gap={2} justifyContent="center" mt={3}>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={handleEditToggle}
-                    disabled={saving}
-                    sx={{ borderRadius: 3, px: 4, py: 1.5 }}
-                  >
+                  <AppButton variant="secondary" size="large" onClick={handleEditToggle}>
                     Zrušit
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={saving ? <CircularProgress size={16} /> : <CheckIcon />}
-                    onClick={handleProfileSave}
-                    disabled={saving}
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      background: 'linear-gradient(45deg, #667eea, #764ba2)'
-                    }}
-                  >
+                  </AppButton>
+                  <AppButton variant="primary" size="large" onClick={handleProfileSave} loading={saving}>
                     {saving ? 'Ukládám...' : 'Uložit změny'}
-                  </Button>
+                  </AppButton>
                 </Box>
               </Grid>
             )}
@@ -740,485 +630,59 @@ function Profile({ user }) {
         {/* Tab 2: Zástupy */}
         <TabPanel value={currentTab} index={2}>
           <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
-            👥 Zástupství
+            🔄 Zástupy
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            Správa informací o zástupstvu během nepřítomnosti
+            Správa zástupů při nepřítomnosti
           </Typography>
 
           <Grid container spacing={3}>
-            {/* Základní informace o zástupci */}
             <Grid item xs={12}>
-              <Card
-                sx={{
-                  background: 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(76, 175, 80, 0.3)',
-                  mb: 3
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'success.main' }}>
-                    🤝 Informace o zástupci
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Nastavte svého zástupce pro období nepřítomnosti
-                  </Typography>
-
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Zástupce (username)"
-                        value={editedProfile.deputy || ''}
-                        onChange={(e) => setEditedProfile(prev => ({ ...prev, deputy: e.target.value }))}
-                        disabled={!isEditing}
-                        variant="outlined"
-                        InputProps={{
-                          startAdornment: <DeputyIcon sx={{ mr: 1, color: 'success.main' }} />
-                        }}
-                        helperText="Uživatelské jméno zástupce"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'white',
-                            borderRadius: 2
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Jméno zástupce"
-                        value={editedProfile.deputyName || ''}
-                        disabled
-                        variant="outlined"
-                        helperText="Jméno se načte automaticky"
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'grey.50',
-                            borderRadius: 2
-                          }
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
+              <EmptyState
+                icon={<DeputyIcon />}
+                title="Funkce zástupů"
+                description="Tato funkce bude dostupná v příští verzi systému"
+              />
             </Grid>
-
-            {/* Období zástupství */}
-            <Grid item xs={12} md={6}>
-              <Card
-                sx={{
-                  height: '100%',
-                  background: 'linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(255, 152, 0, 0.3)',
-                  transition: 'transform 0.2s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'warning.main' }}>
-                    📅 Období zástupství
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Definujte časové období, kdy bude zástupství aktivní
-                  </Typography>
-
-                  <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Zástupství od"
-                        type="date"
-                        value={editedProfile.deputyFrom || ''}
-                        onChange={(e) => setEditedProfile(prev => ({ ...prev, deputyFrom: e.target.value }))}
-                        disabled={!isEditing}
-                        InputLabelProps={{ shrink: true }}
-                        InputProps={{
-                          startAdornment: <EventIcon sx={{ mr: 1, color: 'warning.main' }} />
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'white',
-                            borderRadius: 2
-                          }
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Zástupství do"
-                        type="date"
-                        value={editedProfile.deputyTo || ''}
-                        onChange={(e) => setEditedProfile(prev => ({ ...prev, deputyTo: e.target.value }))}
-                        disabled={!isEditing}
-                        InputLabelProps={{ shrink: true }}
-                        InputProps={{
-                          startAdornment: <EventIcon sx={{ mr: 1, color: 'warning.main' }} />
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'white',
-                            borderRadius: 2
-                          }
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Důvod zástupství */}
-            <Grid item xs={12} md={6}>
-              <Card
-                sx={{
-                  height: '100%',
-                  background: 'linear-gradient(135deg, #e3f2fd 0%, #90caf9 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(33, 150, 243, 0.3)',
-                  transition: 'transform 0.2s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'info.main' }}>
-                    📝 Důvod zástupství
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Uveďte důvod vaší nepřítomnosti
-                  </Typography>
-
-                  <TextField
-                    fullWidth
-                    label="Důvod nepřítomnosti"
-                    value={editedProfile.deputyReason || ''}
-                    onChange={(e) => setEditedProfile(prev => ({ ...prev, deputyReason: e.target.value }))}
-                    disabled={!isEditing}
-                    multiline
-                    rows={4}
-                    variant="outlined"
-                    placeholder="např. Dovolená, Nemoc, Služební cesta..."
-                    InputProps={{
-                      startAdornment: (
-                        <Box sx={{ mr: 1, mt: -2 }}>
-                          <ReasonIcon sx={{ color: 'info.main' }} />
-                        </Box>
-                      )
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'white',
-                        borderRadius: 2,
-                        alignItems: 'flex-start'
-                      }
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Status zástupství */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(156, 39, 176, 0.3)'
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'secondary.main' }}>
-                    🔍 Aktuální status
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-                    {editedProfile.deputy ? (
-                      <>
-                        <Chip
-                          icon={<DeputyIcon />}
-                          label="Zástupce nastaven"
-                          color="success"
-                          variant="filled"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                        
-                        {editedProfile.deputyFrom && editedProfile.deputyTo && (
-                          <Chip
-                            icon={<EventIcon />}
-                            label={`${editedProfile.deputyFrom} - ${editedProfile.deputyTo}`}
-                            color="primary"
-                            variant="outlined"
-                          />
-                        )}
-                        
-                        {editedProfile.deputyReason && (
-                          <Chip
-                            icon={<ReasonIcon />}
-                            label={editedProfile.deputyReason}
-                            color="info"
-                            variant="outlined"
-                          />
-                        )}
-                      </>
-                    ) : (
-                      <Chip
-                        label="Zástupce není nastaven"
-                        color="default"
-                        variant="outlined"
-                        sx={{ fontStyle: 'italic' }}
-                      />
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {isEditing && (
-              <Grid item xs={12}>
-                <Box display="flex" gap={2} justifyContent="center" mt={3}>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    onClick={handleEditToggle}
-                    disabled={saving}
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      borderWidth: 2,
-                      '&:hover': { borderWidth: 2 }
-                    }}
-                  >
-                    Zrušit
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    startIcon={saving ? <CircularProgress size={16} /> : <CheckIcon />}
-                    onClick={handleProfileSave}
-                    disabled={saving}
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      background: 'linear-gradient(45deg, #667eea, #764ba2)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #5a6fd8, #6b4190)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {saving ? 'Ukládám...' : 'Uložit změny'}
-                  </Button>
-                </Box>
-              </Grid>
-            )}
           </Grid>
         </TabPanel>
 
         {/* Tab 3: Bezpečnost */}
         <TabPanel value={currentTab} index={3}>
           <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
-            🔐 Bezpečnost
+            🔒 Bezpečnost
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            Správa bezpečnostních nastavení vašeho účtu
+            Správa hesla a bezpečnostních nastavení
           </Typography>
 
           <Grid container spacing={3}>
-            {/* Role a oprávnění */}
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <Card
+                elevation={0}
                 sx={{
-                  background: 'linear-gradient(135deg, #f3e5f5 0%, #e1f5fe 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(102, 126, 234, 0.3)',
-                  mb: 3
+                  border: `1px solid ${tokens.colors.grey[200]}`,
+                  borderRadius: tokens.radius.lg,
+                  background: tokens.colors.grey[50],
                 }}
               >
                 <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'primary.main' }}>
-                    🛡️ Role a oprávnění
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    Vaše aktuální role v systému a související oprávnění
-                  </Typography>
-
-                  <Box display="flex" gap={1} flexWrap="wrap" mt={2}>
-                    {data?.roles?.length > 0 ? (
-                      data.roles.map((role) => (
-                        <Chip
-                          key={role}
-                          label={role}
-                          size="medium"
-                          color={role.includes('ADMIN') ? 'error' : 'primary'}
-                          variant="filled"
-                          sx={{
-                            fontWeight: 'bold',
-                            '&:hover': {
-                              transform: 'translateY(-1px)',
-                              boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-                            },
-                            transition: 'all 0.2s ease'
-                          }}
-                        />
-                      ))
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                        Žádné role nejsou přiřazeny
-                      </Typography>
-                    )}
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <KeyIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Změna hesla
+                    </Typography>
                   </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card
-                sx={{
-                  height: '100%',
-                  background: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(255, 152, 0, 0.3)',
-                  transition: 'transform 0.2s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'warning.main' }}>
-                    🔑 Změna hesla
-                  </Typography>
                   <Typography variant="body2" color="text.secondary" paragraph>
-                    Pravidelně měňte heslo pro zvýšení bezpečnosti vašeho účtu.
+                    Změňte si heslo pro zvýšení bezpečnosti vašeho účtu
                   </Typography>
-
-                  <Button
-                    variant="contained"
-                    startIcon={<KeyIcon />}
+                  <AppButton
+                    variant="primary"
                     onClick={() => setPasswordDialog(true)}
-                    sx={{
-                      mt: 2,
-                      borderRadius: 2,
-                      background: 'linear-gradient(45deg, #ff9800, #f57c00)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #f57c00, #e65100)',
-                        transform: 'translateY(-2px)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
+                    startIcon={<KeyIcon />}
                   >
                     Změnit heslo
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Card
-                sx={{
-                  height: '100%',
-                  background: 'linear-gradient(135deg, #e1f5fe 0%, #b3e5fc 100%)',
-                  borderRadius: 2,
-                  border: '1px solid rgba(3, 169, 244, 0.3)',
-                  transition: 'transform 0.2s ease',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
-                  }
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: 'info.main' }}>
-                    ℹ️ Informace o účtu
-                  </Typography>
-
-                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip
-                        label={data?.enabled ? 'Aktivní' : 'Neaktivní'}
-                        color={data?.enabled ? 'success' : 'error'}
-                        size="small"
-                      />
-                      <Typography variant="body2" component="span" sx={{ fontSize: '0.9rem', color: '#666' }}>
-                        Status účtu
-                      </Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip
-                        label={data?.emailVerified ? 'Ověřeno' : 'Neověřeno'}
-                        color={data?.emailVerified ? 'success' : 'warning'}
-                        size="small"
-                      />
-                      <Typography variant="body2" component="span" sx={{ fontSize: '0.9rem', color: '#666' }}>
-                        Email
-                      </Typography>
-                    </Box>
-
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>📅 Tenant:</strong> {data?.tenant}
-                    </Typography>
-
-                    {/* Informace o zdroji uživatele */}
-                    <Box sx={{ mt: 1, p: 2, borderRadius: 2, backgroundColor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
-                        🔗 Zdroj účtu
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Chip
-                          label={data?.isLocalUser ? 'Lokální' : 'Federovaný'}
-                          color={data?.isLocalUser ? 'primary' : 'info'}
-                          size="small"
-                          variant="filled"
-                        />
-                        {data?.identityProvider && (
-                          <Chip
-                            label={data.identityProvider.toUpperCase()}
-                            color="secondary"
-                            size="small"
-                            variant="outlined"
-                          />
-                        )}
-                      </Box>
-
-                      {data?.identityProviderAlias && (
-                        <Typography variant="caption" color="text.secondary">
-                          <strong>Provider:</strong> {data.identityProviderAlias}
-                        </Typography>
-                      )}
-
-                      {data?.federatedUsername && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          <strong>Federované jméno:</strong> {data.federatedUsername}
-                        </Typography>
-                      )}
-
-                      {data?.isLocalUser && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                          Uživatel je spravován přímo v Keycloak systému
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
+                  </AppButton>
                 </CardContent>
               </Card>
             </Grid>
@@ -1234,124 +698,99 @@ function Profile({ user }) {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
+            borderRadius: tokens.radius.xl,
+            boxShadow: tokens.shadows.xl,
           }
         }}
       >
-        <DialogTitle sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          textAlign: 'center',
-          fontSize: '1.5rem',
-          fontWeight: 'bold'
-        }}>
-          🔑 Změna hesla
+        <DialogTitle>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Typography variant="h5" fontWeight="bold">
+              🔑 Změna hesla
+            </Typography>
+            <IconButton
+              onClick={() => setPasswordDialog(false)}
+              size="small"
+              sx={{ color: 'grey.500' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
+
+        <DialogContent sx={{ pt: 2 }}>
           {passwordError && (
-            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: tokens.radius.md }}>
               {passwordError}
             </Alert>
           )}
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Grid container spacing={3}>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
+              <FormField
+                type="password"
                 label="Současné heslo"
-                type="password"
                 value={passwordData.currentPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                onChange={(e) => setPasswordData(prev => ({
+                  ...prev,
+                  currentPassword: e.target.value
+                }))}
                 required
-                variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    backgroundColor: 'white'
-                  }
-                }}
               />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
+              <FormField
+                type="password"
                 label="Nové heslo"
-                type="password"
                 value={passwordData.newPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                onChange={(e) => setPasswordData(prev => ({
+                  ...prev,
+                  newPassword: e.target.value
+                }))}
                 required
-                helperText="Alespoň 8 znaků"
-                variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    backgroundColor: 'white'
-                  }
-                }}
+                helperText="Minimálně 8 znaků"
               />
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Potvrzení nového hesla"
+              <FormField
                 type="password"
+                label="Potvrdit nové heslo"
                 value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                onChange={(e) => setPasswordData(prev => ({
+                  ...prev,
+                  confirmPassword: e.target.value
+                }))}
                 required
-                variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                    backgroundColor: 'white'
-                  }
-                }}
               />
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2 }}>
-          <Button
-            onClick={() => {
-              setPasswordDialog(false);
-              setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-              setPasswordError(null);
-            }}
+
+        <DialogActions sx={{ p: 3 }}>
+          <AppButton
+            variant="secondary"
+            onClick={() => setPasswordDialog(false)}
             disabled={saving}
-            variant="outlined"
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              borderWidth: 2,
-              '&:hover': { borderWidth: 2 }
-            }}
           >
             Zrušit
-          </Button>
-          <Button
-            variant="contained"
+          </AppButton>
+          <AppButton
+            variant="primary"
             onClick={handlePasswordChange}
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={16} /> : <KeyIcon />}
-            sx={{
-              borderRadius: 2,
-              px: 3,
-              background: 'linear-gradient(45deg, #667eea, #764ba2)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #5a6fd8, #6b4190)',
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.3s ease'
-            }}
+            loading={saving}
           >
             {saving ? 'Měním heslo...' : 'Změnit heslo'}
-          </Button>
+          </AppButton>
         </DialogActions>
       </Dialog>
     </Box>
   );
 }
+
+Profile.propTypes = {
+  user: UserPropType,
+};
 
 export default Profile;

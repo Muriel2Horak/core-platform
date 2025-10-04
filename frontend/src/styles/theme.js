@@ -1,264 +1,428 @@
 import { createTheme } from '@mui/material/styles';
 
-// Typography převzatá z Core Material tématu
-const typography = {
-  fontFamily: "'Plus Jakarta Sans', 'Roboto', sans-serif",
-  h1: {
-    fontWeight: 600,
-    fontSize: '2.25rem',
-    lineHeight: '2.75rem',
-    fontFamily: "'Plus Jakarta Sans', 'Roboto', sans-serif",
+// 🎨 1. BRAND DESIGN TOKENS - podle vašich principů
+const designTokens = {
+  // Primární paleta - profesionální modrá (WCAG AA compliant)
+  primary: {
+    50: '#e3f2fd',
+    100: '#bbdefb', 
+    500: '#1976d2', // Hlavní brand barva
+    600: '#1565c0',
+    900: '#0d47a1'
   },
-  h2: {
-    fontWeight: 600,
-    fontSize: '1.875rem',
-    lineHeight: '2.25rem',
-    fontFamily: "'Plus Jakarta Sans', 'Roboto', sans-serif",
+  
+  // Sekundární paleta - doplňková
+  secondary: {
+    50: '#f3e5f5',
+    100: '#e1bee7',
+    500: '#9c27b0',
+    600: '#8e24aa', 
+    900: '#4a148c'
   },
-  h3: {
-    fontWeight: 600,
-    fontSize: '1.5rem',
-    lineHeight: '1.75rem',
-    fontFamily: "'Plus Jakarta Sans', 'Roboto', sans-serif",
+
+  // Neutralní paleta - 4 odstíny jak požadujete
+  neutral: {
+    50: '#fafafa',   // Nejsvětlejší - pozadí
+    200: '#e0e0e0',  // Borders, dividers
+    600: '#757575',  // Sekundární text
+    900: '#212121'   // Hlavní text
   },
-  h4: {
-    fontWeight: 600,
-    fontSize: '1.3125rem',
-    lineHeight: '1.6rem',
+
+  // 4 Feedback barvy - podle UX best practices
+  feedback: {
+    success: '#2e7d32',   // ✅ Zelená - úspěch
+    warning: '#f57c00',   // ⚠️ Oranžová - varování  
+    error: '#d32f2f',     // ❌ Červená - chyba
+    info: '#1976d2'       // ℹ️ Modrá - informace
   },
-  h5: {
-    fontWeight: 600,
-    fontSize: '1.125rem',
-    lineHeight: '1.6rem',
-  },
-  h6: {
-    fontWeight: 600,
-    fontSize: '1rem',
-    lineHeight: '1.2rem',
-  },
-  button: {
-    textTransform: 'capitalize',
-    fontWeight: 400,
-  },
-  body1: {
-    fontSize: '0.875rem',
-    fontWeight: 400,
-    lineHeight: '1.334rem',
-  },
-  body2: {
-    fontSize: '0.75rem',
-    letterSpacing: '0rem',
-    fontWeight: 400,
-    lineHeight: '1rem',
-  },
-  subtitle1: {
-    fontSize: '0.875rem',
-    fontWeight: 400,
-  },
-  subtitle2: {
-    fontSize: '0.875rem',
-    fontWeight: 400,
-  },
+
+  // Spacing scale (4/8/16px jak požadujete)
+  spacing: {
+    xs: 4,
+    sm: 8, 
+    md: 16,
+    lg: 24,
+    xl: 32,
+    xxl: 48
+  }
 };
 
-// Shadows z Core Material tématu
-const shadows = [
-  'none',
-  '0px 2px 1px -1px rgba(0,0,0,0.2),0px 1px 1px 0px rgba(0,0,0,0.14),0px 1px 3px 0px rgba(0,0,0,0.12)',
-  '0px 3px 1px -2px rgba(0,0,0,0.2),0px 2px 2px 0px rgba(0,0,0,0.14),0px 1px 5px 0px rgba(0,0,0,0.12)',
-  '0px 3px 3px -2px rgba(0,0,0,0.2),0px 3px 4px 0px rgba(0,0,0,0.14),0px 1px 8px 0px rgba(0,0,0,0.12)',
-  '0px 2px 4px -1px rgba(0,0,0,0.2),0px 4px 5px 0px rgba(0,0,0,0.14),0px 1px 10px 0px rgba(0,0,0,0.12)',
-  '0px 3px 5px -1px rgba(0,0,0,0.2),0px 5px 8px 0px rgba(0,0,0,0.14),0px 1px 14px 0px rgba(0,0,0,0.12)',
-  '0px 3px 5px -1px rgba(0,0,0,0.2),0px 6px 10px 0px rgba(0,0,0,0.14),0px 1px 18px 0px rgba(0,0,0,0.12)',
-  '0px 4px 5px -2px rgba(0,0,0,0.2),0px 7px 10px 1px rgba(0,0,0,0.14),0px 2px 16px 1px rgba(0,0,0,0.12)',
-  '0px 5px 5px -3px rgba(0,0,0,0.2),0px 8px 10px 1px rgba(0,0,0,0.14),0px 3px 14px 2px rgba(0,0,0,0.12)',
-  '0 9px 17.5px rgb(0,0,0,0.05)',
-  '0px 6px 6px -3px rgba(0,0,0,0.2),0px 10px 14px 1px rgba(0,0,0,0.14),0px 4px 18px 3px rgba(0,0,0,0.12)',
-  '0px 6px 7px -4px rgba(0,0,0,0.2),0px 11px 15px 1px rgba(0,0,0,0.14),0px 4px 20px 3px rgba(0,0,0,0.12)',
-  '0px 7px 8px -4px rgba(0,0,0,0.2),0px 12px 17px 2px rgba(0,0,0,0.14),0px 5px 22px 4px rgba(0,0,0,0.12)',
-  '0px 7px 8px -4px rgba(0,0,0,0.2),0px 13px 19px 2px rgba(0,0,0,0.14),0px 5px 24px 4px rgba(0,0,0,0.12)',
-  '0px 7px 9px -4px rgba(0,0,0,0.2),0px 14px 21px 2px rgba(0,0,0,0.14),0px 5px 26px 4px rgba(0,0,0,0.12)',
-  '0px 8px 9px -5px rgba(0,0,0,0.2),0px 15px 22px 2px rgba(0,0,0,0.14),0px 6px 28px 5px rgba(0,0,0,0.12)',
-  '0px 8px 10px -5px rgba(0,0,0,0.2),0px 16px 24px 2px rgba(0,0,0,0.14),0px 6px 30px 5px rgba(0,0,0,0.12)',
-  '0px 8px 11px -5px rgba(0,0,0,0.2),0px 17px 26px 2px rgba(0,0,0,0.14),0px 6px 32px 5px rgba(0,0,0,0.12)',
-  '0px 9px 11px -5px rgba(0,0,0,0.2),0px 18px 28px 2px rgba(0,0,0,0.14),0px 7px 34px 6px rgba(0,0,0,0.12)',
-  '0px 9px 12px -6px rgba(0,0,0,0.2),0px 19px 29px 2px rgba(0,0,0,0.14),0px 7px 36px 6px rgba(0,0,0,0.12)',
-  '0px 10px 13px -6px rgba(0,0,0,0.2),0px 20px 31px 3px rgba(0,0,0,0.14),0px 8px 38px 7px rgba(0,0,0,0.12)',
-  '0px 10px 13px -6px rgba(0,0,0,0.2),0px 21px 33px 3px rgba(0,0,0,0.14),0px 8px 40px 7px rgba(0,0,0,0.12)',
-  '0px 10px 14px -6px rgba(0,0,0,0.2),0px 22px 35px 3px rgba(0,0,0,0.14),0px 8px 42px 7px rgba(0,0,0,0.12)',
-  '0px 11px 14px -7px rgba(0,0,0,0.2),0px 23px 36px 3px rgba(0,0,0,0.14),0px 9px 44px 8px rgba(0,0,0,0.12)',
-  '0px 11px 15px -7px rgba(0,0,0,0.2),0px 24px 38px 3px rgba(0,0,0,0.14),0px 9px 46px 8px rgba(0,0,0,0.12)',
-];
+// 🔤 2. TYPOGRAFIE - max 2 fonty jak požadujete
+const typography = {
+  // Hlavní font - Inter pro čitelnost
+  fontFamily: "'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif",
+  
+  // Hierarchie podle vašich pravidel
+  h1: {
+    fontSize: '2.5rem',      // Název stránky
+    fontWeight: 600,
+    lineHeight: 1.2,
+    letterSpacing: '-0.02em',
+    color: designTokens.neutral[900]
+  },
+  h2: {
+    fontSize: '2rem',        // Hlavní sekce  
+    fontWeight: 600,
+    lineHeight: 1.3,
+    letterSpacing: '-0.01em',
+    color: designTokens.neutral[900]
+  },
+  h3: {
+    fontSize: '1.5rem',      // Podsekce
+    fontWeight: 600, 
+    lineHeight: 1.4,
+    color: designTokens.neutral[900]
+  },
+  h4: {
+    fontSize: '1.25rem',
+    fontWeight: 600,
+    lineHeight: 1.4,
+    color: designTokens.neutral[900]
+  },
+  h5: {
+    fontSize: '1.125rem',
+    fontWeight: 600,
+    lineHeight: 1.4,
+    color: designTokens.neutral[900]
+  },
+  h6: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    lineHeight: 1.4,
+    color: designTokens.neutral[900]
+  },
+  
+  // Body text - 14-16px jak požadujete
+  body1: {
+    fontSize: '1rem',        // 16px - hlavní text
+    fontWeight: 400,
+    lineHeight: 1.6,         // 1.6× pro čitelnost
+    color: designTokens.neutral[900]
+  },
+  body2: {
+    fontSize: '0.875rem',    // 14px - menší text
+    fontWeight: 400,
+    lineHeight: 1.5,
+    color: designTokens.neutral[600]
+  },
+  
+  // Labels/Caption - 12-14px
+  caption: {
+    fontSize: '0.75rem',     // 12px
+    fontWeight: 400,
+    lineHeight: 1.4,
+    color: designTokens.neutral[600]
+  },
+  
+  // Tlačítka - bez CAPS LOCK jak požadujete
+  button: {
+    fontSize: '0.875rem',
+    fontWeight: 500,
+    lineHeight: 1.4,
+    textTransform: 'none',   // Žádné caps lock!
+    letterSpacing: '0.02em'
+  },
 
-// Core Material theme
+  // Monospace pro logy/kód
+  code: {
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+    fontSize: '0.875rem'
+  }
+};
+
+// 🖼️ 3. LAYOUT SYSTEM
+const layoutTokens = {
+  // Grid systém - 12 columns jak požadujete
+  gridColumns: 12,
+  
+  // Breakpoints pro responsivitu
+  breakpoints: {
+    mobile: 0,      // <768px
+    tablet: 768,    // 768-1279px  
+    desktop: 1280   // ≥1280px
+  },
+  
+  // Container max widths
+  container: {
+    mobile: '100%',
+    tablet: '768px', 
+    desktop: '1200px'
+  }
+};
+
+// 🎨 MATERIAL-UI THEME s vaším design systémem
 export const coreMaterialTheme = createTheme({
-  direction: 'ltr',
+  // Paleta podle design tokens
   palette: {
+    mode: 'light',
+    
+    // Primární brand barva
     primary: {
-      main: '#5D87FF',
-      light: '#ECF2FF',
-      dark: '#4570EA',
-      contrastText: '#ffffff',
+      main: designTokens.primary[500],
+      light: designTokens.primary[100],
+      dark: designTokens.primary[600],
+      contrastText: '#ffffff'
     },
+    
+    // Sekundární barva
     secondary: {
-      main: '#49BEFF',
-      light: '#E8F7FF',
-      dark: '#23afdb',
-      contrastText: '#ffffff',
+      main: designTokens.secondary[500], 
+      light: designTokens.secondary[100],
+      dark: designTokens.secondary[600],
+      contrastText: '#ffffff'
     },
+    
+    // Feedback barvy - smysluplné použití
     success: {
-      main: '#13DEB9',
-      light: '#E6FFFA',
-      dark: '#02b3a9',
-      contrastText: '#ffffff',
-    },
-    info: {
-      main: '#539BFF',
-      light: '#EBF3FE',
-      dark: '#1682d4',
-      contrastText: '#ffffff',
-    },
-    error: {
-      main: '#FA896B',
-      light: '#FDEDE8',
-      dark: '#f3704d',
-      contrastText: '#ffffff',
+      main: designTokens.feedback.success,
+      light: '#4caf50',
+      dark: '#1b5e20',
+      contrastText: '#ffffff'
     },
     warning: {
-      main: '#FFAE1F',
-      light: '#FEF5E5',
-      dark: '#ae8e59',
-      contrastText: '#ffffff',
+      main: designTokens.feedback.warning,
+      light: '#ff9800', 
+      dark: '#e65100',
+      contrastText: '#ffffff'
     },
+    error: {
+      main: designTokens.feedback.error,
+      light: '#f44336',
+      dark: '#b71c1c', 
+      contrastText: '#ffffff'
+    },
+    info: {
+      main: designTokens.feedback.info,
+      light: '#2196f3',
+      dark: '#0d47a1',
+      contrastText: '#ffffff' 
+    },
+    
+    // Neutralní paleta
     grey: {
-      100: '#F2F6FA',
-      200: '#EAEFF4',
-      300: '#DFE5EF',
-      400: '#7C8FAC',
-      500: '#5A6A85',
-      600: '#2A3547',
-      700: '#dfe5ef'
+      50: designTokens.neutral[50],
+      200: designTokens.neutral[200], 
+      600: designTokens.neutral[600],
+      900: designTokens.neutral[900]
     },
+    
+    // Text barvy s WCAG AA kontrastem
     text: {
-      primary: '#2A3547',
-      secondary: '#5A6A85',
+      primary: designTokens.neutral[900],    // 4.5:1 kontrast
+      secondary: designTokens.neutral[600],  // 4.5:1 kontrast
     },
-    action: {
-      disabledBackground: 'rgba(73,82,88,0.12)',
-      hoverOpacity: 0.02,
-      hover: '#f6f9fc',
-    },
-    divider: '#e5eaef',
+    
+    // Pozadí
     background: {
-      default: '#fafbfb',
-      paper: '#ffffff',
+      default: designTokens.neutral[50],
+      paper: '#ffffff'
     },
+    
+    // Akce
+    action: {
+      hover: 'rgba(0, 0, 0, 0.04)',
+      selected: 'rgba(25, 118, 210, 0.08)',
+      disabled: 'rgba(0, 0, 0, 0.26)',
+      disabledBackground: 'rgba(0, 0, 0, 0.12)'
+    },
+    
+    divider: designTokens.neutral[200]
   },
+  
+  // Typografie
   typography,
-  shadows,
+  
+  // Spacing podle 4/8/16 scale
+  spacing: designTokens.spacing.xs,
+  
+  // Breakpoints pro responsivitu
+  breakpoints: {
+    values: layoutTokens.breakpoints
+  },
+  
+  // Shape (border radius)
+  shape: {
+    borderRadius: 8
+  },
+
+  // 🖱️ 4. KOMPONENTY - podle UX pravidel
   components: {
+    // Global styles
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          fontFamily: "'Plus Jakarta Sans', 'Roboto', sans-serif",
+          fontFamily: typography.fontFamily,
+          backgroundColor: designTokens.neutral[50],
+          color: designTokens.neutral[900]
         },
-        a: {
-          textDecoration: "none",
-        },
-        '*': {
-          scrollbarWidth: 'thin',
-        },
-        '*::-webkit-scrollbar': {
-          width: '8px',
-          height: '8px',
-        },
-        '*::-webkit-scrollbar-thumb': {
-          backgroundColor: '#5A6A85',
-          borderRadius: '10px',
-        },
-        '*::-webkit-scrollbar-track': {
-          backgroundColor: '#f1f1f1',
-        },
+        // Focus outline - nikdy neskrývat!
+        '*:focus-visible': {
+          outline: `2px solid ${designTokens.primary[500]}`,
+          outlineOffset: '2px'
+        }
       }
     },
+    
+    // 🔘 TLAČÍTKA - konzistentní podle typu akce
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: "7px",
-          boxShadow: 'none',
-          textTransform: 'capitalize',
-          fontWeight: 500,
+          borderRadius: 8,
+          padding: `${designTokens.spacing.sm}px ${designTokens.spacing.md}px`,
+          fontSize: typography.button.fontSize,
+          fontWeight: typography.button.fontWeight,
+          textTransform: typography.button.textTransform,
+          
+          // Hover efekty
           '&:hover': {
-            boxShadow: 'none'
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            transition: 'all 0.2s ease'
           }
         },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          boxShadow: '0 9px 17.5px rgb(0,0,0,0.05)',
-          borderRadius: '8px',
+        
+        // Primární akce - výrazné
+        contained: {
+          backgroundColor: designTokens.primary[500],
+          color: '#ffffff',
+          boxShadow: '0 2px 8px rgba(25,118,210,0.3)',
+          
+          '&:hover': {
+            backgroundColor: designTokens.primary[600]
+          }
         },
+        
+        // Sekundární akce - méně výrazné  
+        outlined: {
+          borderColor: designTokens.neutral[200],
+          color: designTokens.neutral[900],
+          
+          '&:hover': {
+            borderColor: designTokens.primary[500],
+            backgroundColor: designTokens.primary[50]
+          }
+        }
       },
+      
+      // Varianty pro různé typy akcí
+      variants: [
+        // Destruktivní akce - červené
+        {
+          props: { variant: 'destructive' },
+          style: {
+            backgroundColor: designTokens.feedback.error,
+            color: '#ffffff',
+            
+            '&:hover': {
+              backgroundColor: '#b71c1c'
+            }
+          }
+        }
+      ]
     },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: '8px',
-        },
-      },
-    },
+    
+    // 📝 FORMULÁŘE - podle UX pravidel
     MuiTextField: {
       styleOverrides: {
         root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '7px',
-            '& fieldset': {
-              borderColor: '#e5eaef',
-            },
-            '&:hover fieldset': {
-              borderColor: '#5D87FF',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#5D87FF',
-            },
+          marginBottom: designTokens.spacing.md,
+          
+          // Label vždy nahoře, aligned left
+          '& .MuiInputLabel-root': {
+            position: 'static',
+            transform: 'none',
+            marginBottom: designTokens.spacing.xs,
+            color: designTokens.neutral[900],
+            fontSize: typography.body2.fontSize,
+            fontWeight: 500
           },
-        },
-      },
+          
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 8,
+            
+            '& fieldset': {
+              borderColor: designTokens.neutral[200]
+            },
+            
+            '&:hover fieldset': {
+              borderColor: designTokens.primary[500] 
+            },
+            
+            '&.Mui-focused fieldset': {
+              borderColor: designTokens.primary[500],
+              borderWidth: 2
+            }
+          },
+          
+          // Error states - pod polem, červeně
+          '& .MuiFormHelperText-root.Mui-error': {
+            color: designTokens.feedback.error,
+            marginTop: designTokens.spacing.xs
+          }
+        }
+      }
     },
-    MuiAppBar: {
+    
+    // 📄 KARTY - whitespace a konzistentní padding
+    MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: '#ffffff',
-          color: '#2A3547',
-          boxShadow: '0 9px 17.5px rgb(0,0,0,0.05)',
-        },
-      },
+          borderRadius: 12,
+          padding: designTokens.spacing.lg,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          border: `1px solid ${designTokens.neutral[200]}`,
+          
+          '&:hover': {
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+            transition: 'box-shadow 0.2s ease'
+          }
+        }
+      }
     },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          borderRight: '1px solid #e5eaef',
-        },
-      },
-    },
-    MuiListItemIcon: {
+    
+    // 📊 DATA GRID/TABLE
+    MuiTableHead: {
       styleOverrides: {
         root: {
-          color: '#5A6A85',
-          minWidth: '40px',
-        },
-      },
+          backgroundColor: designTokens.neutral[50],
+          
+          '& .MuiTableCell-head': {
+            fontWeight: 600,
+            color: designTokens.neutral[900]
+          }
+        }
+      }
     },
-    MuiListItemText: {
+    
+    // 🔔 FEEDBACK komponenty 
+    MuiAlert: {
       styleOverrides: {
-        primary: {
-          color: '#2A3547',
-          fontWeight: 500,
+        root: {
+          borderRadius: 8,
+          padding: designTokens.spacing.md
         },
-      },
-    },
+        
+        standardSuccess: {
+          backgroundColor: '#e8f5e8',
+          color: designTokens.feedback.success
+        },
+        
+        standardWarning: {
+          backgroundColor: '#fff3e0', 
+          color: designTokens.feedback.warning
+        },
+        
+        standardError: {
+          backgroundColor: '#ffebee',
+          color: designTokens.feedback.error
+        },
+        
+        standardInfo: {
+          backgroundColor: designTokens.primary[50],
+          color: designTokens.feedback.info
+        }
+      }
+    }
   }
 });
 

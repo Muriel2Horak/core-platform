@@ -1,15 +1,11 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Box,
   Drawer,
   IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Toolbar,
   Typography,
   Avatar,
@@ -20,70 +16,29 @@ import {
   useTheme,
   Paper,
   Chip,
+  Badge,
+  Skeleton,
+  Tooltip,
+  ListSubheader,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  Dashboard as DashboardIcon,
-  People as PeopleIcon,
-  Person as PersonIcon,
-  Business as BusinessIcon,
   Logout as LogoutIcon,
   AccountCircle as AccountCircleIcon,
-  ContactMail as DirectoryIcon,
-  Settings as SettingsIcon,
+  SwapHoriz as SwitchTenantIcon,
+  Domain as DomainIcon,
+  ExpandMore as ExpandMoreIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 
-const drawerWidth = 280;
+// 🎨 Import nového design systému
+import { SidebarNav, tokens } from '../shared';
+import { defaultMenuItems } from '../shared/ui/SidebarNav';
+import apiService from '../services/api.js';
+import { UserPropType } from '../shared/propTypes.js';
 
-const menuItems = [
-  { 
-    id: 'dashboard', 
-    label: 'Dashboard', 
-    icon: <DashboardIcon />, 
-    path: '/dashboard',
-    description: 'Přehled systému' 
-  },
-  { 
-    id: 'profile', 
-    label: 'Můj profil', 
-    icon: <PersonIcon />, 
-    path: '/profile',
-    description: 'Osobní nastavení' 
-  },
-  { 
-    id: 'user-directory', 
-    label: 'User Directory', 
-    icon: <DirectoryIcon />, 
-    path: '/user-directory', 
-    description: 'Vyhledávání uživatelů',
-    badge: 'NEW' 
-  },
-  { 
-    id: 'users', 
-    label: 'Správa uživatelů', 
-    icon: <PeopleIcon />, 
-    path: '/users', 
-    roles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
-    description: 'Základní správa' 
-  },
-  { 
-    id: 'tenant-management', 
-    label: 'Správa tenantů', 
-    icon: <SettingsIcon />, 
-    path: '/tenant-management', 
-    roles: ['CORE_ROLE_ADMIN'],
-    description: 'Multi-tenant správa',
-    badge: 'NEW' 
-  },
-  { 
-    id: 'tenants', 
-    label: 'Tenanti (legacy)', 
-    icon: <BusinessIcon />, 
-    path: '/tenants', 
-    roles: ['CORE_ROLE_ADMIN'],
-    description: 'Základní přehled' 
-  },
-];
+
+const drawerWidth = parseInt(tokens.components.layout.sidebarWidth, 10); // 280px z tokens
 
 function Layout({ children, user, onLogout }) {
   const theme = useTheme();
@@ -93,6 +48,39 @@ function Layout({ children, user, onLogout }) {
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
+  
+  const [currentTenant, setCurrentTenant] = useState(null);
+  const [availableTenants, setAvailableTenants] = useState([]);
+  const [loadingTenant, setLoadingTenant] = useState(true);
+  const [tenantMenuAnchor, setTenantMenuAnchor] = useState(null);
+
+  useEffect(() => {
+    loadTenantInfo();
+    if (user?.roles?.includes('CORE_ROLE_ADMIN')) {
+      loadAvailableTenants();
+    }
+  }, [user]);
+
+  const loadTenantInfo = async () => {
+    try {
+      setLoadingTenant(true);
+      const tenantData = await apiService.getCurrentTenant();
+      setCurrentTenant(tenantData);
+    } catch (error) {
+      console.error('Failed to load tenant info:', error);
+    } finally {
+      setLoadingTenant(false);
+    }
+  };
+
+  const loadAvailableTenants = async () => {
+    try {
+      const tenants = await apiService.getAllTenants();
+      setAvailableTenants(tenants || []);
+    } catch (error) {
+      console.error('Failed to load available tenants:', error);
+    }
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -118,15 +106,28 @@ function Layout({ children, user, onLogout }) {
     }
   };
 
-  // Check if user has required role for menu item
-  const hasRole = (requiredRoles) => {
-    if (!requiredRoles || requiredRoles.length === 0) return true;
-    if (!user?.roles) return false;
-    
-    return requiredRoles.some(role => user.roles.includes(role));
+  // 🎯 Handler pro SidebarNav
+  const handleSidebarNavClick = (item) => {
+    navigate(item.href);
+    if (isMobile) {
+      setMobileOpen(false);
+    }
   };
 
-  // Get user display name
+  const handleTenantMenuOpen = (event) => {
+    setTenantMenuAnchor(event.currentTarget);
+  };
+
+  const handleTenantMenuClose = () => {
+    setTenantMenuAnchor(null);
+  };
+
+  const handleTenantSwitch = (tenantKey) => {
+    const tenantUrl = `https://${tenantKey}.core-platform.local`;
+    window.location.href = tenantUrl;
+    handleTenantMenuClose();
+  };
+
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
       return `${user.firstName} ${user.lastName}`;
@@ -134,7 +135,6 @@ function Layout({ children, user, onLogout }) {
     return user?.username || user?.email || 'Uživatel';
   };
 
-  // Get user initials for avatar
   const getUserInitials = () => {
     const name = getUserDisplayName();
     const parts = name.split(' ');
@@ -144,138 +144,116 @@ function Layout({ children, user, onLogout }) {
     return name.substring(0, 2).toUpperCase();
   };
 
+  const getTenantDisplayInfo = () => {
+    if (loadingTenant) {
+      return { name: 'Loading...', key: '...' };
+    }
+    if (!currentTenant) {
+      return { name: 'Unknown Tenant', key: 'unknown' };
+    }
+    return {
+      name: currentTenant.name || currentTenant.key || 'Unknown',
+      key: currentTenant.key || 'unknown'
+    };
+  };
+
+  // 🎨 Nový drawer design s SidebarNav
   const drawer = (
     <Box sx={{ 
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      background: 'linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%)'
+      background: tokens.colors.gradients.primary,
+      borderRight: 'none',
     }}>
-      {/* Logo/Brand - Modern Header */}
+      {/* Header s Core Platform logo */}
       <Paper 
-        elevation={2}
+        elevation={0}
         sx={{ 
           m: 2, 
           p: 3, 
-          borderRadius: 3,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: tokens.radius.xl,
+          background: tokens.colors.gradients.glassCard,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           color: 'white',
-          textAlign: 'center'
+          textAlign: 'center',
+          border: `1px solid ${tokens.colors.white}30`, // 30 = alpha
+          boxShadow: tokens.shadows.glass,
         }}
       >
-        <Typography variant="h5" component="div" sx={{ fontWeight: 700, mb: 0.5 }}>
+        <Typography variant="h5" component="div" sx={{ 
+          fontWeight: tokens.typography.fontWeight.bold, 
+          mb: 0.5,
+          fontSize: tokens.typography.fontSize.xl,
+        }}>
           🚀 Core Platform
         </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem' }}>
-          {user?.tenant || 'Multi-tenant systém'}
+        <Typography variant="body2" sx={{ 
+          opacity: 0.9, 
+          fontSize: tokens.typography.fontSize.sm,
+        }}>
+          {getTenantDisplayInfo().name}
         </Typography>
       </Paper>
 
-      {/* Navigation - Modern Style */}
-      <List sx={{ flexGrow: 1, px: 2, py: 1 }}>
-        {menuItems
-          .filter(item => hasRole(item.roles))
-          .map((item) => (
-            <ListItem key={item.id} disablePadding sx={{ mb: 1 }}>
-              <ListItemButton
-                onClick={() => handleNavigation(item.path)}
-                selected={location.pathname === item.path}
-                sx={{
-                  borderRadius: '12px',
-                  py: 1.5,
-                  px: 2,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    transform: 'translateX(4px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                  },
-                  '&.Mui-selected': {
-                    backgroundColor: 'rgba(102, 126, 234, 0.15)',
-                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                      transform: 'translateX(4px)',
-                    },
-                    '& .MuiListItemIcon-root': {
-                      color: 'primary.main',
-                    },
-                    '& .MuiListItemText-primary': {
-                      color: 'primary.main',
-                      fontWeight: 700,
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {item.label}
-                      </Typography>
-                      {item.badge && (
-                        <Chip 
-                          label={item.badge} 
-                          size="small" 
-                          color="primary"
-                          sx={{ 
-                            fontSize: '0.65rem',
-                            height: 18,
-                            '& .MuiChip-label': { px: 0.8 }
-                          }} 
-                        />
-                      )}
-                    </Box>
-                  }
-                  secondary={
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                      {item.description}
-                    </Typography>
-                  }
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
-      </List>
+      {/* 🎨 Nový SidebarNav komponent */}
+      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+        <SidebarNav
+          onItemClick={handleSidebarNavClick}
+          currentPath={location.pathname}
+          userRoles={user?.roles || []}
+          compact={false}
+        />
+      </Box>
 
-      {/* User info at bottom - Modern Card */}
+      {/* User info footer */}
       <Paper 
-        elevation={2}
+        elevation={0}
         sx={{ 
           m: 2, 
           p: 2, 
-          borderRadius: 3,
-          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-          border: '1px solid rgba(102, 126, 234, 0.2)'
+          borderRadius: tokens.radius.xl,
+          background: tokens.colors.gradients.glassCard,
+          backdropFilter: 'blur(25px)',
+          WebkitBackdropFilter: 'blur(25px)',
+          border: `1px solid ${tokens.colors.white}30`,
+          boxShadow: tokens.shadows.glass,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Avatar 
             sx={{ 
-              bgcolor: 'primary.main', 
+              bgcolor: 'rgba(255,255,255,0.3)', 
               mr: 2, 
               width: 40, 
               height: 40,
-              fontWeight: 'bold',
-              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
+              fontWeight: tokens.typography.fontWeight.bold,
+              color: 'white',
+              border: '2px solid rgba(255,255,255,0.3)',
+              boxShadow: tokens.shadows.md,
             }}
           >
             {getUserInitials()}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            <Typography variant="body2" sx={{ 
+              fontWeight: tokens.typography.fontWeight.semibold, 
+              color: 'white',
+              fontSize: tokens.typography.fontSize.sm,
+            }}>
               {getUserDisplayName()}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+            <Typography variant="caption" sx={{ 
+              fontSize: tokens.typography.fontSize.xs,
+              color: 'rgba(255,255,255,0.8)' 
+            }}>
               {user?.email}
             </Typography>
           </Box>
         </Box>
         
-        {/* Role badges */}
+        {/* User roles chips */}
         {user?.roles && user.roles.length > 0 && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
             {user.roles.slice(0, 2).map((role) => (
@@ -283,12 +261,19 @@ function Layout({ children, user, onLogout }) {
                 key={role}
                 label={role.replace('CORE_ROLE_', '')}
                 size="small"
-                variant="outlined"
-                color={role.includes('ADMIN') ? 'error' : 'primary'}
                 sx={{ 
-                  fontSize: '0.65rem',
+                  fontSize: tokens.typography.fontSize.xs,
                   height: 18,
-                  '& .MuiChip-label': { px: 0.8 }
+                  background: role.includes('ADMIN') 
+                    ? 'rgba(244, 67, 54, 0.3)' 
+                    : 'rgba(255,255,255,0.25)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white',
+                  '& .MuiChip-label': { 
+                    px: 0.8, 
+                    fontWeight: tokens.typography.fontWeight.bold 
+                  }
                 }}
               />
             ))}
@@ -296,11 +281,17 @@ function Layout({ children, user, onLogout }) {
               <Chip
                 label={`+${user.roles.length - 2}`}
                 size="small"
-                variant="outlined"
                 sx={{ 
-                  fontSize: '0.65rem',
+                  fontSize: tokens.typography.fontSize.xs,
                   height: 18,
-                  '& .MuiChip-label': { px: 0.8 }
+                  background: 'rgba(255,255,255,0.25)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: 'white',
+                  '& .MuiChip-label': { 
+                    px: 0.8, 
+                    fontWeight: tokens.typography.fontWeight.bold 
+                  }
                 }}
               />
             )}
@@ -310,145 +301,411 @@ function Layout({ children, user, onLogout }) {
     </Box>
   );
 
+  // 🔍 Najdeme aktivní menu item pro AppBar title
+  const getPageTitle = () => {
+    const activeItem = defaultMenuItems.find(item => {
+      if (item.href === '/' && location.pathname === '/') return true;
+      if (item.href !== '/' && location.pathname.startsWith(item.href)) return true;
+      return false;
+    });
+    return activeItem?.label || 'Core Platform';
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* App Bar - Modern Gradient */}
+      {/* AppBar - modernější design */}
       <AppBar
         position="fixed"
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          background: tokens.colors.gradients.primary,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: 'none',
+          boxShadow: tokens.shadows.glassHover,
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            {menuItems.find(item => item.path === location.pathname)?.label || 'Core Platform'}
-          </Typography>
+        <Toolbar sx={{ justifyContent: 'space-between', minHeight: tokens.components.layout.headerHeight }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ 
+                display: { md: 'none' },
+                '&:focus-visible': {
+                  outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.colors.white}`,
+                  outlineOffset: tokens.a11y.focusRing.offset,
+                },
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+            
+            <Typography variant="h6" noWrap component="div" sx={{ 
+              fontWeight: tokens.typography.fontWeight.semibold,
+              fontSize: tokens.typography.fontSize.lg,
+            }}>
+              {getPageTitle()}
+            </Typography>
+          </Box>
 
-          {/* User menu */}
-          <IconButton
-            size="large"
-            aria-label="account menu"
-            aria-controls="account-menu"
-            aria-haspopup="true"
-            onClick={handleMenuClick}
-            color="inherit"
-            sx={{
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Tenant info chip */}
+            <Paper
+              elevation={0}
+              sx={{
+                display: { xs: 'none', sm: 'flex' },
+                alignItems: 'center',
+                gap: 1,
+                px: 2,
+                py: 0.5,
+                borderRadius: tokens.radius.lg,
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                cursor: availableTenants.length > 1 ? 'pointer' : 'default',
+                transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
+                '&:hover': availableTenants.length > 1 ? {
+                  background: 'rgba(255,255,255,0.25)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: tokens.shadows.md,
+                } : {},
+                '&:focus-visible': {
+                  outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.colors.white}`,
+                  outlineOffset: tokens.a11y.focusRing.offset,
+                },
+              }}
+              onClick={availableTenants.length > 1 ? handleTenantMenuOpen : undefined}
+              role={availableTenants.length > 1 ? 'button' : undefined}
+              tabIndex={availableTenants.length > 1 ? 0 : undefined}
+            >
+              <DomainIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
+              <Box sx={{ textAlign: 'left' }}>
+                {loadingTenant ? (
+                  <Skeleton variant="text" width={120} height={16} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+                ) : (
+                  <>
+                    <Typography variant="body2" sx={{ 
+                      fontSize: tokens.typography.fontSize.sm,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: 'white',
+                      lineHeight: 1.2
+                    }}>
+                      {getTenantDisplayInfo().name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ 
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: 'rgba(255,255,255,0.7)',
+                      lineHeight: 1
+                    }}>
+                      {getTenantDisplayInfo().key}
+                    </Typography>
+                  </>
+                )}
+              </Box>
+              {availableTenants.length > 1 && (
+                <ExpandMoreIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
+              )}
+            </Paper>
+
+            {/* User menu button */}
+            <Tooltip title="Uživatelské menu">
+              <IconButton
+                size="large"
+                aria-label="account menu"
+                aria-controls="account-menu"
+                aria-haspopup="true"
+                onClick={handleMenuClick}
+                color="inherit"
+                sx={{
+                  background: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
+                  '&:hover': {
+                    background: 'rgba(255,255,255,0.2)',
+                    transform: 'scale(1.05)',
+                    boxShadow: tokens.shadows.md,
+                  },
+                  '&:focus-visible': {
+                    outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.colors.white}`,
+                    outlineOffset: tokens.a11y.focusRing.offset,
+                  },
+                }}
+              >
+                <Badge
+                  badgeContent={user?.roles?.includes('CORE_ROLE_ADMIN') ? '👑' : null}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      fontSize: '10px',
+                      minWidth: 16,
+                      height: 16,
+                      background: 'transparent',
+                      color: '#FFD700',
+                      border: 'none'
+                    }
+                  }}
+                >
+                  <Avatar 
+                    sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      width: 36, 
+                      height: 36,
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      color: 'white'
+                    }}
+                  >
+                    {getUserInitials()}
+                  </Avatar>
+                </Badge>
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Tenant switch menu */}
+      <Menu
+        id="tenant-menu"
+        anchorEl={tenantMenuAnchor}
+        open={Boolean(tenantMenuAnchor)}
+        onClose={handleTenantMenuClose}
+        PaperProps={{
+          elevation: 8,
+          sx: {
+            mt: 1.5,
+            minWidth: 280,
+            maxWidth: 400,
+            borderRadius: tokens.radius.lg,
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            boxShadow: tokens.shadows.xxl,
+            '& .MuiMenuItem-root': {
+              borderRadius: tokens.radius.md,
+              mx: 1,
+              my: 0.5,
+              px: 2,
+              py: 1.5,
+              transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
               '&:hover': {
-                transform: 'scale(1.05)',
-                transition: 'transform 0.2s ease'
-              }
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                transform: 'translateX(4px)',
+              },
+              '&:focus-visible': {
+                outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.a11y.focusRing.color}`,
+                outlineOffset: tokens.a11y.focusRing.offset,
+              },
+            }
+          },
+        }}
+      >
+        <ListSubheader sx={{ 
+          background: 'transparent', 
+          fontWeight: tokens.typography.fontWeight.semibold,
+          color: 'text.primary',
+          fontSize: tokens.typography.fontSize.sm,
+        }}>
+          🏢 Přepnout tenant
+        </ListSubheader>
+        {availableTenants.map((tenant) => (
+          <MenuItem 
+            key={tenant.key}
+            onClick={() => handleTenantSwitch(tenant.key)}
+            disabled={tenant.key === currentTenant?.key}
+            sx={{
+              opacity: tenant.key === currentTenant?.key ? 0.6 : 1
             }}
           >
-            <Avatar 
-              sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                width: 36, 
-                height: 36,
-                fontWeight: 'bold',
-                border: '2px solid rgba(255,255,255,0.3)'
+            {/* ...existing tenant menu content... */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  fontSize: tokens.typography.fontSize.sm,
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  bgcolor: tenant.key === currentTenant?.key ? 'primary.main' : 'grey.400'
+                }}
+              >
+                {(tenant.name || tenant.key).substring(0, 2).toUpperCase()}
+              </Avatar>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                  {tenant.name || tenant.key}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {tenant.key}
+                </Typography>
+              </Box>
+              {tenant.key === currentTenant?.key && (
+                <CheckCircleIcon 
+                  fontSize="small" 
+                  sx={{ color: 'success.main' }}
+                />
+              )}
+            </Box>
+          </MenuItem>
+        ))}
+        
+        {availableTenants.length === 0 && (
+          <MenuItem disabled>
+            <Typography variant="body2" color="text.secondary">
+              Žádné další tenanty nejsou k dispozici
+            </Typography>
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* User account menu */}
+      <Menu
+        id="account-menu"
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        onClick={handleMenuClose}
+        PaperProps={{
+          elevation: 8,
+          sx: {
+            mt: 1.5,
+            minWidth: 280,
+            borderRadius: tokens.radius.lg,
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            boxShadow: tokens.shadows.xxl,
+            '& .MuiMenuItem-root': {
+              borderRadius: tokens.radius.md,
+              mx: 1,
+              my: 0.5,
+              px: 2,
+              py: 1.5,
+              transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
+              '&:hover': {
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                transform: 'translateX(4px)',
+              },
+              '&:focus-visible': {
+                outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.a11y.focusRing.color}`,
+                outlineOffset: tokens.a11y.focusRing.offset,
+              },
+            }
+          },
+        }}
+      >
+        {/* User info header */}
+        <Box sx={{ px: 2, py: 2, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar
+              sx={{
+                width: 48,
+                height: 48,
+                fontWeight: tokens.typography.fontWeight.bold,
+                bgcolor: 'primary.main'
               }}
             >
               {getUserInitials()}
             </Avatar>
-          </IconButton>
-          
-          <Menu
-            id="account-menu"
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            onClick={handleMenuClose}
-            PaperProps={{
-              elevation: 8,
-              sx: {
-                mt: 1.5,
-                minWidth: 220,
-                borderRadius: 2,
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                '& .MuiAvatar-root': {
-                  width: 24,
-                  height: 24,
-                  ml: -0.5,
-                  mr: 1,
-                },
-                '& .MuiMenuItem-root': {
-                  borderRadius: 1,
-                  mx: 1,
-                  my: 0.5,
-                  '&:hover': {
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    transform: 'translateX(2px)',
-                    transition: 'all 0.2s ease'
-                  }
-                }
-              },
-            }}
-          >
-            <MenuItem onClick={() => handleNavigation('/profile')}>
-              <AccountCircleIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Můj profil
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Osobní nastavení
-                </Typography>
-              </Box>
-            </MenuItem>
-            <Divider sx={{ my: 1 }} />
-            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-              <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Odhlásit se
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Ukončit relaci
-                </Typography>
-              </Box>
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+            <Box>
+              <Typography variant="subtitle1" sx={{ 
+                fontWeight: tokens.typography.fontWeight.semibold 
+              }}>
+                {getUserDisplayName()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {user?.email}
+              </Typography>
+              {currentTenant && (
+                <Chip
+                  size="small"
+                  icon={<DomainIcon sx={{ fontSize: '14px !important' }} />}
+                  label={getTenantDisplayInfo().name}
+                  sx={{
+                    mt: 0.5,
+                    height: 20,
+                    fontSize: tokens.typography.fontSize.xs,
+                    bgcolor: 'primary.light',
+                    color: 'primary.dark'
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+        </Box>
 
-      {/* Sidebar */}
+        <MenuItem onClick={() => handleNavigation('/profile')}>
+          <AccountCircleIcon fontSize="small" sx={{ mr: 2, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+              Můj profil
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Osobní nastavení a informace
+            </Typography>
+          </Box>
+        </MenuItem>
+
+        {user?.roles?.includes('CORE_ROLE_ADMIN') && availableTenants.length > 1 && (
+          <MenuItem onClick={handleTenantMenuOpen}>
+            <SwitchTenantIcon fontSize="small" sx={{ mr: 2, color: 'info.main' }} />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                Přepnout tenant
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Dostupných: {availableTenants.length}
+              </Typography>
+            </Box>
+          </MenuItem>
+        )}
+        
+        <Divider sx={{ my: 1 }} />
+        
+        <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+          <LogoutIcon fontSize="small" sx={{ mr: 2 }} />
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+              Odhlásit se
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Ukončit relaci
+            </Typography>
+          </Box>
+        </MenuItem>
+      </Menu>
+
+      {/* Drawer navigation */}
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
       >
-        {/* Mobile drawer */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better open performance on mobile.
+            keepMounted: true,
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
+              border: 'none',
             },
           }}
         >
           {drawer}
         </Drawer>
         
-        {/* Desktop drawer */}
         <Drawer
           variant="permanent"
           sx={{
@@ -457,7 +714,7 @@ function Layout({ children, user, onLogout }) {
               boxSizing: 'border-box',
               width: drawerWidth,
               border: 'none',
-              boxShadow: '4px 0 20px rgba(0,0,0,0.1)'
+              boxShadow: tokens.shadows.xl,
             },
           }}
           open
@@ -466,7 +723,7 @@ function Layout({ children, user, onLogout }) {
         </Drawer>
       </Box>
 
-      {/* Main content */}
+      {/* Main content area */}
       <Box
         component="main"
         sx={{
@@ -474,14 +731,20 @@ function Layout({ children, user, onLogout }) {
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          backgroundColor: '#f8f9fa',
+          background: `linear-gradient(135deg, ${tokens.colors.grey[50]} 0%, #f0f2f5 100%)`,
         }}
       >
-        <Toolbar /> {/* Spacer for fixed app bar */}
+        <Toolbar sx={{ minHeight: tokens.components.layout.headerHeight }} />
         {children}
       </Box>
     </Box>
   );
 }
+
+Layout.propTypes = {
+  children: PropTypes.node.isRequired,
+  user: UserPropType,
+  onLogout: PropTypes.func,
+};
 
 export default Layout;

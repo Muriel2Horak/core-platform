@@ -183,7 +183,6 @@ class KeycloakService {
     } catch (error) {
       // 🔐 FIXED: Better error handling - check if error exists and has message
       const errorMessage = error?.message || 'Unknown initialization error';
-      const errorStack = error?.stack || 'No stack trace available';
       
       console.error('❌ [AUTH] Keycloak initialization failed:', errorMessage, error);
       logger.setAuthenticated(false);
@@ -208,7 +207,7 @@ class KeycloakService {
     
     if (iss) {
       // Extract realm from issuer URL like: https://admin.core-platform.local/auth/realms/admin
-      const match = iss.match(/\/realms\/([^\/\?#]+)/);
+      const match = iss.match(/\/realms\/([^/?#]+)/);
       if (match) {
         const tenant = match[1];
         logger.info('Tenant derived from token issuer', { 

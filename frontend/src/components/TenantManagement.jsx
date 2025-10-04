@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
 import {
   Box,
   Grid,
@@ -32,21 +33,19 @@ import {
   Badge
 } from '@mui/material';
 import {
-  Business as BusinessIcon,
   Add as AddIcon,
-  MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
   Refresh as RefreshIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
+  Business as BusinessIcon,
   Domain as DomainIcon,
-  People as PeopleIcon,
-  Settings as SettingsIcon
+  MoreVert as MoreVertIcon,
+  Visibility as VisibilityIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
+import { UserPropType } from '../shared/propTypes.js';
 
 function TenantManagement({ user }) {
   // State for data
@@ -328,7 +327,18 @@ function TenantManagement({ user }) {
       )}
 
       {/* Header with Actions */}
-      <Card sx={{ mb: 3, borderRadius: 3 }}>
+      <Card 
+        elevation={0}
+        sx={{ 
+          mb: 3, 
+          borderRadius: 4,
+          background: 'rgba(255,255,255,0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+        }}
+      >
         <CardContent sx={{ p: 3 }}>
           <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
             <Box>
@@ -348,9 +358,16 @@ function TenantManagement({ user }) {
                 onClick={loadTenants}
                 disabled={loading}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: 3,
                   borderWidth: 2,
-                  '&:hover': { borderWidth: 2 }
+                  background: 'rgba(255,255,255,0.5)',
+                  backdropFilter: 'blur(10px)',
+                  '&:hover': { 
+                    borderWidth: 2,
+                    background: 'rgba(255,255,255,0.8)',
+                    transform: 'translateY(-2px)'
+                  },
+                  transition: 'all 0.3s ease'
                 }}
               >
                 Obnovit
@@ -361,12 +378,14 @@ function TenantManagement({ user }) {
                 startIcon={<AddIcon />}
                 onClick={openCreateDialog}
                 sx={{
-                  borderRadius: 2,
-                  background: 'linear-gradient(45deg, #667eea, #764ba2)',
+                  borderRadius: 3,
+                  background: 'linear-gradient(135deg, rgba(102,126,234,0.9) 0%, rgba(118,75,162,0.9) 100%)',
+                  backdropFilter: 'blur(15px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
                   '&:hover': {
-                    background: 'linear-gradient(45deg, #5a6fd8, #6b4190)',
+                    background: 'linear-gradient(135deg, rgba(90,111,216,0.9) 0%, rgba(107,65,144,0.9) 100%)',
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+                    boxShadow: '0 12px 40px rgba(102,126,234,0.4)'
                   },
                   transition: 'all 0.3s ease'
                 }}
@@ -379,8 +398,25 @@ function TenantManagement({ user }) {
       </Card>
 
       {/* Tenants Table */}
-      <Paper elevation={2} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-        <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          borderRadius: 4, 
+          overflow: 'hidden',
+          background: 'rgba(255,255,255,0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+        }}
+      >
+        <Box sx={{ 
+          p: 3, 
+          borderBottom: 1, 
+          borderColor: 'rgba(0,0,0,0.08)',
+          background: 'linear-gradient(135deg, rgba(248,250,252,0.8) 0%, rgba(241,245,249,0.6) 100%)',
+          backdropFilter: 'blur(10px)'
+        }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Seznam tenantů
           </Typography>
@@ -1023,5 +1059,9 @@ function TenantManagement({ user }) {
     </Box>
   );
 }
+
+TenantManagement.propTypes = {
+  user: UserPropType,
+};
 
 export default TenantManagement;

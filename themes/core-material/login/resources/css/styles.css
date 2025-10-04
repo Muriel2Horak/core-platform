@@ -1,14 +1,14 @@
 /* Core Material Theme - Material Design 3 styles pro Keycloak */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
 
-/* CSS Custom Properties - stejné jako frontend */
+/* CSS Custom Properties - profesionální modro-šedá paleta */
 :root {
-  --primary-main: #5D87FF;
-  --primary-light: #ECF2FF;
-  --primary-dark: #4570EA;
-  --secondary-main: #49BEFF;
-  --secondary-light: #E8F7FF;
-  --secondary-dark: #23afdb;
+  --primary-main: #1976d2;
+  --primary-light: #E3F2FD;
+  --primary-dark: #1565c0;
+  --secondary-main: #0288d1;
+  --secondary-light: #E1F5FE;
+  --secondary-dark: #0277bd;
   --error-main: #FA896B;
   --error-light: #FDEDE8;
   --error-dark: #f3704d;
@@ -24,7 +24,7 @@
   
   --text-primary: #2A3547;
   --text-secondary: #5A6A85;
-  --background-default: #fafbfb;
+  --background-default: #f8fafc;
   --background-paper: #ffffff;
   --divider: #e5eaef;
   
@@ -42,13 +42,18 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   margin: 0;
   padding: 0;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Elegantnější gradient místo fialové */
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
   min-height: 100vh;
   color: var(--text-primary);
 }
@@ -369,6 +374,18 @@ body {
   stroke-dashoffset: 0;
 }
 
+.mdc-checkbox__checkmark-path {
+  transition: stroke-dashoffset 180ms 0ms cubic-bezier(0.4, 0, 0.6, 1);
+  stroke: white;
+  stroke-width: 3.12px;
+  stroke-dashoffset: 29.7833385;
+  stroke-dasharray: 29.7833385;
+}
+
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background .mdc-checkbox__checkmark-path {
+  stroke-dashoffset: 0;
+}
+
 .mdc-checkbox-label {
   font-size: 0.875rem;
   color: var(--text-primary);
@@ -389,7 +406,7 @@ body {
 .alert-success {
   background: var(--success-light);
   border: 1px solid var(--success-main);
-  color: var(--success-dark);
+  color: var (--success-dark);
 }
 
 .alert-warning {

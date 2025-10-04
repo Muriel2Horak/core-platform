@@ -245,6 +245,17 @@ class ApiService {
     return response.data;
   }
 
+  // 🆕 TENANT INFO ENDPOINTS
+  async getCurrentTenant() {
+    const response = await axios.get('/api/tenants/me');
+    return response.data;
+  }
+
+  async getAllTenants() {
+    const response = await axios.get('/api/tenants');
+    return response.data;
+  }
+
   async createTenant(tenantData) {
     const response = await axios.post('/api/admin/tenants', tenantData);
     return response.data;

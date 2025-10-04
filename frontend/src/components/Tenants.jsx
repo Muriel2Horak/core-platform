@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
 import {
   Box,
   Card,
@@ -20,6 +21,8 @@ import {
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
+import { UserPropType } from '../shared/propTypes.js';
+
 
 function Tenants({ user }) {
   const [tenants, setTenants] = useState([]);
@@ -162,5 +165,9 @@ function Tenants({ user }) {
     </Box>
   );
 }
+
+Tenants.propTypes = {
+  user: UserPropType,
+};
 
 export default Tenants;

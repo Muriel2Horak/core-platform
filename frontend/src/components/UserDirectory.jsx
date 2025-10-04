@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
 import {
   Box,
   Grid,
@@ -43,10 +44,11 @@ import {
   People as PeopleIcon,
   Cloud as CloudIcon,
   Storage as ServerIcon,
-  FilterList as FilterIcon
+  // FilterList as FilterIcon, // Nepoužívané - odstraněno
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
+import { UserPropType } from '../shared/propTypes.js';
 
 function UserDirectory({ user }) {
   // State for data
@@ -624,5 +626,9 @@ function UserDirectory({ user }) {
     </Box>
   );
 }
+
+UserDirectory.propTypes = {
+  user: UserPropType,
+};
 
 export default UserDirectory;

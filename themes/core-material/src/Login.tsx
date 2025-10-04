@@ -51,7 +51,6 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({
   url = {},
   realm = {},
-  client = {},
   message,
   login = {},
   registrationDisabled = true,
@@ -60,7 +59,7 @@ const Login: React.FC<LoginProps> = ({
 }) => {
   const [username, setUsername] = useState(login.username || '');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(login.rememberMe || false);
+  const [rememberMe] = useState(login.rememberMe || false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -112,7 +111,8 @@ const Login: React.FC<LoginProps> = ({
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        // Elegantnější gradient místo fialové
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -136,7 +136,8 @@ const Login: React.FC<LoginProps> = ({
                     width: 64,
                     height: 64,
                     borderRadius: '50%',
-                    backgroundColor: 'primary.main',
+                    // Používám elegantnější modrou místo fialové
+                    backgroundColor: '#1976d2',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import keycloakService from '../services/keycloakService.js';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
@@ -197,4 +198,8 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

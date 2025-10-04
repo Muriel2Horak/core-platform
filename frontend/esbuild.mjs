@@ -1,4 +1,4 @@
-import { build } from 'esbuild';
+import { build, context } from 'esbuild';
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 
@@ -68,19 +68,9 @@ const buildOptions = {
 };
 
 if (isDev) {
-  // Development mode with watch
-  const context = await build({
-    ...buildOptions,
-    watch: {
-      onRebuild(error, result) {
-        if (error) {
-          console.error('❌ Build failed:', error);
-        } else {
-          console.log('✅ Build succeeded');
-        }
-      }
-    }
-  });
+  // Development mode with watch using context
+  const ctx = await context(buildOptions);
+  await ctx.watch();
   console.log('👀 Watching for changes...');
 } else {
   // Production build
