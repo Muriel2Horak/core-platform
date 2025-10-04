@@ -20,7 +20,8 @@ public class EventWebhookProviderFactory implements EventListenerProviderFactory
 
   // Default event types to process
   private static final Set<String> DEFAULT_ENABLED_TYPES = Set.of("USER_CREATED", "USER_UPDATED",
-      "USER_DELETED", "ROLE_CREATED", "ROLE_UPDATED", "ROLE_DELETED");
+      "USER_DELETED", "UPDATE_PROFILE", "REGISTER", "LOGIN", "LOGOUT", "ROLE_CREATED",
+      "ROLE_UPDATED", "ROLE_DELETED");
 
   @Override
   public EventListenerProvider create(KeycloakSession session) {

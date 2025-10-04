@@ -73,8 +73,11 @@ function Dashboard({ user }) {
   };
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    // Načteme statistiky pouze pokud máme user objekt
+    if (user) {
+      loadStats();
+    }
+  }, [user]); // ✅ Přidána závislost na user objekt
 
   // Get user display name
   const getUserDisplayName = () => {

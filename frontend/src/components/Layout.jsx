@@ -38,7 +38,6 @@ import { defaultMenuItems } from '../shared/ui/SidebarNav';
 import apiService from '../services/api.js';
 import { UserPropType } from '../shared/propTypes.js';
 
-
 const drawerWidth = parseInt(tokens.components.layout.sidebarWidth, 10); // 280px z tokens
 
 function Layout({ children, user, onLogout }) {
@@ -50,29 +49,16 @@ function Layout({ children, user, onLogout }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   
-  const [currentTenant, setCurrentTenant] = useState(null);
+  // ✅ FIXED: Používáme user.tenant místo API volání
   const [availableTenants, setAvailableTenants] = useState([]);
-  const [loadingTenant, setLoadingTenant] = useState(true);
   const [tenantMenuAnchor, setTenantMenuAnchor] = useState(null);
 
   useEffect(() => {
-    loadTenantInfo();
+    // ✅ FIXED: Odstraněno loadTenantInfo() - tenant už je v user objektu
     if (user?.roles?.includes('CORE_ROLE_ADMIN')) {
       loadAvailableTenants();
     }
   }, [user]);
-
-  const loadTenantInfo = async () => {
-    try {
-      setLoadingTenant(true);
-      const tenantData = await apiService.getCurrentTenant();
-      setCurrentTenant(tenantData);
-    } catch (error) {
-      console.error('Failed to load tenant info:', error);
-    } finally {
-      setLoadingTenant(false);
-    }
-  };
 
   const loadAvailableTenants = async () => {
     try {
@@ -146,15 +132,16 @@ function Layout({ children, user, onLogout }) {
   };
 
   const getTenantDisplayInfo = () => {
-    if (loadingTenant) {
-      return { name: 'Loading...', key: '...' };
-    }
-    if (!currentTenant) {
+    // ✅ SIMPLIFIED: Zobrazí přímo hodnotu z user.tenant bez mapování
+    const tenantKey = user?.tenant;
+    
+    if (!tenantKey) {
       return { name: 'Unknown Tenant', key: 'unknown' };
     }
+    
     return {
-      name: currentTenant.name || currentTenant.key || 'Unknown',
-      key: currentTenant.key || 'unknown'
+      name: tenantKey,  // Zobrazí přímo tenant key (např. "admin")
+      key: tenantKey
     };
   };
 
@@ -293,9 +280,7 @@ function Layout({ children, user, onLogout }) {
             >
               <DomainIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
               <Box sx={{ textAlign: 'left' }}>
-                {loadingTenant ? (
-                  <Skeleton variant="text" width={120} height={16} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
-                ) : (
+                {user?.tenant ? (
                   <>
                     <Typography variant="body2" sx={{ 
                       fontSize: tokens.typography.fontSize.sm,
@@ -313,6 +298,8 @@ function Layout({ children, user, onLogout }) {
                       {getTenantDisplayInfo().key}
                     </Typography>
                   </>
+                ) : (
+                  <Skeleton variant="text" width={120} height={16} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
                 )}
               </Box>
               {availableTenants.length > 1 && (
@@ -429,9 +416,9 @@ function Layout({ children, user, onLogout }) {
           <MenuItem 
             key={tenant.key}
             onClick={() => handleTenantSwitch(tenant.key)}
-            disabled={tenant.key === currentTenant?.key}
+            disabled={tenant.key === user?.tenant?.key}
             sx={{
-              opacity: tenant.key === currentTenant?.key ? 0.6 : 1
+              opacity: tenant.key === user?.tenant?.key ? 0.6 : 1
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
@@ -441,7 +428,7 @@ function Layout({ children, user, onLogout }) {
                   height: 32,
                   fontSize: tokens.typography.fontSize.sm,
                   fontWeight: tokens.typography.fontWeight.bold,
-                  bgcolor: tenant.key === currentTenant?.key ? 'primary.main' : 'grey.400'
+                  bgcolor: tenant.key === user?.tenant?.key ? 'primary.main' : 'grey.400'
                 }}
               >
                 {(tenant.name || tenant.key).substring(0, 2).toUpperCase()}
@@ -454,7 +441,7 @@ function Layout({ children, user, onLogout }) {
                   {tenant.key}
                 </Typography>
               </Box>
-              {tenant.key === currentTenant?.key && (
+              {tenant.key === user?.tenant?.key && (
                 <CheckCircleIcon 
                   fontSize="small" 
                   sx={{ color: 'success.main' }}
@@ -531,7 +518,7 @@ function Layout({ children, user, onLogout }) {
               <Typography variant="body2" color="text.secondary">
                 {user?.email}
               </Typography>
-              {currentTenant && (
+              {user?.tenant && (
                 <Chip
                   size="small"
                   icon={<DomainIcon sx={{ fontSize: '14px !important' }} />}

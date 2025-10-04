@@ -63,6 +63,10 @@ setup_realm() {
         -s adminEventsEnabled=true \
         -s 'eventsListeners=["jboss-logging","muriel-webhook"]'
     
+    # 📋 Nastavení konkrétních event typů pro webhook
+    /opt/keycloak/bin/kcadm.sh update realms/$REALM \
+        -s 'enabledEventTypes=["LOGIN","LOGIN_ERROR","REGISTER","REGISTER_ERROR","LOGOUT","LOGOUT_ERROR","UPDATE_PROFILE","UPDATE_PROFILE_ERROR","UPDATE_PASSWORD","UPDATE_PASSWORD_ERROR","UPDATE_EMAIL","UPDATE_EMAIL_ERROR"]'
+    
     # 🔧 SPI konfigurace přes realm attributes (backup metoda)
     /opt/keycloak/bin/kcadm.sh update realms/$REALM \
         -s 'attributes.muriel_webhook_url="'$WEBHOOK_URL'"' \

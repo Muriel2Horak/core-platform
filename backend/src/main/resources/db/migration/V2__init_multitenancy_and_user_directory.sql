@@ -84,6 +84,17 @@ CREATE TABLE IF NOT EXISTS users_directory (
     phone_number TEXT NULL,
     department TEXT NULL,
     title TEXT NULL,
+    -- ✅ NOVÉ: Rozšířené organizační atributy
+    position TEXT NULL,
+    manager_username TEXT NULL,
+    cost_center TEXT NULL,
+    location TEXT NULL,
+    phone TEXT NULL,
+    -- ✅ NOVÉ: Zástupství
+    deputy_username TEXT NULL,
+    deputy_from DATE NULL,
+    deputy_to DATE NULL,
+    deputy_reason TEXT NULL,
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -101,6 +112,16 @@ CREATE INDEX IF NOT EXISTS idx_users_directory_active ON users_directory(tenant_
 CREATE INDEX IF NOT EXISTS idx_users_directory_deleted_at ON users_directory(deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_users_directory_phone ON users_directory(tenant_key, phone_number) WHERE phone_number IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_users_directory_department ON users_directory(tenant_key, department) WHERE department IS NOT NULL;
+
+-- ✅ NOVÉ: Indexy pro organizační atributy
+CREATE INDEX IF NOT EXISTS idx_users_directory_position ON users_directory(tenant_key, position) WHERE position IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_directory_manager_username ON users_directory(tenant_key, manager_username) WHERE manager_username IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_directory_location ON users_directory(tenant_key, location) WHERE location IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_directory_cost_center ON users_directory(tenant_key, cost_center) WHERE cost_center IS NOT NULL;
+
+-- ✅ NOVÉ: Indexy pro zástupství
+CREATE INDEX IF NOT EXISTS idx_users_directory_deputy ON users_directory(tenant_key, deputy_username) WHERE deputy_username IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_users_directory_deputy_dates ON users_directory(deputy_from, deputy_to) WHERE deputy_from IS NOT NULL OR deputy_to IS NOT NULL;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -131,9 +152,9 @@ DROP TRIGGER IF EXISTS update_users_directory_updated_at ON users_directory;
 CREATE TRIGGER update_users_directory_updated_at BEFORE UPDATE ON users_directory
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Seed data: insert core platform tenant
+-- Seed data: insert admin tenant (systémová správa)
 INSERT INTO tenants (key) VALUES 
-('core-platform')
+('admin')
 ON CONFLICT (key) DO NOTHING;
 
 -- Comment the tables for documentation
@@ -149,3 +170,16 @@ COMMENT ON COLUMN users_directory.groups_json IS 'JSON representation of user gr
 COMMENT ON COLUMN users_directory.phone_number IS 'User phone number from Keycloak attributes';
 COMMENT ON COLUMN users_directory.department IS 'User department from Keycloak attributes';
 COMMENT ON COLUMN users_directory.title IS 'User job title from Keycloak attributes';
+
+-- ✅ NOVÉ: Komentáře pro organizační atributy
+COMMENT ON COLUMN users_directory.position IS 'User position/role from Keycloak attributes';
+COMMENT ON COLUMN users_directory.manager_username IS 'Manager username from Keycloak attributes';
+COMMENT ON COLUMN users_directory.cost_center IS 'Cost center from Keycloak attributes';
+COMMENT ON COLUMN users_directory.location IS 'Office location from Keycloak attributes';
+COMMENT ON COLUMN users_directory.phone IS 'Primary phone number from Keycloak attributes';
+
+-- ✅ NOVÉ: Komentáře pro zástupství
+COMMENT ON COLUMN users_directory.deputy_username IS 'Deputy username for absence coverage';
+COMMENT ON COLUMN users_directory.deputy_from IS 'Start date of deputy assignment';
+COMMENT ON COLUMN users_directory.deputy_to IS 'End date of deputy assignment';
+COMMENT ON COLUMN users_directory.deputy_reason IS 'Reason for deputy assignment (vacation, sick leave, etc.)';

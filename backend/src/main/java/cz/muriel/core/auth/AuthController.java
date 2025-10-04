@@ -2,6 +2,7 @@ package cz.muriel.core.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.muriel.core.dto.UserDto;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,11 +34,14 @@ public class AuthController {
   private final KeycloakClient kc;
   private final ObjectMapper om;
   private final JwtDecoder jwtDecoder;
+  private final KeycloakAdminService keycloakAdminService;
 
-  public AuthController(KeycloakClient kc, ObjectMapper om, JwtDecoder jwtDecoder) {
+  public AuthController(KeycloakClient kc, ObjectMapper om, JwtDecoder jwtDecoder,
+      KeycloakAdminService keycloakAdminService) {
     this.kc = kc;
     this.om = om;
     this.jwtDecoder = jwtDecoder;
+    this.keycloakAdminService = keycloakAdminService;
   }
 
   /**
@@ -164,6 +168,20 @@ public class AuthController {
       userInfo.put("firstName", jwt.getClaimAsString("given_name"));
       userInfo.put("lastName", jwt.getClaimAsString("family_name"));
 
+      // ✅ NOVÉ: Přidání dalších užitečných informací
+      userInfo.put("id", jwt.getSubject()); // Uživatelské ID
+      userInfo.put("email_verified", jwt.getClaimAsBoolean("email_verified"));
+      userInfo.put("session_state", jwt.getClaimAsString("session_state"));
+      userInfo.put("session_id", jwt.getClaimAsString("sid"));
+
+      // Token timing info
+      if (jwt.getExpiresAt() != null) {
+        userInfo.put("token_expires_at", jwt.getExpiresAt().getEpochSecond());
+      }
+      if (jwt.getIssuedAt() != null) {
+        userInfo.put("token_issued_at", jwt.getIssuedAt().getEpochSecond());
+      }
+
       auditLogger.debug("📋 USERINFO_BASIC: Basic user info extracted");
 
       // Extract roles properly
@@ -184,6 +202,54 @@ public class AuthController {
       if (tenant != null && !tenant.isEmpty()) {
         userInfo.put("tenant", tenant);
         auditLogger.debug("✅ USERINFO_TENANT: Tenant extracted: {}", tenant);
+      }
+
+      // ✅ NOVÉ: Načtení kompletních organizačních atributů z Keycloak
+      try {
+        String userId = jwt.getSubject();
+        if (userId != null) {
+          // Použijeme KeycloakAdminService pro získání kompletních dat
+          UserDto fullUserData = keycloakAdminService.getUserById(userId);
+          if (fullUserData != null) {
+            // 🏢 Organizační struktura
+            if (fullUserData.getDepartment() != null)
+              userInfo.put("department", fullUserData.getDepartment());
+            if (fullUserData.getPosition() != null)
+              userInfo.put("position", fullUserData.getPosition());
+            if (fullUserData.getManager() != null)
+              userInfo.put("manager", fullUserData.getManager());
+            if (fullUserData.getManagerName() != null)
+              userInfo.put("managerName", fullUserData.getManagerName());
+            if (fullUserData.getCostCenter() != null)
+              userInfo.put("costCenter", fullUserData.getCostCenter());
+            if (fullUserData.getLocation() != null)
+              userInfo.put("location", fullUserData.getLocation());
+            if (fullUserData.getPhone() != null)
+              userInfo.put("phone", fullUserData.getPhone());
+
+            // 👥 Zástupství
+            if (fullUserData.getDeputy() != null)
+              userInfo.put("deputy", fullUserData.getDeputy());
+            if (fullUserData.getDeputyName() != null)
+              userInfo.put("deputyName", fullUserData.getDeputyName());
+            if (fullUserData.getDeputyFrom() != null)
+              userInfo.put("deputyFrom", fullUserData.getDeputyFrom());
+            if (fullUserData.getDeputyTo() != null)
+              userInfo.put("deputyTo", fullUserData.getDeputyTo());
+            if (fullUserData.getDeputyReason() != null)
+              userInfo.put("deputyReason", fullUserData.getDeputyReason());
+
+            // 📷 Profilová fotka
+            if (fullUserData.getProfilePicture() != null)
+              userInfo.put("profilePicture", fullUserData.getProfilePicture());
+
+            auditLogger.debug("✅ USERINFO_EXTENDED: Extended organizational attributes loaded");
+          }
+        }
+      } catch (Exception e) {
+        auditLogger.warn("⚠️ USERINFO_EXTENDED_FAILED: Failed to load extended user data: {}",
+            e.getMessage());
+        // Continue without extended data - basic info is still available
       }
 
       auditLogger.info("✅ USERINFO_SUCCESS: User info retrieved successfully");

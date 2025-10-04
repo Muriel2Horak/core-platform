@@ -19,6 +19,7 @@ import {
   Fade,
   IconButton,
   Badge,
+  Chip,
 } from '@mui/material';
 import {
   Person as PersonIcon,
@@ -35,6 +36,7 @@ import {
   SwapHoriz as DeputyIcon,
   Phone as PhoneIcon,
   AccountBalance as CostCenterIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 
 // 🎨 Import nového design systému - OPRAVENO: jednotlivé importy z TypeScript souborů
@@ -554,7 +556,7 @@ function Profile({ user }) {
             <Grid item xs={12} sm={6}>
               <FormField
                 label="Oddělení"
-                value={editedProfile.department || ''}
+                value={editedProfile.department || data?.department || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, department: e.target.value }))}
                 readonly={!isEditing}
                 showEmptyDash={!isEditing}
@@ -565,7 +567,7 @@ function Profile({ user }) {
             <Grid item xs={12} sm={6}>
               <FormField
                 label="Pozice"
-                value={editedProfile.position || ''}
+                value={editedProfile.position || data?.position || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, position: e.target.value }))}
                 readonly={!isEditing}
                 showEmptyDash={!isEditing}
@@ -576,7 +578,7 @@ function Profile({ user }) {
             <Grid item xs={12} sm={6}>
               <FormField
                 label="Manažer"
-                value={editedProfile.manager || ''}
+                value={data?.managerName || data?.manager || ''}
                 readonly={true}
                 showEmptyDash={true}
                 startIcon={<ManagerIcon />}
@@ -587,7 +589,7 @@ function Profile({ user }) {
             <Grid item xs={12} sm={6}>
               <FormField
                 label="Středisko"
-                value={editedProfile.costCenter || ''}
+                value={data?.costCenter || ''}
                 readonly={true}
                 showEmptyDash={true}
                 startIcon={<CostCenterIcon />}
@@ -598,7 +600,7 @@ function Profile({ user }) {
             <Grid item xs={12} sm={6}>
               <FormField
                 label="Telefon"
-                value={editedProfile.phone || ''}
+                value={editedProfile.phone || data?.phone || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, phone: e.target.value }))}
                 readonly={!isEditing}
                 showEmptyDash={!isEditing}
@@ -609,7 +611,7 @@ function Profile({ user }) {
             <Grid item xs={12} sm={6}>
               <FormField
                 label="Lokace"
-                value={editedProfile.location || ''}
+                value={editedProfile.location || data?.location || ''}
                 onChange={(e) => setEditedProfile(prev => ({ ...prev, location: e.target.value }))}
                 readonly={!isEditing}
                 showEmptyDash={!isEditing}
@@ -632,7 +634,7 @@ function Profile({ user }) {
           </Grid>
         </TabPanel>
 
-        {/* Tab 2: Zástupy */}
+        {/* Tab 2: Zástupy - NYNÍ S REÁLNÝMI DATY */}
         <TabPanel value={currentTab} index={2}>
           <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
             🔄 Zástupy
@@ -642,12 +644,79 @@ function Profile({ user }) {
           </Typography>
 
           <Grid container spacing={3}>
+            {/* Aktuální zástup */}
             <Grid item xs={12}>
-              <EmptyState
-                icon={<DeputyIcon />}
-                title="Funkce zástupů"
-                description="Tato funkce bude dostupná v příští verzi systému"
-              />
+              <Card
+                elevation={0}
+                sx={{
+                  border: `1px solid ${tokens.colors.grey[200]}`,
+                  borderRadius: tokens.radius.lg,
+                  background: tokens.colors.grey[50],
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <DeputyIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Aktuální zástup
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <FormField
+                        label="Zástup"
+                        value={data?.deputyName || data?.deputy || ''}
+                        readonly={true}
+                        showEmptyDash={true}
+                        helperText="Spravováno manažerem"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={3}>
+                      <FormField
+                        label="Od"
+                        type="date"
+                        value={data?.deputyFrom ? new Date(data.deputyFrom).toISOString().split('T')[0] : ''}
+                        readonly={true}
+                        showEmptyDash={true}
+                        helperText="Začátek zástupství"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={3}>
+                      <FormField
+                        label="Do"
+                        type="date"
+                        value={data?.deputyTo ? new Date(data.deputyTo).toISOString().split('T')[0] : ''}
+                        readonly={true}
+                        showEmptyDash={true}
+                        helperText="Konec zástupství"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <FormField
+                        label="Důvod zástupství"
+                        value={data?.deputyReason || ''}
+                        readonly={true}
+                        showEmptyDash={true}
+                        multiline
+                        rows={2}
+                        helperText="Důvod nepřítomnosti"
+                      />
+                    </Grid>
+                  </Grid>
+
+                  {(!data?.deputy || !data?.deputyFrom) && (
+                    <Box mt={2} p={2} bgcolor="info.light" borderRadius={1}>
+                      <Typography variant="body2" color="info.dark">
+                        💡 V současné době nemáte nastaveného zástupu. Obraťte se na svého manažera pro nastavení zástupství při plánované nepřítomnosti.
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
             </Grid>
           </Grid>
         </TabPanel>
@@ -662,6 +731,7 @@ function Profile({ user }) {
           </Typography>
 
           <Grid container spacing={3}>
+            {/* Změna hesla */}
             <Grid item xs={12} sm={6}>
               <Card
                 elevation={0}
@@ -688,6 +758,82 @@ function Profile({ user }) {
                   >
                     Změnit heslo
                   </AppButton>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* ✅ NOVÉ: Bezpečnostní informace */}
+            <Grid item xs={12} sm={6}>
+              <Card
+                elevation={0}
+                sx={{
+                  border: `1px solid ${tokens.colors.grey[200]}`,
+                  borderRadius: tokens.radius.lg,
+                  background: tokens.colors.grey[50],
+                }}
+              >
+                <CardContent sx={{ p: 3 }}>
+                  <Box display="flex" alignItems="center" gap={2} mb={2}>
+                    <SecurityIcon color="primary" />
+                    <Typography variant="h6" fontWeight="bold">
+                      Bezpečnostní údaje
+                    </Typography>
+                  </Box>
+
+                  <Grid container spacing={2}>
+                    {/* Uživatelské ID */}
+                    <Grid item xs={12}>
+                      <FormField
+                        label="Uživatelské ID"
+                        value={data?.id || data?.sub || ''}
+                        readonly={true}
+                        showEmptyDash={true}
+                        helperText="Systémové identifikační číslo"
+                        size="small"
+                      />
+                    </Grid>
+
+                    {/* Ověření emailu */}
+                    <Grid item xs={12}>
+                      <Box display="flex" alignItems="center" justifyContent="space-between" p={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          Stav ověření emailu
+                        </Typography>
+                        <Chip
+                          label={data?.email_verified ? 'Ověřeno' : 'Neověřeno'}
+                          size="small"
+                          color={data?.email_verified ? 'success' : 'warning'}
+                          icon={data?.email_verified ? <CheckIcon /> : <SecurityIcon />}
+                        />
+                      </Box>
+                    </Grid>
+
+                    {/* Session informace */}
+                    <Grid item xs={12}>
+                      <FormField
+                        label="ID relace"
+                        value={data?.session_state || data?.session_id || ''}
+                        readonly={true}
+                        showEmptyDash={true}
+                        helperText="Aktuální session ID"
+                        size="small"
+                      />
+                    </Grid>
+
+                    {/* Token expiration */}
+                    {data?.token_expires_at && (
+                      <Grid item xs={12}>
+                        <FormField
+                          label="Token vyprší"
+                          value={new Date(data.token_expires_at * 1000).toLocaleString('cs-CZ')}
+                          readonly={true}
+                          showEmptyDash={true}
+                          helperText="Čas vypršení přihlášení"
+                          size="small"
+                        />
+                      </Grid>
+                    )}
+                  </Grid>
                 </CardContent>
               </Card>
             </Grid>

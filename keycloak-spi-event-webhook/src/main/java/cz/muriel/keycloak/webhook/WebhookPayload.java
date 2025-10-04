@@ -1,6 +1,7 @@
 package cz.muriel.keycloak.webhook;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
 /**
  * Simple POJO for webhook payload
@@ -40,6 +41,16 @@ public class WebhookPayload {
   @JsonProperty("lastName")
   private String lastName;
 
+  // ✅ NOVÉ: Custom atributy pro organizační strukturu
+  @JsonProperty("attributes")
+  private Map<String, String> attributes;
+
+  @JsonProperty("roles")
+  private Map<String, Object> roles;
+
+  @JsonProperty("groups")
+  private java.util.List<String> groups;
+
   // Default constructor
   public WebhookPayload() {
   }
@@ -47,7 +58,8 @@ public class WebhookPayload {
   // Constructor
   public WebhookPayload(String eventType, long time, String type, String realm, String tenantKey,
       String tenantId, String userId, String username, String email, String firstName,
-      String lastName) {
+      String lastName, Map<String, String> attributes, Map<String, Object> roles,
+      java.util.List<String> groups) {
     this.eventType = eventType;
     this.time = time;
     this.type = type;
@@ -59,6 +71,9 @@ public class WebhookPayload {
     this.email = email;
     this.firstName = firstName;
     this.lastName = lastName;
+    this.attributes = attributes;
+    this.roles = roles;
+    this.groups = groups;
   }
 
   // Getters and Setters
@@ -150,12 +165,37 @@ public class WebhookPayload {
     this.lastName = lastName;
   }
 
+  public Map<String, String> getAttributes() {
+    return attributes;
+  }
+
+  public void setAttributes(Map<String, String> attributes) {
+    this.attributes = attributes;
+  }
+
+  public Map<String, Object> getRoles() {
+    return roles;
+  }
+
+  public void setRoles(Map<String, Object> roles) {
+    this.roles = roles;
+  }
+
+  public java.util.List<String> getGroups() {
+    return groups;
+  }
+
+  public void setGroups(java.util.List<String> groups) {
+    this.groups = groups;
+  }
+
   @Override
   public String toString() {
     return "WebhookPayload{" + "eventType='" + eventType + '\'' + ", time=" + time + ", type='"
         + type + '\'' + ", realm='" + realm + '\'' + ", tenantKey='" + tenantKey + '\''
         + ", tenantId='" + tenantId + '\'' + ", userId='" + userId + '\'' + ", username='"
         + username + '\'' + ", email='" + email + '\'' + ", firstName='" + firstName + '\''
-        + ", lastName='" + lastName + '\'' + '}';
+        + ", lastName='" + lastName + '\'' + ", attributes=" + attributes + ", roles=" + roles
+        + ", groups=" + groups + '}';
   }
 }

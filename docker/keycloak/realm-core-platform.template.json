@@ -28,6 +28,25 @@
     "_browser_header.xContentTypeOptions": "nosniff",
     "_browser_header.referrerPolicy": "no-referrer"
   },
+  "eventsEnabled": true,
+  "eventsExpiration": 2592000,
+  "eventsListeners": ["jboss-logging", "muriel-webhook"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR", 
+    "REGISTER",
+    "REGISTER_ERROR",
+    "LOGOUT",
+    "LOGOUT_ERROR",
+    "UPDATE_PROFILE",
+    "UPDATE_PROFILE_ERROR",
+    "UPDATE_PASSWORD",
+    "UPDATE_PASSWORD_ERROR",
+    "UPDATE_EMAIL",
+    "UPDATE_EMAIL_ERROR"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
   "requiredActions": [
     {
       "alias": "VERIFY_EMAIL",

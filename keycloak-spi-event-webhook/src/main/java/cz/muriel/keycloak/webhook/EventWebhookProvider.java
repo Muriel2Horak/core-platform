@@ -40,7 +40,17 @@ public class EventWebhookProvider implements EventListenerProvider {
 
   @Override
   public void onEvent(Event event) {
-    if (!enabledTypes.contains(event.getType().name())) {
+    // 🧪 DEBUGGING: Temporarily allow ALL event types to see what Keycloak sends
+    logger.infof("🔍 DEBUG: Received event type: %s from realm: %s", event.getType().name(),
+        session.getContext().getRealm().getName());
+
+    // 🎯 EVENT MAPPING: Map Keycloak event types to backend event types
+    String mappedEventType = mapKeycloakEventType(event.getType().name());
+
+    // Check if the mapped event type is enabled
+    if (!enabledTypes.contains(mappedEventType)) {
+      logger.debugf("Ignoring event type: %s (mapped to %s)", event.getType().name(),
+          mappedEventType);
       return;
     }
 
@@ -56,14 +66,18 @@ public class EventWebhookProvider implements EventListenerProvider {
       // 🎯 CLEAN ARCHITECTURE: realm name IS the tenant key
       String tenantKey = realm.getName();
 
-      // Skip events from admin realm (system admin realm)
-      if ("admin".equals(tenantKey)) {
-        logger.debugf("Skipping event from admin realm (system admin realm)");
-        return;
-      }
+      // 🧪 TESTING: Allow admin realm events for testing purposes
+      // TODO: Re-enable this check for production
+      /*
+       * if ("admin".equals(tenantKey)) {
+       * logger.debugf("Skipping event from admin realm (system admin realm)");
+       * return; }
+       */
+      logger.infof("📧 Processing event from realm: %s, type: %s, user: %s", tenantKey,
+          event.getType().name(), user.getUsername());
 
       WebhookPayload payload = new WebhookPayload();
-      payload.setEventType(event.getType().name());
+      payload.setEventType(mappedEventType); // ✅ Use mapped event type
       payload.setTime(event.getTime());
       payload.setRealm(realm.getName());
       payload.setTenantKey(tenantKey); // realm name IS the tenant key
@@ -72,6 +86,35 @@ public class EventWebhookProvider implements EventListenerProvider {
       payload.setEmail(user.getEmail());
       payload.setFirstName(user.getFirstName());
       payload.setLastName(user.getLastName());
+
+      // ✅ NOVÉ: Načítání custom atributů
+      Map<String, String> flatAttributes = new HashMap<>();
+      Map<String, java.util.List<String>> userAttributes = user.getAttributes();
+      if (userAttributes != null) {
+        userAttributes.forEach((key, values) -> {
+          if (values != null && !values.isEmpty()) {
+            // Pro webhook použijeme pouze první hodnotu (flattened)
+            flatAttributes.put(key, values.get(0));
+          }
+        });
+      }
+      payload.setAttributes(flatAttributes);
+
+      // ✅ NOVÉ: Načítání rolí
+      Map<String, Object> rolesMap = new HashMap<>();
+      java.util.List<String> realmRoles = user.getRealmRoleMappingsStream()
+          .map(role -> role.getName()).collect(java.util.stream.Collectors.toList());
+      rolesMap.put("realm", realmRoles);
+      payload.setRoles(rolesMap);
+
+      // ✅ NOVÉ: Načítání skupin - opraveno getName() místo getPath()
+      java.util.List<String> groupsList = user.getGroupsStream().map(group -> group.getName()) // ✅
+                                                                                               // Opraveno:
+                                                                                               // getName()
+                                                                                               // místo
+                                                                                               // getPath()
+          .collect(java.util.stream.Collectors.toList());
+      payload.setGroups(groupsList);
 
       sendWebhook(payload);
 
@@ -92,11 +135,15 @@ public class EventWebhookProvider implements EventListenerProvider {
       // 🎯 CLEAN ARCHITECTURE: realm name IS the tenant key
       String tenantKey = realm.getName();
 
-      // Skip events from admin realm (system admin realm)
-      if ("admin".equals(tenantKey)) {
-        logger.debugf("Skipping admin event from admin realm");
-        return;
-      }
+      // 🧪 TESTING: Allow admin realm events for testing purposes
+      // TODO: Re-enable this check for production
+      /*
+       * if ("admin".equals(tenantKey)) {
+       * logger.debugf("Skipping admin event from admin realm"); return; }
+       */
+
+      logger.infof("🔍 DEBUG: Received admin event type: %s from realm: %s",
+          adminEvent.getOperationType().name(), tenantKey);
 
       WebhookPayload payload = new WebhookPayload();
       payload.setEventType(adminEvent.getOperationType().name());
@@ -184,6 +231,30 @@ public class EventWebhookProvider implements EventListenerProvider {
 
     String userId = parts[1];
     return userId.isEmpty() ? null : userId;
+  }
+
+  /**
+   * Maps Keycloak event types to backend event types.
+   */
+  private String mapKeycloakEventType(String keycloakEventType) {
+    switch (keycloakEventType) {
+    case "REGISTER":
+      return "USER_CREATED";
+    case "UPDATE_PROFILE":
+      return "USER_UPDATED"; // ✅ KLÍČOVÉ MAPOVÁNÍ!
+    case "UPDATE_PASSWORD":
+      return "USER_UPDATED";
+    case "UPDATE_EMAIL":
+      return "USER_UPDATED";
+    case "LOGIN":
+      return "LOGIN"; // Keep as is for logging
+    case "LOGOUT":
+      return "LOGOUT"; // Keep as is for logging
+    case "LOGIN_ERROR":
+      return "LOGIN_ERROR"; // Keep as is for logging
+    default:
+      return keycloakEventType; // Default to the same type if no mapping exists
+    }
   }
 
   @Override

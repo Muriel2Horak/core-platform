@@ -246,10 +246,7 @@ class ApiService {
   }
 
   // 🆕 TENANT INFO ENDPOINTS
-  async getCurrentTenant() {
-    const response = await axios.get('/api/tenants/me');
-    return response.data;
-  }
+  // ❌ REMOVED: getCurrentTenant() - už není potřeba, tenant je v user objektu
 
   async getAllTenants() {
     const response = await axios.get('/api/tenants');

@@ -67,6 +67,35 @@ public class UserDirectoryEntity extends MultiTenantEntity {
   @Column(name = "title")
   private String title;
 
+  // ✅ OPRAVENO: Rozšířené organizační atributy (bez konfliktu manager)
+  @Column(name = "position")
+  private String position;
+
+  @Column(name = "manager_username")
+  private String managerUsername; // ✅ Přejmenováno aby nekonflikovalo s manager entitou
+
+  @Column(name = "cost_center")
+  private String costCenter;
+
+  @Column(name = "location")
+  private String location;
+
+  @Column(name = "phone")
+  private String phone;
+
+  // ✅ NOVÉ: Zástupství
+  @Column(name = "deputy_username")
+  private String deputy;
+
+  @Column(name = "deputy_from")
+  private java.time.LocalDate deputyFrom;
+
+  @Column(name = "deputy_to")
+  private java.time.LocalDate deputyTo;
+
+  @Column(name = "deputy_reason")
+  private String deputyReason;
+
   @Column(name = "created_at")
   private LocalDateTime createdAt;
 

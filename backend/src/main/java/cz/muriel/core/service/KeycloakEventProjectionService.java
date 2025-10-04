@@ -154,6 +154,36 @@ public class KeycloakEventProjectionService {
       user.setPhoneNumber(event.getAttributes().get("phoneNumber"));
       user.setDepartment(event.getAttributes().get("department"));
       user.setTitle(event.getAttributes().get("title"));
+
+      // ✅ NOVÉ: Rozšířené organizační atributy
+      user.setPosition(event.getAttributes().get("position"));
+      user.setManagerUsername(event.getAttributes().get("manager")); // ✅ Opraveno název metody
+      user.setCostCenter(event.getAttributes().get("costCenter"));
+      user.setLocation(event.getAttributes().get("location"));
+      user.setPhone(event.getAttributes().get("phone"));
+
+      // Zástupství
+      user.setDeputy(event.getAttributes().get("deputy"));
+      user.setDeputyReason(event.getAttributes().get("deputyReason"));
+
+      // Datum atributy - bezpečné parsování
+      String deputyFromStr = event.getAttributes().get("deputyFrom");
+      if (deputyFromStr != null && !deputyFromStr.isEmpty()) {
+        try {
+          user.setDeputyFrom(java.time.LocalDate.parse(deputyFromStr));
+        } catch (Exception e) {
+          log.warn("Failed to parse deputyFrom date: {}", deputyFromStr);
+        }
+      }
+
+      String deputyToStr = event.getAttributes().get("deputyTo");
+      if (deputyToStr != null && !deputyToStr.isEmpty()) {
+        try {
+          user.setDeputyTo(java.time.LocalDate.parse(deputyToStr));
+        } catch (Exception e) {
+          log.warn("Failed to parse deputyTo date: {}", deputyToStr);
+        }
+      }
     }
 
     userDirectoryRepository.save(user);

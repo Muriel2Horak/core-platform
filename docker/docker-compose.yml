@@ -105,7 +105,7 @@ services:
       # 🔗 KEYCLOAK WEBHOOK Configuration - OPRAVENO: používá stejný secret jako Keycloak SPI
       - APP_KEYCLOAK_WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
       - KC_EVENT_WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
-      - keycloak.webhook.hmac-secret=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
+      - KEYCLOAK_WEBHOOK_HMAC_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
       # 📅 KEYCLOAK BACKFILL Configuration
       - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
       - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
