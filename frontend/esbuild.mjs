@@ -1,6 +1,6 @@
 import { build, context } from 'esbuild';
-import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
-import { join, dirname } from 'path';
+import { copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { join } from 'path';
 
 const isDev = process.argv.includes('--watch');
 const isProduction = !isDev;

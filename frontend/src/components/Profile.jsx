@@ -37,15 +37,13 @@ import {
   AccountBalance as CostCenterIcon,
 } from '@mui/icons-material';
 
-// 🎨 Import nového design systému
-import { 
-  PageHeader, 
-  FormField, 
-  AppButton, 
-  Loader, 
-  EmptyState,
-  tokens 
-} from '../shared';
+// 🎨 Import nového design systému - OPRAVENO: jednotlivé importy z TypeScript souborů
+import PageHeader from '../shared/ui/PageHeader';
+import FormField from '../shared/ui/FormField';
+import AppButton from '../shared/ui/AppButton';
+import Loader from '../shared/ui/Loader';
+import EmptyState from '../shared/ui/EmptyState';
+import { tokens } from '../shared/theme/tokens';
 
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
@@ -526,7 +524,14 @@ function Profile({ user }) {
                     size="large"
                     onClick={handleEditToggle}
                     disabled={saving}
-                    sx={{ mt: 2 }}
+                  >
+                    Zrušit
+                  </AppButton>
+                  <AppButton
+                    variant="primary"
+                    size="large"
+                    onClick={handleProfileSave}
+                    loading={saving}
                   >
                     {saving ? 'Ukládám...' : 'Uložit změny'}
                   </AppButton>

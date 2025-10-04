@@ -159,22 +159,22 @@ export const colors = {
     glassCard: 'linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 100%)',
   },
 
-  // 🗂️ SIDEBAR COLORS - WCAG AA Compliant
+  // 🗂️ SIDEBAR COLORS - Čistý profesionální design
   sidebar: {
-    // Gradient background (fialová → modrá)
-    bg: 'linear-gradient(180deg, #3f3d7a 0%, #2c3e50 100%)',
-    bgSolid: '#3f3d7a', // Fallback solid color
+    // Čistý tmavě šedý gradient - profesionální a časeless
+    bg: 'linear-gradient(180deg, #374151 0%, #1f2937 100%)', // Tmavě šedá → velmi tmavě šedá
+    bgSolid: '#374151', // Fallback tmavě šedá
     
-    // Text colors - WCAG AA compliant (4.5:1+ contrast)
-    text: 'rgba(255, 255, 255, 0.86)', // Primary text - 86% opacity = good contrast
-    textMuted: 'rgba(255, 255, 255, 0.64)', // Secondary text/icons - 64% opacity
+    // Text colors - maximální kontrast pro dokonalou čitelnost
+    text: '#ffffff', // Čistě bílý text pro maximální kontrast
+    textMuted: 'rgba(255, 255, 255, 0.80)', // 80% opacity pro ikony - stále dobře viditelné
     
-    // Interactive states
-    activeBg: 'rgba(255, 255, 255, 0.16)', // Active item background
-    hoverBg: 'rgba(255, 255, 255, 0.10)',  // Hover background
+    // Interactive states - jemné ale viditelné
+    activeBg: 'rgba(255, 255, 255, 0.12)', // Jemný bílý overlay pro aktivní položky
+    hoverBg: 'rgba(255, 255, 255, 0.08)',  // Jemný hover efekt
     
-    // Active accent pill
-    activePill: '#667eea', // Primary color for active indicator
+    // Active accent - moderní modrá pro accent
+    activePill: '#3b82f6', // Čistě modrá pro aktivní indikátor (místo fialové)
   },
 
   // 🎯 FOCUS RING - Enhanced for better visibility

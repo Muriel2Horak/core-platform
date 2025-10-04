@@ -100,19 +100,19 @@ export const coreMaterialTheme = createTheme({
   palette: {
     mode: 'light',
     
-    // Primární brand barva - profesionální modrá
+    // Primární brand barva - sjednocená s React aplikací
     primary: {
-      main: '#1976d2',      // Hlavní brand barva podle design systému
-      light: '#E3F2FD',
-      dark: '#1565c0',
+      main: '#667eea',      // ✅ NOVÁ barva podle design systému!
+      light: '#8b95f8',
+      dark: '#4d68d1',
       contrastText: '#ffffff',
     },
     
-    // Sekundární barva
+    // Sekundární barva - sjednocená s React aplikací  
     secondary: {
-      main: '#9c27b0',      // Doplňková barva
-      light: '#E1F5FE',
-      dark: '#8e24aa',
+      main: '#764ba2',      // ✅ NOVÁ sekundární barva!
+      light: '#c084fc',
+      dark: '#5d3a82',
       contrastText: '#ffffff',
     },
     

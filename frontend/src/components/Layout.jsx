@@ -31,8 +31,9 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 
-// 🎨 Import nového design systému
-import { SidebarNav, tokens } from '../shared';
+// 🎨 Import nového design systému - OPRAVENO: přímý import z TypeScript souborů
+import SidebarNav from '../shared/ui/SidebarNav';
+import { tokens } from '../shared/theme/tokens';
 import { defaultMenuItems } from '../shared/ui/SidebarNav';
 import apiService from '../services/api.js';
 import { UserPropType } from '../shared/propTypes.js';
@@ -178,7 +179,7 @@ function Layout({ children, user, onLogout }) {
           WebkitBackdropFilter: 'blur(20px)',
           color: 'white',
           textAlign: 'center',
-          border: `1px solid ${tokens.colors.white}30`, // 30 = alpha
+          border: `1px solid ${tokens.colors.white}30`,
           boxShadow: tokens.shadows.glass,
         }}
       >
@@ -198,106 +199,14 @@ function Layout({ children, user, onLogout }) {
       </Paper>
 
       {/* 🎨 Nový SidebarNav komponent */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
+      <Box sx={{ flexGrow: 1, overflow: 'auto', px: 1 }}>
         <SidebarNav
           onItemClick={handleSidebarNavClick}
           currentPath={location.pathname}
           userRoles={user?.roles || []}
-          compact={false}
+          collapsed={false}
         />
       </Box>
-
-      {/* User info footer */}
-      <Paper 
-        elevation={0}
-        sx={{ 
-          m: 2, 
-          p: 2, 
-          borderRadius: tokens.radius.xl,
-          background: tokens.colors.gradients.glassCard,
-          backdropFilter: 'blur(25px)',
-          WebkitBackdropFilter: 'blur(25px)',
-          border: `1px solid ${tokens.colors.white}30`,
-          boxShadow: tokens.shadows.glass,
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <Avatar 
-            sx={{ 
-              bgcolor: 'rgba(255,255,255,0.3)', 
-              mr: 2, 
-              width: 40, 
-              height: 40,
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: 'white',
-              border: '2px solid rgba(255,255,255,0.3)',
-              boxShadow: tokens.shadows.md,
-            }}
-          >
-            {getUserInitials()}
-          </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="body2" sx={{ 
-              fontWeight: tokens.typography.fontWeight.semibold, 
-              color: 'white',
-              fontSize: tokens.typography.fontSize.sm,
-            }}>
-              {getUserDisplayName()}
-            </Typography>
-            <Typography variant="caption" sx={{ 
-              fontSize: tokens.typography.fontSize.xs,
-              color: 'rgba(255,255,255,0.8)' 
-            }}>
-              {user?.email}
-            </Typography>
-          </Box>
-        </Box>
-        
-        {/* User roles chips */}
-        {user?.roles && user.roles.length > 0 && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-            {user.roles.slice(0, 2).map((role) => (
-              <Chip
-                key={role}
-                label={role.replace('CORE_ROLE_', '')}
-                size="small"
-                sx={{ 
-                  fontSize: tokens.typography.fontSize.xs,
-                  height: 18,
-                  background: role.includes('ADMIN') 
-                    ? 'rgba(244, 67, 54, 0.3)' 
-                    : 'rgba(255,255,255,0.25)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  color: 'white',
-                  '& .MuiChip-label': { 
-                    px: 0.8, 
-                    fontWeight: tokens.typography.fontWeight.bold 
-                  }
-                }}
-              />
-            ))}
-            {user.roles.length > 2 && (
-              <Chip
-                label={`+${user.roles.length - 2}`}
-                size="small"
-                sx={{ 
-                  fontSize: tokens.typography.fontSize.xs,
-                  height: 18,
-                  background: 'rgba(255,255,255,0.25)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  color: 'white',
-                  '& .MuiChip-label': { 
-                    px: 0.8, 
-                    fontWeight: tokens.typography.fontWeight.bold 
-                  }
-                }}
-              />
-            )}
-          </Box>
-        )}
-      </Paper>
     </Box>
   );
 
@@ -525,7 +434,6 @@ function Layout({ children, user, onLogout }) {
               opacity: tenant.key === currentTenant?.key ? 0.6 : 1
             }}
           >
-            {/* ...existing tenant menu content... */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
               <Avatar
                 sx={{

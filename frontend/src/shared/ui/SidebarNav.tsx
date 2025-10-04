@@ -205,7 +205,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         <ListItemIcon
           sx={{
             minWidth: collapsed ? 'auto' : 40,
-            color: active ? tokens.colors.primary[600] : tokens.colors.grey[600],
+            color: active ? tokens.colors.white : tokens.colors.sidebar.textMuted, // ✅ Bílé ikony na tmavém pozadí
             transition: 'color 0.2s ease-in-out',
           }}
         >
@@ -225,8 +225,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                       ? tokens.typography.fontWeight.semibold 
                       : tokens.components.sidebar.fontWeight,
                     color: active 
-                      ? tokens.colors.primary[700] 
-                      : tokens.colors.grey[700],
+                      ? tokens.colors.white // ✅ Aktivní text bílý
+                      : tokens.colors.sidebar.text, // ✅ Neaktivní text také bílý
                     transition: 'all 0.2s ease-in-out',
                   }}
                 >

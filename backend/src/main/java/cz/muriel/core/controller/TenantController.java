@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-@RestController @RequestMapping("/api/tenants") @RequiredArgsConstructor @Slf4j @PreAuthorize("hasAnyAuthority('CORE_ROLE_USER', 'CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN')")
+@RestController @RequestMapping("/api/tenants") @RequiredArgsConstructor @Slf4j
 public class TenantController {
 
   private final TenantService tenantService;
 
-  @GetMapping("/me")
+  @GetMapping("/me") @PreAuthorize("hasAnyAuthority('CORE_ROLE_USER', 'CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN', 'CORE_ROLE_TENANT_ADMIN')")
   public ResponseEntity<Map<String, Object>> getCurrentTenant() {
     var tenant = tenantService.getCurrentTenant();
 
