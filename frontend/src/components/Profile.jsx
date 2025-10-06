@@ -793,6 +793,58 @@ function Profile({ user }) {
                       />
                     </Grid>
 
+                    {/* ✅ NOVÉ: Role uživatele */}
+                    <Grid item xs={12}>
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Přiřazené role
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {user?.roles && user.roles.length > 0 ? (
+                          user.roles.map((role, index) => {
+                            // Mapování rolí na zobrazované názvy
+                            const roleDisplayName = {
+                              'CORE_ROLE_ADMIN': 'Administrátor',
+                              'CORE_USER_MANAGER': 'Správce uživatelů',
+                              'CORE_ROLE_USER': 'Uživatel',
+                            }[role] || role.replace('CORE_ROLE_', '');
+
+                            // Barva podle typu role
+                            const roleColor = {
+                              'CORE_ROLE_ADMIN': 'error',
+                              'CORE_USER_MANAGER': 'warning',
+                              'CORE_ROLE_USER': 'success',
+                            }[role] || 'default';
+
+                            return (
+                              <Chip
+                                key={index}
+                                label={roleDisplayName}
+                                size="small"
+                                color={roleColor}
+                                icon={<SecurityIcon />}
+                                sx={{ 
+                                  fontWeight: 600,
+                                  borderRadius: tokens.radius.md,
+                                }}
+                              />
+                            );
+                          })
+                        ) : (
+                          <Chip
+                            label="Žádné role"
+                            size="small"
+                            variant="outlined"
+                            sx={{ borderRadius: tokens.radius.md }}
+                          />
+                        )}
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Role určují vaše oprávnění v systému
+                      </Typography>
+                    </Grid>
+
                     {/* Ověření emailu */}
                     <Grid item xs={12}>
                       <Box display="flex" alignItems="center" justifyContent="space-between" p={1}>

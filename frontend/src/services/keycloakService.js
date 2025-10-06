@@ -318,6 +318,10 @@ class KeycloakService {
     // 🔐 FIXED: Set logger as unauthenticated immediately to prevent 401 loops
     logger.setAuthenticated(false);
 
+    // 🔧 IMPORTANT: Save reference to keycloak instance before clearing
+    const keycloakRef = this.keycloak;
+    const idToken = keycloakRef?.idToken;
+
     // Stop token refresh immediately
     if (this._refreshInterval) {
       clearInterval(this._refreshInterval);
@@ -356,14 +360,13 @@ class KeycloakService {
     }
 
     try {
-      // Get current tokens before clearing
-      const idToken = this.keycloak.idToken;
-      
-      // Clear Keycloak instance tokens
-      this.keycloak.token = null;
-      this.keycloak.refreshToken = null;
-      this.keycloak.idToken = null;
-      this.keycloak.authenticated = false;
+      // Clear Keycloak instance tokens using saved reference
+      if (keycloakRef) {
+        keycloakRef.token = null;
+        keycloakRef.refreshToken = null;
+        keycloakRef.idToken = null;
+        keycloakRef.authenticated = false;
+      }
       
       // 🔧 FIXED: Clear the Keycloak instance reference completely
       this.keycloak = null;

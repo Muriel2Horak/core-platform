@@ -123,7 +123,7 @@ const ProtectedRoute = ({ children }) => {
 
 // Main App Content
 const AppContent = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user, logout } = useAuth();
 
   if (loading) {
     return <LoginPage />;
@@ -134,24 +134,24 @@ const AppContent = () => {
   }
 
   return (
-    <Layout>
+    <Layout user={user} onLogout={logout}>
       <Routes>
         {/* Hlavní dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard user={user} />} />
         
         {/* User management */}
-        <Route path="/users" element={<Users />} />
-        <Route path="/user-directory" element={<UserDirectory />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/users" element={<Users user={user} />} />
+        <Route path="/user-directory" element={<UserDirectory user={user} />} />
+        <Route path="/profile" element={<Profile user={user} />} />
         
         {/* Tenant management */}
-        <Route path="/tenants" element={<Tenants />} />
-        <Route path="/tenant-management" element={<TenantManagement />} />
+        <Route path="/tenants" element={<Tenants user={user} />} />
+        <Route path="/tenant-management" element={<TenantManagement user={user} />} />
         
         {/* Example pages */}
-        <Route path="/examples/data-table" element={<DataTablePage />} />
-        <Route path="/examples/kanban" element={<KanbanPage />} />
+        <Route path="/examples/data-table" element={<DataTablePage user={user} />} />
+        <Route path="/examples/kanban" element={<KanbanPage user={user} />} />
         
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

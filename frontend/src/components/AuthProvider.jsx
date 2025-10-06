@@ -69,13 +69,22 @@ export const AuthProvider = ({ children }) => {
             // Get basic info from JWT as fallback
             const jwtUserInfo = keycloakService.getUserInfo();
             
-            // Merge JWT info with API data (API data takes priority)
+            // 🔍 DEBUG: Log raw data
+            console.log('🔍 DEBUG: JWT user info:', jwtUserInfo);
+            console.log('🔍 DEBUG: API user data:', completeUserData);
+            
+            // 🔧 FIXED: Merge with API data priority (API has tenant from TenantContext)
             const userInfo = {
               ...jwtUserInfo,
               ...completeUserData,
-              // Ensure roles come from JWT (more up-to-date)
-              roles: jwtUserInfo?.roles || completeUserData?.roles || []
+              // Ensure critical fields - API tenant is from TenantContext (more reliable)
+              roles: jwtUserInfo?.roles || completeUserData?.roles || [],
+              tenant: completeUserData?.tenant || jwtUserInfo?.tenant  // 🔧 API tenant má prioritu (z TenantContext)
             };
+            
+            // 🔍 DEBUG: Log merged user info
+            console.log('🔍 DEBUG: Merged user info:', userInfo);
+            console.log('🔍 DEBUG: Final roles:', userInfo.roles);
             
             setUser(userInfo);
             setIsAuthenticated(true);
@@ -83,6 +92,8 @@ export const AuthProvider = ({ children }) => {
             logger.info('✅ User session established with complete data', {
               username: userInfo.username,
               tenant: userInfo.tenant,
+              roles: userInfo.roles, // 🔍 Přidáno do logu
+              tenantSource: completeUserData?.tenant ? 'API (TenantContext)' : 'JWT',
               hasCompletData: !!completeUserData
             });
           } catch (error) {
