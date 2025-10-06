@@ -4,6 +4,7 @@ import cz.muriel.core.dto.RoleCreateRequest;
 import cz.muriel.core.dto.UserCreateRequest;
 import cz.muriel.core.dto.UserDto;
 import cz.muriel.core.dto.UserUpdateRequest;
+import cz.muriel.core.entity.Tenant; // 🆕 PŘIDÁNO
 import cz.muriel.core.auth.KeycloakAdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,11 +14,15 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j @Service @RequiredArgsConstructor
 public class KeycloakInitializationService implements ApplicationRunner {
 
   private final KeycloakAdminService keycloakAdminService;
+  private final TenantService tenantService; // 🆕 PŘIDÁNO: Pro inicializaci admin tenantu
 
   @Value("${keycloak.init.admin.username:CORE_SYSTEM_ADMIN}")
   private String systemAdminUsername;
@@ -46,6 +51,9 @@ public class KeycloakInitializationService implements ApplicationRunner {
         log.warn("Keycloak is not ready after waiting - skipping initialization");
         return;
       }
+
+      // 0. 🆕 Ensure admin tenant exists in database registry
+      ensureAdminTenantExists();
 
       // 1. Ensure CORE_USER_ADMIN role exists
       ensureAdminRoleExists();
@@ -265,6 +273,48 @@ public class KeycloakInitializationService implements ApplicationRunner {
     } catch (Exception e) {
       log.warn("Failed to initialize demo data: {}", e.getMessage());
       // Don't fail application startup
+    }
+  }
+
+  /**
+   * 🆕 TENANT REGISTRY INITIALIZATION - zajistí existenci admin tenantu v DB
+   */
+  private void ensureAdminTenantExists() {
+    try {
+      log.info("🏢 Ensuring admin tenant exists in database registry...");
+
+      // Check if admin tenant exists
+      Optional<Tenant> existingTenant = tenantService.findTenantByKey("admin");
+
+      if (existingTenant.isEmpty()) {
+        log.info("📝 Creating admin tenant registry entry...");
+        tenantService.createTenantRegistry("admin");
+        log.info("✅ Admin tenant created in database registry");
+      } else {
+        log.info("✅ Admin tenant already exists in database registry");
+
+        // 🆕 Ensure keycloak_realm_id is populated
+        Tenant tenant = existingTenant.get();
+        if (tenant.getKeycloakRealmId() == null) {
+          log.info("🔄 Updating admin tenant with Keycloak realm_id...");
+
+          // Fetch realm info from Keycloak
+          List<Map<String, Object>> realms = keycloakAdminService.getAllRealms();
+          for (Map<String, Object> realm : realms) {
+            if ("admin".equals(realm.get("realm"))) {
+              String realmId = (String) realm.get("id");
+              tenant.setKeycloakRealmId(realmId);
+              tenantService.updateTenant(tenant);
+              log.info("✅ Updated admin tenant with keycloak_realm_id: {}", realmId);
+              break;
+            }
+          }
+        }
+      }
+
+    } catch (Exception e) {
+      log.error("❌ Failed to ensure admin tenant exists: {}", e.getMessage());
+      throw new RuntimeException("Failed to initialize admin tenant registry", e);
     }
   }
 

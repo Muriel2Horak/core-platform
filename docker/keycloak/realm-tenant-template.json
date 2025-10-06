@@ -151,8 +151,7 @@
   "eventsEnabled": true,
   "eventsExpiration": 2592000,
   "eventsListeners": [
-    "jboss-logging",
-    "muriel-webhook"
+    "jboss-logging"
   ],
   "enabledEventTypes": [
     "LOGIN",

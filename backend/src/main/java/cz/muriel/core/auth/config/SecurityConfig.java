@@ -1,7 +1,6 @@
 package cz.muriel.core.auth.config;
 
 import cz.muriel.core.auth.CookieBearerTokenResolver;
-import cz.muriel.core.auth.security.WebhookHmacFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,7 +15,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
@@ -35,18 +33,14 @@ public class SecurityConfig {
   @Value("${security.oauth2.audience:api}")
   private String allowedAudience;
 
-  private final WebhookHmacFilter webhookHmacFilter;
   private final DynamicJwtDecoder dynamicJwtDecoder;
 
-  public SecurityConfig(WebhookHmacFilter webhookHmacFilter, DynamicJwtDecoder dynamicJwtDecoder) {
-    this.webhookHmacFilter = webhookHmacFilter;
+  public SecurityConfig(DynamicJwtDecoder dynamicJwtDecoder) {
     this.dynamicJwtDecoder = dynamicJwtDecoder;
   }
 
   @Bean
-  SecurityFilterChain securityFilterChain(HttpSecurity http,
-      BearerTokenResolver bearerTokenResolver,
-      JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+  SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
     http.csrf(csrf -> csrf.disable())
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -65,12 +59,9 @@ public class SecurityConfig {
             // All other API endpoints require authentication
             .requestMatchers("/api/**").authenticated().anyRequest().permitAll())
 
-        .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver)
+        .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver())
             .jwt(jwt -> jwt.decoder(dynamicJwtDecoder)
-                .jwtAuthenticationConverter(jwtAuthenticationConverter)));
-
-    // Add webhook HMAC filter for internal endpoints
-    http.addFilterBefore(webhookHmacFilter, UsernamePasswordAuthenticationFilter.class);
+                .jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
     return http.build();
   }

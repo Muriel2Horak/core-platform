@@ -1,0 +1,14 @@
+# Dev Container artifacts
+*.log
+*.tmp
+.env.devcontainer
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json

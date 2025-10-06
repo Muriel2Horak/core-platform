@@ -82,17 +82,6 @@ public class TenantService {
   }
 
   /**
-   * 🎯 DEPRECATED: Use getTenantDisplayName() instead
-   * 
-   * @deprecated This method is kept for backward compatibility only
-   */
-  @Deprecated(forRemoval = true)
-  public String getTenantNameByKey(String tenantKey) {
-    log.warn("DEPRECATED: getTenantNameByKey() called - use getTenantDisplayName() instead");
-    return getTenantDisplayName(tenantKey);
-  }
-
-  /**
    * 🎯 CLEAN ARCHITECTURE: Find tenant by key Used by webhook processing -
    * tenants must exist in DB as registry
    */
@@ -101,18 +90,112 @@ public class TenantService {
   }
 
   /**
+   * 🔍 CDC SUPPORT: Find tenant by Keycloak realm_id 🆕 OPTIMIZED: Uses
+   * keycloak_realm_id column for direct lookup
+   */
+  public Optional<Tenant> findTenantByRealmId(String realmId) {
+    if (realmId == null || realmId.isEmpty()) {
+      return Optional.empty();
+    }
+
+    try {
+      // 🆕 PRIMARY: Direct lookup using keycloak_realm_id column
+      Optional<Tenant> tenant = tenantRepository.findByKeycloakRealmId(realmId);
+
+      if (tenant.isPresent()) {
+        log.debug("✅ Found tenant by keycloak_realm_id: {} -> {}", realmId, tenant.get().getKey());
+        return tenant;
+      }
+
+      // FALLBACK: Query Keycloak API (for tenants not yet synced)
+      log.debug("🔍 Tenant not found by realm_id, querying Keycloak API: {}", realmId);
+      List<Map<String, Object>> realms = keycloakAdminService.getAllRealms();
+
+      for (Map<String, Object> realm : realms) {
+        String id = (String) realm.get("id");
+        if (realmId.equals(id)) {
+          String realmName = (String) realm.get("realm");
+          if (realmName != null) {
+            log.debug("Mapped realm_id {} to tenant_key {} via Keycloak API", realmId, realmName);
+
+            // Update tenant with keycloak_realm_id for future lookups
+            Optional<Tenant> foundTenant = findTenantByKey(realmName);
+            if (foundTenant.isPresent()) {
+              Tenant t = foundTenant.get();
+              if (t.getKeycloakRealmId() == null) {
+                t.setKeycloakRealmId(realmId);
+                tenantRepository.save(t);
+                log.info("✅ Updated tenant {} with keycloak_realm_id: {}", realmName, realmId);
+              }
+              return foundTenant;
+            }
+          }
+        }
+      }
+
+      log.debug("Could not find realm with id: {}", realmId);
+      return Optional.empty();
+
+    } catch (Exception e) {
+      log.error("Failed to find tenant by realm_id {}: {}", realmId, e.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  /**
    * ⚠️ ADMIN ONLY: Create new tenant registry entry 🎯 OPTIMIZED: Uses
-   * deterministic UUID generation for consistent tenant IDs
+   * deterministic UUID generation for consistent tenant IDs 🆕 ENHANCED:
+   * Automatically fetches and stores keycloak_realm_id
    */
   public Tenant createTenantRegistry(String tenantKey) {
     log.info("🆕 Creating tenant registry entry with deterministic UUID: key={}", tenantKey);
 
-    // 🔧 NEW: Use deterministic UUID generation
-    Tenant newTenant = Tenant.builder().key(tenantKey).id(Tenant.generateUuidFromKey(tenantKey)) // Deterministické
-                                                                                                 // UUID
-        .build();
+    // Fetch realm info from Keycloak to get realm ID
+    String keycloakRealmId = null;
+    try {
+      List<Map<String, Object>> realms = keycloakAdminService.getAllRealms();
+      for (Map<String, Object> realm : realms) {
+        if (tenantKey.equals(realm.get("realm"))) {
+          keycloakRealmId = (String) realm.get("id");
+          log.debug("✅ Found Keycloak realm_id for {}: {}", tenantKey, keycloakRealmId);
+          break;
+        }
+      }
+    } catch (Exception e) {
+      log.warn("⚠️ Could not fetch Keycloak realm_id for {}: {}", tenantKey, e.getMessage());
+    }
+
+    // Create tenant with deterministic UUID and Keycloak realm ID
+    Tenant newTenant = Tenant.builder().key(tenantKey).id(Tenant.generateUuidFromKey(tenantKey))
+        .keycloakRealmId(keycloakRealmId).build();
 
     return tenantRepository.save(newTenant);
+  }
+
+  /**
+   * 🆕 Create tenant registry with explicitly provided Keycloak realm ID Used
+   * when creating tenant through KeycloakRealmManagementService
+   */
+  public Tenant createTenantRegistryWithRealmId(String tenantKey, String keycloakRealmId) {
+    log.info("🆕 Creating tenant registry entry: key={}, realm_id={}", tenantKey, keycloakRealmId);
+
+    // Create tenant with deterministic UUID and provided Keycloak realm ID
+    Tenant newTenant = Tenant.builder().key(tenantKey).id(Tenant.generateUuidFromKey(tenantKey))
+        .keycloakRealmId(keycloakRealmId).build();
+
+    Tenant saved = tenantRepository.save(newTenant);
+    log.info("✅ Tenant registry created: {} (id: {}, realm_id: {})", saved.getKey(), saved.getId(),
+        saved.getKeycloakRealmId());
+
+    return saved;
+  }
+
+  /**
+   * 🆕 Update existing tenant (for updating keycloak_realm_id)
+   */
+  public Tenant updateTenant(Tenant tenant) {
+    log.debug("Updating tenant: {}", tenant.getKey());
+    return tenantRepository.save(tenant);
   }
 
   /**

@@ -68,9 +68,24 @@ const buildOptions = {
 };
 
 if (isDev) {
-  // Development mode with watch using context
-  const ctx = await context(buildOptions);
+  // Development mode with watch and dev server
+  const ctx = await context({
+    ...buildOptions,
+    banner: {
+      js: '(() => new EventSource("/esbuild").addEventListener("change", () => location.reload()))();',
+    },
+  });
+  
   await ctx.watch();
+  
+  // Start dev server
+  const { host, port } = await ctx.serve({
+    servedir: 'dist',
+    port: 8080,
+    host: '0.0.0.0',
+  });
+  
+  console.log(`🚀 Dev server running at http://${host}:${port}`);
   console.log('👀 Watching for changes...');
 } else {
   // Production build

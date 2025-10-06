@@ -1,0 +1,172 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Dev: Start All Services",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env up -d",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Dev: Start with Watch",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env watch",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "isBackground": true
+    },
+    {
+      "label": "Dev: Stop All Services",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env down",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Dev: Restart All Services",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env restart",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Dev: View Logs (All)",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env logs -f",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Dev: View Logs (Backend)",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env logs -f backend",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Dev: View Logs (Frontend)",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env logs -f frontend nginx",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Dev: Check Environment",
+      "type": "shell",
+      "command": "bash scripts/devcontainer/test-env-check.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Frontend: Manual Build",
+      "type": "shell",
+      "command": "cd frontend && npm run build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Frontend: Rebuild in Container",
+      "type": "shell",
+      "command": "docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env exec frontend sh -c 'npm run build'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Backend: Run Tests",
+      "type": "shell",
+      "command": "cd backend && ./mvnw test",
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Backend: Package",
+      "type": "shell",
+      "command": "cd backend && ./mvnw clean package -DskipTests",
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Frontend: Run Tests",
+      "type": "shell",
+      "command": "cd frontend && npm test -- --run",
+      "problemMatcher": "$tsc",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Frontend: Lint",
+      "type": "shell",
+      "command": "cd frontend && npm run lint",
+      "problemMatcher": "$eslint-stylish",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Frontend: Type Check",
+      "type": "shell",
+      "command": "cd frontend && npm run typecheck",
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

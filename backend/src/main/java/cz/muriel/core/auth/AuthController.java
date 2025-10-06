@@ -175,11 +175,13 @@ public class AuthController {
       userInfo.put("session_id", jwt.getClaimAsString("sid"));
 
       // Token timing info
-      if (jwt.getExpiresAt() != null) {
-        userInfo.put("token_expires_at", jwt.getExpiresAt().getEpochSecond());
+      Instant expiresAt = jwt.getExpiresAt();
+      if (expiresAt != null) {
+        userInfo.put("token_expires_at", expiresAt.getEpochSecond());
       }
-      if (jwt.getIssuedAt() != null) {
-        userInfo.put("token_issued_at", jwt.getIssuedAt().getEpochSecond());
+      Instant issuedAt = jwt.getIssuedAt();
+      if (issuedAt != null) {
+        userInfo.put("token_issued_at", issuedAt.getEpochSecond());
       }
 
       auditLogger.debug("📋 USERINFO_BASIC: Basic user info extracted");

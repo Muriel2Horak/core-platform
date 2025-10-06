@@ -49,12 +49,30 @@ public class KeycloakRealmManagementService {
 
       // 3. Create Keycloak realm
       keycloakAdminService.createRealm(processedTemplate);
+      log.info("✅ Keycloak realm created: {}", tenantKey);
 
-      // 4. Register tenant in database
-      tenantService.createTenantRegistry(tenantKey);
+      // 4. Wait a bit for Keycloak to finalize realm creation
+      Thread.sleep(500);
 
-      log.info("✅ Tenant created successfully: {}", tenantKey);
+      // 5. Get realm ID from Keycloak
+      String keycloakRealmId = null;
+      try {
+        Map<String, Object> realmInfo = keycloakAdminService.getRealmInfo(tenantKey);
+        keycloakRealmId = (String) realmInfo.get("id");
+        log.info("✅ Retrieved Keycloak realm_id: {}", keycloakRealmId);
+      } catch (Exception e) {
+        log.warn("⚠️ Could not retrieve realm_id immediately after creation: {}", e.getMessage());
+      }
 
+      // 6. Register tenant in database with Keycloak realm ID
+      tenantService.createTenantRegistryWithRealmId(tenantKey, keycloakRealmId);
+
+      log.info("✅ Tenant created successfully: {} (realm_id: {})", tenantKey, keycloakRealmId);
+
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.error("❌ Thread interrupted while creating tenant: {}", tenantKey, e);
+      throw new RuntimeException("Thread interrupted: " + e.getMessage(), e);
     } catch (Exception e) {
       log.error("❌ Failed to create tenant: {}", tenantKey, e);
       throw new RuntimeException("Failed to create tenant: " + e.getMessage(), e);

@@ -100,7 +100,7 @@
   "adminTheme" : "core-material",
   "emailTheme" : "core-material",
   "eventsEnabled" : true,
-  "eventsListeners" : [ "jboss-logging", "muriel-webhook" ],
+  "eventsListeners" : [ "jboss-logging" ],
   "enabledEventTypes" : [ 
     "LOGIN",
     "LOGIN_ERROR", 

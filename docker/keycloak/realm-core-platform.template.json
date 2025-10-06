@@ -30,7 +30,7 @@
   },
   "eventsEnabled": true,
   "eventsExpiration": 2592000,
-  "eventsListeners": ["jboss-logging", "muriel-webhook"],
+  "eventsListeners": ["jboss-logging"],
   "enabledEventTypes": [
     "LOGIN",
     "LOGIN_ERROR", 

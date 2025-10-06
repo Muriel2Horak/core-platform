@@ -9,9 +9,12 @@ import lombok.Builder;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
-@Entity @Table(name = "users_directory") @Data @EqualsAndHashCode(callSuper = true) @NoArgsConstructor @AllArgsConstructor @SuperBuilder
+@Entity @Table(name = "users_directory") @Data @EqualsAndHashCode(callSuper = true, exclude = {
+    "roles", "groups" }) @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class UserDirectoryEntity extends MultiTenantEntity {
 
   @Id @GeneratedValue(strategy = GenerationType.AUTO)
@@ -101,6 +104,14 @@ public class UserDirectoryEntity extends MultiTenantEntity {
 
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
+
+  // ✅ V5 NOVÉ: Many-to-Many relationship s rolemi
+  @ManyToMany @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id")) @Builder.Default
+  private Set<RoleEntity> roles = new HashSet<>();
+
+  // ✅ V5 NOVÉ: Many-to-Many relationship se skupinami
+  @ManyToMany @JoinTable(name = "user_groups", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "group_id")) @Builder.Default
+  private Set<GroupEntity> groups = new HashSet<>();
 
   @PrePersist
   protected void onCreate() {

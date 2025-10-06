@@ -1,0 +1,28 @@
+# Development Dockerfile for Spring Boot Backend
+# Hot reload enabled with Spring DevTools
+
+FROM eclipse-temurin:21-jdk-jammy
+
+WORKDIR /workspace
+
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y maven && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Maven wrapper (will be overridden by volume mount)
+COPY backend/mvnw* ./
+COPY backend/.mvn ./.mvn
+
+# Pre-download dependencies (cache layer)
+COPY backend/pom.xml ./
+RUN mvn dependency:go-offline -B || true
+
+# 🚫 DON'T COPY app.jar - we want to run from source!
+# Source code will be mounted as volume
+
+# Expose ports
+EXPOSE 8080 5005
+
+# 🔥 Run Maven with Spring Boot DevTools (no JAR!)
+CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"]
