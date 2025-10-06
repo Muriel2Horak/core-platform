@@ -12,14 +12,14 @@ COPY backend/pom.xml .
 
 # 🚀 Download dependencies with cache mount - better reliability
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -U dependency:go-offline
+  mvn -B -U dependency:go-offline
 
 # 🏗️ Layer 2: Copy source code (separate layer for better cache)
 COPY backend/src ./src
 
 # 🚀 Package with cache mount - reuse dependencies
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -U package -DskipTests
+  mvn -B -U package -DskipTests
 
 FROM eclipse-temurin:21
 WORKDIR /app
@@ -29,17 +29,26 @@ COPY --from=builder /app/target/*.jar app.jar
 # Build context je root (.), takže ssl/ je přímo dostupné
 COPY ssl/ /etc/ssl/backend/
 
-# 🔒 SSL: Copy startup script for SSL certificate import
-# Build context je root (.), takže backend/start-backend.sh je dostupné
+# 🔒 SSL: Import SSL certificate do Java truststore BĚHEM BUILDU (jako root)
+RUN if [ -f /etc/ssl/backend/cert.pem ]; then \
+  echo "🔐 Importing SSL certificate to Java truststore during build..."; \
+  keytool -importcert -noprompt \
+  -alias core-platform-local \
+  -file /etc/ssl/backend/cert.pem \
+  -keystore $JAVA_HOME/lib/security/cacerts \
+  -storepass changeit \
+  && echo "✅ SSL certificate imported successfully" \
+  || echo "⚠️ SSL certificate import failed (non-critical)"; \
+  else \
+  echo "⚠️ No SSL certificate found at /etc/ssl/backend/cert.pem"; \
+  fi
+
+# 🔒 SSL: Copy startup script (už nebude dělat SSL import, jen spustí aplikaci)
 COPY backend/start-backend.sh /usr/local/bin/start-backend.sh
 RUN chmod +x /usr/local/bin/start-backend.sh
 
-# Spouštěj jako ne-root uživatel, ale nejdříve umožni přístup k Java cacerts
+# Spouštěj jako ne-root uživatel
 RUN groupadd -r app && useradd -r -g app -u 10001 appuser && chown -R appuser:app /app
-
-# 🔒 SSL: Umožni appuser upravovat Java truststore pro SSL import
-RUN chown root:app $JAVA_HOME/lib/security/cacerts && \
-  chmod 664 $JAVA_HOME/lib/security/cacerts
 
 USER appuser:app
 EXPOSE 8080

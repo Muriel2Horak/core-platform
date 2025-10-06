@@ -7,8 +7,6 @@ set -e
 
 # 📋 Parametry (z environment nebo defaulty)
 REALM=${REALM:-"test-tenant"}
-WEBHOOK_URL=${WEBHOOK_URL:-"http://backend:8080/internal/keycloak/events"}
-WEBHOOK_SECRET=${WEBHOOK_SECRET:-"webhook-secret-change-me-in-production"}
 TENANT_ADMIN=${TENANT_ADMIN:-"tenant-admin"}
 TENANT_ADMIN_PASSWORD=${TENANT_ADMIN_PASSWORD:-"TempPass123!"}
 KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN_USER:-"admin"}
@@ -18,7 +16,6 @@ KC_BASE_URL=${KC_BASE_URL:-"http://localhost:8080"}
 echo "🚀 Keycloak Bootstrap Script"
 echo "=================================="
 echo "🏢 Realm: $REALM"
-echo "🔗 Webhook URL: $WEBHOOK_URL"
 echo "👤 Admin User: $TENANT_ADMIN"
 echo "🌐 Keycloak: $KC_BASE_URL"
 echo ""
@@ -56,21 +53,16 @@ setup_realm() {
         -s registrationAllowed=false \
         -s defaultRoles="[\"user\"]"
     
-    # 🎯 Konfigurace events a webhook SPI
-    echo "🔗 Configuring events and webhook..."
+    # 🎯 Konfigurace events
+    echo "🔗 Configuring events..."
     /opt/keycloak/bin/kcadm.sh update realms/$REALM \
         -s eventsEnabled=true \
         -s adminEventsEnabled=true \
-        -s 'eventsListeners=["jboss-logging","muriel-webhook"]'
+        -s 'eventsListeners=["jboss-logging"]'
     
-    # 📋 Nastavení konkrétních event typů pro webhook
+    # 📋 Nastavení konkrétních event typů
     /opt/keycloak/bin/kcadm.sh update realms/$REALM \
         -s 'enabledEventTypes=["LOGIN","LOGIN_ERROR","REGISTER","REGISTER_ERROR","LOGOUT","LOGOUT_ERROR","UPDATE_PROFILE","UPDATE_PROFILE_ERROR","UPDATE_PASSWORD","UPDATE_PASSWORD_ERROR","UPDATE_EMAIL","UPDATE_EMAIL_ERROR"]'
-    
-    # 🔧 SPI konfigurace přes realm attributes (backup metoda)
-    /opt/keycloak/bin/kcadm.sh update realms/$REALM \
-        -s 'attributes.muriel_webhook_url="'$WEBHOOK_URL'"' \
-        -s 'attributes.muriel_webhook_secret="'$WEBHOOK_SECRET'"'
     
     echo "✅ Realm $REALM configured"
 }
@@ -238,11 +230,9 @@ echo "🎉 Bootstrap completed successfully!"
 echo "=================================="
 echo "🏢 Realm: $REALM"
 echo "👤 Admin: $TENANT_ADMIN (password: $TENANT_ADMIN_PASSWORD - CHANGE IT!)"
-echo "🔗 Webhook: Configured for $WEBHOOK_URL"
-echo "📧 Events: Enabled with muriel-webhook listener"
+echo "📧 Events: Enabled with jboss-logging"
 echo ""
 echo "🌐 Next steps:"
 echo "  1. Login to Keycloak admin console"
 echo "  2. Change the temporary password for $TENANT_ADMIN"
-echo "  3. Test webhook functionality"
-echo "  4. Create additional users as needed"
+echo "  3. Create additional users as needed"

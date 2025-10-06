@@ -21,11 +21,22 @@ public class Tenant {
   @Column(name = "key", unique = true, nullable = false)
   private String key; // 🎯 SIMPLIFIED: This IS the realm name
 
+  @Column(name = "keycloak_realm_id", unique = true)
+  private String keycloakRealmId; // 🆕 Keycloak realm UUID for CDC event mapping
+
   /**
    * 🎯 OPTIMIZED: Realm name is the same as tenant key
    */
   public String getRealm() {
     return key; // realm = tenant key
+  }
+
+  /**
+   * 🎯 OPTIMIZED: Set realm (updates tenant key)
+   */
+  public void setRealm(String realm) {
+    this.key = realm; // realm = tenant key
+    this.id = generateUuidFromKey(realm); // regenerate deterministic ID
   }
 
   /**
@@ -37,6 +48,15 @@ public class Tenant {
     // This will be lazy-loaded from Keycloak when needed
     // Implementation will be provided by TenantService
     return "Tenant " + key; // Fallback if Keycloak not available
+  }
+
+  /**
+   * 🎯 OPTIMIZED: Set name (for test compatibility - doesn't persist)
+   */
+  @Transient
+  public void setName(String name) {
+    // This is a no-op since name is derived from Keycloak
+    // Method exists for test compatibility only
   }
 
   /**

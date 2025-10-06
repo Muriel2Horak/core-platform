@@ -50,6 +50,7 @@ import { tokens } from '../shared/theme/tokens';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
 import { UserPropType } from '../shared/propTypes.js';
+import { useAuth } from './AuthProvider'; // 🔧 FIX: Správná cesta k AuthProvider
 
 // Tab Panel Component s prop validací
 function TabPanel({ children, value, index, ...other }) {
@@ -79,8 +80,6 @@ TabPanel.propTypes = {
 };
 
 function Profile({ user }) {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -101,31 +100,15 @@ function Profile({ user }) {
   });
   const [passwordError, setPasswordError] = useState(null);
 
+  // 🆕 Get refreshUserInfo from AuthProvider
+  const { refreshUserInfo } = useAuth();
+
+  // ✅ SIMPLIFIED: Initialize editedProfile from user prop
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      logger.pageView('/profile', { operation: 'load_profile' });
-
-      const data = await apiService.getMe();
-      setProfile(data);
-      setEditedProfile(data);
-
-      logger.userAction('PROFILE_LOADED', { userId: data.id });
-
-    } catch (err) {
-      console.error('Failed to load profile:', err);
-      setError('Nepodařilo se načíst profil uživatele');
-      logger.error('PROFILE_LOAD_ERROR', err.message);
-    } finally {
-      setLoading(false);
+    if (user) {
+      setEditedProfile(user);
     }
-  };
+  }, [user]);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
@@ -134,7 +117,7 @@ function Profile({ user }) {
   const handleEditToggle = () => {
     if (isEditing) {
       // Reset changes
-      setEditedProfile(profile);
+      setEditedProfile(user);
     }
     setIsEditing(!isEditing);
     logger.userAction(isEditing ? 'PROFILE_EDIT_CANCELLED' : 'PROFILE_EDIT_STARTED');
@@ -146,16 +129,18 @@ function Profile({ user }) {
       setError(null);
       setSuccess(null);
 
-      const updatedProfile = await apiService.updateMe(editedProfile);
+      await apiService.updateMe(editedProfile);
       
       logger.userAction('PROFILE_UPDATED', { 
-        userId: profile.id,
+        userId: user.id,
         updatedFields: Object.keys(editedProfile).filter(key => 
-          editedProfile[key] !== profile[key]
+          editedProfile[key] !== user[key]
         )
       });
       
-      setProfile(updatedProfile);
+      // 🆕 Refresh user info from AuthProvider instead of local state
+      await refreshUserInfo();
+      
       setIsEditing(false);
       setSuccess('Profil byl úspěšně aktualizován');
 
@@ -198,7 +183,7 @@ function Profile({ user }) {
         confirmPassword: passwordData.confirmPassword
       });
 
-      logger.userAction('PASSWORD_CHANGED', { userId: profile?.id });
+      logger.userAction('PASSWORD_CHANGED', { userId: user?.id });
 
       setPasswordDialog(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -216,11 +201,10 @@ function Profile({ user }) {
   };
 
   const getDisplayName = () => {
-    const data = profile || user;
-    if (data?.firstName && data?.lastName) {
-      return `${data.firstName} ${data.lastName}`;
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
     }
-    return data?.username || data?.email || 'N/A';
+    return user?.username || user?.email || 'N/A';
   };
 
   const getInitials = () => {
@@ -232,8 +216,8 @@ function Profile({ user }) {
     return name.substring(0, 2).toUpperCase();
   };
 
-  // Loading state
-  if (loading) {
+  // ✅ SIMPLIFIED: Loading state comes from user prop
+  if (!user) {
     return (
       <Box>
         <PageHeader title="Můj profil" />
@@ -242,26 +226,7 @@ function Profile({ user }) {
     );
   }
 
-  // Error state
-  if (error && !profile) {
-    return (
-      <Box>
-        <PageHeader title="Můj profil" />
-        <EmptyState
-          icon={<PersonIcon />}
-          title="Chyba při načítání profilu"
-          description={error}
-          action={
-            <AppButton variant="primary" onClick={loadProfile}>
-              Zkusit znovu
-            </AppButton>
-          }
-        />
-      </Box>
-    );
-  }
-
-  const data = profile || user;
+  const data = user;
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
@@ -791,6 +756,58 @@ function Profile({ user }) {
                         helperText="Systémové identifikační číslo"
                         size="small"
                       />
+                    </Grid>
+
+                    {/* ✅ NOVÉ: Role uživatele */}
+                    <Grid item xs={12}>
+                      <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          Přiřazené role
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {user?.roles && user.roles.length > 0 ? (
+                          user.roles.map((role, index) => {
+                            // Mapování rolí na zobrazované názvy
+                            const roleDisplayName = {
+                              'CORE_ROLE_ADMIN': 'Administrátor',
+                              'CORE_USER_MANAGER': 'Správce uživatelů',
+                              'CORE_ROLE_USER': 'Uživatel',
+                            }[role] || role.replace('CORE_ROLE_', '');
+
+                            // Barva podle typu role
+                            const roleColor = {
+                              'CORE_ROLE_ADMIN': 'error',
+                              'CORE_USER_MANAGER': 'warning',
+                              'CORE_ROLE_USER': 'success',
+                            }[role] || 'default';
+
+                            return (
+                              <Chip
+                                key={index}
+                                label={roleDisplayName}
+                                size="small"
+                                color={roleColor}
+                                icon={<SecurityIcon />}
+                                sx={{ 
+                                  fontWeight: 600,
+                                  borderRadius: tokens.radius.md,
+                                }}
+                              />
+                            );
+                          })
+                        ) : (
+                          <Chip
+                            label="Žádné role"
+                            size="small"
+                            variant="outlined"
+                            sx={{ borderRadius: tokens.radius.md }}
+                          />
+                        )}
+                      </Box>
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                        Role určují vaše oprávnění v systému
+                      </Typography>
                     </Grid>
 
                     {/* Ověření emailu */}

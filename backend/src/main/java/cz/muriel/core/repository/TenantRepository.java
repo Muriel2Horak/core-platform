@@ -12,6 +12,8 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
 
   Optional<Tenant> findByKey(String key);
 
+  Optional<Tenant> findByKeycloakRealmId(String keycloakRealmId); // 🆕 CDC mapping
+
   boolean existsByKey(String key);
 
   // Nepotrebujeme žádné další metody - používáme pouze findByKey, findById a

@@ -1247,4 +1247,206 @@ public class KeycloakAdminService {
       this.expiresAt = expiresAt;
     }
   }
+
+  // =====================================================
+  // ✅ V5 NOVÉ METODY - Role a Groups API
+  // =====================================================
+
+  /**
+   * Získá roli podle ID (pro V5 sync)
+   */
+  public JsonNode getRoleById(String roleId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/" + roleId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      return objectMapper.readTree(response.getBody());
+
+    } catch (Exception ex) {
+      log.error("Failed to get role by ID: {}", roleId, ex);
+      return null;
+    }
+  }
+
+  /**
+   * 🔗 Získá KOMPOZITNÍ ROLE které jsou obsaženy v dané roli Endpoint: GET
+   * /admin/realms/{realm}/roles-by-id/{role-id}/composites
+   */
+  public JsonNode getRoleComposites(String roleId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/" + roleId
+          + "/composites";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode composites = objectMapper.readTree(response.getBody());
+      log.debug("✅ Retrieved {} composite roles for roleId: {}", composites.size(), roleId);
+      return composites;
+
+    } catch (Exception ex) {
+      log.warn("Failed to get role composites for roleId: {} - {}", roleId, ex.getMessage());
+      return objectMapper.createArrayNode(); // Vrať prázdné pole
+    }
+  }
+
+  /**
+   * 🔗 Získá KOMPOZITNÍ ROLE podle role NAME Endpoint: GET
+   * /admin/realms/{realm}/roles/{role-name}/composites
+   */
+  public JsonNode getRoleCompositesByName(String roleName) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles/" + roleName
+          + "/composites";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode composites = objectMapper.readTree(response.getBody());
+      log.debug("✅ Retrieved {} composite roles for role: {}", composites.size(), roleName);
+      return composites;
+
+    } catch (Exception ex) {
+      log.warn("Failed to get role composites for role: {} - {}", roleName, ex.getMessage());
+      return objectMapper.createArrayNode(); // Vrať prázdné pole
+    }
+  }
+
+  /**
+   * Získá skupinu podle ID (pro V5 sync)
+   */
+  public JsonNode getGroupById(String groupId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/groups/" + groupId;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      return objectMapper.readTree(response.getBody());
+
+    } catch (Exception ex) {
+      log.error("Failed to get group by ID: {}", groupId, ex);
+      return null;
+    }
+  }
+
+  /**
+   * 📁 Získá CHILD GROUPS (subgroups) dané skupiny Endpoint: GET
+   * /admin/realms/{realm}/groups/{group-id}/children
+   */
+  public JsonNode getGroupChildren(String groupId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/groups/" + groupId
+          + "/children";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode children = objectMapper.readTree(response.getBody());
+      log.debug("✅ Retrieved {} child groups for groupId: {}", children.size(), groupId);
+      return children;
+
+    } catch (Exception ex) {
+      log.warn("Failed to get group children for groupId: {} - {}", groupId, ex.getMessage());
+      return objectMapper.createArrayNode(); // Vrať prázdné pole
+    }
+  }
+
+  /**
+   * 📁 Získá ROOT GROUPS (top-level skupiny bez parent) Endpoint: GET
+   * /admin/realms/{realm}/groups?briefRepresentation=false
+   */
+  public JsonNode getRootGroups() {
+    try {
+      String adminToken = getSecureAdminToken();
+      // briefRepresentation=false vrací plné detaily včetně subGroups
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm
+          + "/groups?briefRepresentation=false";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode rootGroups = objectMapper.readTree(response.getBody());
+      log.debug("✅ Retrieved {} root groups", rootGroups.size());
+      return rootGroups;
+
+    } catch (Exception ex) {
+      log.error("Failed to get root groups", ex);
+      return objectMapper.createArrayNode(); // Vrať prázdné pole
+    }
+  }
+
+  /**
+   * 👤 Získá EFFECTIVE ROLES uživatele (včetně kompozitních) Endpoint: GET
+   * /admin/realms/{realm}/users/{user-id}/role-mappings/realm/composite
+   */
+  public JsonNode getUserEffectiveRoles(String userId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/role-mappings/realm/composite";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode effectiveRoles = objectMapper.readTree(response.getBody());
+      log.debug("✅ Retrieved {} effective roles for userId: {}", effectiveRoles.size(), userId);
+      return effectiveRoles;
+
+    } catch (Exception ex) {
+      log.warn("Failed to get effective roles for userId: {} - {}", userId, ex.getMessage());
+      return objectMapper.createArrayNode(); // Vrať prázdné pole
+    }
+  }
+
+  /**
+   * Získá skupiny uživatele (pro V5 sync)
+   */
+  public JsonNode getUserGroups(String userId) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+          + "/groups";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      return objectMapper.readTree(response.getBody());
+
+    } catch (Exception ex) {
+      log.error("Failed to get user groups for userId: {}", userId, ex);
+      return objectMapper.createArrayNode(); // Vrať prázdné pole místo null
+    }
+  }
 }

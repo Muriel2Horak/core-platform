@@ -1,0 +1,22 @@
+# Development Dockerfile for esbuild Frontend
+# Hot reload enabled with esbuild dev server
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Install dependencies first (cache layer)
+COPY frontend/package*.json ./
+RUN npm ci
+
+# Source code will be mounted as volume
+# No COPY needed here - we want live editing!
+
+# Expose dev server port
+EXPOSE 8080
+
+# Run esbuild dev server with watch mode
+CMD ["npm", "run", "dev"]

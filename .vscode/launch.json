@@ -3,11 +3,11 @@
   "configurations": [
     {
       "type": "java",
-      "name": "Debug Spring Boot Backend",
+      "name": "Debug Backend (Attach)",
       "request": "attach",
       "hostName": "localhost",
       "port": 5005,
-      "projectName": "core-backend"
+      "projectName": "backend"
     }
   ]
 }

@@ -25,6 +25,109 @@ export const AuthProvider = ({ children }) => {
   // 🔧 REF GUARDS - prevence duplicitních operací
   const hasTriedLoginRef = useRef(false);
   const isInitializingRef = useRef(false);
+  
+  // 🆕 CDC POLLING STATE
+  const lastCheckTimestamp = useRef(null);
+  const cdcIntervalRef = useRef(null);
+
+  // 🆕 CENTRALIZED USER INFO LOADING
+  const loadUserInfo = async () => {
+    try {
+      logger.info('📥 Loading complete user info...');
+      
+      // 1. Load complete user data from /api/me (includes tenant from TenantContext)
+      const apiUserData = await apiService.getMe();
+      
+      // 2. Get roles from JWT token (most reliable source for roles)
+      const jwtUserInfo = keycloakService.getUserInfo();
+      
+      // 3. Merge data - roles from JWT, other data from API
+      const completeUserInfo = {
+        ...apiUserData,
+        roles: jwtUserInfo?.roles || apiUserData?.roles || [],
+        // Ensure tenant is from API (TenantContext)
+        tenant: apiUserData?.tenant || jwtUserInfo?.tenant,
+      };
+      
+      logger.info('✅ Complete user info loaded', {
+        username: completeUserInfo.username,
+        tenant: completeUserInfo.tenant,
+        roles: completeUserInfo.roles,
+        rolesCount: completeUserInfo.roles?.length || 0,
+        hasApiData: !!apiUserData,
+        hasJwtData: !!jwtUserInfo
+      });
+      
+      setUser(completeUserInfo);
+      
+      // Initialize CDC timestamp
+      lastCheckTimestamp.current = Date.now();
+      
+      return completeUserInfo;
+      
+    } catch (error) {
+      logger.error('❌ Failed to load complete user info', { error: error.message });
+      
+      // Fallback to JWT only
+      const jwtUserInfo = keycloakService.getUserInfo();
+      if (jwtUserInfo) {
+        logger.warn('⚠️ Using JWT fallback for user info');
+        setUser(jwtUserInfo);
+        return jwtUserInfo;
+      }
+      
+      throw error;
+    }
+  };
+
+  // 🆕 CDC POLLING - kontrola změn každých 30s
+  const startCdcPolling = () => {
+    // Clear any existing interval
+    if (cdcIntervalRef.current) {
+      clearInterval(cdcIntervalRef.current);
+    }
+    
+    logger.info('🔄 Starting CDC polling (30s interval)');
+    
+    cdcIntervalRef.current = setInterval(async () => {
+      try {
+        const since = lastCheckTimestamp.current;
+        const changeData = await apiService.checkUserChanges(since);
+        
+        if (changeData.hasChanges) {
+          logger.info('🔔 User data changed, reloading...', {
+            lastCheck: since,
+            currentTimestamp: changeData.timestamp
+          });
+          
+          await loadUserInfo();
+        } else {
+          logger.debug('✓ No changes detected', {
+            lastCheck: since,
+            currentTimestamp: changeData.timestamp
+          });
+        }
+        
+        // Update last check timestamp
+        lastCheckTimestamp.current = changeData.timestamp;
+        
+      } catch (error) {
+        logger.error('❌ CDC polling failed', { error: error.message });
+      }
+    }, 30000); // 30 seconds
+  };
+
+  // 🆕 PUBLIC API: Manual refresh
+  const refreshUserInfo = async () => {
+    logger.info('🔄 Manual user info refresh requested');
+    try {
+      await loadUserInfo();
+      logger.info('✅ Manual refresh completed');
+    } catch (error) {
+      logger.error('❌ Manual refresh failed', { error: error.message });
+      throw error;
+    }
+  };
 
   // 🔧 Inicializace pouze jednou při mount
   useEffect(() => {
@@ -45,14 +148,13 @@ export const AuthProvider = ({ children }) => {
         const preventAutoLogin = localStorage.getItem('prevent-auto-login') === 'true';
         const currentPath = window.location.pathname;
         
-        // 🔧 FIXED: Always initialize Keycloak, but skip auto-login if logged out
         const shouldSkipAutoLogin = currentPath === '/logged-out' || preventAutoLogin || logoutCompleted;
         
         if (shouldSkipAutoLogin) {
           logger.info('🚪 User was logged out, initializing Keycloak without auto-login');
         }
 
-        // 🔧 Always initialize Keycloak (needed for manual login)
+        // Always initialize Keycloak (needed for manual login)
         const keycloakInstance = await keycloakService.initKeycloakOnce();
         
         if (keycloakInstance && keycloakInstance.authenticated) {
@@ -63,28 +165,14 @@ export const AuthProvider = ({ children }) => {
           await apiService.createSession(token);
           
           try {
-            // 🔧 FIXED: Load complete user data from /api/me instead of just JWT data
-            const completeUserData = await apiService.getMe();
+            // 🆕 Load complete user info using centralized method
+            await loadUserInfo();
             
-            // Get basic info from JWT as fallback
-            const jwtUserInfo = keycloakService.getUserInfo();
-            
-            // Merge JWT info with API data (API data takes priority)
-            const userInfo = {
-              ...jwtUserInfo,
-              ...completeUserData,
-              // Ensure roles come from JWT (more up-to-date)
-              roles: jwtUserInfo?.roles || completeUserData?.roles || []
-            };
-            
-            setUser(userInfo);
             setIsAuthenticated(true);
             
-            logger.info('✅ User session established with complete data', {
-              username: userInfo.username,
-              tenant: userInfo.tenant,
-              hasCompletData: !!completeUserData
-            });
+            // 🆕 Start CDC polling for automatic updates
+            startCdcPolling();
+            
           } catch (error) {
             // Fallback to JWT data if API call fails
             logger.warn('Failed to load complete user data, using JWT fallback', { error: error.message });
@@ -92,11 +180,6 @@ export const AuthProvider = ({ children }) => {
             if (userInfo) {
               setUser(userInfo);
               setIsAuthenticated(true);
-              
-              logger.info('✅ User session established with JWT fallback', {
-                username: userInfo.username,
-                tenant: userInfo.tenant
-              });
             }
           }
           
@@ -111,7 +194,6 @@ export const AuthProvider = ({ children }) => {
         
         setKeycloakInitialized(true);
       } catch (error) {
-        // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
         console.error('❌ [AUTH] Auth initialization failed:', error.message);
         setError(`Chyba při inicializaci: ${error.message}`);
       } finally {
@@ -121,7 +203,15 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, []); // 🔧 Prázdné dependencies - spustí se pouze jednou
+    
+    // 🆕 Cleanup CDC polling on unmount
+    return () => {
+      if (cdcIntervalRef.current) {
+        clearInterval(cdcIntervalRef.current);
+        logger.info('🛑 CDC polling stopped');
+      }
+    };
+  }, []);
 
   // 🔧 Handle manual login s ref guard
   const handleLogin = async () => {
@@ -138,7 +228,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('prevent-auto-login');
     
     try {
-      // 🔧 FIXED: Ensure Keycloak is initialized before login attempt
       if (!keycloakInitialized || !keycloakService.keycloak) {
         logger.info('⏳ Keycloak not ready, initializing first...');
         await keycloakService.initKeycloakOnce();
@@ -147,9 +236,8 @@ export const AuthProvider = ({ children }) => {
       
       keycloakService.login();
     } catch (error) {
-      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
       console.error('❌ [AUTH] Login failed:', error.message);
-      hasTriedLoginRef.current = false; // Reset on error
+      hasTriedLoginRef.current = false;
     }
   };
 
@@ -157,6 +245,13 @@ export const AuthProvider = ({ children }) => {
   const handleLogout = async () => {
     try {
       logger.info('🚪 Logout initiated');
+      
+      // 🆕 Stop CDC polling
+      if (cdcIntervalRef.current) {
+        clearInterval(cdcIntervalRef.current);
+        cdcIntervalRef.current = null;
+        logger.info('🛑 CDC polling stopped');
+      }
       
       // Set logout flags
       localStorage.setItem('logout-completed', Date.now().toString());
@@ -172,12 +267,12 @@ export const AuthProvider = ({ children }) => {
       
       // Reset ref guards
       hasTriedLoginRef.current = false;
+      lastCheckTimestamp.current = null;
       
       // Logout from Keycloak
       await keycloakService.logout();
       
     } catch (error) {
-      // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
       console.error('❌ [AUTH] Logout failed:', error.message);
     }
   };
@@ -190,7 +285,8 @@ export const AuthProvider = ({ children }) => {
     keycloakInitialized,
     showLoggedOut,
     login: handleLogin,
-    logout: handleLogout
+    logout: handleLogout,
+    refreshUserInfo, // 🆕 Public API for manual refresh
   };
 
   return (

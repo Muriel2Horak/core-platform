@@ -123,12 +123,25 @@ function Layout({ children, user, onLogout }) {
   };
 
   const getUserInitials = () => {
+    if (!user) {
+      return '??';  // Fallback pokud user není dostupný
+    }
+    
     const name = getUserDisplayName();
+    if (!name || name === 'Uživatel') {
+      return '??';  // Fallback pro neznámého uživatele
+    }
+    
     const parts = name.split(' ');
-    if (parts.length >= 2) {
+    if (parts.length >= 2 && parts[0] && parts[1]) {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    
+    if (name.length >= 2) {
+      return name.substring(0, 2).toUpperCase();
+    }
+    
+    return name.toUpperCase();
   };
 
   const getTenantDisplayInfo = () => {
@@ -249,64 +262,6 @@ function Layout({ children, user, onLogout }) {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Tenant info chip */}
-            <Paper
-              elevation={0}
-              sx={{
-                display: { xs: 'none', sm: 'flex' },
-                alignItems: 'center',
-                gap: 1,
-                px: 2,
-                py: 0.5,
-                borderRadius: tokens.radius.lg,
-                background: 'rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                cursor: availableTenants.length > 1 ? 'pointer' : 'default',
-                transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
-                '&:hover': availableTenants.length > 1 ? {
-                  background: 'rgba(255,255,255,0.25)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: tokens.shadows.md,
-                } : {},
-                '&:focus-visible': {
-                  outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.colors.white}`,
-                  outlineOffset: tokens.a11y.focusRing.offset,
-                },
-              }}
-              onClick={availableTenants.length > 1 ? handleTenantMenuOpen : undefined}
-              role={availableTenants.length > 1 ? 'button' : undefined}
-              tabIndex={availableTenants.length > 1 ? 0 : undefined}
-            >
-              <DomainIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
-              <Box sx={{ textAlign: 'left' }}>
-                {user?.tenant ? (
-                  <>
-                    <Typography variant="body2" sx={{ 
-                      fontSize: tokens.typography.fontSize.sm,
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: 'white',
-                      lineHeight: 1.2
-                    }}>
-                      {getTenantDisplayInfo().name}
-                    </Typography>
-                    <Typography variant="caption" sx={{ 
-                      fontSize: tokens.typography.fontSize.xs,
-                      color: 'rgba(255,255,255,0.7)',
-                      lineHeight: 1
-                    }}>
-                      {getTenantDisplayInfo().key}
-                    </Typography>
-                  </>
-                ) : (
-                  <Skeleton variant="text" width={120} height={16} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
-                )}
-              </Box>
-              {availableTenants.length > 1 && (
-                <ExpandMoreIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.8)' }} />
-              )}
-            </Paper>
-
             {/* User menu button */}
             <Tooltip title="Uživatelské menu">
               <IconButton

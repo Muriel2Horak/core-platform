@@ -1,0 +1,93 @@
+{
+  "name": "Muriel Core Platform",
+  "dockerComposeFile": [
+    "../docker/docker-compose.yml",
+    "docker-compose.devcontainer.yml"
+  ],
+  "service": "backend",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Docker
+        "ms-azuretools.vscode-docker",
+        
+        // Java Backend
+        "redhat.java",
+        "vscjava.vscode-java-debug",
+        "vscjava.vscode-java-test",
+        "vscjava.vscode-maven",
+        "vscjava.vscode-spring-boot-dashboard",
+        
+        // Frontend
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        
+        // Copilot
+        "github.copilot",
+        "github.copilot-chat",
+        
+        // Utilities
+        "eamodio.gitlens",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "java.server.launchMode": "Standard",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        }
+      }
+    }
+  },
+  
+  "forwardPorts": [
+    3000,  // Frontend (Nginx)
+    8080,  // Backend API
+    8081,  // Keycloak
+    5005,  // Java Debug
+    5050,  // pgAdmin
+    3001,  // Grafana
+    9090,  // Prometheus
+    16686  // Jaeger
+  ],
+  
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (Nginx)",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "8081": {
+      "label": "Keycloak",
+      "onAutoForward": "silent"
+    },
+    "5005": {
+      "label": "Java Debug",
+      "onAutoForward": "silent"
+    }
+  },
+  
+  "postCreateCommand": "bash .devcontainer/scripts/post-create.sh",
+  
+  "remoteEnv": {
+    "JAVA_HOME": "/usr/local/sdkman/candidates/java/current",
+    "MAVEN_OPTS": "-Xmx2g"
+  },
+  
+  "mounts": [
+    "source=${localWorkspaceFolder}/frontend,target=/workspace-frontend,type=bind,consistency=cached",
+    "source=${localWorkspaceFolder}/.m2,target=/root/.m2,type=volume"
+  ]
+}

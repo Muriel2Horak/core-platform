@@ -102,10 +102,6 @@ services:
       # 🏢 MULTITENANCY Configuration
       - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-test-tenant}
       - AUTH_JWT_TENANT_CLAIM=${AUTH_JWT_TENANT_CLAIM:-tenant}
-      # 🔗 KEYCLOAK WEBHOOK Configuration - OPRAVENO: používá stejný secret jako Keycloak SPI
-      - APP_KEYCLOAK_WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
-      - KC_EVENT_WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
-      - KEYCLOAK_WEBHOOK_HMAC_SECRET=${KC_WEBHOOK_SECRET:-webhook-secret-change-me-in-production}
       # 📅 KEYCLOAK BACKFILL Configuration
       - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
       - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
@@ -128,9 +124,8 @@ services:
   # 🛡️ Frontend - PRODUKČNÍ BUILD PRO DEV PARITY
   frontend:
     build:
-      context: ../frontend
-      dockerfile: ../docker/frontend/Dockerfile
-      # target: production  # ODSTRANĚNO - náš Dockerfile nemá stage s tímto názvem
+      context: ..
+      dockerfile: docker/frontend/Dockerfile
     container_name: core-frontend
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
@@ -188,17 +183,11 @@ services:
       KC_HTTPS_CERTIFICATE_FILE: /etc/ssl/keycloak/cert.pem
       KC_HTTPS_CERTIFICATE_KEY_FILE: /etc/ssl/keycloak/key.pem
 
-      # 🔗 Event listeners configuration
-      KC_EVENTS_LISTENERS: "jboss-logging,muriel-webhook"
-
-      # 🪝 Webhook SPI configuration
-      KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_ENDPOINT_URL: ${KC_WEBHOOK_ENDPOINT_URL:-http://backend:8080/internal/keycloak/events}
-      KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_SECRET: ${KC_WEBHOOK_SECRET:-}
-      KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_REALM_TENANT_MAP: ${KC_REALM_TENANT_MAP:-}
-      KC_SPI_EVENTS_LISTENER_MURIEL_WEBHOOK_ENABLED_TYPES: ${KC_ENABLED_TYPES:-USER_CREATED,USER_UPDATED,USER_DELETED}
+      # 🔗 Event listeners configuration - pouze jboss-logging
+      KC_EVENTS_LISTENERS: "jboss-logging"
 
       # 📊 Logging and health
-      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO,cz.muriel.keycloak.webhook:DEBUG}
+      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
       KC_HEALTH_ENABLED: "true"
 
     volumes:
@@ -213,7 +202,6 @@ services:
       - core-net
 
   # 🏗️ Volitelná bootstrap služba pro automatické nastavení tenant realmů
-  # Aktivuje se pouze když jsou nastaveny env proměnné AUTO_BOOTSTRAP_*
   kc-bootstrap:
     image: core-platform/keycloak:local
     container_name: core-kc-bootstrap
@@ -225,8 +213,6 @@ services:
     environment:
       # 📋 Bootstrap parametry
       - REALM=${AUTO_BOOTSTRAP_REALM:-}
-      - WEBHOOK_URL=${AUTO_BOOTSTRAP_WEBHOOK_URL:-http://backend:8080/internal/keycloak/events}
-      - WEBHOOK_SECRET=${KC_WEBHOOK_SECRET:-}
       - TENANT_ADMIN=${AUTO_BOOTSTRAP_TENANT_ADMIN:-tenant-admin}
       - TENANT_ADMIN_PASSWORD=${AUTO_BOOTSTRAP_TENANT_ADMIN_PASSWORD:-}
       - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN:-admin}
