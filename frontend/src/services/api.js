@@ -186,6 +186,13 @@ class ApiService {
     await axios.put('/api/me/password', passwordData);
   }
 
+  // 🆕 CDC: Check for user data changes
+  async checkUserChanges(since = null) {
+    const params = since ? `?since=${since}` : '';
+    const response = await axios.get(`/api/me/changes${params}`);
+    return response.data;
+  }
+
   // 🆕 USER DIRECTORY ENDPOINTS - pro běžné uživatele (čtení User Directory)
   async getUsersDirectory(params = {}) {
     const queryParams = new URLSearchParams();

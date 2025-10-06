@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.Map;
 
 @Slf4j @RestController @RequestMapping("/api/me") @RequiredArgsConstructor @Validated
 public class UserProfileController {
@@ -32,6 +33,42 @@ public class UserProfileController {
     user.setTenant(TenantContext.getTenantKey());
 
     return ResponseEntity.ok(user);
+  }
+
+  // 🆕 CDC ENDPOINT: Kontrola změn uživatelských dat
+  @GetMapping("/changes") @PreAuthorize("isAuthenticated()")
+  public ResponseEntity<Map<String, Object>> checkUserChanges(Authentication authentication,
+      @RequestParam(required = false) Long since) {
+
+    String username = getCurrentUsername(authentication);
+    log.debug("Checking changes for username: {} since: {}", username, since);
+
+    try {
+      // Timestamp poslední změny (pro jednoduchost použijeme aktuální čas)
+      // V produkci by to mělo být skutečné datum poslední změny z Keycloak/DB
+      long currentTimestamp = System.currentTimeMillis();
+
+      // Pokud je zadán parametr 'since', kontrolujeme, jestli došlo ke změně
+      boolean hasChanges = false;
+      if (since != null) {
+        // Pro demo účely: změna nastala, pokud uplynulo více než 30s
+        // V produkci by se kontrolovalo skutečné datum modifikace
+        hasChanges = (currentTimestamp - since) > 30000;
+      }
+
+      Map<String, Object> response = Map.of("timestamp", currentTimestamp, "hasChanges", hasChanges,
+          "username", username, "lastModified", currentTimestamp // V produkci by to bylo skutečné
+                                                                 // datum z Keycloak
+      );
+
+      log.debug("Changes check result: {}", response);
+      return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+      log.error("Failed to check user changes for username: {}", username, e);
+      return ResponseEntity.ok(Map.of("timestamp", System.currentTimeMillis(), "hasChanges", false,
+          "error", e.getMessage()));
+    }
   }
 
   @PutMapping @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z hasAuthority('CORE_ROLE_USER')
