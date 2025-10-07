@@ -54,11 +54,11 @@ export const GrafanaEmbed = ({
 
       let url = '';
       if (dashboardUid && panelId) {
-        url = `${baseUrl}/d-solo/${dashboardUid}?${params.toString()}&panelId=${panelId}&token=${encodeURIComponent(token)}`;
+        url = `${baseUrl}/d-solo/${dashboardUid}?${params.toString()}&panelId=${panelId}&auth_token=${encodeURIComponent(token)}`;
       } else if (dashboardUid) {
-        url = `${baseUrl}/d/${dashboardUid}?${params.toString()}&token=${encodeURIComponent(token)}`;
+        url = `${baseUrl}/d/${dashboardUid}?${params.toString()}&auth_token=${encodeURIComponent(token)}`;
       } else {
-        url = `${baseUrl}/?${params.toString()}&token=${encodeURIComponent(token)}`;
+        url = `${baseUrl}/?${params.toString()}&auth_token=${encodeURIComponent(token)}`;
       }
 
       setIframeUrl(url);

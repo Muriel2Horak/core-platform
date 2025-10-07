@@ -240,9 +240,61 @@ class ApiService {
     await axios.delete(`/api/users/${id}`);
   }
 
+  async getUserRoles(userId) {
+    const response = await axios.get(`/api/users/${userId}/roles`);
+    return response.data;
+  }
+
+  async assignRoleToUser(userId, roleData) {
+    const response = await axios.post(`/api/users/${userId}/roles`, roleData);
+    return response.data;
+  }
+
+  async removeRoleFromUser(userId, roleName) {
+    await axios.delete(`/api/users/${userId}/roles/${roleName}`);
+  }
+
+  async resetUserPassword(userId, passwordData) {
+    const response = await axios.put(`/api/users/${userId}/password`, passwordData);
+    return response.data;
+  }
+
   // Role endpoints
   async getRoles() {
     const response = await axios.get('/api/roles');
+    return response.data;
+  }
+
+  async createRole(roleData) {
+    const response = await axios.post('/api/roles', roleData);
+    return response.data;
+  }
+
+  async updateRole(roleName, roleData) {
+    const response = await axios.put(`/api/roles/${roleName}`, roleData);
+    return response.data;
+  }
+
+  async deleteRole(roleName) {
+    await axios.delete(`/api/roles/${roleName}`);
+  }
+
+  async getRoleComposites(roleName) {
+    const response = await axios.get(`/api/roles/${roleName}/composites`);
+    return response.data;
+  }
+
+  async addCompositeRole(parentRoleName, compositeData) {
+    const response = await axios.post(`/api/roles/${parentRoleName}/composites`, compositeData);
+    return response.data;
+  }
+
+  async removeCompositeRole(parentRoleName, childRoleName) {
+    await axios.delete(`/api/roles/${parentRoleName}/composites/${childRoleName}`);
+  }
+
+  async getRoleUsers(roleName) {
+    const response = await axios.get(`/api/roles/${roleName}/users`);
     return response.data;
   }
 
@@ -273,6 +325,16 @@ class ApiService {
 
   async deleteTenant(id) {
     await axios.delete(`/api/admin/tenants/${id}`);
+  }
+
+  async getTenantStats(tenantKey) {
+    const response = await axios.get(`/api/admin/tenants/${tenantKey}/stats`);
+    return response.data;
+  }
+
+  async getTenantUsers(tenantKey) {
+    const response = await axios.get(`/api/admin/tenants/${tenantKey}/users`);
+    return response.data;
   }
 }
 

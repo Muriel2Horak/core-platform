@@ -252,15 +252,17 @@ services:
       - GF_AUTH_JWT_HEADER_NAME=Authorization
       - GF_AUTH_JWT_USERNAME_CLAIM=preferred_username
       - GF_AUTH_JWT_EMAIL_CLAIM=email
-      - GF_AUTH_JWT_JWK_SET_URL=https://admin.core-platform.local/realms/admin/protocol/openid-connect/certs
+      # ⚠️ MULTITENANCY: JWK URL se mění podle tenant realmu - Grafana 10.4 nepodporuje dynamickou URL
+      # Workaround: Používáme admin realm pro všechny tenant JWT (sdílený veřejný klíč)
+      - GF_AUTH_JWT_JWK_SET_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
       - GF_AUTH_JWT_CACHE_TTL=60m
-      - GF_AUTH_JWT_AUTO_SIGN_UP=true
-      - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_USER') && 'Editor' || 'Viewer'
+      - GF_AUTH_JWT_AUTO_SIGN_UP=false
+      # 🎭 Role mapping based on Keycloak roles
+      - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_MONITORING') && 'Editor' || contains(realm_access.roles[*], 'CORE_TENANT_ADMIN') && 'Editor' || contains(realm_access.roles[*], 'CORE_ROLE_TENANT_MONITORING') && 'Viewer' || 'Viewer'
       - GF_AUTH_JWT_SKIP_ORG_ROLE_SYNC=false
       
-      # Disable login form - use only JWT
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-      - GF_AUTH_PROXY=true
+      # 🔓 DŮLEŽITÉ: Povolit login form pro fallback + admin přístup
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
       
       # 🔐 OAuth2 / Keycloak SSO Configuration (DISABLED for iframe - using JWT only)
       - GF_AUTH_GENERIC_OAUTH_ENABLED=false
@@ -288,8 +290,7 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_ROOT_URL=https://admin.%(domain)s/monitoring
       
-      # 🎨 UI Configuration - VYPNUTO auto-login pro iframe
-      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      # 🎨 UI Configuration
       - GF_AUTH_OAUTH_AUTO_LOGIN=false
       - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
       

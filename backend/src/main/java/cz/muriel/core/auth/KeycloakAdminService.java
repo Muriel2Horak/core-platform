@@ -1238,6 +1238,33 @@ public class KeycloakAdminService {
     }
   }
 
+  /**
+   * ✏️ REALM MANAGEMENT: Update realm display name
+   */
+  public void updateRealmDisplayName(String realmName, String displayName) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName;
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      // Update only displayName field
+      Map<String, Object> updates = Map.of("displayName", displayName);
+      String requestBody = objectMapper.writeValueAsString(updates);
+
+      HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+      restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+
+      log.info("✅ Updated realm display name: {} -> {}", realmName, displayName);
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to update realm display name for {}: {}", realmName, ex.getMessage());
+      throw new RuntimeException("Failed to update realm display name: " + ex.getMessage(), ex);
+    }
+  }
+
   private static class TokenCache {
     final String token;
     final long expiresAt;
@@ -1447,6 +1474,178 @@ public class KeycloakAdminService {
     } catch (Exception ex) {
       log.error("Failed to get user groups for userId: {}", userId, ex);
       return objectMapper.createArrayNode(); // Vrať prázdné pole místo null
+    }
+  }
+
+  // =====================================================
+  // 🎭 EXTENDED ROLE MANAGEMENT - Composite Roles & Users
+  // =====================================================
+
+  /**
+   * ✏️ UPDATE ROLE - Aktualizace role (název, popis)
+   */
+  public RoleDto updateRole(String roleName, RoleCreateRequest request) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get role ID first
+      RoleDto existingRole = getRoleByName(roleName);
+
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/"
+          + existingRole.getId();
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      Map<String, Object> roleUpdate = new HashMap<>();
+      roleUpdate.put("name", request.getName());
+      roleUpdate.put("description", request.getDescription());
+
+      restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(roleUpdate, headers), Void.class);
+
+      log.info("✅ Role updated: {} → {}", roleName, request.getName());
+
+      // Return updated role
+      return getRoleByName(request.getName());
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to update role: {}", roleName, ex);
+      throw new RuntimeException("Failed to update role: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 🔗 GET ROLE COMPOSITES LIST - Vrátí seznam child rolí jako RoleDto
+   */
+  public List<RoleDto> getRoleCompositesList(String roleName) {
+    try {
+      JsonNode composites = getRoleCompositesByName(roleName);
+      List<RoleDto> roles = new ArrayList<>();
+
+      for (JsonNode role : composites) {
+        RoleDto roleDto = RoleDto.builder().id(role.path("id").asText())
+            .name(role.path("name").asText()).description(role.path("description").asText())
+            .composite(role.path("composite").asBoolean()).build();
+        roles.add(roleDto);
+      }
+
+      return roles;
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get role composites: {}", roleName, ex);
+      return new ArrayList<>();
+    }
+  }
+
+  /**
+   * ➕ ADD COMPOSITE ROLE - Přidá child role do parent composite role
+   */
+  public void addCompositeRole(String parentRoleName, String childRoleName) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get parent role
+      RoleDto parentRole = getRoleByName(parentRoleName);
+      RoleDto childRole = getRoleByName(childRoleName);
+
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/"
+          + parentRole.getId() + "/composites";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      // Create role representation
+      Map<String, Object> childRoleRep = new HashMap<>();
+      childRoleRep.put("id", childRole.getId());
+      childRoleRep.put("name", childRole.getName());
+
+      List<Map<String, Object>> roles = List.of(childRoleRep);
+
+      restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(roles, headers), Void.class);
+
+      log.info("✅ Added composite role: {} → {}", parentRoleName, childRoleName);
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to add composite role {} to {}", childRoleName, parentRoleName, ex);
+      throw new RuntimeException("Failed to add composite role: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * ➖ REMOVE COMPOSITE ROLE - Odebere child role z parent composite role
+   */
+  public void removeCompositeRole(String parentRoleName, String childRoleName) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get parent role
+      RoleDto parentRole = getRoleByName(parentRoleName);
+      RoleDto childRole = getRoleByName(childRoleName);
+
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/"
+          + parentRole.getId() + "/composites";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      // Create role representation
+      Map<String, Object> childRoleRep = new HashMap<>();
+      childRoleRep.put("id", childRole.getId());
+      childRoleRep.put("name", childRole.getName());
+
+      List<Map<String, Object>> roles = List.of(childRoleRep);
+
+      // Keycloak uses DELETE with body
+      HttpEntity<List<Map<String, Object>>> requestEntity = new HttpEntity<>(roles, headers);
+      restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, Void.class);
+
+      log.info("✅ Removed composite role: {} ← {}", parentRoleName, childRoleName);
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to remove composite role {} from {}", childRoleName, parentRoleName, ex);
+      throw new RuntimeException("Failed to remove composite role: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * 👥 GET USERS BY ROLE - Vrátí seznam uživatelů s danou rolí
+   */
+  public List<UserDto> getUsersByRole(String roleName) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get role ID
+      RoleDto role = getRoleByName(roleName);
+
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/" + role.getId()
+          + "/users";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode users = objectMapper.readTree(response.getBody());
+      List<UserDto> userList = new ArrayList<>();
+
+      for (JsonNode user : users) {
+        UserDto userDto = UserDto.builder().id(user.path("id").asText())
+            .username(user.path("username").asText()).email(user.path("email").asText())
+            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
+            .enabled(user.path("enabled").asBoolean())
+            .emailVerified(user.path("emailVerified").asBoolean()).build();
+        userList.add(userDto);
+      }
+
+      return userList;
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get users by role: {}", roleName, ex);
+      return new ArrayList<>();
     }
   }
 }

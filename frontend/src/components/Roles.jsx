@@ -12,7 +12,6 @@ import {
   TableRow,
   Paper,
   Chip,
-  Avatar,
   Alert,
   CircularProgress,
   Button,
@@ -26,12 +25,13 @@ import {
   InputAdornment,
 } from '@mui/material';
 import {
-  People as PeopleIcon,
+  Security as SecurityIcon,
   Add as AddIcon,
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  LockReset as LockResetIcon,
+  AccountTree as AccountTreeIcon,
+  People as PeopleIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
@@ -39,15 +39,16 @@ import apiService from '../services/api.js';
 import logger from '../services/logger.js';
 import { UserPropType } from '../shared/propTypes.js';
 import {
-  CreateUserDialog,
-  EditUserDialog,
-  DeleteUserDialog,
-  ResetPasswordDialog,
-} from './Users/index.js';
+  CreateRoleDialog,
+  EditRoleDialog,
+  DeleteRoleDialog,
+  CompositeRoleBuilder,
+  RoleUsersView,
+} from './Roles/index.js';
 
-function Users({ user }) {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
+function Roles({ user }) {
+  const [roles, setRoles] = useState([]);
+  const [filteredRoles, setFilteredRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,21 +57,22 @@ function Users({ user }) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [compositeBuilderOpen, setCompositeBuilderOpen] = useState(false);
+  const [usersViewOpen, setUsersViewOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
 
   // Menu state
   const [menuAnchor, setMenuAnchor] = useState(null);
-  const [menuUser, setMenuUser] = useState(null);
+  const [menuRole, setMenuRole] = useState(null);
 
-  // Check if user has permission to view users
+  // Check if user has permission
   const hasPermission = user?.roles?.includes('CORE_ROLE_USER_MANAGER') || user?.roles?.includes('CORE_ROLE_ADMIN');
-  const canManageUsers = user?.roles?.includes('CORE_ROLE_ADMIN');
+  const canManageRoles = user?.roles?.includes('CORE_ROLE_ADMIN');
 
-  // Load users
-  const loadUsers = async () => {
+  // Load roles
+  const loadRoles = async () => {
     if (!hasPermission) {
-      setError('Nemáte oprávnění k zobrazení seznamu uživatelů.');
+      setError('Nemáte oprávnění k zobrazení seznamu rolí.');
       setLoading(false);
       return;
     }
@@ -79,144 +81,148 @@ function Users({ user }) {
       setLoading(true);
       setError(null);
       
-      const usersData = await apiService.getUsers();
-      setUsers(usersData || []);
-      setFilteredUsers(usersData || []);
-      logger.info('Users loaded', { count: usersData?.length || 0 });
+      const rolesData = await apiService.getRoles();
+      setRoles(rolesData || []);
+      setFilteredRoles(rolesData || []);
+      logger.info('Roles loaded', { count: rolesData?.length || 0 });
     } catch (error) {
-      logger.error('Failed to load users', { error: error.message });
-      setError('Nepodařilo se načíst seznam uživatelů.');
+      logger.error('Failed to load roles', { error: error.message });
+      setError('Nepodařilo se načíst seznam rolí.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    loadRoles();
   }, []);
 
-  // Search/filter users
+  // Search/filter roles
   useEffect(() => {
     if (!searchQuery) {
-      setFilteredUsers(users);
+      setFilteredRoles(roles);
       return;
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = users.filter(u => 
-      u.username?.toLowerCase().includes(query) ||
-      u.email?.toLowerCase().includes(query) ||
-      u.firstName?.toLowerCase().includes(query) ||
-      u.lastName?.toLowerCase().includes(query)
+    const filtered = roles.filter(r => 
+      r.name?.toLowerCase().includes(query) ||
+      r.description?.toLowerCase().includes(query)
     );
-    setFilteredUsers(filtered);
-  }, [searchQuery, users]);
+    setFilteredRoles(filtered);
+  }, [searchQuery, roles]);
 
-  // Get user display name
-  const getUserDisplayName = (userData) => {
-    if (userData?.firstName && userData?.lastName) {
-      return `${userData.firstName} ${userData.lastName}`;
+  // Get role display name
+  const getRoleDisplayName = (roleName) => {
+    switch (roleName) {
+      case 'CORE_ROLE_ADMIN':
+        return 'Administrátor';
+      case 'CORE_ROLE_USER_MANAGER':
+        return 'Správce uživatelů';
+      case 'CORE_ROLE_USER':
+        return 'Běžný uživatel';
+      default:
+        return roleName?.replace('CORE_ROLE_', '') || roleName;
     }
-    return userData?.username || userData?.email || 'Neznámý uživatel';
   };
 
-  // Get user initials for avatar
-  const getUserInitials = (userData) => {
-    const name = getUserDisplayName(userData);
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  // Get role type chip
+  const getRoleTypeChip = (role) => {
+    if (role.composite) {
+      return (
+        <Chip 
+          label="Composite" 
+          size="small" 
+          color="secondary" 
+          icon={<AccountTreeIcon fontSize="small" />}
+        />
+      );
     }
-    return name.substring(0, 2).toUpperCase();
-  };
-
-  // Get user roles display
-  const getUserRoles = (userData) => {
-    if (!userData?.roles || userData.roles.length === 0) {
-      return ['Běžný uživatel'];
-    }
-    
-    return userData.roles.map(role => {
-      switch (role) {
-        case 'CORE_ROLE_ADMIN':
-          return 'Administrátor';
-        case 'CORE_ROLE_USER_MANAGER':
-          return 'Správce uživatelů';
-        default:
-          return role.replace('CORE_ROLE_', '');
-      }
-    });
+    return (
+      <Chip 
+        label="Basic" 
+        size="small" 
+        variant="outlined"
+      />
+    );
   };
 
   // Action handlers
-  const handleMenuOpen = (event, userData) => {
+  const handleMenuOpen = (event, role) => {
     setMenuAnchor(event.currentTarget);
-    setMenuUser(userData);
+    setMenuRole(role);
   };
 
   const handleMenuClose = () => {
     setMenuAnchor(null);
-    setMenuUser(null);
+    setMenuRole(null);
   };
 
-  const handleCreateUser = () => {
+  const handleCreateRole = () => {
     setCreateDialogOpen(true);
   };
 
-  const handleEditUser = (userData) => {
-    setSelectedUser(userData);
+  const handleEditRole = (role) => {
+    setSelectedRole(role);
     setEditDialogOpen(true);
     handleMenuClose();
   };
 
-  const handleDeleteUser = (userData) => {
-    setSelectedUser(userData);
+  const handleDeleteRole = (role) => {
+    setSelectedRole(role);
     setDeleteDialogOpen(true);
     handleMenuClose();
   };
 
-  const handleResetPassword = (userData) => {
-    setSelectedUser(userData);
-    setResetPasswordDialogOpen(true);
+  const handleManageComposites = (role) => {
+    setSelectedRole(role);
+    setCompositeBuilderOpen(true);
+    handleMenuClose();
+  };
+
+  const handleViewUsers = (role) => {
+    setSelectedRole(role);
+    setUsersViewOpen(true);
     handleMenuClose();
   };
 
   const handleRefresh = () => {
-    loadUsers();
+    loadRoles();
   };
 
   // Success handlers
-  const handleUserCreated = () => {
+  const handleRoleCreated = () => {
     setCreateDialogOpen(false);
-    loadUsers();
+    loadRoles();
   };
 
-  const handleUserUpdated = () => {
+  const handleRoleUpdated = () => {
     setEditDialogOpen(false);
-    setSelectedUser(null);
-    loadUsers();
+    setSelectedRole(null);
+    loadRoles();
   };
 
-  const handleUserDeleted = () => {
+  const handleRoleDeleted = () => {
     setDeleteDialogOpen(false);
-    setSelectedUser(null);
-    loadUsers();
+    setSelectedRole(null);
+    loadRoles();
   };
 
-  const handlePasswordReset = () => {
-    setResetPasswordDialogOpen(false);
-    setSelectedUser(null);
+  const handleCompositesUpdated = () => {
+    setCompositeBuilderOpen(false);
+    setSelectedRole(null);
+    loadRoles();
   };
 
   if (!hasPermission) {
     return (
       <Box>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-          Uživatelé
+          Role
         </Typography>
         
         <Alert severity="error">
-          Nemáte oprávnění k zobrazení seznamu uživatelů.
+          Nemáte oprávnění k zobrazení seznamu rolí.
         </Alert>
       </Box>
     );
@@ -228,10 +234,10 @@ function Users({ user }) {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
-            Správa uživatelů
+            Správa rolí
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Zde můžete spravovat uživatele v systému.
+            Zde můžete spravovat role a jejich hierarchii v systému.
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -240,14 +246,14 @@ function Users({ user }) {
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          {canManageUsers && (
+          {canManageRoles && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={handleCreateUser}
+              onClick={handleCreateRole}
               disabled={loading}
             >
-              Vytvořit uživatele
+              Vytvořit roli
             </Button>
           )}
         </Box>
@@ -265,7 +271,7 @@ function Users({ user }) {
           <Box sx={{ mb: 3 }}>
             <TextField
               fullWidth
-              placeholder="Hledat uživatele..."
+              placeholder="Hledat role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               InputProps={{
@@ -275,7 +281,7 @@ function Users({ user }) {
                   </InputAdornment>
                 ),
               }}
-              disabled={loading || users.length === 0}
+              disabled={loading || roles.length === 0}
             />
           </Box>
 
@@ -283,11 +289,11 @@ function Users({ user }) {
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
               <CircularProgress />
             </Box>
-          ) : filteredUsers.length === 0 ? (
+          ) : filteredRoles.length === 0 ? (
             <Box sx={{ textAlign: 'center', p: 3 }}>
-              <PeopleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+              <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" color="text.secondary">
-                {searchQuery ? 'Nebyli nalezeni žádní uživatelé odpovídající vyhledávání' : 'Nebyli nalezeni žádní uživatelé'}
+                {searchQuery ? 'Nebyly nalezeny žádné role odpovídající vyhledávání' : 'Nebyly nalezeny žádné role'}
               </Typography>
               {searchQuery && (
                 <Button 
@@ -305,67 +311,49 @@ function Users({ user }) {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Uživatel</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Tenant</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell>Stav</TableCell>
-                      {canManageUsers && <TableCell align="right">Akce</TableCell>}
+                      <TableCell>Název role</TableCell>
+                      <TableCell>Popis</TableCell>
+                      <TableCell>Typ</TableCell>
+                      <TableCell align="center">Počet uživatelů</TableCell>
+                      {canManageRoles && <TableCell align="right">Akce</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {filteredUsers.map((userData, index) => (
-                      <TableRow key={userData.id || index} hover>
+                    {filteredRoles.map((role, index) => (
+                      <TableRow key={role.id || index} hover>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 40, height: 40 }}>
-                              {getUserInitials(userData)}
-                            </Avatar>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SecurityIcon color="primary" />
                             <Box>
                               <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                {getUserDisplayName(userData)}
+                                {getRoleDisplayName(role.name)}
                               </Typography>
                               <Typography variant="body2" color="text.secondary">
-                                {userData?.username}
+                                {role.name}
                               </Typography>
                             </Box>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {userData?.email || 'Neuvedeno'}
+                            {role.description || 'Bez popisu'}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">
-                            {userData?.tenant || 'Neuvedeno'}
-                          </Typography>
+                          {getRoleTypeChip(role)}
                         </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                            {getUserRoles(userData).map((role, roleIndex) => (
-                              <Chip
-                                key={roleIndex}
-                                label={role}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                              />
-                            ))}
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={userData?.enabled ? 'Aktivní' : 'Neaktivní'}
+                        <TableCell align="center">
+                          <Chip 
+                            label={role.userCount || 0}
                             size="small"
-                            color={userData?.enabled ? 'success' : 'default'}
+                            color={role.userCount > 0 ? 'primary' : 'default'}
                           />
                         </TableCell>
-                        {canManageUsers && (
+                        {canManageRoles && (
                           <TableCell align="right">
                             <IconButton
                               size="small"
-                              onClick={(e) => handleMenuOpen(e, userData)}
+                              onClick={(e) => handleMenuOpen(e, role)}
                             >
                               <MoreVertIcon />
                             </IconButton>
@@ -380,7 +368,7 @@ function Users({ user }) {
               {/* Results count */}
               <Box sx={{ mt: 2, textAlign: 'center' }}>
                 <Typography variant="body2" color="text.secondary">
-                  Zobrazeno {filteredUsers.length} z {users.length} uživatelů
+                  Zobrazeno {filteredRoles.length} z {roles.length} rolí
                 </Typography>
               </Box>
             </>
@@ -394,19 +382,25 @@ function Users({ user }) {
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleEditUser(menuUser)}>
+        <MenuItem onClick={() => handleEditRole(menuRole)}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Upravit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => handleResetPassword(menuUser)}>
+        <MenuItem onClick={() => handleManageComposites(menuRole)}>
           <ListItemIcon>
-            <LockResetIcon fontSize="small" />
+            <AccountTreeIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Resetovat heslo</ListItemText>
+          <ListItemText>Spravovat hierarchii</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => handleDeleteUser(menuUser)} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={() => handleViewUsers(menuRole)}>
+          <ListItemIcon>
+            <PeopleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Zobrazit uživatele</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDeleteRole(menuRole)} sx={{ color: 'error.main' }}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>
@@ -415,47 +409,56 @@ function Users({ user }) {
       </Menu>
 
       {/* Dialogs */}
-      <CreateUserDialog
+      <CreateRoleDialog
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
-        onSuccess={handleUserCreated}
+        onSuccess={handleRoleCreated}
       />
 
-      <EditUserDialog
+      <EditRoleDialog
         open={editDialogOpen}
         onClose={() => {
           setEditDialogOpen(false);
-          setSelectedUser(null);
+          setSelectedRole(null);
         }}
-        user={selectedUser}
-        onSuccess={handleUserUpdated}
+        role={selectedRole}
+        onSuccess={handleRoleUpdated}
       />
 
-      <DeleteUserDialog
+      <DeleteRoleDialog
         open={deleteDialogOpen}
         onClose={() => {
           setDeleteDialogOpen(false);
-          setSelectedUser(null);
+          setSelectedRole(null);
         }}
-        user={selectedUser}
-        onSuccess={handleUserDeleted}
+        role={selectedRole}
+        onSuccess={handleRoleDeleted}
       />
 
-      <ResetPasswordDialog
-        open={resetPasswordDialogOpen}
+      <CompositeRoleBuilder
+        open={compositeBuilderOpen}
         onClose={() => {
-          setResetPasswordDialogOpen(false);
-          setSelectedUser(null);
+          setCompositeBuilderOpen(false);
+          setSelectedRole(null);
         }}
-        user={selectedUser}
-        onSuccess={handlePasswordReset}
+        role={selectedRole}
+        onSuccess={handleCompositesUpdated}
+      />
+
+      <RoleUsersView
+        open={usersViewOpen}
+        onClose={() => {
+          setUsersViewOpen(false);
+          setSelectedRole(null);
+        }}
+        role={selectedRole}
       />
     </Box>
   );
 }
 
-Users.propTypes = {
+Roles.propTypes = {
   user: UserPropType,
 };
 
-export default Users;
+export default Roles;

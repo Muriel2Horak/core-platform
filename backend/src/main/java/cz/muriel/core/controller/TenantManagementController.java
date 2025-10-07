@@ -116,6 +116,50 @@ public class TenantManagementController {
   }
 
   /**
+   * ✏️ PUT /api/admin/tenants/{tenantKey} - Aktualizace tenantu
+   */
+  @PutMapping("/{tenantKey}") @PreAuthorize("hasAnyAuthority('CORE_ROLE_ADMIN')")
+  public ResponseEntity<Map<String, Object>> updateTenant(@PathVariable String tenantKey,
+      @Valid @RequestBody Map<String, String> updates, @AuthenticationPrincipal Jwt jwt) {
+
+    try {
+      log.info("✏️ Updating tenant: {}", tenantKey);
+
+      // Prevent update of admin tenant key
+      if ("admin".equals(tenantKey) && updates.containsKey("key")) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(Map.of("success", false, "message", "Cannot change admin tenant key"));
+      }
+
+      // Update tenant using realm management service
+      String displayName = updates.get("displayName");
+      if (displayName != null) {
+        keycloakRealmManagementService.updateTenantDisplayName(tenantKey, displayName);
+      }
+
+      // Get updated tenant info
+      Optional<Tenant> tenant = tenantService.findTenantByKey(tenantKey);
+
+      Map<String, Object> response = Map.of("success", true, "message",
+          "Tenant updated successfully", "tenant",
+          Map.of("id", tenant.map(Tenant::getId).orElse(null), "key", tenantKey, "displayName",
+              displayName != null ? displayName : tenantService.getTenantDisplayName(tenantKey),
+              "realm", tenantKey));
+
+      log.info("✅ Tenant updated successfully: {}", tenantKey);
+      return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to update tenant: {}", tenantKey, e);
+
+      Map<String, Object> errorResponse = Map.of("success", false, "message",
+          "Failed to update tenant: " + e.getMessage(), "error", e.getClass().getSimpleName());
+
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+  }
+
+  /**
    * 📋 GET /api/admin/tenants - Seznam všech tenantů (rozšířená verze)
    */
   @GetMapping
@@ -180,6 +224,34 @@ public class TenantManagementController {
 
       Map<String, Object> errorResponse = Map.of("success", false, "message",
           "Failed to get tenant stats: " + e.getMessage(), "tenantKey", tenantKey);
+
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+  }
+
+  /**
+   * 👥 GET /api/admin/tenants/{tenantKey}/users - Uživatelé tenantu
+   */
+  @GetMapping("/{tenantKey}/users") @PreAuthorize("hasAnyAuthority('CORE_ROLE_ADMIN')")
+  public ResponseEntity<Map<String, Object>> getTenantUsers(@PathVariable String tenantKey) {
+
+    try {
+      log.debug("👥 Getting users for tenant: {}", tenantKey);
+
+      // Get user count for this tenant
+      long userCount = userDirectoryService.countUsersByTenantKey(tenantKey);
+
+      Map<String, Object> response = Map.of("success", true, "tenantKey", tenantKey, "userCount",
+          userCount, "message",
+          "Use /api/users endpoint with tenant filter for detailed user list");
+
+      return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to get tenant users: {}", tenantKey, e);
+
+      Map<String, Object> errorResponse = Map.of("success", false, "message",
+          "Failed to get tenant users: " + e.getMessage(), "tenantKey", tenantKey);
 
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }

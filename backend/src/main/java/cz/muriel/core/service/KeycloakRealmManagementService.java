@@ -101,6 +101,22 @@ public class KeycloakRealmManagementService {
   }
 
   /**
+   * ✏️ UPDATE TENANT DISPLAY NAME: Aktualizuje display name tenantu v Keycloak
+   */
+  public void updateTenantDisplayName(String tenantKey, String displayName) {
+    log.info("✏️ Updating display name for tenant: {} to: {}", tenantKey, displayName);
+
+    try {
+      keycloakAdminService.updateRealmDisplayName(tenantKey, displayName);
+      log.info("✅ Tenant display name updated successfully: {}", tenantKey);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to update tenant display name: {}", tenantKey, e);
+      throw new RuntimeException("Failed to update tenant display name: " + e.getMessage(), e);
+    }
+  }
+
+  /**
    * 📊 GET TENANT STATUS: Získá status tenantu z Keycloak
    */
   public Map<String, Object> getTenantStatus(String tenantKey) {

@@ -124,12 +124,24 @@
         "name": "CORE_USER_MANAGER", 
         "description": "User manager role for core platform"
       },
+      {
+        "name": "CORE_ROLE_MONITORING",
+        "description": "Global monitoring access - can view and edit all dashboards"
+      },
+      {
+        "name": "CORE_ROLE_TENANT_MONITORING",
+        "description": "Tenant-specific monitoring access - can view tenant dashboards"
+      },
+      {
+        "name": "CORE_TENANT_ADMIN",
+        "description": "Tenant administrator role - manages tenant users and settings"
+      },
       { 
         "name": "CORE_ROLE_ADMIN", 
         "description": "Administrator role for core platform",
         "composite": true,
         "composites": {
-          "realm": ["CORE_USER_MANAGER"]
+          "realm": ["CORE_USER_MANAGER", "CORE_ROLE_MONITORING", "CORE_TENANT_ADMIN"]
         }
       }
     ]
