@@ -3,8 +3,8 @@ FROM quay.io/keycloak/keycloak:24.0.4
 
 ENV KC_HEALTH_ENABLED=true
 
-# zkopíruj custom témata
-COPY themes/ /opt/keycloak/themes/
+# 🎨 zkopíruj core-material custom theme (fungující verze)
+COPY themes/core-material/ /opt/keycloak/themes/core-material/
 
 # 🏗️ ADMIN REALM: zkopíruj admin realm konfiguraci pro automatický import
 COPY docker/keycloak/realm-admin.json /opt/keycloak/data/import/

@@ -158,14 +158,21 @@ function Layout({ children, user, onLogout }) {
     };
   };
 
-  // 🎨 Nový drawer design s SidebarNav
+  // 🎨 Detekce dark módu
+  const prefersDarkMode = theme.palette.mode === 'dark';
+
+  // 🎨 Glassmorphic drawer design s SidebarNav
   const drawer = (
     <Box sx={{ 
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
-      background: tokens.colors.gradients.primary,
-      borderRight: 'none',
+      background: prefersDarkMode 
+        ? 'linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%)' 
+        : 'linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%)',
+      borderRight: prefersDarkMode
+        ? '1px solid rgba(255, 255, 255, 0.15)'
+        : '1px solid rgba(0, 0, 0, 0.1)',
     }}>
       {/* Header s Core Platform logo */}
       <Paper 
@@ -174,13 +181,13 @@ function Layout({ children, user, onLogout }) {
           m: 2, 
           p: 3, 
           borderRadius: tokens.radius.xl,
-          background: tokens.colors.gradients.glassCard,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          color: 'white',
+          background: prefersDarkMode 
+            ? 'rgba(255, 255, 255, 0.08)' 
+            : 'rgba(0, 0, 0, 0.04)',
           textAlign: 'center',
-          border: `1px solid ${tokens.colors.white}30`,
-          boxShadow: tokens.shadows.glass,
+          border: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.15)'
+            : '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
         <Typography variant="h5" component="div" sx={{ 
@@ -191,7 +198,7 @@ function Layout({ children, user, onLogout }) {
           🚀 Core Platform
         </Typography>
         <Typography variant="body2" sx={{ 
-          opacity: 0.9, 
+          opacity: 0.7, 
           fontSize: tokens.typography.fontSize.sm,
         }}>
           {getTenantDisplayInfo().name}
@@ -222,17 +229,21 @@ function Layout({ children, user, onLogout }) {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* AppBar - modernější design */}
+      {/* AppBar - glassmorphic design */}
       <AppBar
         position="fixed"
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          background: tokens.colors.gradients.primary,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: 'none',
-          boxShadow: tokens.shadows.glassHover,
+          background: prefersDarkMode 
+            ? 'rgba(30, 30, 30, 0.8)' 
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: 'none',
+          color: prefersDarkMode ? '#ffffff' : '#1a1a1a',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', minHeight: tokens.components.layout.headerHeight }}>
@@ -245,7 +256,7 @@ function Layout({ children, user, onLogout }) {
               sx={{ 
                 display: { md: 'none' },
                 '&:focus-visible': {
-                  outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.colors.white}`,
+                  outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.a11y.focusRing.color}`,
                   outlineOffset: tokens.a11y.focusRing.offset,
                 },
               }}
@@ -272,17 +283,22 @@ function Layout({ children, user, onLogout }) {
                 onClick={handleMenuClick}
                 color="inherit"
                 sx={{
-                  background: 'rgba(255,255,255,0.1)',
+                  background: prefersDarkMode 
+                    ? 'rgba(255,255,255,0.1)' 
+                    : 'rgba(0,0,0,0.05)',
                   backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)',
+                  border: prefersDarkMode
+                    ? '1px solid rgba(255, 255, 255, 0.1)'
+                    : '1px solid rgba(0, 0, 0, 0.08)',
                   transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
                   '&:hover': {
-                    background: 'rgba(255,255,255,0.2)',
+                    background: prefersDarkMode 
+                      ? 'rgba(255,255,255,0.15)' 
+                      : 'rgba(0,0,0,0.08)',
                     transform: 'scale(1.05)',
-                    boxShadow: tokens.shadows.md,
                   },
                   '&:focus-visible': {
-                    outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.colors.white}`,
+                    outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.a11y.focusRing.color}`,
                     outlineOffset: tokens.a11y.focusRing.offset,
                   },
                 }}
@@ -306,12 +322,10 @@ function Layout({ children, user, onLogout }) {
                 >
                   <Avatar 
                     sx={{ 
-                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      bgcolor: 'primary.main', 
                       width: 36, 
                       height: 36,
                       fontWeight: tokens.typography.fontWeight.bold,
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      color: 'white'
                     }}
                   >
                     {getUserInitials()}
@@ -336,7 +350,9 @@ function Layout({ children, user, onLogout }) {
             minWidth: 280,
             maxWidth: 400,
             borderRadius: tokens.radius.lg,
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            background: theme => theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(50, 50, 50, 0.95) 100%)'
+              : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.2)',
             boxShadow: tokens.shadows.xxl,
@@ -348,7 +364,9 @@ function Layout({ children, user, onLogout }) {
               py: 1.5,
               transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
               '&:hover': {
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                backgroundColor: theme => theme.palette.mode === 'dark'
+                  ? 'rgba(25, 118, 210, 0.15)'
+                  : 'rgba(25, 118, 210, 0.08)',
                 transform: 'translateX(4px)',
               },
               '&:focus-visible': {
@@ -428,7 +446,9 @@ function Layout({ children, user, onLogout }) {
             mt: 1.5,
             minWidth: 280,
             borderRadius: tokens.radius.lg,
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+            background: theme => theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(50, 50, 50, 0.95) 100%)'
+              : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.2)',
             boxShadow: tokens.shadows.xxl,
@@ -440,7 +460,9 @@ function Layout({ children, user, onLogout }) {
               py: 1.5,
               transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
               '&:hover': {
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                backgroundColor: theme => theme.palette.mode === 'dark'
+                  ? 'rgba(25, 118, 210, 0.15)'
+                  : 'rgba(25, 118, 210, 0.08)',
                 transform: 'translateX(4px)',
               },
               '&:focus-visible': {

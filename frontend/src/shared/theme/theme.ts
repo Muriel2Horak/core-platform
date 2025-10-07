@@ -1,632 +1,313 @@
 /**
- * 🎨 Core Platform MUI Theme
+ * 🎨 Core Platform MUI Theme - Glassmorphic Edition
  * 
- * Material-UI theme vytvořený z našich design tokens.
- * Obsahuje kompletní overrides pro konzistentní vzhled.
+ * Minimalistický design systém s podporou dark/light módu.
+ * Inspirovaný moderním Keycloak Glass designem.
  */
 
-import { createTheme, ThemeOptions } from '@mui/material/styles';
+import { createTheme, ThemeOptions, alpha } from '@mui/material/styles';
 import { tokens } from './tokens';
 
-// 🔧 Base theme options z našich tokens
-const baseThemeOptions: ThemeOptions = {
-  // 🎨 Palette z tokens
-  palette: {
-    mode: 'light',
-    primary: {
-      main: tokens.colors.primary[500],
-      light: tokens.colors.primary[400],
-      dark: tokens.colors.primary[600],
-      contrastText: tokens.colors.white,
-    },
-    secondary: {
-      main: tokens.colors.secondary[500],
-      light: tokens.colors.secondary[400], 
-      dark: tokens.colors.secondary[600],
-      contrastText: tokens.colors.white,
-    },
-    error: {
-      main: tokens.colors.error[500],
-      light: tokens.colors.error[200],
-      dark: tokens.colors.error[700],
-      contrastText: tokens.colors.white,
-    },
-    warning: {
-      main: tokens.colors.warning[500],
-      light: tokens.colors.warning[200],
-      dark: tokens.colors.warning[700],
-      contrastText: tokens.colors.white,
-    },
-    info: {
-      main: tokens.colors.info[500],
-      light: tokens.colors.info[200],
-      dark: tokens.colors.info[700],
-      contrastText: tokens.colors.white,
-    },
-    success: {
-      main: tokens.colors.success[500],
-      light: tokens.colors.success[200],
-      dark: tokens.colors.success[700],
-      contrastText: tokens.colors.white,
-    },
-    grey: tokens.colors.grey,
-    background: {
-      default: tokens.colors.grey[50],
-      paper: tokens.colors.white,
-    },
-    text: {
-      primary: tokens.colors.grey[900],
-      secondary: tokens.colors.grey[600],
-      disabled: tokens.colors.grey[400],
-    },
-    divider: tokens.colors.grey[200],
+// 🌓 Detekce systémového dark módu
+const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+// 🎨 Glassmorphic color palette pro light mode
+const lightPalette = {
+  mode: 'light' as const,
+  primary: {
+    main: '#1976d2',      // Modrá - méně výrazná než fialová
+    light: '#42a5f5',
+    dark: '#1565c0',
+    contrastText: '#ffffff',
   },
-
-  // ✍️ Typography z tokens
-  typography: {
-    fontFamily: tokens.typography.fontFamily.primary,
-    h1: {
-      fontSize: tokens.typography.fontSize['5xl'],
-      fontWeight: tokens.typography.fontWeight.bold,
-      lineHeight: tokens.typography.lineHeight.tight,
-      letterSpacing: '-0.025em',
-    },
-    h2: {
-      fontSize: tokens.typography.fontSize['4xl'],
-      fontWeight: tokens.typography.fontWeight.semibold,
-      lineHeight: tokens.typography.lineHeight.snug,
-      letterSpacing: '-0.025em',
-    },
-    h3: {
-      fontSize: tokens.typography.fontSize['3xl'],
-      fontWeight: tokens.typography.fontWeight.semibold,
-      lineHeight: tokens.typography.lineHeight.normal,
-    },
-    h4: {
-      fontSize: tokens.typography.fontSize['2xl'],
-      fontWeight: tokens.typography.fontWeight.semibold,
-      lineHeight: tokens.typography.lineHeight.normal,
-    },
-    h5: {
-      fontSize: tokens.typography.fontSize.xl,
-      fontWeight: tokens.typography.fontWeight.semibold,
-      lineHeight: tokens.typography.lineHeight.relaxed,
-    },
-    h6: {
-      fontSize: tokens.typography.fontSize.base,
-      fontWeight: tokens.typography.fontWeight.semibold,
-      lineHeight: tokens.typography.lineHeight.relaxed,
-    },
-    body1: {
-      fontSize: tokens.typography.fontSize.base,
-      fontWeight: tokens.typography.fontWeight.normal,
-      lineHeight: tokens.typography.lineHeight.loose,
-    },
-    body2: {
-      fontSize: tokens.typography.fontSize.sm,
-      fontWeight: tokens.typography.fontWeight.normal,
-      lineHeight: tokens.typography.lineHeight.loose,
-    },
-    caption: {
-      fontSize: tokens.typography.fontSize.xs,
-      fontWeight: tokens.typography.fontWeight.normal,
-      lineHeight: tokens.typography.lineHeight.normal,
-    },
-    button: {
-      fontSize: tokens.typography.fontSize.sm,
-      fontWeight: tokens.typography.fontWeight.medium,
-      textTransform: 'none' as const, // Disable uppercase
-      letterSpacing: '0.02em',
-    },
+  secondary: {
+    main: '#455a64',      // Šedá - neutrální
+    light: '#78909c',
+    dark: '#37474f',
+    contrastText: '#ffffff',
   },
-
-  // 📐 Shape & spacing
-  shape: {
-    borderRadius: parseInt(tokens.radius.lg, 10), // 12px default
+  background: {
+    default: '#f5f5f7',   // Světle šedá - jako macOS
+    paper: 'rgba(255, 255, 255, 0.8)',  // Glassmorphic bílá
   },
-
-  spacing: 8, // 8px base unit
-
-  // 📱 Breakpoints z tokens
-  breakpoints: {
-    values: {
-      xs: parseInt(tokens.breakpoints.xs, 10),
-      sm: parseInt(tokens.breakpoints.sm, 10), 
-      md: parseInt(tokens.breakpoints.md, 10),
-      lg: parseInt(tokens.breakpoints.lg, 10),
-      xl: parseInt(tokens.breakpoints.xl, 10),
-    },
+  text: {
+    primary: '#1a1a1a',
+    secondary: '#6b6b6b',
+    disabled: '#9e9e9e',
   },
-
-  // 🌟 Shadows z tokens
-  shadows: [
-    'none',
-    tokens.shadows.sm,
-    tokens.shadows.sm,
-    tokens.shadows.md,
-    tokens.shadows.md,
-    tokens.shadows.lg,
-    tokens.shadows.lg,
-    tokens.shadows.xl,
-    tokens.shadows.xl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-    tokens.shadows.xxl,
-  ],
-
-  // 🎞️ Transitions
-  transitions: {
-    duration: {
-      shortest: 150,
-      shorter: 200,
-      short: 250,
-      standard: 300,
-      complex: 375,
-      enteringScreen: 225,
-      leavingScreen: 195,
-    },
-    easing: {
-      easeInOut: tokens.components.animation.easing,
-      easeOut: 'cubic-bezier(0.0, 0, 0.2, 1)',
-      easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
-      sharp: 'cubic-bezier(0.4, 0, 0.6, 1)',
-    },
-  },
-
-  // 🎯 Z-index z tokens  
-  zIndex: {
-    mobileStepper: tokens.zIndex.base,
-    speedDial: tokens.zIndex.docked,
-    appBar: tokens.zIndex.sticky,
-    drawer: tokens.zIndex.overlay,
-    modal: tokens.zIndex.modal,
-    snackbar: tokens.zIndex.toast,
-    tooltip: tokens.zIndex.tooltip,
-  },
+  divider: 'rgba(0, 0, 0, 0.08)',
 };
 
-// 🎨 Vytvoříme base theme
+// 🎨 Glassmorphic color palette pro dark mode
+const darkPalette = {
+  mode: 'dark' as const,
+  primary: {
+    main: '#64b5f6',      // Světlejší modrá pro dark mode
+    light: '#90caf9',
+    dark: '#42a5f5',
+    contrastText: '#000000',
+  },
+  secondary: {
+    main: '#90a4ae',      // Světlejší šedá
+    light: '#b0bec5',
+    dark: '#78909c',
+    contrastText: '#000000',
+  },
+  background: {
+    default: '#121212',   // Tmavá - Material Design standard
+    paper: 'rgba(30, 30, 30, 0.8)',  // Glassmorphic tmavá
+  },
+  text: {
+    primary: '#ffffff',
+    secondary: '#b0b0b0',
+    disabled: '#757575',
+  },
+  divider: 'rgba(255, 255, 255, 0.12)',
+};
+
+// 🔧 Base theme options
+const baseThemeOptions: ThemeOptions = {
+  palette: prefersDarkMode ? darkPalette : lightPalette,
+  
+  typography: {
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    h1: {
+      fontSize: '2.5rem',
+      fontWeight: 600,
+      letterSpacing: '-0.02em',
+    },
+    h2: {
+      fontSize: '2rem',
+      fontWeight: 600,
+      letterSpacing: '-0.01em',
+    },
+    h3: {
+      fontSize: '1.75rem',
+      fontWeight: 600,
+    },
+    h4: {
+      fontSize: '1.5rem',
+      fontWeight: 600,
+    },
+    h5: {
+      fontSize: '1.25rem',
+      fontWeight: 600,
+    },
+    h6: {
+      fontSize: '1rem',
+      fontWeight: 600,
+    },
+    body1: {
+      fontSize: '1rem',
+      lineHeight: 1.7,
+    },
+    body2: {
+      fontSize: '0.875rem',
+      lineHeight: 1.6,
+    },
+    button: {
+      textTransform: 'none',
+      fontWeight: 500,
+    },
+  },
+
+  shape: {
+    borderRadius: 12,
+  },
+
+  shadows: [
+    'none',
+    '0 2px 4px rgba(0,0,0,0.05)',
+    '0 4px 8px rgba(0,0,0,0.08)',
+    '0 8px 16px rgba(0,0,0,0.1)',
+    '0 12px 24px rgba(0,0,0,0.12)',
+    '0 16px 32px rgba(0,0,0,0.15)',
+    ...Array(19).fill('0 20px 40px rgba(0,0,0,0.2)'),
+  ],
+};
+
+// 🎨 Create base theme
 const baseTheme = createTheme(baseThemeOptions);
 
-// 🔧 Component overrides - aplikujeme naše design tokeny
-const themeWithComponents = createTheme({
+// 🔧 Glassmorphic component overrides
+const glassTheme = createTheme({
   ...baseTheme,
   components: {
-    // 🔘 Button overrides
-    MuiButton: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          // Glassmorphic gradient pozadí
+          background: prefersDarkMode
+            ? 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
+            : 'linear-gradient(135deg, #f5f5f7 0%, #e8e8eb 100%)',
+          backgroundAttachment: 'fixed',
+        },
+      },
+    },
+
+    MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: tokens.radius.lg,
-          fontWeight: tokens.typography.fontWeight.medium,
-          textTransform: 'none',
+          backgroundImage: 'none',
+          backgroundColor: prefersDarkMode 
+            ? 'rgba(30, 30, 30, 0.8)' 
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          border: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+        elevation1: {
+          boxShadow: prefersDarkMode
+            ? '0 4px 16px rgba(0, 0, 0, 0.4)'
+            : '0 4px 16px rgba(0, 0, 0, 0.1)',
+        },
+      },
+    },
+
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: prefersDarkMode 
+            ? 'rgba(30, 30, 30, 0.8)' 
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
           boxShadow: 'none',
-          transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
-          
+        },
+      },
+    },
+
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: prefersDarkMode 
+            ? 'rgba(20, 20, 20, 0.95)' 
+            : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          borderRight: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+        },
+      },
+    },
+
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundColor: prefersDarkMode 
+            ? 'rgba(30, 30, 30, 0.8)' 
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          border: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+          borderRadius: 16,
+          boxShadow: prefersDarkMode
+            ? '0 8px 24px rgba(0, 0, 0, 0.4)'
+            : '0 8px 24px rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
-            boxShadow: tokens.shadows.md,
-            transform: 'translateY(-1px)',
-          },
-          
-          '&:active': {
-            transform: 'translateY(0)',
-          },
-          
-          '&:focus-visible': {
-            outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.a11y.focusRing.color}`,
-            outlineOffset: tokens.a11y.focusRing.offset,
-          },
-        },
-        
-        sizeLarge: {
-          height: tokens.components.button.height.large,
-          padding: tokens.components.button.padding.large,
-          fontSize: tokens.components.button.fontSize.large,
-        },
-        
-        sizeMedium: {
-          height: tokens.components.button.height.medium,
-          padding: tokens.components.button.padding.medium,
-          fontSize: tokens.components.button.fontSize.medium,
-        },
-        
-        sizeSmall: {
-          height: tokens.components.button.height.small,
-          padding: tokens.components.button.padding.small,
-          fontSize: tokens.components.button.fontSize.small,
-        },
-        
-        containedPrimary: {
-          background: tokens.colors.gradients.primary,
-          '&:hover': {
-            background: tokens.colors.gradients.primaryLight,
-            boxShadow: tokens.shadows.glassHover,
+            transform: 'translateY(-4px)',
+            boxShadow: prefersDarkMode
+              ? '0 12px 32px rgba(0, 0, 0, 0.5)'
+              : '0 12px 32px rgba(0, 0, 0, 0.15)',
           },
         },
       },
     },
 
-    // 📝 TextField overrides
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 10,
+          padding: '10px 24px',
+          fontWeight: 500,
+          textTransform: 'none',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+          },
+        },
+        contained: {
+          boxShadow: 'none',
+          '&:hover': {
+            boxShadow: prefersDarkMode
+              ? '0 8px 16px rgba(100, 181, 246, 0.3)'
+              : '0 8px 16px rgba(25, 118, 210, 0.3)',
+          },
+        },
+        outlined: {
+          borderWidth: '1.5px',
+          '&:hover': {
+            borderWidth: '1.5px',
+            backgroundColor: prefersDarkMode
+              ? 'rgba(100, 181, 246, 0.08)'
+              : 'rgba(25, 118, 210, 0.08)',
+          },
+        },
+      },
+    },
+
     MuiTextField: {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: tokens.radius.md,
-            backgroundColor: tokens.colors.white,
-            transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
-            
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.primary[400],
+            backgroundColor: prefersDarkMode 
+              ? 'rgba(255, 255, 255, 0.05)' 
+              : 'rgba(0, 0, 0, 0.02)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: 10,
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              backgroundColor: prefersDarkMode 
+                ? 'rgba(255, 255, 255, 0.08)' 
+                : 'rgba(0, 0, 0, 0.04)',
             },
-            
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.primary[500],
-              borderWidth: '2px',
-            },
-            
-            '&.Mui-error .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.error[500],
-            },
-          },
-
-          // Readonly styling
-          '& .MuiOutlinedInput-root.Mui-readOnly, & .MuiOutlinedInput-root[readonly]': {
-            backgroundColor: tokens.colors.grey[50],
-            cursor: 'not-allowed',
-            
-            '& .MuiOutlinedInput-input': {
-              cursor: 'not-allowed',
+            '&.Mui-focused': {
+              backgroundColor: prefersDarkMode 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'rgba(0, 0, 0, 0.03)',
             },
           },
         },
       },
     },
 
-    // 📊 Card overrides
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: tokens.radius.xl,
-          boxShadow: tokens.shadows.md,
-          border: `1px solid ${tokens.colors.grey[200]}`,
-          transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
-          
-          '&:hover': {
-            boxShadow: tokens.shadows.lg,
-            transform: 'translateY(-2px)',
-          },
-        },
-      },
-    },
-
-    // 🗂️ Tabs overrides
-    MuiTabs: {
-      styleOverrides: {
-        root: {
-          minHeight: 48,
-        },
-        indicator: {
-          height: 3,
-          borderRadius: '3px 3px 0 0',
-          background: tokens.colors.gradients.primary,
-        },
-      },
-    },
-
-    MuiTab: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: tokens.typography.fontWeight.medium,
-          fontSize: tokens.typography.fontSize.base,
-          minHeight: 48,
-          color: tokens.colors.grey[600],
-          transition: `all ${tokens.components.animation.normal} ${tokens.components.animation.easing}`,
-          
-          '&:hover': {
-            color: tokens.colors.primary[600],
-            backgroundColor: `${tokens.colors.primary[50]}`,
-          },
-          
-          '&.Mui-selected': {
-            color: tokens.colors.primary[600],
-            fontWeight: tokens.typography.fontWeight.semibold,
-          },
-          
-          '&:focus-visible': {
-            outline: `${tokens.a11y.focusRing.width} ${tokens.a11y.focusRing.style} ${tokens.a11y.focusRing.color}`,
-            outlineOffset: tokens.a11y.focusRing.offset,
-          },
-        },
-      },
-    },
-
-    // 💬 Tooltip overrides
-    MuiTooltip: {
-      styleOverrides: {
-        tooltip: {
-          backgroundColor: tokens.colors.grey[800],
-          color: tokens.colors.white,
-          fontSize: tokens.typography.fontSize.sm,
-          borderRadius: tokens.radius.md,
-          padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
-          boxShadow: tokens.shadows.xl,
-        },
-        arrow: {
-          color: tokens.colors.grey[800],
-        },
-      },
-      defaultProps: {
-        enterDelay: 500,
-        leaveDelay: 200,
-        arrow: true,
-      },
-    },
-
-    // 🔔 Alert overrides
-    MuiAlert: {
-      styleOverrides: {
-        root: {
-          borderRadius: tokens.radius.lg,
-          fontWeight: tokens.typography.fontWeight.medium,
-        },
-        filledSuccess: {
-          backgroundColor: tokens.colors.success[600],
-        },
-        filledError: {
-          backgroundColor: tokens.colors.error[600],
-        },
-        filledWarning: {
-          backgroundColor: tokens.colors.warning[600],
-        },
-        filledInfo: {
-          backgroundColor: tokens.colors.info[600],
-        },
-      },
-    },
-
-    // 🎯 Chip overrides
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          borderRadius: tokens.radius.md,
-          fontWeight: tokens.typography.fontWeight.medium,
-        },
-      },
-    },
-
-    // 📄 Paper overrides pro glassmorphism
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundImage: 'none', // Remove MUI default gradient
-        },
-      },
-    },
-
-    // 🎭 Dialog overrides
     MuiDialog: {
       styleOverrides: {
         paper: {
-          borderRadius: tokens.radius.xl,
-          boxShadow: tokens.shadows.xxl,
+          backgroundColor: prefersDarkMode 
+            ? 'rgba(30, 30, 30, 0.95)' 
+            : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          borderRadius: 20,
+          border: prefersDarkMode
+            ? '1px solid rgba(255, 255, 255, 0.1)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
         },
       },
     },
 
-    // 📱 Drawer overrides
-    MuiDrawer: {
+    MuiChip: {
       styleOverrides: {
-        paper: {
-          borderRadius: 0, // Keep square for sidebars
-          border: 'none',
+        root: {
+          borderRadius: 8,
+          backdropFilter: 'blur(10px)',
+        },
+        filled: {
+          backgroundColor: prefersDarkMode 
+            ? 'rgba(100, 181, 246, 0.2)' 
+            : 'rgba(25, 118, 210, 0.1)',
         },
       },
     },
   },
 });
 
-// 🎨 Export finálního theme
-export const corePlatformTheme = themeWithComponents;
-
-// Také exportujeme původní theme pro Keycloak kompatibilitu
-export const coreMaterialTheme = themeWithComponents;
-
-export const theme = createTheme({
-  ...baseTheme,
-  palette: {
-    ...baseTheme.palette,
-    primary: {
-      main: tokens.colors.primary.main,
-      light: tokens.colors.primary.light,
-      dark: tokens.colors.primary.dark,
-      contrastText: tokens.colors.primary.contrastText,
-    },
-    secondary: {
-      main: tokens.colors.secondary.main,
-      light: tokens.colors.secondary.light,
-      dark: tokens.colors.secondary.dark,
-      contrastText: tokens.colors.secondary.contrastText,
-    },
-    error: {
-      main: tokens.colors.error.main,
-      light: tokens.colors.error.light,
-      dark: tokens.colors.error.dark,
-      contrastText: tokens.colors.error.contrastText,
-    },
-    warning: {
-      main: tokens.colors.warning.main,
-      light: tokens.colors.warning.light,
-      dark: tokens.colors.warning.dark,
-      contrastText: tokens.colors.warning.contrastText,
-    },
-    info: {
-      main: tokens.colors.info.main,
-      light: tokens.colors.info.light,
-      dark: tokens.colors.info.dark,
-      contrastText: tokens.colors.info.contrastText,
-    },
-    success: {
-      main: tokens.colors.success.main,
-      light: tokens.colors.success.light,
-      dark: tokens.colors.success.dark,
-      contrastText: tokens.colors.success.contrastText,
-    },
-    background: {
-      default: tokens.colors.background.default,
-      paper: tokens.colors.background.paper,
-    },
-    text: {
-      primary: tokens.colors.text.primary,
-      secondary: tokens.colors.text.secondary,
-      disabled: tokens.colors.text.disabled,
-    },
-  },
-  typography: {
-    fontFamily: tokens.typography.fontFamily.primary,
-    h1: {
-      fontSize: tokens.typography.heading.h1.fontSize,
-      fontWeight: tokens.typography.heading.h1.fontWeight,
-      lineHeight: tokens.typography.heading.h1.lineHeight,
-    },
-    h2: {
-      fontSize: tokens.typography.heading.h2.fontSize,
-      fontWeight: tokens.typography.heading.h2.fontWeight,
-      lineHeight: tokens.typography.heading.h2.lineHeight,
-    },
-    h3: {
-      fontSize: tokens.typography.heading.h3.fontSize,
-      fontWeight: tokens.typography.heading.h3.fontWeight,
-      lineHeight: tokens.typography.heading.h3.lineHeight,
-    },
-    h4: {
-      fontSize: tokens.typography.heading.h4.fontSize,
-      fontWeight: tokens.typography.heading.h4.fontWeight,
-      lineHeight: tokens.typography.heading.h4.lineHeight,
-    },
-    h5: {
-      fontSize: tokens.typography.heading.h5.fontSize,
-      fontWeight: tokens.typography.heading.h5.fontWeight,
-      lineHeight: tokens.typography.heading.h5.lineHeight,
-    },
-    h6: {
-      fontSize: tokens.typography.heading.h6.fontSize,
-      fontWeight: tokens.typography.heading.h6.fontWeight,
-      lineHeight: tokens.typography.heading.h6.lineHeight,
-    },
-    body1: {
-      fontSize: tokens.typography.body.large.fontSize,
-      fontWeight: tokens.typography.body.large.fontWeight,
-      lineHeight: tokens.typography.body.large.lineHeight,
-    },
-    body2: {
-      fontSize: tokens.typography.body.medium.fontSize,
-      fontWeight: tokens.typography.body.medium.fontWeight,
-      lineHeight: tokens.typography.body.medium.lineHeight,
-    },
-    caption: {
-      fontSize: tokens.typography.body.small.fontSize,
-      fontWeight: tokens.typography.body.small.fontWeight,
-      lineHeight: tokens.typography.body.small.lineHeight,
-    },
-  },
-  spacing: 8,
-  shape: {
-    borderRadius: parseInt(tokens.borderRadius.medium, 10), // Convert string to number
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          borderRadius: tokens.borderRadius.small,
-          fontWeight: tokens.typography.fontWeight.medium,
-          transition: tokens.animation.transition.all,
-          '&:hover': {
-            transform: tokens.animation.transform.scaleHover,
-          },
-        },
-        containedPrimary: {
-          backgroundColor: tokens.colors.primary.main,
-          color: tokens.colors.primary.contrastText,
-          boxShadow: tokens.elevation.medium,
-          '&:hover': {
-            backgroundColor: tokens.colors.primary.dark,
-            boxShadow: tokens.elevation.high,
-          },
-        },
-        outlinedPrimary: {
-          borderColor: tokens.colors.primary.main,
-          color: tokens.colors.primary.main,
-          '&:hover': {
-            borderColor: tokens.colors.primary.dark,
-            backgroundColor: `${tokens.colors.primary.main}08`,
-          },
-        },
-        textPrimary: {
-          color: tokens.colors.primary.main,
-          '&:hover': {
-            backgroundColor: `${tokens.colors.primary.main}08`,
-          },
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: tokens.borderRadius.medium,
-          boxShadow: tokens.elevation.low,
-          border: `1px solid ${tokens.colors.border.light}`,
-          backgroundColor: tokens.colors.background.paper,
-          transition: tokens.animation.transition.all,
-          '&:hover': {
-            boxShadow: tokens.elevation.medium,
-            transform: tokens.animation.transform.translateY,
-          },
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: tokens.borderRadius.small,
-            transition: tokens.animation.transition.all,
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.primary.light,
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: tokens.colors.primary.main,
-              borderWidth: '2px',
-            },
-          },
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          backgroundColor: tokens.colors.background.paper,
-          color: tokens.colors.text.primary,
-          boxShadow: tokens.elevation.low,
-          borderBottom: `1px solid ${tokens.colors.border.light}`,
-          transition: tokens.animation.transition.all,
-        },
-      },
-    },
-  },
-} as const);
-
-export default corePlatformTheme;
+export const corePlatformTheme = glassTheme;
+export const theme = glassTheme;
+export default glassTheme;

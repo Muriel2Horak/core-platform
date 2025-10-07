@@ -20,8 +20,7 @@ public class UserProfileController {
 
   private final KeycloakAdminService keycloakAdminService;
 
-  @GetMapping @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z hasAuthority('CORE_ROLE_USER')
-                                                 // na isAuthenticated()
+  @GetMapping @PreAuthorize("isAuthenticated()")
   public ResponseEntity<UserDto> getMyProfile(Authentication authentication) {
     String username = getCurrentUsername(authentication);
     log.info("Getting profile for username: {}", username);
@@ -57,9 +56,7 @@ public class UserProfileController {
       }
 
       Map<String, Object> response = Map.of("timestamp", currentTimestamp, "hasChanges", hasChanges,
-          "username", username, "lastModified", currentTimestamp // V produkci by to bylo skutečné
-                                                                 // datum z Keycloak
-      );
+          "username", username, "lastModified", currentTimestamp);
 
       log.debug("Changes check result: {}", response);
       return ResponseEntity.ok(response);
@@ -71,8 +68,7 @@ public class UserProfileController {
     }
   }
 
-  @PutMapping @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z hasAuthority('CORE_ROLE_USER')
-                                                 // na isAuthenticated()
+  @PutMapping @PreAuthorize("isAuthenticated()")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
     String username = getCurrentUsername(authentication);
@@ -86,9 +82,7 @@ public class UserProfileController {
     return ResponseEntity.ok(updatedUser);
   }
 
-  @PutMapping("/password") @PreAuthorize("isAuthenticated()") // 🔧 FIX: Změněno z
-                                                              // hasAuthority('CORE_ROLE_USER') na
-                                                              // isAuthenticated()
+  @PutMapping("/password") @PreAuthorize("isAuthenticated()")
   public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody PasswordChangeRequest request,
       Authentication authentication) {
     String username = getCurrentUsername(authentication);

@@ -1,0 +1,6 @@
+export { default as MonitoringPage } from './MonitoringPage';
+export { default as AdminUsersPage } from './AdminUsersPage';
+export { default as AdminRolesPage } from './AdminRolesPage';
+export { default as AdminTenantsPage } from './AdminTenantsPage';
+export { default as AdminSecurityPage } from './AdminSecurityPage';
+export { default as AdminAuditPage } from './AdminAuditPage';

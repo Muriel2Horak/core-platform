@@ -148,10 +148,24 @@ function Dashboard({ user }) {
       <Grid container spacing={3}>
         {/* Welcome Card */}
         <Grid item xs={12} md={8}>
-          <Card>
+          <Card sx={{
+            background: theme => theme.palette.mode === 'dark'
+              ? 'rgba(30, 30, 30, 0.6)'
+              : 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(20px)',
+            border: theme => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+          }}>
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 56, height: 56 }}>
+                <Avatar sx={{ 
+                  bgcolor: 'primary.main', 
+                  mr: 2, 
+                  width: 56, 
+                  height: 56,
+                  boxShadow: theme => theme.palette.mode === 'dark'
+                    ? '0 4px 20px rgba(25, 118, 210, 0.3)'
+                    : '0 4px 20px rgba(25, 118, 210, 0.2)'
+                }}>
                   <DashboardIcon />
                 </Avatar>
                 <Box>
@@ -181,7 +195,13 @@ function Dashboard({ user }) {
 
         {/* User Info Card */}
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{
+            background: theme => theme.palette.mode === 'dark'
+              ? 'rgba(30, 30, 30, 0.6)'
+              : 'rgba(255, 255, 255, 0.7)',
+            backdropFilter: 'blur(20px)',
+            border: theme => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+          }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" component="h3" gutterBottom>
                 Informace o účtu
@@ -205,10 +225,29 @@ function Dashboard({ user }) {
         {/* Statistics Cards */}
         {statsCards.map((card, index) => (
           <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card>
+            <Card sx={{
+              background: theme => theme.palette.mode === 'dark'
+                ? 'rgba(30, 30, 30, 0.6)'
+                : 'rgba(255, 255, 255, 0.7)',
+              backdropFilter: 'blur(20px)',
+              border: theme => `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme => theme.palette.mode === 'dark'
+                  ? '0 12px 40px rgba(0,0,0,0.4)'
+                  : '0 12px 40px rgba(0,0,0,0.1)',
+              }
+            }}>
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Avatar sx={{ bgcolor: `${card.color}.main`, mr: 2 }}>
+                  <Avatar sx={{ 
+                    bgcolor: `${card.color}.main`, 
+                    mr: 2,
+                    boxShadow: theme => theme.palette.mode === 'dark'
+                      ? `0 4px 20px rgba(25, 118, 210, 0.3)`
+                      : `0 4px 20px rgba(25, 118, 210, 0.2)`
+                  }}>
                     {card.icon}
                   </Avatar>
                   <Box>

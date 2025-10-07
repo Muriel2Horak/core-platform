@@ -14,7 +14,7 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["cs", "en"],
   "defaultLocale": "cs",
-  "loginTheme": "core-material",
+  "loginTheme": "core-platform",
   "accountTheme": "keycloak",
   "adminTheme": "keycloak",
   "emailTheme": "keycloak",
@@ -193,6 +193,40 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "grafana",
+      "name": "Grafana",
+      "description": "Grafana monitoring dashboard",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "enabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "secret": "grafana-secret-change-in-prod",
+      "rootUrl": "https://admin.core-platform.local/monitoring",
+      "redirectUris": [
+        "https://admin.core-platform.local/monitoring/login/generic_oauth",
+        "https://test-tenant.core-platform.local/monitoring/login/generic_oauth",
+        "https://company-b.core-platform.local/monitoring/login/generic_oauth",
+        "https://core-platform.local/monitoring/login/generic_oauth",
+        "https://*.core-platform.local/monitoring/login/generic_oauth",
+        "http://localhost:3000/monitoring/login/generic_oauth"
+      ],
+      "webOrigins": [
+        "https://admin.core-platform.local",
+        "https://test-tenant.core-platform.local",
+        "https://company-b.core-platform.local",
+        "https://core-platform.local",
+        "https://*.core-platform.local",
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
     }
   ],
   "eventsEnabled": true,

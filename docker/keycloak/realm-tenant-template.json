@@ -76,12 +76,28 @@
         "description": "User manager role for ${TENANT_DISPLAY_NAME}"
       },
       {
+        "name": "CORE_ROLE_TENANT_MONITORING",
+        "description": "Tenant monitoring access for ${TENANT_DISPLAY_NAME} - can view tenant dashboards"
+      },
+      {
+        "name": "CORE_TENANT_ADMIN",
+        "description": "Tenant administrator for ${TENANT_DISPLAY_NAME} - manages tenant users and settings",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "CORE_USER_MANAGER",
+            "CORE_ROLE_TENANT_MONITORING"
+          ]
+        }
+      },
+      {
         "name": "CORE_ROLE_ADMIN",
         "description": "Administrator role for ${TENANT_DISPLAY_NAME}",
         "composite": true,
         "composites": {
           "realm": [
-            "CORE_USER_MANAGER"
+            "CORE_USER_MANAGER",
+            "CORE_ROLE_TENANT_MONITORING"
           ]
         }
       }

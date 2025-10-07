@@ -143,18 +143,10 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         logger.info('🔧 Initializing authentication...');
         
-        // Check if user was recently logged out
-        const logoutCompleted = localStorage.getItem('logout-completed');
-        const preventAutoLogin = localStorage.getItem('prevent-auto-login') === 'true';
-        const currentPath = window.location.pathname;
+        // 🔧 S login-required už nepotřebujeme manuální logout handling
+        // Keycloak automaticky redirectne na login při odhlášení
         
-        const shouldSkipAutoLogin = currentPath === '/logged-out' || preventAutoLogin || logoutCompleted;
-        
-        if (shouldSkipAutoLogin) {
-          logger.info('🚪 User was logged out, initializing Keycloak without auto-login');
-        }
-
-        // Always initialize Keycloak (needed for manual login)
+        // Always initialize Keycloak with login-required (auto-login)
         const keycloakInstance = await keycloakService.initKeycloakOnce();
         
         if (keycloakInstance && keycloakInstance.authenticated) {

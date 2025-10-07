@@ -16,6 +16,7 @@ import {
   Typography,
   Chip,
   Tooltip,
+  Collapse,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -26,6 +27,11 @@ import {
   TableChart as TableChartIcon,
   ViewKanban as ViewKanbanIcon,
   Settings as SettingsIcon,
+  Assessment as AssessmentIcon,
+  Shield as ShieldIcon,
+  BugReport as BugReportIcon,
+  ExpandLess,
+  ExpandMore,
 } from '@mui/icons-material';
 import { tokens } from '../theme/tokens';
 
@@ -48,6 +54,8 @@ export interface SidebarNavItem {
   badgeColor?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
   /** Vyžadované role pro zobrazení */
   requiredRoles?: string[];
+  /** Vnořené položky (submenu) */
+  children?: SidebarNavItem[];
 }
 
 export interface SidebarNavProps {
@@ -63,22 +71,14 @@ export interface SidebarNavProps {
   collapsed?: boolean;
 }
 
-// 🔧 Default menu items s novými Examples
+// 🔧 Default menu items s reorganizovanou Admin sekcí
 export const defaultMenuItems: SidebarNavItem[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
     icon: <DashboardIcon />,
-    href: '/',
+    href: '/dashboard',
     description: 'Přehled systému',
-  },
-  {
-    id: 'users',
-    label: 'Uživatelé',
-    icon: <PeopleIcon />,
-    href: '/users',
-    description: 'Správa uživatelů',
-    requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
   },
   {
     id: 'user-directory',
@@ -87,28 +87,98 @@ export const defaultMenuItems: SidebarNavItem[] = [
     href: '/user-directory',
     description: 'Vyhledávání uživatelů',
   },
+  
+  // 🆕 Hierarchická Admin sekce s podsekcemi
   {
-    id: 'roles',
-    label: 'Role',
-    icon: <SecurityIcon />,
-    href: '/roles',
-    description: 'Správa rolí',
-    requiredRoles: ['CORE_ROLE_ADMIN'],
+    id: 'core-admin',
+    label: 'Administrace',
+    icon: <SettingsIcon />,
+    href: '/core-admin',
+    description: 'Systémová správa',
+    requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+    children: [
+      // 📊 Monitoring podsekce
+      {
+        id: 'core-admin-monitoring',
+        label: 'Monitoring',
+        icon: <AssessmentIcon />,
+        href: '/core-admin/monitoring',
+        description: 'Monitoring a metriky',
+        requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+      },
+      
+      // 👥 Správa Keycloak podsekce
+      {
+        id: 'core-admin-keycloak',
+        label: 'Správa Keycloak',
+        icon: <SecurityIcon />,
+        href: '/core-admin/keycloak',
+        description: 'Keycloak správa',
+        requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+        children: [
+          {
+            id: 'core-admin-users',
+            label: 'Uživatelé',
+            icon: <PeopleIcon />,
+            href: '/core-admin/users',
+            description: 'Správa uživatelů',
+            requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+          },
+          {
+            id: 'core-admin-roles',
+            label: 'Role',
+            icon: <SecurityIcon />,
+            href: '/core-admin/roles',
+            description: 'Správa rolí',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
+          {
+            id: 'core-admin-tenants',
+            label: 'Tenanti',
+            icon: <BusinessIcon />,
+            href: '/core-admin/tenants',
+            description: 'Multi-tenant správa',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
+        ],
+      },
+      
+      // 🔒 Bezpečnost & Audit podsekce
+      {
+        id: 'core-admin-security-audit',
+        label: 'Bezpečnost & Audit',
+        icon: <ShieldIcon />,
+        href: '/core-admin/security',
+        description: 'Security & Audit',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+        children: [
+          {
+            id: 'core-admin-security',
+            label: 'Bezpečnost',
+            icon: <ShieldIcon />,
+            href: '/core-admin/security',
+            description: 'Security monitoring',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
+          {
+            id: 'core-admin-audit',
+            label: 'Audit Log',
+            icon: <BugReportIcon />,
+            href: '/core-admin/audit',
+            description: 'Audit trail',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
+        ],
+      },
+    ],
   },
-  {
-    id: 'tenants',
-    label: 'Tenanti',
-    icon: <BusinessIcon />,
-    href: '/tenant-management',
-    description: 'Multi-tenant správa',
-    requiredRoles: ['CORE_ROLE_ADMIN'],
-  },
-  // 🆕 Examples sekce
+  
+  // 🆕 DEMO položky na root úrovni
   {
     id: 'examples-table',
     label: 'DataTable',
     icon: <TableChartIcon />,
-    href: '/examples/table',
+    href: '/examples/data-table',
     description: 'Ukázka TanStack Table',
     badge: 'DEMO',
     badgeColor: 'info',
@@ -122,18 +192,10 @@ export const defaultMenuItems: SidebarNavItem[] = [
     badge: 'DEMO',
     badgeColor: 'info',
   },
-  {
-    id: 'admin',
-    label: 'Správa',
-    icon: <SettingsIcon />,
-    href: '/admin',
-    description: 'Systémová správa',
-    requiredRoles: ['CORE_ROLE_ADMIN'],
-  },
 ];
 
 /**
- * SidebarNav komponent s refaktorovaným designem
+ * SidebarNav komponent s hierarchickou navigací
  */
 export const SidebarNav: React.FC<SidebarNavProps> = ({
   items = defaultMenuItems,
@@ -142,6 +204,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   userRoles = [],
   collapsed = false,
 }) => {
+  const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set(['core-admin']));
+
   // 🔍 Filter items based on user roles
   const filteredItems = items.filter(menuItem => {
     if (!menuItem.requiredRoles || menuItem.requiredRoles.length === 0) {
@@ -170,30 +234,86 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   };
 
   // 🎨 Render navigation item
-  const renderNavItem = (item: SidebarNavItem) => {
+  const renderNavItem = (item: SidebarNavItem, level: number = 0) => {
     const active = isItemActive(item);
-    
+    const isExpanded = expandedItems.has(item.id);
+    const hasChildren = item.children && item.children.length > 0;
+
+    // Filter children based on roles
+    const filteredChildren = hasChildren 
+      ? item.children!.filter(child => {
+          if (!child.requiredRoles || child.requiredRoles.length === 0) {
+            return true;
+          }
+          return child.requiredRoles.some(role => userRoles.includes(role));
+        })
+      : [];
+
     const buttonContent = (
       <ListItemButton
-        onClick={() => onItemClick?.(item)}
-        selected={active} // MUI prop instead of custom 'active'
+        onClick={() => {
+          if (hasChildren) {
+            setExpandedItems(prev => {
+              const newSet = new Set(prev);
+              if (newSet.has(item.id)) {
+                newSet.delete(item.id);
+              } else {
+                newSet.add(item.id);
+              }
+              return newSet;
+            });
+          } else {
+            onItemClick?.(item);
+          }
+        }}
+        selected={active}
         aria-current={active ? 'page' : undefined}
         aria-label={collapsed ? item.label : undefined}
         sx={{
-          // Active state styling
-          ...(active && {
-            backgroundColor: tokens.colors.primary[50],
-            borderRight: `3px solid ${tokens.colors.primary[500]}`,
+          // Indentation for nested items
+          pl: collapsed ? 2 : 2 + (level * 2),
+          
+          // Active state styling - glassmorphic effect
+          ...(active && !hasChildren && {
+            background: theme => theme.palette.mode === 'dark' 
+              ? 'rgba(25, 118, 210, 0.08)' 
+              : 'rgba(25, 118, 210, 0.04)',
+            borderLeft: '3px solid',
+            borderLeftColor: 'primary.main',
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: theme => theme.palette.mode === 'dark'
+                ? 'linear-gradient(90deg, rgba(25, 118, 210, 0.1) 0%, transparent 100%)'
+                : 'linear-gradient(90deg, rgba(25, 118, 210, 0.06) 0%, transparent 100%)',
+              pointerEvents: 'none',
+            },
             '&:hover': {
-              backgroundColor: tokens.colors.primary[100],
+              background: theme => theme.palette.mode === 'dark'
+                ? 'rgba(25, 118, 210, 0.12)'
+                : 'rgba(25, 118, 210, 0.06)',
             },
           }),
+          
+          // Parent item styling
+          ...(hasChildren && {
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }),
+          
           // Collapsed mode styling
           ...(collapsed && {
             justifyContent: 'center',
             minHeight: 48,
             px: 2,
           }),
+          
           // Default styling
           borderRadius: 1,
           mx: 1,
@@ -205,7 +325,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         <ListItemIcon
           sx={{
             minWidth: collapsed ? 'auto' : 40,
-            color: active ? tokens.colors.white : tokens.colors.sidebar.textMuted, // ✅ Bílé ikony na tmavém pozadí
+            color: active 
+              ? 'primary.main' 
+              : 'text.secondary',
             transition: 'color 0.2s ease-in-out',
           }}
         >
@@ -220,13 +342,13 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                 <Typography
                   component="span"
                   sx={{
-                    fontSize: tokens.components.sidebar.fontSize,
+                    fontSize: level > 0 ? tokens.typography.fontSize.sm : tokens.components.sidebar.fontSize,
                     fontWeight: active 
                       ? tokens.typography.fontWeight.semibold 
                       : tokens.components.sidebar.fontWeight,
                     color: active 
-                      ? tokens.colors.white // ✅ Aktivní text bílý
-                      : tokens.colors.sidebar.text, // ✅ Neaktivní text také bílý
+                      ? 'primary.main'
+                      : 'text.primary',
                     transition: 'all 0.2s ease-in-out',
                   }}
                 >
@@ -252,6 +374,13 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
               </Box>
             }
           />
+        )}
+
+        {/* Expand/Collapse Icon */}
+        {hasChildren && !collapsed && (
+          <Box sx={{ color: 'text.secondary' }}>
+            {isExpanded ? <ExpandLess /> : <ExpandMore />}
+          </Box>
         )}
       </ListItemButton>
     );
@@ -284,9 +413,18 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     }
 
     return (
-      <ListItem key={item.id} disablePadding>
-        {buttonContent}
-      </ListItem>
+      <React.Fragment key={item.id}>
+        <ListItem disablePadding>
+          {buttonContent}
+        </ListItem>
+        {hasChildren && filteredChildren.length > 0 && (
+          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {filteredChildren.map(child => renderNavItem(child, level + 1))}
+            </List>
+          </Collapse>
+        )}
+      </React.Fragment>
     );
   };
 

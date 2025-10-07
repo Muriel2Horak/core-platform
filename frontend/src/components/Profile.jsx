@@ -279,7 +279,7 @@ function Profile({ user }) {
         sx={{
           mb: 3,
           borderRadius: tokens.radius.xl,
-          background: tokens.colors.gradients.primary,
+          background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           color: 'white',
           overflow: 'hidden',
           boxShadow: tokens.shadows.glass,
@@ -386,9 +386,9 @@ function Profile({ user }) {
                 minHeight: 80,
                 fontSize: '1rem',
                 fontWeight: 'bold',
-                color: tokens.colors.grey[600], // ✅ Tmavá barva pro lepší kontrast
+                color: tokens.colors.grey[600],
                 '&.Mui-selected': {
-                  color: tokens.colors.primary[600], // ✅ Primární barva pro vybraný tab
+                  color: '#1976d2', // Modrá místo fialové
                 }
               },
             }}

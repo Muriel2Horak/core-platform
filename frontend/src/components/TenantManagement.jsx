@@ -190,12 +190,27 @@ function TenantManagement({ user }) {
     try {
       setSaving(true);
       
-      // Here we would call API to create tenant
-      // For demo, simulate success
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 🆕 Call API to create tenant
+      const tenantData = {
+        key: tenantFormData.id, // ID = tenant key
+        displayName: tenantFormData.name,
+        autoCreate: true
+      };
+      
+      logger.userAction('TENANT_CREATE_REQUEST', { 
+        key: tenantData.key,
+        displayName: tenantData.displayName 
+      });
+      
+      const response = await apiService.createTenant(tenantData);
+      
+      logger.userAction('TENANT_CREATED', { 
+        key: tenantData.key,
+        success: true 
+      });
       
       setCreateDialog(false);
-      setSuccess(`Tenant "${tenantFormData.name}" byl úspěšně vytvořen`);
+      setSuccess(`Tenant "${tenantFormData.name}" byl úspěšně vytvořen. Realm: ${response.tenant?.realm || tenantData.key}`);
       
       // Reload data
       await loadTenants();
@@ -204,7 +219,9 @@ function TenantManagement({ user }) {
       
     } catch (err) {
       console.error('Failed to create tenant:', err);
-      setError('Nepodařilo se vytvořit tenant: ' + err.message);
+      const errorMessage = err.response?.data?.message || err.message;
+      setError('Nepodařilo se vytvořit tenant: ' + errorMessage);
+      logger.error('TENANT_CREATE_ERROR', errorMessage);
     } finally {
       setSaving(false);
     }
@@ -332,10 +349,14 @@ function TenantManagement({ user }) {
         sx={{ 
           mb: 3, 
           borderRadius: 4,
-          background: 'rgba(255,255,255,0.7)',
+          background: theme => theme.palette.mode === 'dark'
+            ? 'rgba(30, 30, 30, 0.6)'
+            : 'rgba(255, 255, 255, 0.7)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.3)',
+          border: theme => theme.palette.mode === 'dark'
+            ? '1px solid rgba(255,255,255,0.1)'
+            : '1px solid rgba(255,255,255,0.3)',
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
         }}
       >
@@ -403,18 +424,26 @@ function TenantManagement({ user }) {
         sx={{ 
           borderRadius: 4, 
           overflow: 'hidden',
-          background: 'rgba(255,255,255,0.7)',
+          background: theme => theme.palette.mode === 'dark'
+            ? 'rgba(30, 30, 30, 0.6)'
+            : 'rgba(255, 255, 255, 0.7)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.3)',
+          border: theme => theme.palette.mode === 'dark'
+            ? '1px solid rgba(255,255,255,0.1)'
+            : '1px solid rgba(255,255,255,0.3)',
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
         }}
       >
         <Box sx={{ 
           p: 3, 
           borderBottom: 1, 
-          borderColor: 'rgba(0,0,0,0.08)',
-          background: 'linear-gradient(135deg, rgba(248,250,252,0.8) 0%, rgba(241,245,249,0.6) 100%)',
+          borderColor: theme => theme.palette.mode === 'dark'
+            ? 'rgba(255,255,255,0.1)'
+            : 'rgba(0,0,0,0.08)',
+          background: theme => theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(40, 40, 40, 0.8) 0%, rgba(50, 50, 50, 0.6) 100%)'
+            : 'linear-gradient(135deg, rgba(248,250,252,0.8) 0%, rgba(241,245,249,0.6) 100%)',
           backdropFilter: 'blur(10px)'
         }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -607,11 +636,14 @@ function TenantManagement({ user }) {
         }}
       >
         <DialogTitle sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: theme => theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(25, 118, 210, 0.2) 0%, rgba(21, 101, 192, 0.3) 100%)'
+            : 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           color: 'white',
           textAlign: 'center',
           fontSize: '1.5rem',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          backdropFilter: 'blur(10px)'
         }}>
           🏢 Vytvořit nového tenanta
         </DialogTitle>
@@ -743,9 +775,14 @@ function TenantManagement({ user }) {
             sx={{
               borderRadius: 2,
               px: 3,
-              background: 'linear-gradient(45deg, #667eea, #764ba2)',
+              background: theme => theme.palette.mode === 'dark'
+                ? 'linear-gradient(45deg, rgba(25, 118, 210, 0.3), rgba(21, 101, 192, 0.4))'
+                : 'linear-gradient(45deg, #1976d2, #1565c0)',
+              backdropFilter: 'blur(10px)',
               '&:hover': {
-                background: 'linear-gradient(45deg, #5a6fd8, #6b4190)',
+                background: theme => theme.palette.mode === 'dark'
+                  ? 'linear-gradient(45deg, rgba(25, 118, 210, 0.4), rgba(21, 101, 192, 0.5))'
+                  : 'linear-gradient(45deg, #1565c0, #0d47a1)',
                 transform: 'translateY(-2px)'
               },
               transition: 'all 0.3s ease'
@@ -770,11 +807,14 @@ function TenantManagement({ user }) {
         }}
       >
         <DialogTitle sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: theme => theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, rgba(25, 118, 210, 0.2) 0%, rgba(21, 101, 192, 0.3) 100%)'
+            : 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
           color: 'white',
           textAlign: 'center',
           fontSize: '1.5rem',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          backdropFilter: 'blur(10px)'
         }}>
           ✏️ Upravit tenanta
         </DialogTitle>
@@ -900,7 +940,10 @@ function TenantManagement({ user }) {
             sx={{
               borderRadius: 2,
               px: 3,
-              background: 'linear-gradient(45deg, #667eea, #764ba2)'
+              background: theme => theme.palette.mode === 'dark'
+                ? 'linear-gradient(45deg, rgba(25, 118, 210, 0.3), rgba(21, 101, 192, 0.4))'
+                : 'linear-gradient(45deg, #1976d2, #1565c0)',
+              backdropFilter: 'blur(10px)'
             }}
           >
             {saving ? 'Ukládám...' : 'Uložit změny'}

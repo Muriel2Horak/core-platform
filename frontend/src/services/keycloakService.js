@@ -142,10 +142,10 @@ class KeycloakService {
       // 🔧 Create new Keycloak instance
       this.keycloak = new Keycloak(this.config);
 
-      // 🔧 Initialize with disabled checkLoginIframe and custom silentCheckSsoRedirectUri
+      // 🔧 Initialize with automatic login (login-required for SSO)
       const authenticated = await this.keycloak.init({
-        onLoad: 'check-sso',
-        checkLoginIframe: false, // 🔧 VYPNUTO podle požadavku
+        onLoad: 'login-required',  // 🔧 Automaticky redirectne na Keycloak pokud není přihlášen
+        checkLoginIframe: false,   // 🔧 VYPNUTO podle požadavku
         silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html` // 🔧 Explicit URI
       });
 
@@ -350,9 +350,7 @@ class KeycloakService {
         }
       });
       
-      // Set logout flag BEFORE logout attempt
-      localStorage.setItem('logout-completed', Date.now().toString());
-      localStorage.setItem('prevent-auto-login', 'true');
+      // 🔧 Už nepotřebujeme logout flags - login-required se postará o auto-login
       
     } catch (error) {
       // 🔐 FIXED: Use console.warn instead of logger.warn to avoid auth issues
@@ -373,7 +371,7 @@ class KeycloakService {
       
       // Construct logout URL manually for better control
       const logoutUrl = `${this.config.url}/realms/${this.config.realm}/protocol/openid-connect/logout`;
-      const postLogoutRedirectUri = encodeURIComponent(window.location.origin + '/logged-out');
+      const postLogoutRedirectUri = encodeURIComponent(window.location.origin + '/');  // 🔧 Redirect na root, kde se spustí auto-login
       const idTokenHint = idToken ? `&id_token_hint=${idToken}` : '';
       
       const fullLogoutUrl = `${logoutUrl}?post_logout_redirect_uri=${postLogoutRedirectUri}&client_id=${this.config.clientId}${idTokenHint}`;
@@ -389,8 +387,8 @@ class KeycloakService {
     } catch (error) {
       // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
       console.error('❌ [AUTH] Logout error:', error.message);
-      // Fallback - just redirect to logged-out page
-      window.location.href = '/logged-out';
+      // Fallback - redirect na root místo logged-out stránky
+      window.location.href = '/';
     }
   }
 

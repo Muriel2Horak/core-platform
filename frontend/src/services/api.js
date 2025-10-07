@@ -248,16 +248,17 @@ class ApiService {
 
   // Tenant endpoints (admin only)
   async getTenants() {
-    const response = await axios.get('/api/tenants');
-    return response.data;
+    const response = await axios.get('/api/admin/tenants');
+    // Backend vrací formát: { success: true, tenants: [...], total: N }
+    return response.data.tenants || response.data;
   }
 
   // 🆕 TENANT INFO ENDPOINTS
   // ❌ REMOVED: getCurrentTenant() - už není potřeba, tenant je v user objektu
 
   async getAllTenants() {
-    const response = await axios.get('/api/tenants');
-    return response.data;
+    const response = await axios.get('/api/admin/tenants');
+    return response.data.tenants || response.data;
   }
 
   async createTenant(tenantData) {

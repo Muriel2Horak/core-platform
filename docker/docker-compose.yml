@@ -246,18 +246,65 @@ services:
   grafana:
     image: grafana/grafana:10.4.0
     container_name: core-grafana
-    ports:
-      - "${GRAFANA_PORT:-3001}:3000"
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      # 🔐 JWT Authentication (Primary - for iframe embedding)
+      - GF_AUTH_JWT_ENABLED=true
+      - GF_AUTH_JWT_HEADER_NAME=Authorization
+      - GF_AUTH_JWT_USERNAME_CLAIM=preferred_username
+      - GF_AUTH_JWT_EMAIL_CLAIM=email
+      - GF_AUTH_JWT_JWK_SET_URL=https://admin.core-platform.local/realms/admin/protocol/openid-connect/certs
+      - GF_AUTH_JWT_CACHE_TTL=60m
+      - GF_AUTH_JWT_AUTO_SIGN_UP=true
+      - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_USER') && 'Editor' || 'Viewer'
+      - GF_AUTH_JWT_SKIP_ORG_ROLE_SYNC=false
+      
+      # Disable login form - use only JWT
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_PROXY=true
+      
+      # 🔐 OAuth2 / Keycloak SSO Configuration (DISABLED for iframe - using JWT only)
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=false
+      # - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
+      # - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+      # - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
+      # - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}
+      # - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
+      # - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://admin.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+      # - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=http://keycloak:8080/realms/admin/protocol/openid-connect/token
+      # - GF_AUTH_GENERIC_OAUTH_API_URL=http://keycloak:8080/realms/admin/protocol/openid-connect/userinfo
+      # - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_USER') && 'Editor' || 'Viewer'
+      # - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true
+      # - GF_AUTH_GENERIC_OAUTH_USE_PKCE=true
+      
+      # 🔒 Security settings
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_COOKIE_SAMESITE=none
+      - GF_SECURITY_COOKIE_SECURE=true
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_PROTOCOL=http
+      - GF_SERVER_DOMAIN=admin.${DOMAIN:-core-platform.local}
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=https://admin.%(domain)s/monitoring
+      
+      # 🎨 UI Configuration - VYPNUTO auto-login pro iframe
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_AUTH_OAUTH_AUTO_LOGIN=false
+      - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
+      
+      # 🔄 Redirect configuration
+      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://admin.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout?redirect_uri=https://admin.%(domain)s/monitoring
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # DISABLED: grafana.ini mount - using env vars only
+      # - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     networks:
       - core-net
+    depends_on:
+      - keycloak
+      - loki
 
   loki:
     image: grafana/loki:3.0.0
