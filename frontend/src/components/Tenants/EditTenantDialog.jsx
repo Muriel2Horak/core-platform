@@ -62,7 +62,19 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
   if (!tenant) return null;
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 2,
+        }
+      }}
+    >
       <DialogTitle>Upravit tenant: {tenant.key}</DialogTitle>
       
       <DialogContent>

@@ -110,7 +110,15 @@
       "serviceAccountClientId": "backend-admin-service",
       "requiredActions": [],
       "clientRoles": {
-        "realm-management": ["manage-users", "view-users", "view-realm", "manage-realm"]
+        "realm-management": [
+          "manage-users", 
+          "view-users", 
+          "view-realm", 
+          "manage-realm",
+          "create-realm",
+          "manage-clients",
+          "view-clients"
+        ]
       }
     }
   ],

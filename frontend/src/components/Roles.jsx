@@ -320,7 +320,12 @@ function Roles({ user }) {
                   </TableHead>
                   <TableBody>
                     {filteredRoles.map((role, index) => (
-                      <TableRow key={role.id || index} hover>
+                      <TableRow 
+                        key={role.id || index} 
+                        hover
+                        onClick={() => canManageRoles && handleEditRole(role)}
+                        sx={{ cursor: canManageRoles ? 'pointer' : 'default' }}
+                      >
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <SecurityIcon color="primary" />
@@ -353,7 +358,10 @@ function Roles({ user }) {
                           <TableCell align="right">
                             <IconButton
                               size="small"
-                              onClick={(e) => handleMenuOpen(e, role)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMenuOpen(e, role);
+                              }}
                             >
                               <MoreVertIcon />
                             </IconButton>

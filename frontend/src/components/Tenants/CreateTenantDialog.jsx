@@ -97,7 +97,19 @@ export const CreateTenantDialog = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="sm" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 2,
+        }
+      }}
+    >
       <DialogTitle>Vytvořit nový tenant</DialogTitle>
       
       <DialogContent>

@@ -43,16 +43,17 @@ public class UserDirectoryService {
   }
 
   /**
-   * Search users with fulltext search
+   * Search users with fulltext search (DEPRECATED - use searchWithPagination)
    */
+  @Deprecated
   public List<UserDirectoryEntity> search(String query) {
     if (query == null || query.trim().isEmpty()) {
-      // Return first 50 users if no query
-      return userDirectoryRepository.findAll(PageRequest.of(0, 50, Sort.by("username")))
+      // Return first 100 users if no query with proper sorting
+      return userDirectoryRepository.findAll(PageRequest.of(0, 100, Sort.by("username")))
           .getContent();
     }
 
-    return userDirectoryRepository.search(query.trim(), PageRequest.of(0, 50, Sort.by("username")));
+    return userDirectoryRepository.search(query.trim(), PageRequest.of(0, 100, Sort.by("username")));
   }
 
   /**
@@ -78,23 +79,34 @@ public class UserDirectoryService {
   }
 
   /**
-   * Search across all tenants (pouze pro core-admin)
+   * Search across all tenants (pouze pro core-admin) Používá speciální query bez
+   * tenant filtru
    */
   public Page<UserDirectoryEntity> searchAllTenantsWithPagination(String query, String source,
       Pageable pageable) {
     log.debug("Cross-tenant search: query='{}', source='{}', pageable={}", query, source, pageable);
 
-    // Cross-tenant search vyžaduje speciální implementaci na úrovni repository
-    // Pro současnost používáme fallback - search v aktuálním tenantu
-    log.warn("Cross-tenant search not fully implemented - falling back to current tenant search");
-
     try {
-      // Fallback na standardní tenant-scoped search
-      return searchWithPagination(query, source, pageable);
+      // Pro cross-tenant search použijeme repository metody bez tenant filtru
+      if (query == null || query.trim().isEmpty()) {
+        if (source != null && !source.trim().isEmpty()) {
+          boolean isFederated = "AD".equalsIgnoreCase(source);
+          return userDirectoryRepository.findByIsFederated(isFederated, pageable);
+        }
+        return userDirectoryRepository.findAll(pageable);
+      }
+
+      // Search with source filter if provided
+      if (source != null && !source.trim().isEmpty()) {
+        boolean isFederated = "AD".equalsIgnoreCase(source);
+        return userDirectoryRepository.searchByQueryAndSource(query.trim(), isFederated, pageable);
+      }
+
+      return userDirectoryRepository.searchWithPagination(query.trim(), pageable);
 
     } catch (Exception e) {
       log.error("Cross-tenant search failed: {}", e.getMessage(), e);
-      // Fallback - return empty page
+      // Return empty page instead of throwing exception
       return Page.empty(pageable);
     }
   }

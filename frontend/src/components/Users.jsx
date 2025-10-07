@@ -315,7 +315,12 @@ function Users({ user }) {
                   </TableHead>
                   <TableBody>
                     {filteredUsers.map((userData, index) => (
-                      <TableRow key={userData.id || index} hover>
+                      <TableRow 
+                        key={userData.id || index} 
+                        hover
+                        onClick={() => canManageUsers && handleEditUser(userData)}
+                        sx={{ cursor: canManageUsers ? 'pointer' : 'default' }}
+                      >
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Avatar sx={{ bgcolor: 'primary.main', mr: 2, width: 40, height: 40 }}>
@@ -337,9 +342,12 @@ function Users({ user }) {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">
-                            {userData?.tenant || 'Neuvedeno'}
-                          </Typography>
+                          <Chip
+                            label={userData?.tenantName || userData?.tenantKey || 'Neuvedeno'}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                          />
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -365,7 +373,10 @@ function Users({ user }) {
                           <TableCell align="right">
                             <IconButton
                               size="small"
-                              onClick={(e) => handleMenuOpen(e, userData)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMenuOpen(e, userData);
+                              }}
                             >
                               <MoreVertIcon />
                             </IconButton>

@@ -286,7 +286,12 @@ function Tenants({ user }) {
                   </TableHead>
                   <TableBody>
                     {filteredTenants.map((tenant, index) => (
-                      <TableRow key={tenant.id || index} hover>
+                      <TableRow 
+                        key={tenant.id || index} 
+                        hover
+                        onClick={() => handleEditTenant(tenant)}
+                        sx={{ cursor: 'pointer' }}
+                      >
                         <TableCell>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <BusinessIcon color="primary" />
@@ -318,7 +323,10 @@ function Tenants({ user }) {
                           <Tooltip title="Zobrazit statistiky">
                             <IconButton
                               size="small"
-                              onClick={() => handleViewStats(tenant)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewStats(tenant);
+                              }}
                             >
                               <BarChartIcon fontSize="small" />
                             </IconButton>
@@ -327,7 +335,10 @@ function Tenants({ user }) {
                         <TableCell align="right">
                           <IconButton
                             size="small"
-                            onClick={(e) => handleMenuOpen(e, tenant)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMenuOpen(e, tenant);
+                            }}
                           >
                             <MoreVertIcon />
                           </IconButton>
