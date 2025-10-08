@@ -53,6 +53,11 @@ function Roles({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Tenant selector for CORE_ADMIN
+  const [selectedTenant, setSelectedTenant] = useState('');
+  const [tenants, setTenants] = useState([]);
+  const [tenantsLoading, setTenantsLoading] = useState(false);
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -69,6 +74,31 @@ function Roles({ user }) {
   // Check if user has permission
   const hasPermission = user?.roles?.includes('CORE_ROLE_USER_MANAGER') || user?.roles?.includes('CORE_ROLE_ADMIN');
   const canManageRoles = user?.roles?.includes('CORE_ROLE_ADMIN');
+  const isCoreAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
+
+  // Load tenants for CORE_ADMIN
+  useEffect(() => {
+    const fetchTenants = async () => {
+      if (!isCoreAdmin) return;
+      
+      try {
+        setTenantsLoading(true);
+        const response = await apiService.getTenants();
+        setTenants(response || []);
+        // Nastavíme default tenant na tenant uživatele
+        if (response?.length > 0 && !selectedTenant) {
+          const userTenant = response.find(t => t.key === user?.tenantKey);
+          setSelectedTenant(userTenant?.key || response[0]?.key || '');
+        }
+      } catch (error) {
+        logger.error('Failed to fetch tenants', { error: error.message });
+      } finally {
+        setTenantsLoading(false);
+      }
+    };
+
+    fetchTenants();
+  }, [isCoreAdmin, user]);
 
   // Load roles
   const loadRoles = async () => {
@@ -78,14 +108,26 @@ function Roles({ user }) {
       return;
     }
 
+    // CORE_ADMIN musí mít vybraný tenant
+    if (isCoreAdmin && !selectedTenant) {
+      setRoles([]);
+      setFilteredRoles([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       
-      const rolesData = await apiService.getRoles();
+      // Pro CORE_ADMIN načteme role z vybraného tenantu
+      const rolesData = isCoreAdmin && selectedTenant
+        ? await apiService.getRolesByTenant(selectedTenant)
+        : await apiService.getRoles();
+        
       setRoles(rolesData || []);
       setFilteredRoles(rolesData || []);
-      logger.info('Roles loaded', { count: rolesData?.length || 0 });
+      logger.info('Roles loaded', { count: rolesData?.length || 0, tenant: selectedTenant });
     } catch (error) {
       logger.error('Failed to load roles', { error: error.message });
       setError('Nepodařilo se načíst seznam rolí.');
@@ -95,8 +137,10 @@ function Roles({ user }) {
   };
 
   useEffect(() => {
-    loadRoles();
-  }, []);
+    if (!isCoreAdmin || selectedTenant) {
+      loadRoles();
+    }
+  }, [selectedTenant]);
 
   // Search/filter roles
   useEffect(() => {
@@ -252,13 +296,45 @@ function Roles({ user }) {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={handleCreateRole}
-              disabled={loading}
+              disabled={loading || (isCoreAdmin && !selectedTenant)}
             >
               Vytvořit roli
             </Button>
           )}
         </Box>
       </Box>
+
+      {/* Tenant selector for CORE_ADMIN */}
+      {isCoreAdmin && (
+        <Box sx={{ mb: 3, p: 2, background: 'rgba(25, 118, 210, 0.05)', borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <BusinessIcon color="primary" />
+            <Typography variant="h6">Výběr tenantu</Typography>
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              select
+              fullWidth
+              label="Tenant pro správu rolí"
+              value={selectedTenant}
+              onChange={(e) => setSelectedTenant(e.target.value)}
+              disabled={tenantsLoading}
+              SelectProps={{
+                native: false,
+              }}
+            >
+              {tenants.map((tenant) => (
+                <MenuItem key={tenant.key} value={tenant.key}>
+                  {tenant.name || tenant.key}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Role budou načteny a spravovány pro vybraný tenant
+            </Typography>
+          </Box>
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -432,6 +508,7 @@ function Roles({ user }) {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onSuccess={handleRoleCreated}
+        tenantKey={selectedTenant}
       />
 
       <EditRoleDialog

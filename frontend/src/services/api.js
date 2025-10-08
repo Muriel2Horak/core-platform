@@ -265,6 +265,11 @@ class ApiService {
     return response.data;
   }
 
+  async getRolesByTenant(tenantKey) {
+    const response = await axios.get(`/api/admin/roles/tenant/${tenantKey}`);
+    return response.data;
+  }
+
   async createRole(roleData) {
     const response = await axios.post('/api/roles', roleData);
     return response.data;
