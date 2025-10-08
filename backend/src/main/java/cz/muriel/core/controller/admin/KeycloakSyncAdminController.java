@@ -15,7 +15,7 @@ import java.util.Map;
  * Umožňuje manuální synchronizaci uživatelů, rolí a skupin z Keycloak do
  * aplikace.
  */
-@RestController @RequestMapping("/api/admin/keycloak-sync") @RequiredArgsConstructor @Slf4j @PreAuthorize("hasRole('CORE_ROLE_ADMIN')")
+@RestController @RequestMapping("/api/admin/keycloak-sync") @RequiredArgsConstructor @Slf4j @PreAuthorize("hasAuthority('CORE_ROLE_ADMIN')")
 public class KeycloakSyncAdminController {
 
   private final KeycloakBulkSyncService bulkSyncService;
