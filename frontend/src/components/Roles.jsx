@@ -69,9 +69,10 @@ function Roles({ user }) {
   const [menuRole, setMenuRole] = useState(null);
 
   // Check if user has permission
-  const hasPermission = user?.roles?.includes('CORE_ROLE_USER_MANAGER') || user?.roles?.includes('CORE_ROLE_ADMIN');
-  const canManageRoles = user?.roles?.includes('CORE_ROLE_ADMIN');
   const isCoreAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
+  const isTenantAdmin = user?.roles?.includes('CORE_ROLE_TENANT_ADMIN');
+  const hasPermission = user?.roles?.includes('CORE_ROLE_USER_MANAGER') || isCoreAdmin || isTenantAdmin;
+  const canManageRoles = isCoreAdmin || isTenantAdmin;
 
   // Load tenants for CORE_ADMIN
   useEffect(() => {
@@ -117,9 +118,17 @@ function Roles({ user }) {
       setLoading(true);
       setError(null);
       
+      // Určíme tenant podle role
+      let tenantToLoad = selectedTenant;
+      
+      // Pro tenant adminy použijeme jejich tenant
+      if (isTenantAdmin && !isCoreAdmin) {
+        tenantToLoad = user?.tenantKey;
+      }
+      
       // Pro CORE_ADMIN načteme role z vybraného tenantu
-      const rolesData = isCoreAdmin && selectedTenant
-        ? await apiService.getRolesByTenant(selectedTenant)
+      const rolesData = tenantToLoad
+        ? await apiService.getRolesByTenant(tenantToLoad)
         : await apiService.getRoles();
       
       // Pro každou roli načteme počet uživatelů
@@ -142,7 +151,7 @@ function Roles({ user }) {
       setFilteredRoles(rolesWithUserCount || []);
       logger.info('Roles loaded with user counts', { 
         count: rolesWithUserCount?.length || 0, 
-        tenant: selectedTenant 
+        tenant: tenantToLoad 
       });
     } catch (error) {
       logger.error('Failed to load roles', { error: error.message });
@@ -154,6 +163,10 @@ function Roles({ user }) {
 
   useEffect(() => {
     if (!isCoreAdmin || selectedTenant) {
+      loadRoles();
+    }
+    // Tenant admin načte role automaticky
+    if (isTenantAdmin && !isCoreAdmin) {
       loadRoles();
     }
   }, [selectedTenant]);
@@ -305,7 +318,11 @@ function Roles({ user }) {
         </Typography>
       ),
     },
-    {
+  ];
+
+  // Add Tenant column only for CORE_ADMIN
+  if (isCoreAdmin) {
+    columns.push({
       field: 'tenant',
       label: 'Tenant',
       sortable: false,
@@ -318,7 +335,10 @@ function Roles({ user }) {
           variant="outlined"
         />
       ),
-    },
+    });
+  }
+
+  columns.push(
     {
       field: 'type',
       label: 'Typ',
@@ -343,8 +363,8 @@ function Roles({ user }) {
           sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
         />
       ),
-    },
-  ];
+    }
+  );
 
   if (canManageRoles) {
     columns.push({
@@ -549,7 +569,7 @@ function Roles({ user }) {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onSuccess={handleRoleCreated}
-        tenantKey={selectedTenant}
+        tenantKey={isTenantAdmin && !isCoreAdmin ? user?.tenantKey : selectedTenant}
       />
 
       <EditRoleDialog
