@@ -1731,17 +1731,14 @@ public class KeycloakAdminService {
       for (JsonNode role : roles) {
         // Skip default Keycloak roles
         String roleName = role.path("name").asText();
-        if (roleName.startsWith("default-") || roleName.startsWith("offline_") 
+        if (roleName.startsWith("default-") || roleName.startsWith("offline_")
             || roleName.equals("uma_authorization")) {
           continue;
         }
 
-        RoleDto roleDto = RoleDto.builder()
-            .id(role.path("id").asText())
-            .name(roleName)
+        RoleDto roleDto = RoleDto.builder().id(role.path("id").asText()).name(roleName)
             .description(role.path("description").asText())
-            .composite(role.path("composite").asBoolean())
-            .build();
+            .composite(role.path("composite").asBoolean()).build();
         roleList.add(roleDto);
       }
 
@@ -1772,15 +1769,11 @@ public class KeycloakAdminService {
       List<UserDto> userList = new ArrayList<>();
 
       for (JsonNode user : users) {
-        UserDto userDto = UserDto.builder()
-            .id(user.path("id").asText())
-            .username(user.path("username").asText())
-            .email(user.path("email").asText())
-            .firstName(user.path("firstName").asText())
-            .lastName(user.path("lastName").asText())
+        UserDto userDto = UserDto.builder().id(user.path("id").asText())
+            .username(user.path("username").asText()).email(user.path("email").asText())
+            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
             .enabled(user.path("enabled").asBoolean())
-            .emailVerified(user.path("emailVerified").asBoolean())
-            .build();
+            .emailVerified(user.path("emailVerified").asBoolean()).build();
         userList.add(userDto);
       }
 
@@ -1794,7 +1787,8 @@ public class KeycloakAdminService {
   }
 
   /**
-   * 👥 GET USERS BY ROLE AND TENANT - Vrátí uživatele s danou rolí v konkrétním tenantu
+   * 👥 GET USERS BY ROLE AND TENANT - Vrátí uživatele s danou rolí v konkrétním
+   * tenantu
    */
   public List<UserDto> getUsersByRoleAndTenant(String roleName, String tenantKey) {
     try {
@@ -1811,7 +1805,8 @@ public class KeycloakAdminService {
       String roleId = roleNode.path("id").asText();
 
       // Get users with this role
-      String usersUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles-by-id/" + roleId + "/users";
+      String usersUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles-by-id/" + roleId
+          + "/users";
       ResponseEntity<String> response = restTemplate.exchange(usersUrl, HttpMethod.GET,
           new HttpEntity<>(headers), String.class);
 
@@ -1819,15 +1814,11 @@ public class KeycloakAdminService {
       List<UserDto> userList = new ArrayList<>();
 
       for (JsonNode user : users) {
-        UserDto userDto = UserDto.builder()
-            .id(user.path("id").asText())
-            .username(user.path("username").asText())
-            .email(user.path("email").asText())
-            .firstName(user.path("firstName").asText())
-            .lastName(user.path("lastName").asText())
+        UserDto userDto = UserDto.builder().id(user.path("id").asText())
+            .username(user.path("username").asText()).email(user.path("email").asText())
+            .firstName(user.path("firstName").asText()).lastName(user.path("lastName").asText())
             .enabled(user.path("enabled").asBoolean())
-            .emailVerified(user.path("emailVerified").asBoolean())
-            .build();
+            .emailVerified(user.path("emailVerified").asBoolean()).build();
         userList.add(userDto);
       }
 
@@ -1861,11 +1852,12 @@ public class KeycloakAdminService {
       roleRep.put("name", roleNode.path("name").asText());
 
       // Add role to user
-      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users/" + userId + "/role-mappings/realm";
+      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users/" + userId
+          + "/role-mappings/realm";
       headers.setContentType(MediaType.APPLICATION_JSON);
 
-      restTemplate.exchange(url, HttpMethod.POST, 
-          new HttpEntity<>(List.of(roleRep), headers), Void.class);
+      restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(List.of(roleRep), headers),
+          Void.class);
 
       log.info("✅ Added role {} to user {} in tenant {}", roleName, userId, tenantKey);
 
@@ -1876,7 +1868,8 @@ public class KeycloakAdminService {
   }
 
   /**
-   * ➖ REMOVE ROLE FROM USER IN TENANT - Odebere roli uživateli v konkrétním tenantu
+   * ➖ REMOVE ROLE FROM USER IN TENANT - Odebere roli uživateli v konkrétním
+   * tenantu
    */
   public void removeRoleFromUser(String userId, String roleName, String tenantKey) {
     try {
@@ -1896,17 +1889,19 @@ public class KeycloakAdminService {
       roleRep.put("name", roleNode.path("name").asText());
 
       // Remove role from user
-      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users/" + userId + "/role-mappings/realm";
+      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users/" + userId
+          + "/role-mappings/realm";
       headers.setContentType(MediaType.APPLICATION_JSON);
 
       // Keycloak uses DELETE with body
-      restTemplate.exchange(url, HttpMethod.DELETE, 
-          new HttpEntity<>(List.of(roleRep), headers), Void.class);
+      restTemplate.exchange(url, HttpMethod.DELETE, new HttpEntity<>(List.of(roleRep), headers),
+          Void.class);
 
       log.info("✅ Removed role {} from user {} in tenant {}", roleName, userId, tenantKey);
 
     } catch (Exception ex) {
-      log.error("❌ Failed to remove role {} from user {} in tenant {}", roleName, userId, tenantKey, ex);
+      log.error("❌ Failed to remove role {} from user {} in tenant {}", roleName, userId, tenantKey,
+          ex);
       throw new RuntimeException("Failed to remove role from user: " + ex.getMessage(), ex);
     }
   }

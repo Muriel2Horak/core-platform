@@ -16,11 +16,7 @@ import java.util.List;
  * 
  * Tenant-aware správa rolí pro CORE_ADMIN uživatele
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/admin/roles")
-@RequiredArgsConstructor
-@PreAuthorize("hasAuthority('CORE_ROLE_ADMIN')")
+@Slf4j @RestController @RequestMapping("/api/admin/roles") @RequiredArgsConstructor @PreAuthorize("hasAuthority('CORE_ROLE_ADMIN')")
 public class RoleAdminController {
 
   private final KeycloakAdminService keycloakAdminService;
@@ -46,11 +42,11 @@ public class RoleAdminController {
   }
 
   /**
-   * 👥 GET /api/admin/roles/{roleName}/users - Uživatelé v roli (s tenant filtrem)
+   * 👥 GET /api/admin/roles/{roleName}/users - Uživatelé v roli (s tenant
+   * filtrem)
    */
   @GetMapping("/{roleName}/users")
-  public ResponseEntity<List<UserDto>> getRoleUsers(
-      @PathVariable String roleName,
+  public ResponseEntity<List<UserDto>> getRoleUsers(@PathVariable String roleName,
       @RequestParam String tenantKey) {
     log.info("Getting users with role: {} for tenant: {}", roleName, tenantKey);
     List<UserDto> users = keycloakAdminService.getUsersByRoleAndTenant(roleName, tenantKey);
@@ -61,23 +57,20 @@ public class RoleAdminController {
    * ➕ POST /api/admin/roles/{roleName}/users/{userId} - Přidat uživatele do role
    */
   @PostMapping("/{roleName}/users/{userId}")
-  public ResponseEntity<Void> addUserToRole(
-      @PathVariable String roleName,
-      @PathVariable String userId,
-      @RequestParam String tenantKey) {
+  public ResponseEntity<Void> addUserToRole(@PathVariable String roleName,
+      @PathVariable String userId, @RequestParam String tenantKey) {
     log.info("Adding user {} to role {} in tenant {}", userId, roleName, tenantKey);
     keycloakAdminService.addRoleToUser(userId, roleName, tenantKey);
     return ResponseEntity.ok().build();
   }
 
   /**
-   * ➖ DELETE /api/admin/roles/{roleName}/users/{userId} - Odebrat uživatele z role
+   * ➖ DELETE /api/admin/roles/{roleName}/users/{userId} - Odebrat uživatele z
+   * role
    */
   @DeleteMapping("/{roleName}/users/{userId}")
-  public ResponseEntity<Void> removeUserFromRole(
-      @PathVariable String roleName,
-      @PathVariable String userId,
-      @RequestParam String tenantKey) {
+  public ResponseEntity<Void> removeUserFromRole(@PathVariable String roleName,
+      @PathVariable String userId, @RequestParam String tenantKey) {
     log.info("Removing user {} from role {} in tenant {}", userId, roleName, tenantKey);
     keycloakAdminService.removeRoleFromUser(userId, roleName, tenantKey);
     return ResponseEntity.noContent().build();
