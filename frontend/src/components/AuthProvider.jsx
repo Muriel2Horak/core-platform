@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [keycloakInitialized, setKeycloakInitialized] = useState(false);
-  const [showLoggedOut, setShowLoggedOut] = useState(false);
+  // ❌ REMOVED: showLoggedOut state - nepotřebné, redirect proběhne okamžitě
   
   // 🔧 REF GUARDS - prevence duplicitních operací
   const hasTriedLoginRef = useRef(false);
@@ -181,7 +181,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           logger.info('ℹ️ User not authenticated - ready for manual login');
           setIsAuthenticated(false);
-          setShowLoggedOut(true);
+          // ❌ REMOVED: setShowLoggedOut(true) - nepotřebné
         }
         
         setKeycloakInitialized(true);
@@ -252,16 +252,17 @@ export const AuthProvider = ({ children }) => {
       // Clear API session
       await apiService.logout();
       
-      // Clear state
+      // Clear state - ale NEPŘEKRESLUJEME, redirect proběhne okamžitě
       setUser(null);
       setIsAuthenticated(false);
-      setShowLoggedOut(true);
+      // ❌ REMOVED: setShowLoggedOut(true) - způsobovalo zobrazení LoginPage před redirectem
       
       // Reset ref guards
       hasTriedLoginRef.current = false;
       lastCheckTimestamp.current = null;
       
-      // Logout from Keycloak
+      // Logout from Keycloak - tato funkce OKAMŽITĚ redirectuje na Keycloak
+      // takže žádný další kód se neprovede
       await keycloakService.logout();
       
     } catch (error) {
@@ -275,7 +276,7 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     keycloakInitialized,
-    showLoggedOut,
+    // ❌ REMOVED: showLoggedOut - nepotřebné
     login: handleLogin,
     logout: handleLogout,
     refreshUserInfo, // 🆕 Public API for manual refresh
