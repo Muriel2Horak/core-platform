@@ -1,8 +1,25 @@
 /**
  * 🗂️ SidebarNav - Core Platform Sidebar Navigation Component
  * 
- * Refaktorovaný sidebar s WCAG AA kontrasty, collapsed módem a čistými stavy.
- * Podporuje desktop expanded/collapsed režimy s tooltips.
+ * Refaktorovaný sidebar s WCAG AA kontrasty, collapsed módem a       // Monitoring - druhá úroveň
+      {
+        id: 'monitoring-section',
+        label: 'Monitoring',
+        icon: <AssessmentIcon />,
+        href: '/core-admin/monitoring',
+        description: 'Sledování výkonu',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      
+      // Bezpečnost - druhá úroveň
+      {
+        id: 'security-section',
+        label: 'Bezpečnost',
+        icon: <ShieldIcon />,
+        href: '#',  // Jen expandable kontejner
+        description: 'Zabezpečení systému',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+        children: [odporuje desktop expanded/collapsed režimy s tooltips.
  */
 
 import React from 'react';
@@ -71,7 +88,7 @@ export interface SidebarNavProps {
   collapsed?: boolean;
 }
 
-// 🔧 Default menu items s reorganizovanou Admin sekcí
+// 🔧 Default menu items - hierarchická struktura
 export const defaultMenuItems: SidebarNavItem[] = [
   {
     id: 'dashboard',
@@ -88,32 +105,22 @@ export const defaultMenuItems: SidebarNavItem[] = [
     description: 'Vyhledávání uživatelů',
   },
   
-  // 🆕 Hierarchická Admin sekce s podsekcemi
+  // 👥 Administrace - parent položka s vnořeným menu
   {
-    id: 'core-admin',
+    id: 'administration',
     label: 'Administrace',
     icon: <SettingsIcon />,
-    href: '/core-admin',
-    description: 'Systémová správa',
+    href: '#',  // Jen expandable kontejner, ne odkaz
+    description: 'Správa systému',
     requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
     children: [
-      // 📊 Monitoring podsekce
+      // Správa Keycloak - druhá úroveň
       {
-        id: 'core-admin-monitoring',
-        label: 'Monitoring',
-        icon: <AssessmentIcon />,
-        href: '/core-admin/monitoring',
-        description: 'Monitoring a metriky',
-        requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
-      },
-      
-      // 👥 Správa Keycloak podsekce
-      {
-        id: 'core-admin-keycloak',
+        id: 'keycloak-admin',
         label: 'Správa Keycloak',
         icon: <SecurityIcon />,
-        href: '/core-admin/keycloak',
-        description: 'Keycloak správa',
+        href: '#',  // Jen expandable kontejner
+        description: 'Správa identit a přístupů',
         requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
         children: [
           {
@@ -143,29 +150,31 @@ export const defaultMenuItems: SidebarNavItem[] = [
         ],
       },
       
-      // 🔒 Bezpečnost & Audit podsekce
+      // Monitoring - druhá úroveň
       {
-        id: 'core-admin-security-audit',
-        label: 'Bezpečnost & Audit',
+        id: 'monitoring-section',
+        label: 'Monitoring',
+        icon: <AssessmentIcon />,
+        href: '/core-admin/monitoring',
+        description: 'Sledování výkonu',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      
+      // Bezpečnost - druhá úroveň
+      {
+        id: 'security-section',
+        label: 'Bezpečnost',
         icon: <ShieldIcon />,
         href: '/core-admin/security',
-        description: 'Security & Audit',
+        description: 'Zabezpečení systému',
         requiredRoles: ['CORE_ROLE_ADMIN'],
         children: [
           {
-            id: 'core-admin-security',
-            label: 'Bezpečnost',
-            icon: <ShieldIcon />,
-            href: '/core-admin/security',
-            description: 'Security monitoring',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-          {
             id: 'core-admin-audit',
-            label: 'Audit Log',
+            label: 'Audit',
             icon: <BugReportIcon />,
             href: '/core-admin/audit',
-            description: 'Audit trail',
+            description: 'Auditní logy',
             requiredRoles: ['CORE_ROLE_ADMIN'],
           },
         ],
@@ -204,7 +213,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   userRoles = [],
   collapsed = false,
 }) => {
-  const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set(['core-admin']));
+  const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set(['administration', 'keycloak-admin']));
 
   // 🔍 Filter items based on user roles
   const filteredItems = items.filter(menuItem => {
@@ -269,9 +278,12 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         selected={active}
         aria-current={active ? 'page' : undefined}
         aria-label={collapsed ? item.label : undefined}
+        disableGutters={false}
         sx={{
-          // Indentation for nested items
-          pl: collapsed ? 2 : 2 + (level * 2),
+          // Indentation ONLY for nested items (level > 0)
+          // Root items (level 0) have no left padding, nested items are indented
+          pl: collapsed ? 2 : (level === 0 ? 0 : 2 + (level * 2)),
+          pr: 2, // Ensure consistent right padding
           
           // Active state styling - glassmorphic effect
           ...(active && !hasChildren && {
@@ -316,7 +328,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           
           // Default styling
           borderRadius: 1,
-          mx: 1,
+          ml: level === 0 ? 0 : 1, // Margin left only for nested items
+          mr: 1, // Keep right margin for visual spacing
           mb: 0.5,
           transition: 'all 0.2s ease-in-out',
         }}
@@ -371,13 +384,27 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
                     }}
                   />
                 )}
+                
+                {/* Subtle indicator for root expandable items */}
+                {hasChildren && level === 0 && filteredChildren.length > 0 && (
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: '0.7rem',
+                      color: 'text.disabled',
+                      ml: 0.5,
+                    }}
+                  >
+                    ({filteredChildren.length})
+                  </Typography>
+                )}
               </Box>
             }
           />
         )}
 
-        {/* Expand/Collapse Icon */}
-        {hasChildren && !collapsed && (
+        {/* Expand/Collapse Icon - ONLY for nested items (level > 0) */}
+        {hasChildren && !collapsed && level > 0 && (
           <Box sx={{ color: 'text.secondary' }}>
             {isExpanded ? <ExpandLess /> : <ExpandMore />}
           </Box>
@@ -433,9 +460,13 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
       component="nav"
       role="navigation"
       aria-label="Hlavní navigace"
+      sx={{
+        p: 0, // No padding
+        m: 0, // No margin
+      }}
     >
-      <List>
-        {filteredItems.map(renderNavItem)}
+      <List disablePadding sx={{ p: 0, m: 0 }}>
+        {filteredItems.map(item => renderNavItem(item, 0))}
       </List>
     </Box>
   );
