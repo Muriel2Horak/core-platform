@@ -152,6 +152,7 @@ function TenantManagement({ user }) {
   };
 
   const openViewDialog = (tenant) => {
+    console.log('🔍 Opening view dialog for tenant:', tenant);
     setSelectedTenant(tenant);
     setViewDialog(true);
     handleActionMenuClose();
@@ -952,8 +953,8 @@ function TenantManagement({ user }) {
       </Dialog>
 
       {/* View Tenant Dialog */}
-      <Dialog 
-        open={viewDialog} 
+      <Dialog
+        open={viewDialog}
         onClose={() => setViewDialog(false)}
         maxWidth="md"
         fullWidth
@@ -967,6 +968,7 @@ function TenantManagement({ user }) {
           📋 Detail tenanta
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
+          {console.log('📊 Selected Tenant in Dialog:', selectedTenant)}
           {selectedTenant && (
             <Grid container spacing={3}>
               <Grid item xs={12}>

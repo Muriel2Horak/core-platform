@@ -84,6 +84,7 @@ function UserDirectory({ user }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState(null);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
+  const [viewDialog, setViewDialog] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -177,8 +178,9 @@ function UserDirectory({ user }) {
   };
 
   const handleViewUser = (userData) => {
-    // In a real app, this would navigate to user detail page
-    console.log('View user:', userData);
+    setSelectedUser(userData);
+    setViewDialog(true);
+    handleActionMenuClose();
     logger.userAction('USER_VIEW_CLICKED', { userId: userData.id });
   };
 
@@ -406,12 +408,12 @@ function UserDirectory({ user }) {
               <Table>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Uživatel</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                    {canViewAllTenants && <TableCell sx={{ fontWeight: 600 }}>Tenant</TableCell>}
-                    <TableCell sx={{ fontWeight: 600 }}>Zdroj</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>Akce</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Uživatel</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Email</TableCell>
+                    {canViewAllTenants && <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Tenant</TableCell>}
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Zdroj</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Role</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Akce</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -483,13 +485,26 @@ function UserDirectory({ user }) {
                       
                       <TableCell>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {/* User Directory nevrací role přímo - zobrazíme pouze základní info */}
-                          <Chip
-                            label="USER"
-                            size="small"
-                            variant="outlined"
-                            sx={{ borderRadius: 1, fontSize: '0.7rem' }}
-                          />
+                          {userData?.roles && userData.roles.length > 0 ? (
+                            userData.roles.map((role, idx) => (
+                              <Chip
+                                key={idx}
+                                label={role}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                sx={{ borderRadius: 1, fontSize: '0.75rem' }}
+                              />
+                            ))
+                          ) : (
+                            <Chip
+                              label="Žádné role"
+                              size="small"
+                              variant="outlined"
+                              color="default"
+                              sx={{ borderRadius: 1, fontSize: '0.75rem' }}
+                            />
+                          )}
                         </Box>
                       </TableCell>
                       
@@ -576,6 +591,115 @@ function UserDirectory({ user }) {
           </MenuItem>
         )}
       </Menu>
+
+      {/* View User Dialog */}
+      <Dialog
+        open={viewDialog}
+        onClose={() => setViewDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, fontSize: '1.5rem' }}>
+          👤 Detail uživatele
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {selectedUser && (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <Avatar
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    backgroundColor: 'primary.main',
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {getInitials(selectedUser)}
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    {getDisplayName(selectedUser)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    @{selectedUser.username}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Email</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {selectedUser.email || 'Neuvedeno'}
+                  </Typography>
+                </Box>
+
+                {canViewAllTenants && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Tenant</Typography>
+                    <Chip
+                      label={selectedUser.tenantKey || 'Unknown'}
+                      size="small"
+                      color="primary"
+                      sx={{ mt: 0.5 }}
+                    />
+                  </Box>
+                )}
+
+                <Box>
+                  <Typography variant="body2" color="text.secondary">Zdroj</Typography>
+                  <Chip
+                    icon={selectedUser.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
+                    label={selectedUser.directorySource || (selectedUser.isFederated ? 'AD' : 'LOCAL')}
+                    size="small"
+                    color={selectedUser.isFederated ? 'info' : 'success'}
+                    sx={{ mt: 0.5 }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Role</Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selectedUser.roles && selectedUser.roles.length > 0 ? (
+                      selectedUser.roles.map((role, idx) => (
+                        <Chip
+                          key={idx}
+                          label={role}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      ))
+                    ) : (
+                      <Chip
+                        label="Žádné role"
+                        size="small"
+                        variant="outlined"
+                        color="default"
+                      />
+                    )}
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button
+            onClick={() => setViewDialog(false)}
+            variant="contained"
+            sx={{ borderRadius: 2 }}
+          >
+            Zavřít
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog 

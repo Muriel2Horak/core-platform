@@ -133,19 +133,11 @@ function Users({ user }) {
   // Get user roles display
   const getUserRoles = (userData) => {
     if (!userData?.roles || userData.roles.length === 0) {
-      return ['Běžný uživatel'];
+      return ['Žádné role'];
     }
     
-    return userData.roles.map(role => {
-      switch (role) {
-        case 'CORE_ROLE_ADMIN':
-          return 'Administrátor';
-        case 'CORE_ROLE_USER_MANAGER':
-          return 'Správce uživatelů';
-        default:
-          return role.replace('CORE_ROLE_', '');
-      }
-    });
+    // Zobrazíme role přímo jak jsou, bez mappingu
+    return userData.roles;
   };
 
   // Action handlers
