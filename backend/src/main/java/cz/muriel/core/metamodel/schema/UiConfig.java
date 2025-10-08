@@ -1,7 +1,6 @@
 package cz.muriel.core.metamodel.schema;
 
 import lombok.Data;
-import java.util.List;
 
 /**
  * UI Configuration for entity

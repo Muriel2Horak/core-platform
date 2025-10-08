@@ -2,7 +2,6 @@ package cz.muriel.core.metamodel.schema;
 
 import lombok.Data;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Root schema for entity metamodel definition

@@ -1,8 +1,11 @@
 package cz.muriel.core.service;
 
 import cz.muriel.core.dto.UiCapabilitiesDto;
-import cz.muriel.core.security.policy.PolicyModels;
-import cz.muriel.core.security.policy.YamlPermissionAdapter;
+import cz.muriel.core.metamodel.MetamodelRegistry;
+import cz.muriel.core.metamodel.schema.EntitySchema;
+import cz.muriel.core.metamodel.schema.FeatureConfig;
+import cz.muriel.core.metamodel.schema.MenuItemConfig;
+import cz.muriel.core.security.PolicyEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -20,14 +23,16 @@ import java.util.stream.Collectors;
 /**
  * 🎨 UI Capabilities Service
  * 
- * Generuje UI capabilities (menu, features) pro frontend. Podporuje ETag/cache
- * invalidation přes permVersion.
+ * Generuje UI capabilities (menu, features) pro frontend z metamodelu.
+ * Podporuje ETag/cache invalidation přes permVersion.
  */
-@Service @RequiredArgsConstructor @Slf4j
+@Service
+@RequiredArgsConstructor
+@Slf4j
 public class UiCapabilitiesService {
 
-  @SuppressWarnings("deprecation")
-  private final YamlPermissionAdapter yamlAdapter;
+  private final MetamodelRegistry metamodelRegistry;
+  private final PolicyEngine policyEngine;
   private final PermissionService legacyPermissionService;
 
   // Cache pro perm version (invaliduje se při změně metamodelu)
@@ -57,53 +62,57 @@ public class UiCapabilitiesService {
   }
 
   /**
-   * Získá menu items podle rolí
+   * Získá menu items podle rolí z metamodelu
    */
   private List<UiCapabilitiesDto.MenuItem> getMenuItems(List<String> roles) {
-    // TODO: Načíst z metamodelu
-    // List<PolicyModels.MenuPolicy> policies = metamodelRegistry.getMenuPolicies();
-
-    // Fallback na YAML
-    List<PolicyModels.MenuPolicy> yamlMenus = yamlAdapter.getMenuPolicies();
-
     List<UiCapabilitiesDto.MenuItem> result = new ArrayList<>();
 
-    for (PolicyModels.MenuPolicy policy : yamlMenus) {
-      if (evaluateMenuRule(policy.getRule(), roles)) {
-        UiCapabilitiesDto.MenuItem item = UiCapabilitiesDto.MenuItem.builder().id(policy.getId())
-            .label(policy.getLabel()).path(policy.getPath()).icon(policy.getIcon())
-            .order(policy.getOrder()).build();
+    // Procházet všechny schemas a jejich navigation config
+    for (EntitySchema schema : metamodelRegistry.getAllSchemas().values()) {
+      if (schema.getNavigation() != null && schema.getNavigation().getMenu() != null) {
+        for (MenuItemConfig menuItem : schema.getNavigation().getMenu()) {
+          // Kontrola required role
+          if (menuItem.getRequiredRole() == null || roles.contains(menuItem.getRequiredRole())) {
+            UiCapabilitiesDto.MenuItem item = UiCapabilitiesDto.MenuItem.builder()
+                .id(menuItem.getId())
+                .label(menuItem.getLabel())
+                .path(menuItem.getPath())
+                .icon(menuItem.getIcon())
+                .order(menuItem.getOrder())
+                .build();
 
-        // Submenu
-        if (policy.getSubmenu() != null && !policy.getSubmenu().isEmpty()) {
-          List<UiCapabilitiesDto.SubMenuItem> submenuItems = policy.getSubmenu().stream()
-              .filter(sub -> evaluateMenuRule(sub.getRule(), roles))
-              .map(sub -> UiCapabilitiesDto.SubMenuItem.builder().label(sub.getLabel())
-                  .path(sub.getPath()).build())
-              .collect(Collectors.toList());
-          item.setSubmenu(submenuItems);
+            result.add(item);
+          }
         }
-
-        result.add(item);
       }
     }
 
     // Deduplikace a řazení
-    return result.stream().distinct().sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
+    return result.stream()
+        .distinct()
+        .sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
         .collect(Collectors.toList());
   }
 
   /**
-   * Získá features podle rolí
+   * Získá features podle rolí z metamodelu
    */
   private List<String> getFeatures(List<String> roles) {
-    // TODO: Načíst z metamodelu
+    List<String> result = new ArrayList<>();
 
-    // Fallback na YAML
-    List<PolicyModels.FeaturePolicy> yamlFeatures = yamlAdapter.getFeaturePolicies();
+    // Procházet všechny schemas a jejich features
+    for (EntitySchema schema : metamodelRegistry.getAllSchemas().values()) {
+      if (schema.getFeatures() != null) {
+        for (FeatureConfig feature : schema.getFeatures()) {
+          // Kontrola required role
+          if (feature.getRequiredRole() == null || roles.contains(feature.getRequiredRole())) {
+            result.add(feature.getId());
+          }
+        }
+      }
+    }
 
-    return yamlFeatures.stream().filter(policy -> evaluateFeatureRule(policy.getRule(), roles))
-        .map(PolicyModels.FeaturePolicy::getFeatureId).distinct().collect(Collectors.toList());
+    return result.stream().distinct().collect(Collectors.toList());
   }
 
   /**
@@ -125,8 +134,10 @@ public class UiCapabilitiesService {
     }
 
     try {
-      // TODO: Hash z metamodelu
-      String input = "metamodel:" + lastMetamodelChange;
+      // Hash z metamodelu schémat
+      int schemaHash = metamodelRegistry.getAllSchemas().hashCode();
+      String input = "metamodel:" + schemaHash + ":" + lastMetamodelChange;
+      
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
 
@@ -156,34 +167,12 @@ public class UiCapabilitiesService {
   }
 
   /**
-   * Vyhodnotí menu rule
-   */
-  private boolean evaluateMenuRule(PolicyModels.PolicyRule rule, List<String> roles) {
-    if (rule == null) {
-      return true; // No rule = visible for all
-    }
-
-    if (rule.getType() == PolicyModels.PolicyRule.RuleType.ROLE) {
-      String roleName = rule.getExpression().replaceAll(".*hasRole\\('([^']+)'\\).*", "$1");
-      return roles.contains(roleName);
-    }
-
-    // TODO: Implementovat další typy rules
-    return false;
-  }
-
-  /**
-   * Vyhodnotí feature rule
-   */
-  private boolean evaluateFeatureRule(PolicyModels.PolicyRule rule, List<String> roles) {
-    return evaluateMenuRule(rule, roles); // Stejná logika
-  }
-
-  /**
    * Získá seznam rolí z Authentication
    */
   private List<String> getRoles(Authentication auth) {
-    return auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-        .map(a -> a.replace("ROLE_", "")).collect(Collectors.toList());
+    return auth.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .map(a -> a.replace("ROLE_", ""))
+        .collect(Collectors.toList());
   }
 }

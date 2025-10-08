@@ -2,7 +2,6 @@ package cz.muriel.core.metamodel.schema;
 
 import lombok.Data;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Policy rule supporting RBAC + ABAC Supports: anyOf, allOf, role, group,

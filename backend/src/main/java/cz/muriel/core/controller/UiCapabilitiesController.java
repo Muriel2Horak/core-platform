@@ -65,19 +65,4 @@ public class UiCapabilitiesController {
                                                                                              // serveru
         .body(capabilities);
   }
-
-  /**
-   * POST /api/admin/invalidate-permissions
-   * 
-   * Invaliduje permission cache (volat po změně metamodelu). Pouze pro ADMIN.
-   */
-  // TODO: Implementovat až bude potřeba
-  // @PostMapping("/admin/invalidate-permissions")
-  // @PreAuthorize("@policyMethods.canExecute('System', 'invalidate-permissions',
-  // null)")
-  // public ResponseEntity<Void> invalidatePermissions() {
-  // UiCapabilitiesService.invalidatePermVersion();
-  // log.info("Permission cache invalidated");
-  // return ResponseEntity.ok().build();
-  // }
 }

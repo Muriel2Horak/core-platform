@@ -6,16 +6,15 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
-import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.util.*;
 
 /**
  * Loads metamodel YAML files from classpath
  */
-@Slf4j @Component
+@Slf4j
+@Component
 public class MetamodelLoader {
 
   private static final String METAMODEL_LOCATION = "classpath:metamodel/*.yaml";
