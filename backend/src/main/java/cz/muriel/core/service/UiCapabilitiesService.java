@@ -5,7 +5,6 @@ import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.FeatureConfig;
 import cz.muriel.core.metamodel.schema.MenuItemConfig;
-import cz.muriel.core.security.PolicyEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -32,7 +31,6 @@ import java.util.stream.Collectors;
 public class UiCapabilitiesService {
 
   private final MetamodelRegistry metamodelRegistry;
-  private final PolicyEngine policyEngine;
   private final PermissionService legacyPermissionService;
 
   // Cache pro perm version (invaliduje se při změně metamodelu)
@@ -117,11 +115,10 @@ public class UiCapabilitiesService {
 
   /**
    * Získá data scope (priority: all_tenants > own_tenant > own_data)
+   * 
+   * Note: DataScope není součástí metamodelu FÁZE 1, používá se legacy PermissionService
    */
   private String getDataScope(List<String> roles) {
-    // TODO: Načíst z metamodelu podle rolí
-
-    // Fallback na legacy PermissionService
     return legacyPermissionService.getDataScope(roles);
   }
 
