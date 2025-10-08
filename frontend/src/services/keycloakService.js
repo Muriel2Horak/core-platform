@@ -313,14 +313,30 @@ class KeycloakService {
       throw new Error('Keycloak not initialized');
     }
 
-    logger.auth('Logging out', { component: 'auth' });
+    // 🔧 IMPORTANT: Save reference to keycloak instance and token BEFORE any async operations
+    const keycloakRef = this.keycloak;
+    const idToken = keycloakRef?.idToken;
+
+    // � OPTIMIZATION: Build logout URL FIRST, before any cleanup
+    const logoutUrl = `${this.config.url}/realms/${this.config.realm}/protocol/openid-connect/logout`;
+    const postLogoutRedirectUri = encodeURIComponent(window.location.origin + '/');
+    const idTokenHint = idToken ? `&id_token_hint=${idToken}` : '';
+    const fullLogoutUrl = `${logoutUrl}?post_logout_redirect_uri=${postLogoutRedirectUri}&client_id=${this.config.clientId}${idTokenHint}`;
+
+    // � IMMEDIATE REDIRECT - no delays, no rerenders!
+    // Storage cleanup will happen on next page load
+    window.location.href = fullLogoutUrl;
+    
+    // ⚠️ CODE BELOW NEVER EXECUTES (kept for reference)
+    // The redirect above is synchronous and immediate
+    
+    logger.auth('Redirecting to logout URL', { 
+      logoutUrl: fullLogoutUrl,
+      component: 'auth' 
+    });
 
     // 🔐 FIXED: Set logger as unauthenticated immediately to prevent 401 loops
     logger.setAuthenticated(false);
-
-    // 🔧 IMPORTANT: Save reference to keycloak instance before clearing
-    const keycloakRef = this.keycloak;
-    const idToken = keycloakRef?.idToken;
 
     // Stop token refresh immediately
     if (this._refreshInterval) {
@@ -369,26 +385,9 @@ class KeycloakService {
       // 🔧 FIXED: Clear the Keycloak instance reference completely
       this.keycloak = null;
       
-      // Construct logout URL manually for better control
-      const logoutUrl = `${this.config.url}/realms/${this.config.realm}/protocol/openid-connect/logout`;
-      const postLogoutRedirectUri = encodeURIComponent(window.location.origin + '/');  // 🔧 Redirect na root, kde se spustí auto-login
-      const idTokenHint = idToken ? `&id_token_hint=${idToken}` : '';
-      
-      const fullLogoutUrl = `${logoutUrl}?post_logout_redirect_uri=${postLogoutRedirectUri}&client_id=${this.config.clientId}${idTokenHint}`;
-      
-      logger.auth('Redirecting to logout URL', { 
-        logoutUrl: fullLogoutUrl,
-        component: 'auth' 
-      });
-      
-      // Force redirect to logout
-      window.location.href = fullLogoutUrl;
-      
     } catch (error) {
       // 🔐 FIXED: Use console.error instead of logger.error to avoid auth loops
       console.error('❌ [AUTH] Logout error:', error.message);
-      // Fallback - redirect na root místo logged-out stránky
-      window.location.href = '/';
     }
   }
 

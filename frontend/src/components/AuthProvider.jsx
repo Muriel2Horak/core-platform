@@ -245,28 +245,24 @@ export const AuthProvider = ({ children }) => {
         logger.info('🛑 CDC polling stopped');
       }
       
-      // Set logout flags
+      // Set logout flags PŘED redirectem
       localStorage.setItem('logout-completed', Date.now().toString());
       localStorage.setItem('prevent-auto-login', 'true');
       
-      // Clear API session
-      await apiService.logout();
+      // Clear API session (fire and forget - nemusíme čekat)
+      apiService.logout().catch(() => {/* ignore errors */});
       
-      // Clear state - ale NEPŘEKRESLUJEME, redirect proběhne okamžitě
-      setUser(null);
-      setIsAuthenticated(false);
-      // ❌ REMOVED: setShowLoggedOut(true) - způsobovalo zobrazení LoginPage před redirectem
-      
-      // Reset ref guards
-      hasTriedLoginRef.current = false;
-      lastCheckTimestamp.current = null;
-      
-      // Logout from Keycloak - tato funkce OKAMŽITĚ redirectuje na Keycloak
-      // takže žádný další kód se neprovede
+      // 🚀 OKAMŽITÝ REDIRECT - ŽÁDNÉ state změny, žádný rerender!
+      // State se vyčistí automaticky při návratu z Keycloaku (initializeAuth detekuje logout)
       await keycloakService.logout();
+      
+      // ⚠️ Tento kód se NIKDY nespustí, protože keycloakService.logout() dělá window.location.href
       
     } catch (error) {
       console.error('❌ [AUTH] Logout failed:', error.message);
+      // Fallback - alespoň vyčistíme state
+      setUser(null);
+      setIsAuthenticated(false);
     }
   };
 
