@@ -46,7 +46,7 @@ export const KeycloakSyncPage = ({ user }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedTenants, setSelectedTenants] = useState(['test-tenant']); // Multi-select pro CORE_ADMIN
+  const [selectedTenants, setSelectedTenants] = useState([]); // Multi-select pro CORE_ADMIN
   const [tenants, setTenants] = useState([]);
 
   // Fetch tenants for selector

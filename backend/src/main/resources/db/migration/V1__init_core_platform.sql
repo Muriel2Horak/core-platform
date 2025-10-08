@@ -381,12 +381,50 @@ COMMENT ON TABLE kc_event_log IS 'Event log for idempotence tracking';
 COMMENT ON TABLE role_composites IS 'Composite role mappings (parent contains child roles)';
 
 -- =====================================================
+-- 13) SYNC EXECUTION TRACKING
+-- =====================================================
+
+-- Tabulka pro sledování synchronizačních operací
+CREATE TABLE IF NOT EXISTS sync_executions (
+    id VARCHAR(36) PRIMARY KEY,
+    type VARCHAR(50) NOT NULL,
+    tenant_key TEXT NOT NULL REFERENCES tenants(key) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP,
+    total_items INTEGER,
+    processed_items INTEGER,
+    initiated_by VARCHAR(255)
+);
+
+-- Tabulka pro chyby synchronizace
+CREATE TABLE IF NOT EXISTS sync_execution_errors (
+    sync_execution_id VARCHAR(36) NOT NULL,
+    error_message VARCHAR(1000),
+    CONSTRAINT fk_sync_errors FOREIGN KEY (sync_execution_id) REFERENCES sync_executions(id) ON DELETE CASCADE
+);
+
+-- Indexy pro rychlé vyhledávání
+CREATE INDEX idx_sync_status ON sync_executions(status);
+CREATE INDEX idx_sync_tenant ON sync_executions(tenant_key);
+CREATE INDEX idx_sync_start_time ON sync_executions(start_time DESC);
+CREATE INDEX idx_sync_type ON sync_executions(type);
+CREATE INDEX idx_sync_status_tenant ON sync_executions(status, tenant_key);
+
+-- Komentáře
+COMMENT ON TABLE sync_executions IS 'Historie synchronizačních operací z Keycloak';
+COMMENT ON TABLE sync_execution_errors IS 'Chybové zprávy synchronizací';
+COMMENT ON COLUMN sync_executions.type IS 'Typ synchronizace: users, roles, groups, all';
+COMMENT ON COLUMN sync_executions.status IS 'Stav: RUNNING, COMPLETED, FAILED, CANCELLED';
+COMMENT ON COLUMN sync_executions.initiated_by IS 'Uživatel, který spustil synchronizaci';
+
+-- =====================================================
 -- VERIFICATION
 -- =====================================================
 
 DO $$
 BEGIN
     RAISE NOTICE '✅ V1 Core Platform DB initialized successfully';
-    RAISE NOTICE '📊 Tables created: tenants, users_directory, roles, role_composites, groups, user_roles, user_groups, kc_event_log';
+    RAISE NOTICE '📊 Tables created: tenants, users_directory, roles, role_composites, groups, user_roles, user_groups, kc_event_log, sync_executions, sync_execution_errors';
     RAISE NOTICE '🔐 Deterministic UUID functions created for backup/restore consistency';
 END $$;

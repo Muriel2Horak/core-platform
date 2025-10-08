@@ -48,6 +48,7 @@ import {
   Shield as ShieldIcon,
   BugReport as BugReportIcon,
   Sync as SyncIcon,
+  History as HistoryIcon,
   ExpandLess,
   ExpandMore,
 } from '@mui/icons-material';
@@ -154,6 +155,14 @@ export const defaultMenuItems: SidebarNavItem[] = [
             icon: <SyncIcon />,
             href: '/core-admin/keycloak-sync',
             description: 'Synchronizace z Keycloak',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
+          {
+            id: 'core-admin-sync-history',
+            label: 'Historie Sync',
+            icon: <HistoryIcon />,
+            href: '/core-admin/sync-history',
+            description: 'Historie synchronizací',
             requiredRoles: ['CORE_ROLE_ADMIN'],
           },
         ],

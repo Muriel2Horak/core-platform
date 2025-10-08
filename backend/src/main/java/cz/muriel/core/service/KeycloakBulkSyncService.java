@@ -1,7 +1,9 @@
 package cz.muriel.core.service;
 
+import cz.muriel.core.entity.SyncExecution;
 import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.entity.UserDirectoryEntity;
+import cz.muriel.core.repository.SyncExecutionRepository;
 import cz.muriel.core.repository.TenantRepository;
 import cz.muriel.core.repository.UserDirectoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,7 @@ public class KeycloakBulkSyncService {
   private final TenantRepository tenantRepository;
   private final UserDirectoryRepository userDirectoryRepository;
   private final KeycloakSyncService syncService;
+  private final SyncExecutionRepository syncExecutionRepository;
 
   // Progress tracking pro aktivní synchronizace
   private final Map<String, SyncProgress> activeSyncs = new ConcurrentHashMap<>();
@@ -42,6 +46,17 @@ public class KeycloakBulkSyncService {
   @Async
   public String syncUsersAsync(String tenantKey) {
     String syncId = UUID.randomUUID().toString();
+    String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
+
+    // Vytvoříme DB záznam
+    SyncExecution execution = SyncExecution.builder()
+        .id(syncId)
+        .type("users")
+        .tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING)
+        .initiatedBy(initiatedBy)
+        .build();
+    syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "users", tenantKey);
     activeSyncs.put(syncId, progress);
@@ -72,6 +87,7 @@ public class KeycloakBulkSyncService {
 
       progress.setStatus("completed");
       progress.setEndTime(LocalDateTime.now());
+      updateSyncExecution(progress);
       log.info("✅ User sync completed for tenant {}: {}/{} users", tenantKey, processed,
           users.size());
 
@@ -79,6 +95,7 @@ public class KeycloakBulkSyncService {
       progress.setStatus("failed");
       progress.setEndTime(LocalDateTime.now());
       progress.addError("Sync failed: " + e.getMessage());
+      updateSyncExecution(progress);
       log.error("❌ User sync failed for tenant: {}", tenantKey, e);
     }
 
@@ -91,6 +108,16 @@ public class KeycloakBulkSyncService {
   @Async
   public String syncRolesAsync(String tenantKey) {
     String syncId = UUID.randomUUID().toString();
+    String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
+
+    SyncExecution execution = SyncExecution.builder()
+        .id(syncId)
+        .type("roles")
+        .tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING)
+        .initiatedBy(initiatedBy)
+        .build();
+    syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "roles", tenantKey);
     activeSyncs.put(syncId, progress);
@@ -120,6 +147,7 @@ public class KeycloakBulkSyncService {
 
       progress.setStatus("completed");
       progress.setEndTime(LocalDateTime.now());
+      updateSyncExecution(progress);
       log.info("✅ Role sync completed for tenant {}: {}/{} roles", tenantKey, processed,
           roles.size());
 
@@ -127,6 +155,7 @@ public class KeycloakBulkSyncService {
       progress.setStatus("failed");
       progress.setEndTime(LocalDateTime.now());
       progress.addError("Sync failed: " + e.getMessage());
+      updateSyncExecution(progress);
       log.error("❌ Role sync failed for tenant: {}", tenantKey, e);
     }
 
@@ -139,6 +168,16 @@ public class KeycloakBulkSyncService {
   @Async
   public String syncGroupsAsync(String tenantKey) {
     String syncId = UUID.randomUUID().toString();
+    String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
+
+    SyncExecution execution = SyncExecution.builder()
+        .id(syncId)
+        .type("groups")
+        .tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING)
+        .initiatedBy(initiatedBy)
+        .build();
+    syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "groups", tenantKey);
     activeSyncs.put(syncId, progress);
@@ -168,6 +207,7 @@ public class KeycloakBulkSyncService {
 
       progress.setStatus("completed");
       progress.setEndTime(LocalDateTime.now());
+      updateSyncExecution(progress);
       log.info("✅ Group sync completed for tenant {}: {}/{} groups", tenantKey, processed,
           groups.size());
 
@@ -175,6 +215,7 @@ public class KeycloakBulkSyncService {
       progress.setStatus("failed");
       progress.setEndTime(LocalDateTime.now());
       progress.addError("Sync failed: " + e.getMessage());
+      updateSyncExecution(progress);
       log.error("❌ Group sync failed for tenant: {}", tenantKey, e);
     }
 
@@ -187,6 +228,16 @@ public class KeycloakBulkSyncService {
   @Async
   public String syncAllAsync(String tenantKey) {
     String syncId = UUID.randomUUID().toString();
+    String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
+
+    SyncExecution execution = SyncExecution.builder()
+        .id(syncId)
+        .type("all")
+        .tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING)
+        .initiatedBy(initiatedBy)
+        .build();
+    syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "all", tenantKey);
     activeSyncs.put(syncId, progress);
@@ -195,31 +246,114 @@ public class KeycloakBulkSyncService {
     try {
       // Sync roles first (users and groups may depend on roles)
       log.info("🔄 Step 1/3: Syncing roles for tenant: {}", tenantKey);
-      String rolesSyncId = syncRolesAsync(tenantKey);
-      waitForSyncCompletion(rolesSyncId, progress);
+      doSyncRoles(tenantKey, progress);
 
       // Sync groups
       log.info("🔄 Step 2/3: Syncing groups for tenant: {}", tenantKey);
-      String groupsSyncId = syncGroupsAsync(tenantKey);
-      waitForSyncCompletion(groupsSyncId, progress);
+      doSyncGroups(tenantKey, progress);
 
       // Sync users last
       log.info("🔄 Step 3/3: Syncing users for tenant: {}", tenantKey);
-      String usersSyncId = syncUsersAsync(tenantKey);
-      waitForSyncCompletion(usersSyncId, progress);
+      doSyncUsers(tenantKey, progress);
 
       progress.setStatus("completed");
       progress.setEndTime(LocalDateTime.now());
-      log.info("✅ Full sync completed for tenant: {}", tenantKey);
+      updateSyncExecution(progress);
+      log.info("✅ Full sync completed for tenant: {} (processed: {})", tenantKey, progress.getProcessed());
 
     } catch (Exception e) {
       progress.setStatus("failed");
       progress.setEndTime(LocalDateTime.now());
       progress.addError("Full sync failed: " + e.getMessage());
+      updateSyncExecution(progress);
       log.error("❌ Full sync failed for tenant: {}", tenantKey, e);
     }
 
     return syncId;
+  }
+
+  /**
+   * 🔄 Synchronní synchronizace uživatelů (pro použití v rámci full sync)
+   */
+  private void doSyncUsers(String tenantKey, SyncProgress progress) {
+    try {
+      log.info("🔄 Fetching users from Keycloak for tenant: {}", tenantKey);
+      
+      Tenant tenant = tenantRepository.findByKey(tenantKey)
+          .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
+
+      RealmResource realm = keycloak.realm(tenant.getRealm());
+      List<UserRepresentation> users = realm.users().list();
+      
+      int startTotal = progress.getTotal();
+      progress.setTotal(startTotal + users.size());
+
+      for (UserRepresentation user : users) {
+        syncUserToDirectory(user, tenantKey);
+        progress.setProcessed(progress.getProcessed() + 1);
+      }
+
+      log.info("✅ Users synced for tenant: {} (count: {})", tenantKey, users.size());
+    } catch (Exception e) {
+      progress.addError("Users sync error: " + e.getMessage());
+      throw e;
+    }
+  }
+
+  /**
+   * 🔄 Synchronní synchronizace rolí (pro použití v rámci full sync)
+   */
+  private void doSyncRoles(String tenantKey, SyncProgress progress) {
+    try {
+      log.info("🔄 Fetching roles from Keycloak for tenant: {}", tenantKey);
+      
+      Tenant tenant = tenantRepository.findByKey(tenantKey)
+          .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
+
+      RealmResource realm = keycloak.realm(tenant.getRealm());
+      List<RoleRepresentation> roles = realm.roles().list();
+      
+      int startTotal = progress.getTotal();
+      progress.setTotal(startTotal + roles.size());
+
+      for (RoleRepresentation role : roles) {
+        syncService.syncRoleFromKeycloak(role.getId(), tenantKey, "CREATE_OR_UPDATE");
+        progress.setProcessed(progress.getProcessed() + 1);
+      }
+
+      log.info("✅ Roles synced for tenant: {} (count: {})", tenantKey, roles.size());
+    } catch (Exception e) {
+      progress.addError("Roles sync error: " + e.getMessage());
+      throw e;
+    }
+  }
+
+  /**
+   * 🔄 Synchronní synchronizace skupin (pro použití v rámci full sync)
+   */
+  private void doSyncGroups(String tenantKey, SyncProgress progress) {
+    try {
+      log.info("🔄 Fetching groups from Keycloak for tenant: {}", tenantKey);
+      
+      Tenant tenant = tenantRepository.findByKey(tenantKey)
+          .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
+
+      RealmResource realm = keycloak.realm(tenant.getRealm());
+      List<GroupRepresentation> groups = realm.groups().groups();
+      
+      int startTotal = progress.getTotal();
+      progress.setTotal(startTotal + groups.size());
+
+      for (GroupRepresentation group : groups) {
+        syncService.syncGroupFromKeycloak(group.getId(), tenantKey, "CREATE_OR_UPDATE");
+        progress.setProcessed(progress.getProcessed() + 1);
+      }
+
+      log.info("✅ Groups synced for tenant: {} (count: {})", tenantKey, groups.size());
+    } catch (Exception e) {
+      progress.addError("Groups sync error: " + e.getMessage());
+      throw e;
+    }
   }
 
   /**
@@ -257,26 +391,7 @@ public class KeycloakBulkSyncService {
   }
 
   /**
-   * 🕐 Čeká na dokončení synchronizace (pro full sync)
-   */
-  private void waitForSyncCompletion(String syncId, SyncProgress parentProgress)
-      throws InterruptedException {
-    while (true) {
-      SyncProgress childProgress = activeSyncs.get(syncId);
-      if (childProgress == null || "completed".equals(childProgress.getStatus())
-          || "failed".equals(childProgress.getStatus())) {
-
-        if (childProgress != null && "failed".equals(childProgress.getStatus())) {
-          parentProgress.addError("Sub-sync failed: " + syncId);
-        }
-        break;
-      }
-      Thread.sleep(500); // Poll every 500ms
-    }
-  }
-
-  /**
-   * 🔄 Synchronizuje uživatele do UserDirectory
+   *  Synchronizuje uživatele do UserDirectory
    */
   @Transactional
   private void syncUserToDirectory(UserRepresentation user, String tenantKey) {
@@ -298,7 +413,28 @@ public class KeycloakBulkSyncService {
   }
 
   /**
-   * 📊 Progress tracking class
+   * � Helper: Aktualizuj DB záznam na základě progress
+   */
+  private void updateSyncExecution(SyncProgress progress) {
+    syncExecutionRepository.findById(progress.getSyncId()).ifPresent(execution -> {
+      execution.setTotalItems(progress.getTotal());
+      execution.setProcessedItems(progress.getProcessed());
+      execution.setErrors(new ArrayList<>(progress.errors));
+      
+      if ("completed".equals(progress.getStatus())) {
+        execution.setStatus(SyncExecution.SyncStatus.COMPLETED);
+        execution.setEndTime(LocalDateTime.now());
+      } else if ("failed".equals(progress.getStatus())) {
+        execution.setStatus(SyncExecution.SyncStatus.FAILED);
+        execution.setEndTime(LocalDateTime.now());
+      }
+      
+      syncExecutionRepository.save(execution);
+    });
+  }
+
+  /**
+   * �📊 Progress tracking class
    */
   private static class SyncProgress {
     private final String syncId;
@@ -318,12 +454,24 @@ public class KeycloakBulkSyncService {
       this.startTime = LocalDateTime.now();
     }
 
+    public String getSyncId() {
+      return syncId;
+    }
+
     public void setTotal(int total) {
       this.total = total;
     }
 
+    public int getTotal() {
+      return total;
+    }
+
     public void setProcessed(int processed) {
       this.processed = processed;
+    }
+
+    public int getProcessed() {
+      return processed;
     }
 
     public void setStatus(String status) {

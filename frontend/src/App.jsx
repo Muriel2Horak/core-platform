@@ -24,6 +24,7 @@ import {
   AdminSecurityPage,
   AdminAuditPage,
   KeycloakSyncPage,
+  SyncHistoryPage,
 } from './pages/Admin';
 
 // 🆕 Tenant Admin sekce
@@ -460,6 +461,7 @@ const AppContent = () => {
           <Route path="security" element={<AdminSecurityPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="keycloak-sync" element={<KeycloakSyncPage user={user} />} />
+          <Route path="sync-history" element={<SyncHistoryPage />} />
         </Route>
         
         {/* 🆕 Tenant Admin sekce - pro tenant administrátory */}
