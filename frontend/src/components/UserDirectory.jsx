@@ -9,9 +9,6 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  IconButton,
-  Menu,
-  MenuItem,
   FormControl,
   InputLabel,
   Select,
@@ -26,23 +23,34 @@ import {
   DialogContent,
   DialogActions,
   Paper,
-  Slide
+  Slide,
+  Tabs,
+  Tab,
+  Divider,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreVertIcon,
   Refresh as RefreshIcon,
   People as PeopleIcon,
   Cloud as CloudIcon,
   Storage as ServerIcon,
+  AccountTree as OrgChartIcon,
+  List as ListIcon,
+  Person as PersonIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
 import { UserPropType } from '../shared/propTypes.js';
 import { DataTable } from './common/DataTable.jsx';
+import OrgChartView from './common/OrgChartView.jsx';
+import UserOrgChart from './common/UserOrgChart.jsx';
 
 function UserDirectory({ user }) {
   // State for data
@@ -72,13 +80,14 @@ function UserDirectory({ user }) {
   const isAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
   const isUserManager = user?.roles?.includes('CORE_ROLE_USER_MANAGER');
   const canViewAllTenants = isAdmin;
-  // 🗑️ Odebrána proměnná canManageUsers - již není potřeba
 
-  // State for user actions
+  // State for user view dialog
   const [selectedUser, setSelectedUser] = useState(null);
-  const [actionMenuAnchor, setActionMenuAnchor] = useState(null);
-  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
+  const [viewDialogTab, setViewDialogTab] = useState(0);
+  
+  // State for main view tabs (List / Org Chart)
+  const [mainTab, setMainTab] = useState(0);
 
   // Debounce search query
   useEffect(() => {
@@ -161,57 +170,10 @@ function UserDirectory({ user }) {
     setPage(0); // Reset to first page when searching
   };
 
-  const handleActionMenuOpen = (event, userData) => {
-    setActionMenuAnchor(event.currentTarget);
-    setSelectedUser(userData);
-  };
-
-  const handleActionMenuClose = () => {
-    setActionMenuAnchor(null);
-    setSelectedUser(null);
-  };
-
   const handleViewUser = (userData) => {
     setSelectedUser(userData);
     setViewDialog(true);
-    // Nevoláme handleActionMenuClose() tady - menu už je zavřené přes onClick na TableRow
     logger.userAction('USER_VIEW_CLICKED', { userId: userData.id });
-  };
-
-  const handleEditUser = (userData) => {
-    // In a real app, this would navigate to edit user page
-    console.log('Edit user:', userData);
-    logger.userAction('USER_EDIT_CLICKED', { userId: userData.id });
-  };
-
-  const openDeleteDialog = (userData) => {
-    setSelectedUser(userData);
-    setDeleteConfirmDialog(true);
-    handleActionMenuClose();
-  };
-
-  const handleDeleteUser = async () => {
-    if (!selectedUser) return;
-
-    try {
-      setLoading(true);
-      // 🆕 Používáme User Directory API pro mazání uživatelů
-      await apiService.deleteUser(selectedUser.id); // Toto volá /api/users (admin API)
-      
-      setDeleteConfirmDialog(false);
-      setSuccess(`Uživatel ${getDisplayName(selectedUser)} byl úspěšně smazán`);
-      
-      // Reload data
-      await loadUsers();
-      
-      setTimeout(() => setSuccess(null), 5000);
-      
-    } catch (err) {
-      console.error('Failed to delete user:', err);
-      setError('Nepodařilo se smazat uživatele: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const getDisplayName = (userData) => {
@@ -230,12 +192,59 @@ function UserDirectory({ user }) {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const canEditUser = (userData) => {
-    return isAdmin || (isUserManager && userData?.tenant === user?.tenant);
-  };
+  // Org Chart Helper Functions
+  const buildOrgHierarchy = useCallback(() => {
+    // Build a tree structure from flat user list
+    const userMap = {};
+    const roots = [];
+    
+    users.forEach(user => {
+      userMap[user.username] = { ...user, children: [] };
+    });
+    
+    users.forEach(user => {
+      if (user.manager && userMap[user.manager]) {
+        userMap[user.manager].children.push(userMap[user.username]);
+      } else if (!user.manager) {
+        roots.push(userMap[user.username]);
+      }
+    });
+    
+    return roots;
+  }, [users]);
 
-  const canDeleteUser = (userData) => {
-    return isAdmin || (isUserManager && userData?.tenant === user?.tenant && userData?.id !== user?.id);
+  const getUserHierarchy = (username) => {
+    // Get ancestors (managers above) and descendants (reports below) for a specific user
+    const ancestors = [];
+    const descendants = [];
+    
+    // Find ancestors
+    let currentUsername = username;
+    let currentUser = users.find(u => u.username === currentUsername);
+    
+    while (currentUser?.manager) {
+      const managerUser = users.find(u => u.username === currentUser.manager);
+      if (managerUser && !ancestors.find(a => a.username === managerUser.username)) {
+        ancestors.unshift(managerUser); // Add to beginning
+        currentUser = managerUser;
+      } else {
+        break;
+      }
+    }
+    
+    // Find descendants (direct reports)
+    const findDescendants = (managerUsername) => {
+      const reports = users.filter(u => u.manager === managerUsername);
+      reports.forEach(report => {
+        descendants.push(report);
+        // Recursively find their reports
+        findDescendants(report.username);
+      });
+    };
+    
+    findDescendants(username);
+    
+    return { ancestors, descendants };
   };
 
   // DataTable columns definition
@@ -313,30 +322,82 @@ function UserDirectory({ user }) {
   });
 
   columns.push({
+    field: 'manager',
+    label: 'Nadřízený',
+    sortable: false,
+    render: (userData) => {
+      if (!userData?.manager) {
+        return (
+          <Typography variant="body2" color="text.secondary">
+            -
+          </Typography>
+        );
+      }
+      
+      // Find manager in users list to get full name
+      const managerUser = users.find(u => u.username === userData.manager);
+      const managerName = managerUser 
+        ? `${managerUser.firstName || ''} ${managerUser.lastName || ''}`.trim() 
+        : userData.manager;
+      
+      return (
+        <Tooltip title={`@${userData.manager}`}>
+          <Chip
+            label={managerName || userData.manager}
+            size="small"
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          />
+        </Tooltip>
+      );
+    },
+  });
+
+  columns.push({
+    field: 'enabled',
+    label: 'Stav',
+    sortable: false,
+    render: (userData) => (
+      <Chip
+        label={userData?.enabled ? 'Aktivní' : 'Neaktivní'}
+        size="small"
+        sx={{
+          borderRadius: 2,
+          backgroundColor: userData?.enabled ? 'success.main' : 'error.main',
+          color: 'white',
+          fontWeight: 600,
+          '& .MuiChip-label': {
+            px: 2
+          }
+        }}
+      />
+    ),
+  });
+  
+  columns.push({
     field: 'actions',
     label: 'Akce',
     sortable: false,
     align: 'right',
     render: (userData) => (
-      <Tooltip title="Akce">
-        <IconButton
+      <Tooltip title="Zobrazit detail">
+        <Button
+          size="small"
+          startIcon={<VisibilityIcon />}
           onClick={(e) => {
             e.stopPropagation();
-            handleActionMenuOpen(e, userData);
+            handleViewUser(userData);
           }}
-          sx={{
-            '&:hover': {
-              backgroundColor: 'primary.light'
-            }
-          }}
+          sx={{ borderRadius: 2 }}
         >
-          <MoreVertIcon />
-        </IconButton>
+          Detail
+        </Button>
       </Tooltip>
     ),
   });
 
   // 🆕 OPRAVENO: Odebrána kontrola canManageUsers - všichni autentifikovaní uživatelé mají přístup k User Directory
+  // 🚫 User Directory je READ-ONLY - žádné akce
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
@@ -482,93 +543,99 @@ function UserDirectory({ user }) {
         </CardContent>
       </Card>
 
-      {/* Users Table */}
-      <Paper elevation={2} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-        <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Seznam uživatelů ({totalElements})
-          </Typography>
-        </Box>
-
-        {loading ? (
-          <Box display="flex" justifyContent="center" p={4}>
-            <CircularProgress size={40} />
-          </Box>
-        ) : users.length === 0 ? (
-          <Box textAlign="center" py={6}>
-            <PeopleIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              Nebyly nalezeni žádní uživatelé
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Zkuste změnit vyhledávací kritéria nebo filtry.
-            </Typography>
-          </Box>
-        ) : (
-          <>
-            <DataTable
-              columns={columns}
-              data={users}
-              onRowClick={handleViewUser}
-              loading={loading}
-            />
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <Box display="flex" justifyContent="center" p={3}>
-                <Pagination
-                  count={totalPages}
-                  page={page + 1} // MUI uses 1-based pagination
-                  onChange={(e, newPage) => setPage(newPage - 1)}
-                  color="primary"
-                  size="large"
-                />
-              </Box>
-            )}
-          </>
-        )}
+      {/* Main View Tabs */}
+      <Paper elevation={2} sx={{ borderRadius: 3, overflow: 'hidden', mb: 3 }}>
+        <Tabs
+          value={mainTab}
+          onChange={(e, newValue) => setMainTab(newValue)}
+          sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            px: 2
+          }}
+        >
+          <Tab 
+            icon={<ListIcon />} 
+            iconPosition="start" 
+            label="Seznam uživatelů" 
+          />
+          <Tab 
+            icon={<OrgChartIcon />} 
+            iconPosition="start" 
+            label="Org. Chart" 
+          />
+        </Tabs>
       </Paper>
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={actionMenuAnchor}
-        open={Boolean(actionMenuAnchor)}
-        onClose={handleActionMenuClose}
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: '0 8px 16px rgba(0,0,0,0.15)'
-          }
-        }}
-      >
-        <MenuItem onClick={() => { handleViewUser(selectedUser); handleActionMenuClose(); }}>
-          <VisibilityIcon sx={{ mr: 1 }} fontSize="small" />
-          Zobrazit
-        </MenuItem>
-        
-        {selectedUser && canEditUser(selectedUser) && (
-          <MenuItem onClick={() => { handleEditUser(selectedUser); handleActionMenuClose(); }}>
-            <EditIcon sx={{ mr: 1 }} fontSize="small" />
-            Upravit
-          </MenuItem>
-        )}
-        
-        {selectedUser && canDeleteUser(selectedUser) && (
-          <MenuItem 
-            onClick={() => openDeleteDialog(selectedUser)}
-            sx={{ color: 'error.main' }}
-          >
-            <DeleteIcon sx={{ mr: 1 }} fontSize="small" />
-            Smazat
-          </MenuItem>
-        )}
-      </Menu>
+      {/* Tab Panel: Users Table */}
+      {mainTab === 0 && (
+        <Paper elevation={2} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Seznam uživatelů ({totalElements})
+            </Typography>
+          </Box>
+
+          {loading ? (
+            <Box display="flex" justifyContent="center" p={4}>
+              <CircularProgress size={40} />
+            </Box>
+          ) : users.length === 0 ? (
+            <Box textAlign="center" py={6}>
+              <PeopleIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Nebyly nalezeni žádní uživatelé
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Zkuste změnit vyhledávací kritéria nebo filtry.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <DataTable
+                columns={columns}
+                data={users}
+                onRowClick={handleViewUser}
+                loading={loading}
+              />
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Box display="flex" justifyContent="center" p={3}>
+                  <Pagination
+                    count={totalPages}
+                    page={page + 1} // MUI uses 1-based pagination
+                    onChange={(e, newPage) => setPage(newPage - 1)}
+                    color="primary"
+                    size="large"
+                  />
+                </Box>
+              )}
+            </>
+          )}
+        </Paper>
+      )}
+
+      {/* Tab Panel: Org Chart */}
+      {mainTab === 1 && (
+        <OrgChartView 
+          users={users} 
+          onUserClick={handleViewUser}
+          getDisplayName={getDisplayName}
+          getInitials={getInitials}
+          buildOrgHierarchy={buildOrgHierarchy}
+          loading={loading}
+        />
+      )}
 
       {/* View User Dialog */}
       <Dialog
         open={viewDialog}
-        onClose={() => setViewDialog(false)}
-        maxWidth="sm"
+        onClose={() => {
+          setViewDialog(false);
+          setViewDialogTab(0);
+        }}
+        maxWidth="md"
         fullWidth
         PaperProps={{
           sx: {
@@ -579,146 +646,176 @@ function UserDirectory({ user }) {
         <DialogTitle sx={{ fontWeight: 600, fontSize: '1.5rem' }}>
           👤 Detail uživatele
         </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          {console.log('🔍 Selected user in dialog:', selectedUser)}
+        <DialogContent sx={{ p: 0 }}>
           {selectedUser ? (
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                <Avatar
-                  sx={{
-                    width: 60,
-                    height: 60,
-                    backgroundColor: 'primary.main',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {getInitials(selectedUser)}
-                </Avatar>
-                <Box>
-                  <Typography variant="h6" gutterBottom>
-                    {getDisplayName(selectedUser)}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    @{selectedUser.username}
-                  </Typography>
+              {/* User Header */}
+              <Box sx={{ p: 3, pb: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Avatar
+                    sx={{
+                      width: 60,
+                      height: 60,
+                      backgroundColor: 'primary.main',
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {getInitials(selectedUser)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      {getDisplayName(selectedUser)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      @{selectedUser.username}
+                    </Typography>
+                  </Box>
                 </Box>
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Email</Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                    {selectedUser.email || 'Neuvedeno'}
-                  </Typography>
-                </Box>
+              {/* Tabs */}
+              <Tabs
+                value={viewDialogTab}
+                onChange={(e, newValue) => setViewDialogTab(newValue)}
+                sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}
+              >
+                <Tab icon={<PersonIcon />} iconPosition="start" label="Informace" />
+                <Tab icon={<OrgChartIcon />} iconPosition="start" label="Org. Chart" />
+              </Tabs>
 
-                {canViewAllTenants && (
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">Tenant</Typography>
-                    <Chip
-                      label={selectedUser.tenantKey || 'Unknown'}
-                      size="small"
-                      color="primary"
-                      sx={{ mt: 0.5 }}
-                    />
-                  </Box>
-                )}
+              {/* Tab 0: User Info */}
+              {viewDialogTab === 0 && (
+                <Box sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Email</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {selectedUser.email || 'Neuvedeno'}
+                      </Typography>
+                    </Box>
 
-                <Box>
-                  <Typography variant="body2" color="text.secondary">Zdroj</Typography>
-                  <Chip
-                    icon={selectedUser.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
-                    label={selectedUser.directorySource || (selectedUser.isFederated ? 'AD' : 'LOCAL')}
-                    size="small"
-                    color={selectedUser.isFederated ? 'info' : 'success'}
-                    sx={{ mt: 0.5 }}
-                  />
-                </Box>
+                    {selectedUser.firstName && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Jméno</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {selectedUser.firstName}
+                        </Typography>
+                      </Box>
+                    )}
 
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Role</Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selectedUser.roles && selectedUser.roles.length > 0 ? (
-                      selectedUser.roles.map((role, idx) => (
+                    {selectedUser.lastName && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Příjmení</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                          {selectedUser.lastName}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {selectedUser.manager && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Nadřízený</Typography>
+                        <Box sx={{ mt: 0.5 }}>
+                          <Chip
+                            avatar={
+                              <Avatar sx={{ width: 24, height: 24, fontSize: '0.75rem' }}>
+                                {getInitials(users.find(u => u.username === selectedUser.manager) || { username: selectedUser.manager })}
+                              </Avatar>
+                            }
+                            label={
+                              users.find(u => u.username === selectedUser.manager)
+                                ? getDisplayName(users.find(u => u.username === selectedUser.manager))
+                                : selectedUser.manager
+                            }
+                            size="medium"
+                            variant="outlined"
+                            onClick={() => {
+                              const managerUser = users.find(u => u.username === selectedUser.manager);
+                              if (managerUser) handleViewUser(managerUser);
+                            }}
+                            sx={{ cursor: 'pointer' }}
+                          />
+                        </Box>
+                      </Box>
+                    )}
+
+                    {canViewAllTenants && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Tenant</Typography>
                         <Chip
-                          key={idx}
-                          label={role}
+                          label={selectedUser.tenantKey || 'Unknown'}
                           size="small"
                           color="primary"
-                          variant="outlined"
+                          sx={{ mt: 0.5 }}
                         />
-                      ))
-                    ) : (
+                      </Box>
+                    )}
+
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Zdroj</Typography>
                       <Chip
-                        label="Žádné role"
+                        icon={selectedUser.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
+                        label={selectedUser.directorySource || (selectedUser.isFederated ? 'AD' : 'LOCAL')}
                         size="small"
-                        variant="outlined"
-                        color="default"
+                        color={selectedUser.isFederated ? 'info' : 'success'}
+                        sx={{ mt: 0.5 }}
                       />
+                    </Box>
+
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">Stav</Typography>
+                      <Chip
+                        label={selectedUser.enabled ? 'Aktivní' : 'Neaktivní'}
+                        size="small"
+                        sx={{
+                          mt: 0.5,
+                          backgroundColor: selectedUser.enabled ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontWeight: 600
+                        }}
+                      />
+                    </Box>
+
+                    {selectedUser.emailVerified !== undefined && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">Email ověřen</Typography>
+                        <Chip
+                          label={selectedUser.emailVerified ? 'Ano' : 'Ne'}
+                          size="small"
+                          color={selectedUser.emailVerified ? 'success' : 'default'}
+                          sx={{ mt: 0.5 }}
+                        />
+                      </Box>
                     )}
                   </Box>
                 </Box>
-              </Box>
+              )}
+
+              {/* Tab 1: Org Chart */}
+              {viewDialogTab === 1 && (
+                <UserOrgChart
+                  user={selectedUser}
+                  users={users}
+                  onUserClick={handleViewUser}
+                  getDisplayName={getDisplayName}
+                  getInitials={getInitials}
+                  getUserHierarchy={getUserHierarchy}
+                />
+              )}
             </Box>
           ) : (
-            <Typography>Načítání...</Typography>
+            <Box textAlign="center" py={6}>
+              <CircularProgress />
+            </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={() => setViewDialog(false)}
-            variant="contained"
-            sx={{ borderRadius: 2 }}
-          >
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => {
+            setViewDialog(false);
+            setViewDialogTab(0);
+          }}>
             Zavřít
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={deleteConfirmDialog} 
-        onClose={() => setDeleteConfirmDialog(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 3
-          }
-        }}
-      >
-        <DialogTitle sx={{ fontWeight: 600 }}>
-          Smazat uživatele
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Opravdu chcete smazat uživatele <strong>{selectedUser && getDisplayName(selectedUser)}</strong>?
-          </Typography>
-          {selectedUser?.tenant && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Tenant: {selectedUser.tenant}
-            </Typography>
-          )}
-          <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-            Tato akce je nevratná!
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setDeleteConfirmDialog(false)} 
-            disabled={loading}
-            sx={{ borderRadius: 2 }}
-          >
-            Zrušit
-          </Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={handleDeleteUser}
-            disabled={loading}
-            startIcon={loading ? <CircularProgress size={16} /> : null}
-            sx={{ borderRadius: 2 }}
-          >
-            {loading ? 'Mažu...' : 'Smazat'}
           </Button>
         </DialogActions>
       </Dialog>

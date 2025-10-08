@@ -335,7 +335,7 @@ function Users({ user }) {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={userData?.tenantName || userData?.tenantKey || 'Neuvedeno'}
+                            label={userData?.tenantKey || 'Neuvedeno'}
                             size="small"
                             variant="outlined"
                             color="primary"
@@ -358,7 +358,14 @@ function Users({ user }) {
                           <Chip
                             label={userData?.enabled ? 'Aktivní' : 'Neaktivní'}
                             size="small"
-                            color={userData?.enabled ? 'success' : 'default'}
+                            sx={{
+                              backgroundColor: userData?.enabled ? 'success.main' : 'error.main',
+                              color: 'white',
+                              fontWeight: 600,
+                              '& .MuiChip-label': {
+                                px: 2
+                              }
+                            }}
                           />
                         </TableCell>
                         {canManageUsers && (
@@ -422,6 +429,7 @@ function Users({ user }) {
         open={createDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onSuccess={handleUserCreated}
+        user={user}
       />
 
       <EditUserDialog

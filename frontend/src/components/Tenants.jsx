@@ -4,13 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   Alert,
   CircularProgress,
@@ -23,12 +16,7 @@ import {
   Tooltip,
   TextField,
   InputAdornment,
-  Tabs,
-  Tab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Avatar,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -37,20 +25,20 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   People as PeopleIcon,
-  BarChart as BarChartIcon,
+  Security as SecurityIcon,
+  Group as GroupIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
-  Info as InfoIcon,
+  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
 import { UserPropType } from '../shared/propTypes.js';
+import { DataTable } from './common/DataTable.jsx';
 import {
   CreateTenantDialog,
   EditTenantDialog,
   DeleteTenantDialog,
-  TenantStatsDialog,
-  TenantUsersDialog,
 } from './Tenants/index.js';
 
 function Tenants({ user }) {
@@ -59,14 +47,11 @@ function Tenants({ user }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentTab, setCurrentTab] = useState(0);
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
-  const [usersDialogOpen, setUsersDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState(null);
 
   // Menu state
@@ -90,9 +75,49 @@ function Tenants({ user }) {
       
       const response = await apiService.getTenants();
       const tenantsData = response.tenants || response || [];
-      setTenants(tenantsData);
-      setFilteredTenants(tenantsData);
-      logger.info('Tenants loaded', { count: tenantsData.length });
+      
+      // Pro každý tenant načteme statistiky (role, skupiny, uživatelé)
+      const tenantsWithStats = await Promise.all(
+        tenantsData.map(async (tenant) => {
+          try {
+            // Načteme role pro tenant
+            const roles = await apiService.getRolesByTenant(tenant.key);
+            const roleCount = Array.isArray(roles) ? roles.length : 0;
+            
+            // Načteme skupiny pro tenant (pokud máme API)
+            let groupCount = 0;
+            try {
+              const groups = await apiService.getGroups(); // TODO: getGroupsByTenant
+              groupCount = Array.isArray(groups) ? groups.length : 0;
+            } catch (err) {
+              logger.warn('Failed to load groups for tenant', { tenantKey: tenant.key });
+            }
+            
+            // Počet uživatelů - načteme z user directory
+            let userCount = 0;
+            try {
+              const users = await apiService.getUsersDirectory({ tenantKey: tenant.key, size: 1 });
+              userCount = users?.totalElements || 0;
+            } catch (err) {
+              logger.warn('Failed to load users count for tenant', { tenantKey: tenant.key });
+            }
+            
+            return {
+              ...tenant,
+              roleCount,
+              groupCount,
+              userCount,
+            };
+          } catch (err) {
+            logger.warn('Failed to load stats for tenant', { tenantKey: tenant.key });
+            return { ...tenant, roleCount: 0, groupCount: 0, userCount: 0 };
+          }
+        })
+      );
+      
+      setTenants(tenantsWithStats);
+      setFilteredTenants(tenantsWithStats);
+      logger.info('Tenants loaded with stats', { count: tenantsWithStats.length });
     } catch (error) {
       logger.error('Failed to load tenants', { error: error.message });
       setError('Nepodařilo se načíst seznam tenantů.');
@@ -148,18 +173,6 @@ function Tenants({ user }) {
     handleMenuClose();
   };
 
-  const handleViewStats = (tenant) => {
-    setSelectedTenant(tenant);
-    setStatsDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleViewUsers = (tenant) => {
-    setSelectedTenant(tenant);
-    setUsersDialogOpen(true);
-    handleMenuClose();
-  };
-
   const handleRefresh = () => {
     loadTenants();
   };
@@ -180,6 +193,146 @@ function Tenants({ user }) {
     setDeleteDialogOpen(false);
     setSelectedTenant(null);
     loadTenants();
+  };
+  
+  const getInitials = (name) => {
+    if (!name) return 'T';
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+  
+  // DataTable columns definition
+  const columns = [
+    {
+      field: 'tenant',
+      label: 'Tenant',
+      sortable: true,
+      render: (tenant) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              backgroundColor: 'primary.main',
+              fontWeight: 'bold'
+            }}
+          >
+            {getInitials(tenant.displayName || tenant.key)}
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {tenant.displayName || tenant.key}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {tenant.key}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'subdomain',
+      label: 'Subdoména',
+      sortable: true,
+      render: (tenant) => (
+        <Chip
+          label={tenant.subdomain || 'N/A'}
+          size="small"
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'status',
+      label: 'Stav',
+      sortable: false,
+      render: (tenant) => (
+        <Chip
+          label={tenant.active ? 'Aktivní' : 'Neaktivní'}
+          size="small"
+          sx={{
+            backgroundColor: tenant.active ? 'success.main' : 'error.main',
+            color: 'white',
+            fontWeight: 600,
+          }}
+        />
+      ),
+    },
+    {
+      field: 'stats',
+      label: 'Statistiky',
+      sortable: false,
+      render: (tenant) => (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Role">
+            <Chip
+              icon={<SecurityIcon fontSize="small" />}
+              label={tenant.roleCount || 0}
+              size="small"
+              variant="outlined"
+            />
+          </Tooltip>
+          <Tooltip title="Skupiny">
+            <Chip
+              icon={<GroupIcon fontSize="small" />}
+              label={tenant.groupCount || 0}
+              size="small"
+              variant="outlined"
+            />
+          </Tooltip>
+          <Tooltip title="Uživatelé">
+            <Chip
+              icon={<PeopleIcon fontSize="small" />}
+              label={tenant.userCount || 0}
+              size="small"
+              variant="outlined"
+              color="primary"
+            />
+          </Tooltip>
+        </Box>
+      ),
+    },
+    {
+      field: 'created',
+      label: 'Vytvořeno',
+      sortable: true,
+      render: (tenant) => (
+        <Box>
+          <Typography variant="body2">
+            {tenant.createdAt ? new Date(tenant.createdAt).toLocaleDateString('cs-CZ') : 'N/A'}
+          </Typography>
+          {tenant.createdBy && (
+            <Typography variant="caption" color="text.secondary">
+              {tenant.createdBy}
+            </Typography>
+          )}
+        </Box>
+      ),
+    },
+    {
+      field: 'actions',
+      label: 'Akce',
+      sortable: false,
+      align: 'right',
+      render: (tenant) => (
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMenuOpen(e, tenant);
+          }}
+        >
+          <MoreVertIcon />
+        </IconButton>
+      ),
+    },
+  ];
+  
+  const handleRowClick = (tenant) => {
+    handleEditTenant(tenant);
   };
 
   if (!hasPermission) {
@@ -272,90 +425,12 @@ function Tenants({ user }) {
               )}
             </Box>
           ) : (
-            <>
-              <TableContainer component={Paper} elevation={0}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Tenant</TableCell>
-                      <TableCell>Key / Realm</TableCell>
-                      <TableCell>Subdoména</TableCell>
-                      <TableCell align="center">Statistiky</TableCell>
-                      <TableCell align="right">Akce</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredTenants.map((tenant, index) => (
-                      <TableRow 
-                        key={tenant.id || index} 
-                        hover
-                        onClick={() => handleEditTenant(tenant)}
-                        sx={{ cursor: 'pointer' }}
-                      >
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <BusinessIcon color="primary" />
-                            <Box>
-                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                {tenant.displayName || tenant.key}
-                              </Typography>
-                              {tenant.displayName && tenant.key !== tenant.displayName && (
-                                <Typography variant="body2" color="text.secondary">
-                                  {tenant.key}
-                                </Typography>
-                              )}
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={tenant.realm || tenant.key} 
-                            size="small" 
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                            {tenant.subdomain || `${tenant.key}.core-platform.local`}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Tooltip title="Zobrazit statistiky">
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewStats(tenant);
-                              }}
-                            >
-                              <BarChartIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMenuOpen(e, tenant);
-                            }}
-                          >
-                            <MoreVertIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Results count */}
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Zobrazeno {filteredTenants.length} z {tenants.length} tenantů
-                </Typography>
-              </Box>
-            </>
+            <DataTable
+              columns={columns}
+              data={filteredTenants}
+              onRowClick={handleRowClick}
+              loading={loading}
+            />
           )}
         </CardContent>
       </Card>
@@ -366,25 +441,17 @@ function Tenants({ user }) {
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleViewStats(menuTenant)}>
-          <ListItemIcon>
-            <BarChartIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Statistiky</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleViewUsers(menuTenant)}>
-          <ListItemIcon>
-            <PeopleIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Uživatelé</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => handleEditTenant(menuTenant)}>
+        <MenuItem onClick={() => { handleEditTenant(menuTenant); handleMenuClose(); }}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Upravit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => handleDeleteTenant(menuTenant)} sx={{ color: 'error.main' }}>
+        <MenuItem 
+          onClick={() => { handleDeleteTenant(menuTenant); handleMenuClose(); }} 
+          sx={{ color: 'error.main' }}
+          disabled={menuTenant?.key === 'admin'}
+        >
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>
@@ -417,24 +484,6 @@ function Tenants({ user }) {
         }}
         tenant={selectedTenant}
         onSuccess={handleTenantDeleted}
-      />
-
-      <TenantStatsDialog
-        open={statsDialogOpen}
-        onClose={() => {
-          setStatsDialogOpen(false);
-          setSelectedTenant(null);
-        }}
-        tenant={selectedTenant}
-      />
-
-      <TenantUsersDialog
-        open={usersDialogOpen}
-        onClose={() => {
-          setUsersDialogOpen(false);
-          setSelectedTenant(null);
-        }}
-        tenant={selectedTenant}
       />
     </Box>
   );

@@ -13,10 +13,15 @@ import {
   CircularProgress,
   Autocomplete,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Save as SaveIcon,
   Close as CloseIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material';
 import apiService from '../../services/api.js';
 import logger from '../../services/logger.js';
@@ -30,9 +35,10 @@ import PropTypes from 'prop-types';
  * - Password (temporary or permanent)
  * - Enable/disable user
  * - Role assignment (multi-select)
+ * - Tenant selection (for CORE_ADMIN users)
  * - Form validation
  */
-export const CreateUserDialog = ({ open, onClose, onUserCreated }) => {
+export const CreateUserDialog = ({ open, onClose, onUserCreated, user }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -46,18 +52,29 @@ export const CreateUserDialog = ({ open, onClose, onUserCreated }) => {
 
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [selectedTenant, setSelectedTenant] = useState('');
+  const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
+  const [loadingTenants, setLoadingTenants] = useState(false);
   const [error, setError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
 
-  // Load available roles when dialog opens
+  const isCoreAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
+
+  // Load available roles and tenants when dialog opens
   useEffect(() => {
     if (open) {
       loadRoles();
+      if (isCoreAdmin) {
+        loadTenants();
+      } else {
+        // Pro non-admin uživatele nastav tenant automaticky
+        setSelectedTenant(user?.tenantKey || '');
+      }
       resetForm();
     }
-  }, [open]);
+  }, [open, isCoreAdmin, user]);
 
   const loadRoles = async () => {
     try {
@@ -73,6 +90,24 @@ export const CreateUserDialog = ({ open, onClose, onUserCreated }) => {
     }
   };
 
+  const loadTenants = async () => {
+    try {
+      setLoadingTenants(true);
+      const data = await apiService.getTenants();
+      setTenants(data || []);
+      // Nastav default tenant
+      if (data && data.length > 0 && !selectedTenant) {
+        setSelectedTenant(data[0].key);
+      }
+      logger.info('Tenants loaded for user creation', { count: data?.length });
+    } catch (err) {
+      logger.error('Failed to load tenants', { error: err.message });
+      setError('Nepodařilo se načíst seznam tenantů');
+    } finally {
+      setLoadingTenants(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       username: '',
@@ -85,6 +120,9 @@ export const CreateUserDialog = ({ open, onClose, onUserCreated }) => {
       emailVerified: false,
     });
     setSelectedRoles([]);
+    if (!isCoreAdmin) {
+      setSelectedTenant(user?.tenantKey || '');
+    }
     setError(null);
     setFormErrors({});
   };
@@ -102,6 +140,10 @@ export const CreateUserDialog = ({ open, onClose, onUserCreated }) => {
 
     if (!formData.password || formData.password.length < 8) {
       errors.password = 'Heslo musí mít alespoň 8 znaků';
+    }
+
+    if (!selectedTenant) {
+      errors.tenant = 'Vyberte tenant pro uživatele';
     }
 
     setFormErrors(errors);
@@ -189,6 +231,36 @@ export const CreateUserDialog = ({ open, onClose, onUserCreated }) => {
         )}
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          {/* Tenant selector - pouze pro CORE_ADMIN */}
+          {isCoreAdmin && (
+            <FormControl fullWidth error={!!formErrors.tenant}>
+              <InputLabel>Tenant *</InputLabel>
+              <Select
+                value={selectedTenant}
+                onChange={(e) => {
+                  setSelectedTenant(e.target.value);
+                  if (formErrors.tenant) {
+                    setFormErrors(prev => ({ ...prev, tenant: undefined }));
+                  }
+                }}
+                label="Tenant *"
+                disabled={loading || loadingTenants}
+                startAdornment={<BusinessIcon sx={{ ml: 1, mr: -0.5, color: 'action.active' }} />}
+              >
+                {tenants.map((tenant) => (
+                  <MenuItem key={tenant.key} value={tenant.key}>
+                    {tenant.displayName || tenant.name || tenant.key}
+                  </MenuItem>
+                ))}
+              </Select>
+              {formErrors.tenant && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>
+                  {formErrors.tenant}
+                </Typography>
+              )}
+            </FormControl>
+          )}
+
           {/* Username */}
           <TextField
             label="Uživatelské jméno *"
@@ -335,6 +407,7 @@ CreateUserDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onUserCreated: PropTypes.func,
+  user: PropTypes.object,
 };
 
 export default CreateUserDialog;

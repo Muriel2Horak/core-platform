@@ -25,7 +25,7 @@ import { CompositeRoleBuilder } from './CompositeRoleBuilder.jsx';
  * 🆕 Create Role Dialog
  * Dialog pro vytváření nových rolí
  */
-export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
+export const CreateRoleDialog = ({ open, onClose, onSuccess, tenantKey }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -70,16 +70,17 @@ export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
       setLoading(true);
       setError(null);
 
-      logger.userAction('ROLE_CREATE_ATTEMPT', { name: formData.name });
+      logger.userAction('ROLE_CREATE_ATTEMPT', { name: formData.name, tenantKey });
 
       await apiService.createRole({
         name: formData.name,
         description: formData.description,
         composite: formData.composite,
         childRoles: formData.composite ? formData.childRoles : undefined,
+        tenantKey: tenantKey, // Přidáme tenantKey pro multi-tenant podporu
       });
 
-      logger.userAction('ROLE_CREATED', { name: formData.name });
+      logger.userAction('ROLE_CREATED', { name: formData.name, tenantKey });
 
       onSuccess && onSuccess();
       handleClose();
@@ -204,4 +205,5 @@ CreateRoleDialog.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSuccess: PropTypes.func,
+  tenantKey: PropTypes.string,
 };

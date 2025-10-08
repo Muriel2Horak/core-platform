@@ -23,6 +23,7 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Visibility as VisibilityIcon,
   AccountTree as AccountTreeIcon,
   People as PeopleIcon,
   Search as SearchIcon,
@@ -120,10 +121,29 @@ function Roles({ user }) {
       const rolesData = isCoreAdmin && selectedTenant
         ? await apiService.getRolesByTenant(selectedTenant)
         : await apiService.getRoles();
+      
+      // Pro každou roli načteme počet uživatelů
+      const rolesWithUserCount = await Promise.all(
+        (rolesData || []).map(async (role) => {
+          try {
+            const users = await apiService.getRoleUsers(role.name);
+            return {
+              ...role,
+              userCount: Array.isArray(users) ? users.length : 0,
+            };
+          } catch (err) {
+            logger.warn('Failed to load user count for role', { roleName: role.name });
+            return { ...role, userCount: 0 };
+          }
+        })
+      );
         
-      setRoles(rolesData || []);
-      setFilteredRoles(rolesData || []);
-      logger.info('Roles loaded', { count: rolesData?.length || 0, tenant: selectedTenant });
+      setRoles(rolesWithUserCount || []);
+      setFilteredRoles(rolesWithUserCount || []);
+      logger.info('Roles loaded with user counts', { 
+        count: rolesWithUserCount?.length || 0, 
+        tenant: selectedTenant 
+      });
     } catch (error) {
       logger.error('Failed to load roles', { error: error.message });
       setError('Nepodařilo se načíst seznam rolí.');
@@ -291,7 +311,7 @@ function Roles({ user }) {
       sortable: false,
       render: (role) => (
         <Chip 
-          label={isCoreAdmin ? selectedTenant : (user?.tenantKey || 'admin')} 
+          label={role.tenantKey || selectedTenant || user?.tenantKey || 'admin'} 
           size="small"
           icon={<BusinessIcon />}
           color="primary"
@@ -492,25 +512,31 @@ function Roles({ user }) {
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleEditRole(menuRole)}>
+        <MenuItem onClick={() => { handleEditRole(menuRole); handleMenuClose(); }}>
+          <ListItemIcon>
+            <VisibilityIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Zobrazit detail</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { handleEditRole(menuRole); handleMenuClose(); }}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Upravit</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => handleManageComposites(menuRole)}>
+        <MenuItem onClick={() => { handleManageComposites(menuRole); handleMenuClose(); }}>
           <ListItemIcon>
             <AccountTreeIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Spravovat hierarchii</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => handleViewUsers(menuRole)}>
+        <MenuItem onClick={() => { handleViewUsers(menuRole); handleMenuClose(); }}>
           <ListItemIcon>
             <PeopleIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Zobrazit uživatele</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => handleDeleteRole(menuRole)} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={() => { handleDeleteRole(menuRole); handleMenuClose(); }} sx={{ color: 'error.main' }}>
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>

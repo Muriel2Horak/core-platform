@@ -253,6 +253,21 @@ class ApiService {
   async removeRoleFromUser(userId, roleName) {
     await axios.delete(`/api/users/${userId}/roles/${roleName}`);
   }
+  
+  // User group endpoints
+  async getUserGroups(userId) {
+    const response = await axios.get(`/api/users/${userId}/groups`);
+    return response.data;
+  }
+
+  async assignGroupToUser(userId, groupData) {
+    const response = await axios.post(`/api/users/${userId}/groups`, groupData);
+    return response.data;
+  }
+
+  async removeGroupFromUser(userId, groupName) {
+    await axios.delete(`/api/users/${userId}/groups/${groupName}`);
+  }
 
   async resetUserPassword(userId, passwordData) {
     const response = await axios.put(`/api/users/${userId}/password`, passwordData);
@@ -300,6 +315,31 @@ class ApiService {
 
   async getRoleUsers(roleName) {
     const response = await axios.get(`/api/roles/${roleName}/users`);
+    return response.data;
+  }
+  
+  // Group endpoints
+  async getGroups() {
+    const response = await axios.get('/api/groups');
+    return response.data;
+  }
+
+  async createGroup(groupData) {
+    const response = await axios.post('/api/groups', groupData);
+    return response.data;
+  }
+
+  async updateGroup(groupName, groupData) {
+    const response = await axios.put(`/api/groups/${groupName}`, groupData);
+    return response.data;
+  }
+
+  async deleteGroup(groupName) {
+    await axios.delete(`/api/groups/${groupName}`);
+  }
+
+  async getGroupMembers(groupName) {
+    const response = await axios.get(`/api/groups/${groupName}/members`);
     return response.data;
   }
 

@@ -22,6 +22,7 @@ import {
   Close as CloseIcon,
   Person as PersonIcon,
   Security as SecurityIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 import apiService from '../../services/api.js';
 import logger from '../../services/logger.js';
@@ -33,8 +34,9 @@ import PropTypes from 'prop-types';
  * Dialog pro editaci existujícího uživatele:
  * - Tab 1: Basic Info (username, email, firstName, lastName, enabled)
  * - Tab 2: Roles (multi-select s možností add/remove)
+ * - Tab 3: Groups (multi-select s možností add/remove)
  * - Form validation
- * - Real-time role sync
+ * - Real-time role & group sync
  */
 export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
   const [activeTab, setActiveTab] = useState(0);
@@ -50,9 +52,12 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
 
   const [userRoles, setUserRoles] = useState([]);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [userGroups, setUserGroups] = useState([]);
+  const [availableGroups, setAvailableGroups] = useState([]);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const [error, setError] = useState(null);
   const [formErrors, setFormErrors] = useState({});
 
@@ -61,6 +66,7 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
     if (open && user) {
       loadUserData();
       loadRoles();
+      loadGroups();
       loadUsers();
     }
   }, [open, user]);
@@ -88,6 +94,15 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
     } catch (err) {
       logger.error('Failed to load user roles', { error: err.message });
     }
+    
+    // Load user groups
+    try {
+      const groups = await apiService.getUserGroups(user.id);
+      setUserGroups(Array.isArray(groups) ? groups : []);
+      logger.info('User groups loaded', { userId: user.id, count: groups?.length || 0 });
+    } catch (err) {
+      logger.error('Failed to load user groups', { error: err.message });
+    }
   };
 
   const loadRoles = async () => {
@@ -100,6 +115,19 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
       setError('Nepodařilo se načíst seznam rolí');
     } finally {
       setLoadingRoles(false);
+    }
+  };
+  
+  const loadGroups = async () => {
+    try {
+      setLoadingGroups(true);
+      const groups = await apiService.getGroups();
+      setAvailableGroups(groups || []);
+    } catch (err) {
+      logger.error('Failed to load groups', { error: err.message });
+      setError('Nepodařilo se načíst seznam skupin');
+    } finally {
+      setLoadingGroups(false);
     }
   };
 
@@ -202,6 +230,9 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
 
       // Sync roles
       await syncRoles();
+      
+      // Sync groups
+      await syncGroups();
 
       logger.userAction('USER_UPDATED', { userId: user.id });
 
@@ -273,28 +304,92 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
       }
     }
   };
+  
+  const syncGroups = async () => {
+    // Get current groups from backend
+    const currentGroups = await apiService.getUserGroups(user.id);
+    const currentGroupNames = new Set(currentGroups.map(g => typeof g === 'string' ? g : g.name));
+    
+    // Convert selected groups to names
+    const selectedGroupNames = new Set(userGroups.map(g => typeof g === 'string' ? g : g.name));
+
+    // Add new groups
+    for (const groupName of selectedGroupNames) {
+      if (!currentGroupNames.has(groupName)) {
+        try {
+          await apiService.assignGroupToUser(user.id, { groupName });
+          logger.info('Group assigned', { userId: user.id, group: groupName });
+        } catch (err) {
+          logger.error('Failed to assign group', { 
+            userId: user.id, 
+            group: groupName, 
+            error: err.message 
+          });
+        }
+      }
+    }
+
+    // Remove old groups
+    for (const groupName of currentGroupNames) {
+      if (!selectedGroupNames.has(groupName)) {
+        try {
+          await apiService.removeGroupFromUser(user.id, groupName);
+          logger.info('Group removed', { userId: user.id, group: groupName });
+        } catch (err) {
+          logger.error('Failed to remove group', { 
+            userId: user.id, 
+            group: groupName, 
+            error: err.message 
+          });
+        }
+      }
+    }
+  };
 
   const handleRolesChange = (event, newValue) => {
     setUserRoles(newValue);
   };
+  
+  const handleGroupsChange = (event, newValue) => {
+    setUserGroups(newValue);
+  };
 
   if (!user) return null;
+
+  // Check if user is federated (AD) - attributes and enabled status are read-only
+  const isFederated = user.isFederated || user.directorySource === 'AD';
+  const attributesReadOnly = isFederated;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         Upravit uživatele: {user.username}
+        {isFederated && (
+          <Chip 
+            label="Federovaný účet" 
+            size="small" 
+            color="info" 
+            sx={{ ml: 2 }}
+          />
+        )}
       </DialogTitle>
 
       <Tabs value={activeTab} onChange={(e, v) => setActiveTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tab icon={<PersonIcon />} label="Základní údaje" />
         <Tab icon={<SecurityIcon />} label="Role" />
+        <Tab icon={<GroupIcon />} label="Skupiny" />
       </Tabs>
       
       <DialogContent>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
+          </Alert>
+        )}
+        
+        {isFederated && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Tento uživatel je federovaný z Active Directory. Osobní údaje a stav účtu jsou synchronizovány z AD a nelze je měnit.
           </Alert>
         )}
 
@@ -317,9 +412,9 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
               value={formData.email}
               onChange={handleChange('email')}
               error={!!formErrors.email}
-              helperText={formErrors.email}
+              helperText={formErrors.email || (attributesReadOnly ? 'Synchronizováno z AD' : '')}
               fullWidth
-              disabled={loading}
+              disabled={loading || attributesReadOnly}
             />
 
             {/* First Name */}
@@ -328,9 +423,9 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
               value={formData.firstName}
               onChange={handleChange('firstName')}
               error={!!formErrors.firstName}
-              helperText={formErrors.firstName || 'Maximálně 50 znaků'}
+              helperText={formErrors.firstName || (attributesReadOnly ? 'Synchronizováno z AD' : 'Maximálně 50 znaků')}
               fullWidth
-              disabled={loading}
+              disabled={loading || attributesReadOnly}
             />
 
             {/* Last Name */}
@@ -339,9 +434,9 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
               value={formData.lastName}
               onChange={handleChange('lastName')}
               error={!!formErrors.lastName}
-              helperText={formErrors.lastName || 'Maximálně 50 znaků'}
+              helperText={formErrors.lastName || (attributesReadOnly ? 'Synchronizováno z AD' : 'Maximálně 50 znaků')}
               fullWidth
-              disabled={loading}
+              disabled={loading || attributesReadOnly}
             />
 
             {/* Manager */}
@@ -382,10 +477,10 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
                   <Switch
                     checked={formData.enabled}
                     onChange={handleChange('enabled')}
-                    disabled={loading}
+                    disabled={loading || attributesReadOnly}
                   />
                 }
-                label="Účet aktivní"
+                label={attributesReadOnly ? "Účet aktivní (synchronizováno z AD)" : "Účet aktivní"}
               />
 
               <FormControlLabel
@@ -430,6 +525,43 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
                       {...getTagProps({ index })}
                       size="small"
                       key={index}
+                    />
+                  );
+                })
+              }
+            />
+          </Box>
+        )}
+        
+        {/* TAB 3: Groups */}
+        {activeTab === 2 && (
+          <Box sx={{ mt: 2 }}>
+            <Autocomplete
+              multiple
+              options={availableGroups}
+              getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
+              value={userGroups}
+              onChange={handleGroupsChange}
+              loading={loadingGroups}
+              disabled={loading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Skupiny uživatele"
+                  placeholder="Vyberte skupiny"
+                  helperText="Přidejte nebo odeberte skupiny kliknutím"
+                />
+              )}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const label = typeof option === 'string' ? option : option.name;
+                  return (
+                    <Chip
+                      label={label}
+                      {...getTagProps({ index })}
+                      size="small"
+                      key={index}
+                      color="secondary"
                     />
                   );
                 })

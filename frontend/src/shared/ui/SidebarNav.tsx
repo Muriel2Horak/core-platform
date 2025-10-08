@@ -142,6 +142,14 @@ export const defaultMenuItems: SidebarNavItem[] = [
             requiredRoles: ['CORE_ROLE_ADMIN'],
           },
           {
+            id: 'core-admin-groups',
+            label: 'Skupiny',
+            icon: <PeopleIcon />,
+            href: '/core-admin/groups',
+            description: 'Správa skupin',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
+          {
             id: 'core-admin-tenants',
             label: 'Tenanti',
             icon: <BusinessIcon />,
@@ -231,6 +239,14 @@ export const defaultMenuItems: SidebarNavItem[] = [
         icon: <SecurityIcon />,
         href: '/tenant-admin/roles',
         description: 'Správa rolí tenantu',
+        requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
+      },
+      {
+        id: 'tenant-admin-groups',
+        label: 'Skupiny',
+        icon: <PeopleIcon />,
+        href: '/tenant-admin/groups',
+        description: 'Správa skupin tenantu',
         requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
       },
       {

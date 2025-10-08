@@ -19,13 +19,21 @@ import apiService from '../../services/api.js';
 import logger from '../../services/logger.js';
 
 export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
-  const [displayName, setDisplayName] = useState('');
+  const [formData, setFormData] = useState({
+    displayName: '',
+    subdomain: '',
+    active: true,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (tenant) {
-      setDisplayName(tenant.displayName || '');
+      setFormData({
+        displayName: tenant.displayName || '',
+        subdomain: tenant.subdomain || '',
+        active: tenant.active !== false,
+      });
     }
   }, [tenant]);
 
@@ -36,9 +44,7 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
 
       logger.userAction('TENANT_UPDATE_ATTEMPT', { key: tenant.key });
 
-      await apiService.updateTenant(tenant.key, {
-        displayName: displayName,
-      });
+      await apiService.updateTenant(tenant.id, formData);
 
       logger.userAction('TENANT_UPDATED', { key: tenant.key });
 
@@ -54,7 +60,7 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
   };
 
   const handleClose = () => {
-    setDisplayName('');
+    setFormData({ displayName: '', subdomain: '', active: true });
     setError(null);
     onClose();
   };
@@ -67,14 +73,6 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
       onClose={handleClose} 
       maxWidth="sm" 
       fullWidth
-      PaperProps={{
-        sx: {
-          background: 'rgba(255, 255, 255, 0.95) !important',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-        }
-      }}
     >
       <DialogTitle>Upravit tenant: {tenant.key}</DialogTitle>
       
@@ -108,8 +106,8 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
 
           <TextField
             label="Název tenantu"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={formData.displayName}
+            onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
             fullWidth
             disabled={loading}
             autoFocus
@@ -117,20 +115,29 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
           />
 
           <TextField
-            label="Keycloak Realm"
-            value={tenant.realm || tenant.key || 'N/A'}
-            fullWidth
-            disabled
-            helperText="Jméno Keycloak realmu"
-          />
-
-          <TextField
             label="Subdoména"
-            value={tenant.subdomain || `${tenant.key}.core-platform.local`}
+            value={formData.subdomain}
+            onChange={(e) => setFormData(prev => ({ ...prev, subdomain: e.target.value }))}
+            fullWidth
+            disabled={loading}
+            helperText="URL subdoména pro tento tenant (např. tenant1)"
+          />
+          
+          <TextField
+            label="Vytvořeno"
+            value={tenant.createdAt ? new Date(tenant.createdAt).toLocaleString('cs-CZ') : 'N/A'}
             fullWidth
             disabled
-            helperText="URL subdoména pro tento tenant"
           />
+          
+          {tenant.createdBy && (
+            <TextField
+              label="Vytvořil"
+              value={tenant.createdBy}
+              fullWidth
+              disabled
+            />
+          )}
         </Box>
       </DialogContent>
 

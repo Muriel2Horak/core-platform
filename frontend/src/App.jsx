@@ -11,6 +11,7 @@ import UserDirectory from './components/UserDirectory.jsx';
 import Profile from './components/Profile.jsx';
 import Tenants from './components/Tenants.jsx';
 import TenantManagement from './components/TenantManagement.jsx';
+import Groups from './components/Groups.jsx';
 import Layout from './components/Layout.jsx';
 import DataTablePage from './pages/Examples/DataTablePage.tsx';
 import KanbanPage from './pages/Examples/KanbanPage.tsx';
@@ -457,6 +458,7 @@ const AppContent = () => {
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="users" element={<AdminUsersPage user={user} />} />
           <Route path="roles" element={<AdminRolesPage />} />
+          <Route path="groups" element={<Groups user={user} />} />
           <Route path="tenants" element={<AdminTenantsPage user={user} />} />
           <Route path="security" element={<AdminSecurityPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
@@ -469,6 +471,7 @@ const AppContent = () => {
           <Route index element={<TenantDashboard user={user} />} />
           <Route path="users" element={<TenantUsersPage user={user} />} />
           <Route path="roles" element={<TenantRolesPage user={user} />} />
+          <Route path="groups" element={<Groups user={user} />} />
           <Route path="keycloak-sync" element={<TenantKeycloakSyncPage user={user} />} />
         </Route>
         
