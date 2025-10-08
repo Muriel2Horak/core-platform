@@ -1,0 +1,194 @@
+entity: UserProfile
+table: user_profile
+idField: id
+versionField: version
+tenantField: tenant_id
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    generated: true
+    
+  - name: tenant_id
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: user_id
+    type: uuid
+    required: true
+    
+  - name: full_name
+    type: string
+    required: true
+    maxLength: 200
+    
+  - name: email
+    type: email
+    maxLength: 255
+    unique: true
+    
+  - name: phone
+    type: string
+    maxLength: 50
+    
+  - name: department
+    type: string
+    maxLength: 100
+    
+  - name: position
+    type: string
+    maxLength: 100
+    
+  - name: bio
+    type: text
+    maxLength: 2000
+    
+  - name: avatar_url
+    type: string
+    maxLength: 500
+    
+  - name: version
+    type: long
+    required: true
+    
+  - name: created_at
+    type: timestamp
+    generated: true
+    
+  - name: updated_at
+    type: timestamp
+    generated: true
+
+# ABAC Access Policies
+accessPolicy:
+  # Read permissions
+  read:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - role: CORE_ROLE_TENANT_ADMIN
+      - allOf:
+          - sameUser: true
+          - eq:
+              left: "${entity.tenant_id}"
+              right: "${user.tenant_id}"
+  
+  # Create permissions
+  create:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - allOf:
+          - role: CORE_ROLE_TENANT_ADMIN
+          - eq:
+              left: "${entity.tenant_id}"
+              right: "${user.tenant_id}"
+  
+  # Update permissions
+  update:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - allOf:
+          - role: CORE_ROLE_TENANT_ADMIN
+          - eq:
+              left: "${entity.tenant_id}"
+              right: "${user.tenant_id}"
+  
+  # Delete permissions
+  delete:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  # Column-level policies
+  columns:
+    email:
+      read:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+          - sameUser: true
+      write:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+    
+    phone:
+      read:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+          - sameUser: true
+      write:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+    
+    bio:
+      read:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+          - sameUser: true
+      write:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+          - sameUser: true
+
+# UI Configuration
+ui:
+  list:
+    columns:
+      - full_name
+      - email
+      - department
+      - position
+    filters:
+      - department
+      - position
+    sort:
+      default: full_name
+      fields:
+        - full_name
+        - email
+        - department
+  
+  detail:
+    sections:
+      - name: Main
+        fields:
+          - full_name
+          - email
+          - phone
+          - department
+          - position
+      
+      - name: Additional
+        fields:
+          - bio
+          - avatar_url
+      
+      - name: Meta
+        fields:
+          - created_at
+          - updated_at
+          - version
+        readonly: true
+
+# Navigation & Features
+navigation:
+  menu:
+    - id: user_profiles
+      label: User Profiles
+      icon: person
+      path: /profiles
+      requiredRole: CORE_ROLE_TENANT_ADMIN
+      order: 100
+
+features:
+  - id: user_profile_management
+    requiredRole: CORE_ROLE_TENANT_ADMIN
+  - id: user_profile_view_own
+    requiredRole: CORE_ROLE_USER
+  - id: user_profile_edit_own
+    requiredRole: CORE_ROLE_USER

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Roles API</title>
+</head>
+<body>
+    <h1>Role API Test</h1>
+    <button onclick="testRolesAPI()">Test API</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function testRolesAPI() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing...\n';
+
+            try {
+                // Get token from Keycloak
+                output.textContent += 'Step 1: Getting token from Keycloak...\n';
+                const tokenResponse = await fetch('https://admin.admin.core-platform.local/realms/admin/protocol/openid-connect/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'client_id': 'web',
+                        'grant_type': 'password',
+                        'username': 'test_admin',
+                        'password': 'admin123'
+                    })
+                });
+
+                if (!tokenResponse.ok) {
+                    throw new Error(`Token request failed: ${tokenResponse.status}`);
+                }
+
+                const tokenData = await tokenResponse.json();
+                output.textContent += `✅ Token received (${tokenData.access_token.substring(0, 30)}...)\n\n`;
+
+                // Call roles API
+                output.textContent += 'Step 2: Calling /api/roles...\n';
+                const rolesResponse = await fetch('https://admin.core-platform.local/api/roles', {
+                    headers: {
+                        'Authorization': `Bearer ${tokenData.access_token}`
+                    }
+                });
+
+                output.textContent += `Response status: ${rolesResponse.status}\n`;
+
+                if (!rolesResponse.ok) {
+                    const errorText = await rolesResponse.text();
+                    throw new Error(`Roles API failed: ${rolesResponse.status} - ${errorText}`);
+                }
+
+                const roles = await rolesResponse.json();
+                output.textContent += `\n✅ Success! Received ${roles.length} roles:\n\n`;
+                output.textContent += JSON.stringify(roles, null, 2);
+
+            } catch (error) {
+                output.textContent += `\n❌ Error: ${error.message}\n`;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

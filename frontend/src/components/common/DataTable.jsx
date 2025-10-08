@@ -152,6 +152,7 @@ export const DataTable = ({
                 <TableCell
                   key={column.field}
                   sortDirection={orderBy === column.field ? order : false}
+                  align={column.align || 'left'}
                   sx={{
                     fontWeight: 700,
                     bgcolor: 'background.paper',
@@ -198,6 +199,7 @@ export const DataTable = ({
                 <TableRow
                   key={row.id}
                   hover
+                  onClick={() => onRowClick && onRowClick(row)}
                   sx={{
                     cursor: onRowClick ? 'pointer' : 'default',
                     '&:hover': {
@@ -206,7 +208,7 @@ export const DataTable = ({
                   }}
                 >
                   {columns.map((column) => (
-                    <TableCell key={column.field}>
+                    <TableCell key={column.field} align={column.align || 'left'}>
                       {renderCell(row, column)}
                     </TableCell>
                   ))}

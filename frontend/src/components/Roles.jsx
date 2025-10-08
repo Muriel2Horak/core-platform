@@ -23,7 +23,6 @@ import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Visibility as VisibilityIcon,
   AccountTree as AccountTreeIcon,
   People as PeopleIcon,
   Search as SearchIcon,
@@ -36,10 +35,7 @@ import { UserPropType } from '../shared/propTypes.js';
 import { DataTable } from './common/DataTable.jsx';
 import {
   CreateRoleDialog,
-  EditRoleDialog,
-  DeleteRoleDialog,
-  CompositeRoleBuilder,
-  RoleUsersView,
+  RoleDetailDialog,
   RoleUsersDialog,
 } from './Roles/index.js';
 
@@ -57,10 +53,7 @@ function Roles({ user }) {
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [compositeBuilderOpen, setCompositeBuilderOpen] = useState(false);
-  const [usersViewOpen, setUsersViewOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [roleUsersDialogOpen, setRoleUsersDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
 
@@ -86,7 +79,9 @@ function Roles({ user }) {
         // Nastavíme default tenant na tenant uživatele
         if (response?.length > 0 && !selectedTenant) {
           const userTenant = response.find(t => t.key === user?.tenantKey);
-          setSelectedTenant(userTenant?.key || response[0]?.key || '');
+          const defaultTenant = userTenant?.key || response[0]?.key || '';
+          console.log('🔧 Setting default tenant:', defaultTenant, 'from tenants:', response);
+          setSelectedTenant(defaultTenant);
         }
       } catch (error) {
         logger.error('Failed to fetch tenants', { error: error.message });
@@ -108,6 +103,7 @@ function Roles({ user }) {
 
     // CORE_ADMIN musí mít vybraný tenant
     if (isCoreAdmin && !selectedTenant) {
+      console.log('⚠️ CORE_ADMIN without selected tenant, skipping role load');
       setRoles([]);
       setFilteredRoles([]);
       setLoading(false);
@@ -126,22 +122,28 @@ function Roles({ user }) {
         tenantToLoad = user?.tenantKey;
       }
       
+      console.log('📥 Loading roles for tenant:', tenantToLoad, 'isCoreAdmin:', isCoreAdmin, 'isTenantAdmin:', isTenantAdmin);
+      
       // Pro CORE_ADMIN načteme role z vybraného tenantu
       const rolesData = tenantToLoad
         ? await apiService.getRolesByTenant(tenantToLoad)
         : await apiService.getRoles();
+      
+      console.log('📦 Loaded roles:', rolesData?.length || 0);
       
       // Pro každou roli načteme počet uživatelů
       const rolesWithUserCount = await Promise.all(
         (rolesData || []).map(async (role) => {
           try {
             const users = await apiService.getRoleUsers(role.name);
+            console.log(`👥 Users for ${role.name}:`, users?.length || 0, users);
             return {
               ...role,
               userCount: Array.isArray(users) ? users.length : 0,
             };
           } catch (err) {
-            logger.warn('Failed to load user count for role', { roleName: role.name });
+            logger.warn('Failed to load user count for role', { roleName: role.name, error: err.message });
+            console.warn(`❌ Failed to load users for ${role.name}:`, err);
             return { ...role, userCount: 0 };
           }
         })
@@ -151,7 +153,14 @@ function Roles({ user }) {
       setFilteredRoles(rolesWithUserCount || []);
       logger.info('Roles loaded with user counts', { 
         count: rolesWithUserCount?.length || 0, 
-        tenant: tenantToLoad 
+        tenant: tenantToLoad,
+        rolesData: rolesWithUserCount 
+      });
+      console.log('🔍 DEBUG - Roles state:', {
+        rolesCount: rolesWithUserCount?.length,
+        filteredRolesCount: rolesWithUserCount?.length,
+        firstRole: rolesWithUserCount?.[0],
+        allRoles: rolesWithUserCount
       });
     } catch (error) {
       logger.error('Failed to load roles', { error: error.message });
@@ -207,8 +216,15 @@ function Roles({ user }) {
         <Chip 
           label="Composite" 
           size="small" 
-          color="secondary" 
           icon={<AccountTreeIcon fontSize="small" />}
+          sx={{ 
+            bgcolor: 'secondary.main',
+            color: 'white',
+            fontWeight: 600,
+            '& .MuiChip-icon': {
+              color: 'white'
+            }
+          }}
         />
       );
     }
@@ -216,7 +232,14 @@ function Roles({ user }) {
       <Chip 
         label="Basic" 
         size="small" 
-        variant="outlined"
+        color="default"
+        sx={{ 
+          bgcolor: 'grey.200',
+          color: 'text.primary',
+          fontWeight: 600,
+          border: '1px solid',
+          borderColor: 'grey.400'
+        }}
       />
     );
   };
@@ -236,27 +259,9 @@ function Roles({ user }) {
     setCreateDialogOpen(true);
   };
 
-  const handleEditRole = (role) => {
+  const handleOpenDetail = (role) => {
     setSelectedRole(role);
-    setEditDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleDeleteRole = (role) => {
-    setSelectedRole(role);
-    setDeleteDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleManageComposites = (role) => {
-    setSelectedRole(role);
-    setCompositeBuilderOpen(true);
-    handleMenuClose();
-  };
-
-  const handleViewUsers = (role) => {
-    setSelectedRole(role);
-    setUsersViewOpen(true);
+    setDetailDialogOpen(true);
     handleMenuClose();
   };
 
@@ -271,19 +276,13 @@ function Roles({ user }) {
   };
 
   const handleRoleUpdated = () => {
-    setEditDialogOpen(false);
+    setDetailDialogOpen(false);
     setSelectedRole(null);
     loadRoles();
   };
 
   const handleRoleDeleted = () => {
-    setDeleteDialogOpen(false);
-    setSelectedRole(null);
-    loadRoles();
-  };
-
-  const handleCompositesUpdated = () => {
-    setCompositeBuilderOpen(false);
+    setDetailDialogOpen(false);
     setSelectedRole(null);
     loadRoles();
   };
@@ -294,7 +293,8 @@ function Roles({ user }) {
       field: 'name',
       label: 'Název role',
       sortable: true,
-      render: (role) => (
+      type: 'custom',
+      render: (value, role) => (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <SecurityIcon color="primary" fontSize="small" />
           <Box>
@@ -312,7 +312,8 @@ function Roles({ user }) {
       field: 'description',
       label: 'Popis',
       sortable: false,
-      render: (role) => (
+      type: 'custom',
+      render: (value, role) => (
         <Typography variant="body2">
           {role.description || 'Bez popisu'}
         </Typography>
@@ -326,7 +327,8 @@ function Roles({ user }) {
       field: 'tenant',
       label: 'Tenant',
       sortable: false,
-      render: (role) => (
+      type: 'custom',
+      render: (value, role) => (
         <Chip 
           label={role.tenantKey || selectedTenant || user?.tenantKey || 'admin'} 
           size="small"
@@ -343,24 +345,31 @@ function Roles({ user }) {
       field: 'type',
       label: 'Typ',
       sortable: false,
-      render: (role) => getRoleTypeChip(role),
+      type: 'custom',
+      render: (value, role) => getRoleTypeChip(role),
     },
     {
       field: 'userCount',
       label: 'Uživatelé',
       sortable: true,
       align: 'center',
-      render: (role) => (
+      type: 'custom',
+      render: (value, role) => (
         <Chip 
           label={role.userCount || 0}
           size="small"
-          color={role.userCount > 0 ? 'primary' : 'default'}
           onClick={(e) => {
             e.stopPropagation();
             setSelectedRole(role);
             setRoleUsersDialogOpen(true);
           }}
-          sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+          sx={{ 
+            cursor: 'pointer',
+            bgcolor: role.userCount > 0 ? 'primary.main' : 'grey.300',
+            color: role.userCount > 0 ? 'white' : 'text.secondary',
+            fontWeight: 600,
+            '&:hover': { opacity: 0.8 }
+          }}
         />
       ),
     }
@@ -372,7 +381,8 @@ function Roles({ user }) {
       label: 'Akce',
       sortable: false,
       align: 'right',
-      render: (role) => (
+      type: 'custom',
+      render: (value, role) => (
         <IconButton
           size="small"
           onClick={(e) => {
@@ -388,7 +398,7 @@ function Roles({ user }) {
 
   const handleRowClick = (role) => {
     if (canManageRoles) {
-      handleEditRole(role);
+      handleOpenDetail(role);
     }
   };
 
@@ -500,28 +510,46 @@ function Roles({ user }) {
               <CircularProgress />
             </Box>
           ) : filteredRoles.length === 0 ? (
-            <Box sx={{ textAlign: 'center', p: 3 }}>
-              <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">
-                {searchQuery ? 'Nebyly nalezeny žádné role odpovídající vyhledávání' : 'Nebyly nalezeny žádné role'}
-              </Typography>
-              {searchQuery && (
-                <Button 
-                  variant="text" 
-                  onClick={() => setSearchQuery('')}
-                  sx={{ mt: 2 }}
-                >
-                  Zrušit filtr
-                </Button>
-              )}
-            </Box>
+            <>
+              {console.log('🚨 Showing empty state!', { 
+                loading, 
+                rolesLength: roles.length,
+                filteredRolesLength: filteredRoles.length,
+                searchQuery 
+              })}
+              <Box sx={{ textAlign: 'center', p: 3 }}>
+                <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  {searchQuery ? 'Nebyly nalezeny žádné role odpovídající vyhledávání' : 'Nebyly nalezeny žádné role'}
+                </Typography>
+                {searchQuery && (
+                  <Button 
+                    variant="text" 
+                    onClick={() => setSearchQuery('')}
+                    sx={{ mt: 2 }}
+                  >
+                    Zrušit filtr
+                  </Button>
+                )}
+              </Box>
+            </>
           ) : (
-            <DataTable
-              columns={columns}
-              data={filteredRoles}
-              onRowClick={handleRowClick}
-              loading={loading}
-            />
+            <>
+              {console.log('✅ Showing DataTable!', { 
+                loading,
+                rolesLength: roles.length,
+                filteredRolesLength: filteredRoles.length, 
+                columnsLength: columns.length,
+                firstRole: filteredRoles[0],
+                searchQuery
+              })}
+              <DataTable
+                columns={columns}
+                data={filteredRoles}
+                onRowClick={handleRowClick}
+                loading={loading}
+              />
+            </>
           )}
         </CardContent>
       </Card>
@@ -532,35 +560,11 @@ function Roles({ user }) {
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => { handleEditRole(menuRole); handleMenuClose(); }}>
-          <ListItemIcon>
-            <VisibilityIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Zobrazit detail</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { handleEditRole(menuRole); handleMenuClose(); }}>
+        <MenuItem onClick={() => { handleOpenDetail(menuRole); handleMenuClose(); }}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Upravit</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { handleManageComposites(menuRole); handleMenuClose(); }}>
-          <ListItemIcon>
-            <AccountTreeIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Spravovat hierarchii</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { handleViewUsers(menuRole); handleMenuClose(); }}>
-          <ListItemIcon>
-            <PeopleIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Zobrazit uživatele</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { handleDeleteRole(menuRole); handleMenuClose(); }} sx={{ color: 'error.main' }}>
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" color="error" />
-          </ListItemIcon>
-          <ListItemText>Smazat</ListItemText>
+          <ListItemText>Otevřít detail</ListItemText>
         </MenuItem>
       </Menu>
 
@@ -572,43 +576,16 @@ function Roles({ user }) {
         tenantKey={isTenantAdmin && !isCoreAdmin ? user?.tenantKey : selectedTenant}
       />
 
-      <EditRoleDialog
-        open={editDialogOpen}
+      <RoleDetailDialog
+        open={detailDialogOpen}
         onClose={() => {
-          setEditDialogOpen(false);
+          setDetailDialogOpen(false);
           setSelectedRole(null);
         }}
         role={selectedRole}
         onSuccess={handleRoleUpdated}
-      />
-
-      <DeleteRoleDialog
-        open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setSelectedRole(null);
-        }}
-        role={selectedRole}
-        onSuccess={handleRoleDeleted}
-      />
-
-      <CompositeRoleBuilder
-        open={compositeBuilderOpen}
-        onClose={() => {
-          setCompositeBuilderOpen(false);
-          setSelectedRole(null);
-        }}
-        role={selectedRole}
-        onSuccess={handleCompositesUpdated}
-      />
-
-      <RoleUsersView
-        open={usersViewOpen}
-        onClose={() => {
-          setUsersViewOpen(false);
-          setSelectedRole(null);
-        }}
-        role={selectedRole}
+        onDelete={handleRoleDeleted}
+        user={user}
       />
 
       <RoleUsersDialog

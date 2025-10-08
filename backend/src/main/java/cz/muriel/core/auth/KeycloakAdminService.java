@@ -503,9 +503,18 @@ public class KeycloakAdminService {
       List<RoleDto> roleList = new ArrayList<>();
 
       for (JsonNode role : roles) {
+        // 🆕 Načteme atributy z role
+        Map<String, Object> attributes = new HashMap<>();
+        JsonNode attributesNode = role.path("attributes");
+        if (attributesNode.isObject()) {
+          attributesNode.fieldNames().forEachRemaining(fieldName -> {
+            attributes.put(fieldName, attributesNode.get(fieldName));
+          });
+        }
+
         RoleDto roleDto = RoleDto.builder().id(role.path("id").asText())
             .name(role.path("name").asText()).description(role.path("description").asText())
-            .composite(role.path("composite").asBoolean()).build();
+            .composite(role.path("composite").asBoolean()).attributes(attributes).build();
         roleList.add(roleDto);
       }
 
@@ -530,9 +539,18 @@ public class KeycloakAdminService {
 
       JsonNode role = objectMapper.readTree(response.getBody());
 
+      // 🆕 Načteme atributy z role
+      Map<String, Object> attributes = new HashMap<>();
+      JsonNode attributesNode = role.path("attributes");
+      if (attributesNode.isObject()) {
+        attributesNode.fieldNames().forEachRemaining(fieldName -> {
+          attributes.put(fieldName, attributesNode.get(fieldName));
+        });
+      }
+
       return RoleDto.builder().id(role.path("id").asText()).name(role.path("name").asText())
           .description(role.path("description").asText())
-          .composite(role.path("composite").asBoolean()).build();
+          .composite(role.path("composite").asBoolean()).attributes(attributes).build();
 
     } catch (Exception ex) {
       log.error("Failed to get role by name: {}", name, ex);
@@ -568,9 +586,18 @@ public class KeycloakAdminService {
 
       log.info("Role created successfully: {}", request.getName());
 
+      // 🆕 Načteme atributy z role
+      Map<String, Object> attributes = new HashMap<>();
+      JsonNode attributesNode = role.path("attributes");
+      if (attributesNode.isObject()) {
+        attributesNode.fieldNames().forEachRemaining(fieldName -> {
+          attributes.put(fieldName, attributesNode.get(fieldName));
+        });
+      }
+
       return RoleDto.builder().id(role.path("id").asText()).name(role.path("name").asText())
           .description(role.path("description").asText())
-          .composite(role.path("composite").asBoolean()).build();
+          .composite(role.path("composite").asBoolean()).attributes(attributes).build();
 
     } catch (Exception ex) {
       log.error("Failed to create role", ex);
@@ -1586,9 +1613,18 @@ public class KeycloakAdminService {
       List<RoleDto> roles = new ArrayList<>();
 
       for (JsonNode role : composites) {
+        // 🆕 Načteme atributy z role
+        Map<String, Object> attributes = new HashMap<>();
+        JsonNode attributesNode = role.path("attributes");
+        if (attributesNode.isObject()) {
+          attributesNode.fieldNames().forEachRemaining(fieldName -> {
+            attributes.put(fieldName, attributesNode.get(fieldName));
+          });
+        }
+
         RoleDto roleDto = RoleDto.builder().id(role.path("id").asText())
             .name(role.path("name").asText()).description(role.path("description").asText())
-            .composite(role.path("composite").asBoolean()).build();
+            .composite(role.path("composite").asBoolean()).attributes(attributes).build();
         roles.add(roleDto);
       }
 
@@ -1679,10 +1715,8 @@ public class KeycloakAdminService {
     try {
       String adminToken = getSecureAdminToken();
 
-      // Get role ID
-      RoleDto role = getRoleByName(roleName);
-
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles-by-id/" + role.getId()
+      // Correct Keycloak API endpoint: /admin/realms/{realm}/roles/{role-name}/users
+      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/roles/" + roleName
           + "/users";
 
       HttpHeaders headers = new HttpHeaders();
@@ -1703,6 +1737,7 @@ public class KeycloakAdminService {
         userList.add(userDto);
       }
 
+      log.info("✅ Found {} users with role: {}", userList.size(), roleName);
       return userList;
 
     } catch (Exception ex) {
@@ -1736,9 +1771,18 @@ public class KeycloakAdminService {
           continue;
         }
 
+        // 🆕 Načteme atributy z role
+        Map<String, Object> attributes = new HashMap<>();
+        JsonNode attributesNode = role.path("attributes");
+        if (attributesNode.isObject()) {
+          attributesNode.fieldNames().forEachRemaining(fieldName -> {
+            attributes.put(fieldName, attributesNode.get(fieldName));
+          });
+        }
+
         RoleDto roleDto = RoleDto.builder().id(role.path("id").asText()).name(roleName)
             .description(role.path("description").asText())
-            .composite(role.path("composite").asBoolean()).build();
+            .composite(role.path("composite").asBoolean()).attributes(attributes).build();
         roleList.add(roleDto);
       }
 
@@ -1794,19 +1838,13 @@ public class KeycloakAdminService {
     try {
       String adminToken = getSecureAdminToken();
 
-      // Get role from specific realm
-      String roleUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles/" + roleName;
+      // Correct Keycloak API endpoint: /admin/realms/{realm}/roles/{role-name}/users
+      String usersUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles/" + roleName
+          + "/users";
+
       HttpHeaders headers = new HttpHeaders();
       headers.setBearerAuth(adminToken);
 
-      ResponseEntity<String> roleResponse = restTemplate.exchange(roleUrl, HttpMethod.GET,
-          new HttpEntity<>(headers), String.class);
-      JsonNode roleNode = objectMapper.readTree(roleResponse.getBody());
-      String roleId = roleNode.path("id").asText();
-
-      // Get users with this role
-      String usersUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles-by-id/" + roleId
-          + "/users";
       ResponseEntity<String> response = restTemplate.exchange(usersUrl, HttpMethod.GET,
           new HttpEntity<>(headers), String.class);
 

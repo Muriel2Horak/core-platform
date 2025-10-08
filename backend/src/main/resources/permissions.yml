@@ -1,0 +1,211 @@
+# 🔐 Permission Configuration
+# Single source of truth pro FE i BE permissions
+
+roles:
+  CORE_ROLE_ADMIN:
+    display_name: "Administrátor"
+    description: "Nejvyšší úroveň přístupu - správce celého systému"
+    
+    api_permissions:
+      # Tenants
+      - "tenants:read:all"
+      - "tenants:create:all"
+      - "tenants:update:all"
+      - "tenants:delete:all"
+      
+      # Users
+      - "users:read:all"
+      - "users:create:all"
+      - "users:update:all"
+      - "users:delete:all"
+      
+      # Roles
+      - "roles:read:all"
+      - "roles:create:all"
+      - "roles:update:all"
+      - "roles:delete:all"
+      - "roles:assign:all"
+      
+      # Groups
+      - "groups:read:all"
+      - "groups:create:all"
+      - "groups:update:all"
+      - "groups:delete:all"
+    
+    menu_items:
+      - id: "dashboard"
+        label: "Dashboard"
+        path: "/dashboard"
+        icon: "DashboardIcon"
+      
+      - id: "tenants"
+        label: "Správa tenantů"
+        path: "/tenants"
+        icon: "BusinessIcon"
+      
+      - id: "users"
+        label: "Uživatelé"
+        path: "/users"
+        icon: "PeopleIcon"
+      
+      - id: "roles"
+        label: "Role"
+        path: "/roles"
+        icon: "SecurityIcon"
+      
+      - id: "keycloak"
+        label: "Správa Keycloak"
+        icon: "AdminPanelSettingsIcon"
+        submenu:
+          - label: "Uživatelé"
+            path: "/keycloak/users"
+          - label: "Role"
+            path: "/keycloak/roles"
+          - label: "Skupiny"
+            path: "/keycloak/groups"
+      
+      - id: "profile"
+        label: "Můj profil"
+        path: "/profile"
+        icon: "PersonIcon"
+    
+    features:
+      - "grafana_admin"
+      - "loki_admin"
+      - "export_data"
+      - "audit_logs"
+      - "system_settings"
+    
+    data_scope: "all_tenants"
+
+  CORE_ROLE_TENANT_ADMIN:
+    display_name: "Tenant Admin"
+    description: "Administrátor konkrétního tenantu"
+    
+    api_permissions:
+      # Users - tenant scope
+      - "users:read:tenant"
+      - "users:create:tenant"
+      - "users:update:tenant"
+      - "users:delete:tenant"
+      
+      # Roles - tenant scope
+      - "roles:read:tenant"
+      - "roles:create:tenant"
+      - "roles:update:tenant"
+      - "roles:delete:tenant"
+      - "roles:assign:tenant"
+      
+      # Groups - tenant scope
+      - "groups:read:tenant"
+      - "groups:create:tenant"
+      - "groups:update:tenant"
+      - "groups:delete:tenant"
+    
+    menu_items:
+      - id: "dashboard"
+        label: "Dashboard"
+        path: "/dashboard"
+        icon: "DashboardIcon"
+      
+      - id: "users"
+        label: "Uživatelé"
+        path: "/users"
+        icon: "PeopleIcon"
+      
+      - id: "roles"
+        label: "Role"
+        path: "/roles"
+        icon: "SecurityIcon"
+      
+      - id: "keycloak"
+        label: "Správa Keycloak"
+        icon: "AdminPanelSettingsIcon"
+        submenu:
+          - label: "Uživatelé"
+            path: "/keycloak/users"
+          - label: "Role"
+            path: "/keycloak/roles"
+          - label: "Skupiny"
+            path: "/keycloak/groups"
+      
+      - id: "profile"
+        label: "Můj profil"
+        path: "/profile"
+        icon: "PersonIcon"
+    
+    features:
+      - "grafana_editor"
+      - "loki_tenant"
+      - "export_data"
+    
+    data_scope: "own_tenant"
+
+  CORE_ROLE_USER_MANAGER:
+    display_name: "User Manager"
+    description: "Správce uživatelů v tenantu"
+    
+    api_permissions:
+      # Users - tenant scope
+      - "users:read:tenant"
+      - "users:create:tenant"
+      - "users:update:tenant"
+      
+      # Roles - read only
+      - "roles:read:tenant"
+      - "roles:assign:tenant"
+    
+    menu_items:
+      - id: "dashboard"
+        label: "Dashboard"
+        path: "/dashboard"
+        icon: "DashboardIcon"
+      
+      - id: "users"
+        label: "Uživatelé"
+        path: "/users"
+        icon: "PeopleIcon"
+      
+      - id: "profile"
+        label: "Můj profil"
+        path: "/profile"
+        icon: "PersonIcon"
+    
+    features:
+      - "export_data"
+    
+    data_scope: "own_tenant"
+
+  CORE_ROLE_USER:
+    display_name: "Uživatel"
+    description: "Základní uživatel aplikace"
+    
+    api_permissions:
+      # Self-service only
+      - "users:read:self"
+      - "users:update:self"
+      - "tenants:read:self"
+    
+    menu_items:
+      - id: "dashboard"
+        label: "Dashboard"
+        path: "/dashboard"
+        icon: "DashboardIcon"
+      
+      - id: "profile"
+        label: "Můj profil"
+        path: "/profile"
+        icon: "PersonIcon"
+    
+    features:
+      - "grafana_viewer"
+    
+    data_scope: "own_data"
+
+# Permission format: "resource:action:scope"
+# Examples:
+#   - users:read:all      -> Číst všechny uživatele
+#   - users:read:tenant   -> Číst uživatele v tenantu
+#   - users:read:self     -> Číst pouze sebe
+#   - users:create:all    -> Vytvořit uživatele kdekoli
+#   - users:*:all         -> Všechny akce s uživateli (admin)
