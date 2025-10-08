@@ -33,7 +33,6 @@ import {
   Group as GroupIcon,
   Business as TenantIcon,
 } from '@mui/icons-material';
-import apiService from '../../services/api.js';
 import axios from 'axios';
 
 /**
@@ -70,8 +69,8 @@ export const KeycloakSyncPage = ({ user }) => {
   const fetchSyncsAndStats = async () => {
     try {
       const [syncsRes, statsRes] = await Promise.all([
-        apiService.get('/api/admin/keycloak-sync/active'),
-        apiService.get('/api/admin/keycloak-sync/stats'),
+        axios.get('/api/admin/keycloak-sync/active'),
+        axios.get('/api/admin/keycloak-sync/stats'),
       ]);
       setSyncs(syncsRes.data);
       setStats(statsRes.data);
@@ -100,7 +99,7 @@ export const KeycloakSyncPage = ({ user }) => {
 
     try {
       const endpoint = `/api/admin/keycloak-sync/${type}/${tenantKey}`;
-      const response = await apiService.post(endpoint);
+      const response = await axios.post(endpoint);
       
       if (response.data.status === 'started') {
         // Immediately fetch updated syncs
