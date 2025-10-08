@@ -71,8 +71,33 @@ const LoginPage = () => {
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         border: '1px solid rgba(255, 255, 255, 0.3)',
       }}>
-        <h1 style={{ fontSize: '48px', margin: '0 0 10px 0', color: '#1976d2' }}>🚀 Core Platform</h1>
-        <p style={{ fontSize: '18px', margin: '0', opacity: 0.7, color: '#6b6b6b' }}>
+        {/* Logo Axiom */}
+        <div style={{ marginBottom: '24px' }}>
+          <svg width="64" height="64" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block' }}>
+            <defs>
+              <linearGradient id="axiomMainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{stopColor: '#1976d2', stopOpacity: 1}} />
+                <stop offset="100%" style={{stopColor: '#42a5f5', stopOpacity: 1}} />
+              </linearGradient>
+            </defs>
+            <path d="M20 2 L35 15 L30 15 L20 8 L10 15 L5 15 Z" fill="url(#axiomMainGradient)" />
+            <path d="M8 18 L12 18 L20 28 L28 18 L32 18 L20 33 Z" fill="url(#axiomMainGradient)" />
+            <rect x="18" y="16" width="4" height="18" fill="url(#axiomMainGradient)" opacity="0.8" />
+          </svg>
+        </div>
+        
+        <h1 style={{ 
+          fontSize: '42px', 
+          margin: '0 0 10px 0', 
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontWeight: 700,
+        }}>
+          Core Platform
+        </h1>
+        <p style={{ fontSize: '16px', margin: '0', opacity: 0.7, color: '#6b6b6b' }}>
           Enterprise aplikační platforma
         </p>
       </div>
@@ -89,12 +114,54 @@ const LoginPage = () => {
           backdropFilter: 'blur(10px)',
           boxShadow: '0 4px 16px rgba(244, 67, 54, 0.1)',
         }}>
-          <strong style={{ fontSize: '16px', display: 'block', marginBottom: '8px' }}>
-            ⚠️ Chyba přihlášení
-          </strong>
-          <div style={{ fontSize: '14px', opacity: 0.8, color: '#6b6b6b' }}>
-            Nepodařilo se připojit k autentizačnímu serveru. Zkuste to prosím znovu.
+          {/* Logo Axiom */}
+          <div style={{ marginBottom: '20px' }}>
+            <svg width="48" height="48" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'inline-block' }}>
+              <defs>
+                <linearGradient id="axiomErrorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor: '#1976d2', stopOpacity: 1}} />
+                  <stop offset="100%" style={{stopColor: '#42a5f5', stopOpacity: 1}} />
+                </linearGradient>
+              </defs>
+              <path d="M20 2 L35 15 L30 15 L20 8 L10 15 L5 15 Z" fill="url(#axiomErrorGradient)" />
+              <path d="M8 18 L12 18 L20 28 L28 18 L32 18 L20 33 Z" fill="url(#axiomErrorGradient)" />
+              <rect x="18" y="16" width="4" height="18" fill="url(#axiomErrorGradient)" opacity="0.8" />
+            </svg>
           </div>
+          
+          <strong style={{ 
+            fontSize: '18px', 
+            display: 'block', 
+            marginBottom: '12px',
+            background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            ⚠️ Připojení se nezdařilo
+          </strong>
+          
+          <div style={{ 
+            fontSize: '14px', 
+            lineHeight: '1.6',
+            color: '#666',
+            marginBottom: '16px',
+          }}>
+            Nepodařilo se připojit k autentizačnímu serveru.<br/>
+            Zkontrolujte prosím připojení k internetu.
+          </div>
+          
+          <div style={{
+            fontSize: '12px',
+            padding: '8px 12px',
+            background: 'rgba(211, 47, 47, 0.05)',
+            borderRadius: '6px',
+            border: '1px solid rgba(211, 47, 47, 0.1)',
+            color: '#999',
+          }}>
+            💡 Zkuste obnovit stránku nebo se přihlaste později
+          </div>
+          
           {/* ✅ Technická hláška skrytá - jen pro konzoli */}
           {console.error('Keycloak error:', error)}
         </div>
