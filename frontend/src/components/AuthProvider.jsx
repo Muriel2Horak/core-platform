@@ -234,7 +234,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Handle logout
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    // 🚨 CRITICAL: This function MUST be synchronous to prevent React rerenders
+    // Any async operation will allow React to update UI before redirect
+    
     try {
       logger.info('🚪 Logout initiated');
       
@@ -242,7 +245,6 @@ export const AuthProvider = ({ children }) => {
       if (cdcIntervalRef.current) {
         clearInterval(cdcIntervalRef.current);
         cdcIntervalRef.current = null;
-        logger.info('🛑 CDC polling stopped');
       }
       
       // Set logout flags PŘED redirectem
@@ -252,17 +254,20 @@ export const AuthProvider = ({ children }) => {
       // Clear API session (fire and forget - nemusíme čekat)
       apiService.logout().catch(() => {/* ignore errors */});
       
-      // 🚀 OKAMŽITÝ REDIRECT - ŽÁDNÉ state změny, žádný rerender!
-      // State se vyčistí automaticky při návratu z Keycloaku (initializeAuth detekuje logout)
-      await keycloakService.logout();
+      // 🚀 BUILD LOGOUT URL AND REDIRECT IMMEDIATELY - SYNCHRONOUSLY!
+      const logoutUrl = keycloakService.getLogoutUrl();
       
-      // ⚠️ Tento kód se NIKDY nespustí, protože keycloakService.logout() dělá window.location.href
+      logger.info('🔄 Redirecting to Keycloak logout', { url: logoutUrl });
+      
+      // 🚀 IMMEDIATE SYNCHRONOUS REDIRECT - React has NO time to rerender!
+      window.location.href = logoutUrl;
+      
+      // ⚠️ Code after this NEVER executes
       
     } catch (error) {
       console.error('❌ [AUTH] Logout failed:', error.message);
-      // Fallback - alespoň vyčistíme state
-      setUser(null);
-      setIsAuthenticated(false);
+      // Fallback
+      window.location.href = '/';
     }
   };
 

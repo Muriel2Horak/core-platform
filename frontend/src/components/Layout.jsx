@@ -105,8 +105,13 @@ function Layout({ children, user, onLogout }) {
   };
 
   const handleLogout = () => {
+    // 🚨 CRITICAL: Call logout FIRST, before any state changes!
+    // setAnchorEl(null) causes rerender, which shows logout page before redirect
+    onLogout(); // This does window.location.href = ... (synchronous redirect)
+    
+    // ⚠️ Code below NEVER executes because onLogout redirects the page
+    // But kept for clarity
     handleMenuClose();
-    onLogout();
   };
 
   const handleNavigation = (path) => {
