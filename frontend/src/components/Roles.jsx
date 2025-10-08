@@ -4,13 +4,6 @@ import {
   Card,
   CardContent,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   Alert,
   CircularProgress,
@@ -39,6 +32,7 @@ import {
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
 import { UserPropType } from '../shared/propTypes.js';
+import { DataTable } from './common/DataTable.jsx';
 import {
   CreateRoleDialog,
   EditRoleDialog,
@@ -261,6 +255,103 @@ function Roles({ user }) {
     loadRoles();
   };
 
+  // DataTable columns definition
+  const columns = [
+    {
+      field: 'name',
+      label: 'Název role',
+      sortable: true,
+      render: (role) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <SecurityIcon color="primary" fontSize="small" />
+          <Box>
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {getRoleDisplayName(role.name)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {role.name}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'description',
+      label: 'Popis',
+      sortable: false,
+      render: (role) => (
+        <Typography variant="body2">
+          {role.description || 'Bez popisu'}
+        </Typography>
+      ),
+    },
+    {
+      field: 'tenant',
+      label: 'Tenant',
+      sortable: false,
+      render: (role) => (
+        <Chip 
+          label={isCoreAdmin ? selectedTenant : (user?.tenantKey || 'admin')} 
+          size="small"
+          icon={<BusinessIcon />}
+          color="primary"
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      field: 'type',
+      label: 'Typ',
+      sortable: false,
+      render: (role) => getRoleTypeChip(role),
+    },
+    {
+      field: 'userCount',
+      label: 'Uživatelé',
+      sortable: true,
+      align: 'center',
+      render: (role) => (
+        <Chip 
+          label={role.userCount || 0}
+          size="small"
+          color={role.userCount > 0 ? 'primary' : 'default'}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedRole(role);
+            setRoleUsersDialogOpen(true);
+          }}
+          sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+        />
+      ),
+    },
+  ];
+
+  if (canManageRoles) {
+    columns.push({
+      field: 'actions',
+      label: 'Akce',
+      sortable: false,
+      align: 'right',
+      render: (role) => (
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMenuOpen(e, role);
+          }}
+        >
+          <MoreVertIcon />
+        </IconButton>
+      ),
+    });
+  }
+
+  const handleRowClick = (role) => {
+    if (canManageRoles) {
+      handleEditRole(role);
+    }
+  };
+
   if (!hasPermission) {
     return (
       <Box>
@@ -385,95 +476,12 @@ function Roles({ user }) {
               )}
             </Box>
           ) : (
-            <>
-              <TableContainer component={Paper} elevation={0}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Název role</TableCell>
-                      <TableCell>Popis</TableCell>
-                      <TableCell>Tenant</TableCell>
-                      <TableCell>Typ</TableCell>
-                      <TableCell align="center">Počet uživatelů</TableCell>
-                      {canManageRoles && <TableCell align="right">Akce</TableCell>}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {filteredRoles.map((role, index) => (
-                      <TableRow 
-                        key={role.id || index} 
-                        hover
-                        onClick={() => canManageRoles && handleEditRole(role)}
-                        sx={{ cursor: canManageRoles ? 'pointer' : 'default' }}
-                      >
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <SecurityIcon color="primary" />
-                            <Box>
-                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                {getRoleDisplayName(role.name)}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {role.name}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {role.description || 'Bez popisu'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={user?.tenantKey || 'admin'} 
-                            size="small"
-                            icon={<BusinessIcon />}
-                            color="primary"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {getRoleTypeChip(role)}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip 
-                            label={role.userCount || 0}
-                            size="small"
-                            color={role.userCount > 0 ? 'primary' : 'default'}
-                            onClick={() => {
-                              setSelectedRole(role);
-                              setRoleUsersDialogOpen(true);
-                            }}
-                            sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
-                          />
-                        </TableCell>
-                        {canManageRoles && (
-                          <TableCell align="right">
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMenuOpen(e, role);
-                              }}
-                            >
-                              <MoreVertIcon />
-                            </IconButton>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Results count */}
-              <Box sx={{ mt: 2, textAlign: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Zobrazeno {filteredRoles.length} z {roles.length} rolí
-                </Typography>
-              </Box>
-            </>
+            <DataTable
+              columns={columns}
+              data={filteredRoles}
+              onRowClick={handleRowClick}
+              loading={loading}
+            />
           )}
         </CardContent>
       </Card>

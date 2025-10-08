@@ -8,12 +8,6 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   IconButton,
   Menu,
@@ -44,11 +38,11 @@ import {
   People as PeopleIcon,
   Cloud as CloudIcon,
   Storage as ServerIcon,
-  // FilterList as FilterIcon, // Nepoužívané - odstraněno
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
 import { UserPropType } from '../shared/propTypes.js';
+import { DataTable } from './common/DataTable.jsx';
 
 function UserDirectory({ user }) {
   // State for data
@@ -244,6 +238,104 @@ function UserDirectory({ user }) {
     return isAdmin || (isUserManager && userData?.tenant === user?.tenant && userData?.id !== user?.id);
   };
 
+  // DataTable columns definition
+  const columns = [
+    {
+      field: 'user',
+      label: 'Uživatel',
+      sortable: true,
+      render: (userData) => (
+        <Box display="flex" alignItems="center" gap={2}>
+          <Avatar
+            sx={{
+              width: 40,
+              height: 40,
+              backgroundColor: 'primary.main',
+              fontWeight: 'bold'
+            }}
+          >
+            {getInitials(userData)}
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {getDisplayName(userData)}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              @{userData?.username}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      field: 'email',
+      label: 'Email',
+      sortable: true,
+      render: (userData) => (
+        <Typography variant="body2">
+          {userData?.email || 'N/A'}
+        </Typography>
+      ),
+    },
+  ];
+
+  // Add tenant column only for admin users
+  if (canViewAllTenants) {
+    columns.push({
+      field: 'tenantKey',
+      label: 'Tenant',
+      sortable: true,
+      render: (userData) => (
+        <Chip
+          label={userData?.tenantKey || 'Unknown'}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ borderRadius: 2 }}
+        />
+      ),
+    });
+  }
+
+  columns.push({
+    field: 'source',
+    label: 'Zdroj',
+    sortable: false,
+    render: (userData) => (
+      <Chip
+        icon={userData?.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
+        label={userData?.directorySource || (userData?.isFederated ? 'AD' : 'LOCAL')}
+        size="small"
+        color={userData?.isFederated ? 'info' : 'success'}
+        sx={{ borderRadius: 2 }}
+      />
+    ),
+  });
+
+  columns.push({
+    field: 'actions',
+    label: 'Akce',
+    sortable: false,
+    align: 'right',
+    render: (userData) => (
+      <Tooltip title="Akce">
+        <IconButton
+          onClick={(e) => {
+            e.stopPropagation();
+            handleActionMenuOpen(e, userData);
+          }}
+          sx={{
+            '&:hover': {
+              backgroundColor: 'primary.light'
+            }
+          }}
+        >
+          <MoreVertIcon />
+        </IconButton>
+      </Tooltip>
+    ),
+  });
+
   // 🆕 OPRAVENO: Odebrána kontrola canManageUsers - všichni autentifikovaní uživatelé mají přístup k User Directory
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
@@ -402,131 +494,24 @@ function UserDirectory({ user }) {
           <Box display="flex" justifyContent="center" p={4}>
             <CircularProgress size={40} />
           </Box>
+        ) : users.length === 0 ? (
+          <Box textAlign="center" py={6}>
+            <PeopleIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Nebyly nalezeni žádní uživatelé
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Zkuste změnit vyhledávací kritéria nebo filtry.
+            </Typography>
+          </Box>
         ) : (
           <>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Uživatel</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Email</TableCell>
-                    {canViewAllTenants && <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Tenant</TableCell>}
-                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Zdroj</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Role</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, color: 'text.primary' }}>Akce</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.map((userData) => (
-                    <TableRow 
-                      key={userData.id} 
-                      hover 
-                      sx={{ 
-                        cursor: 'pointer',
-                        '&:hover': {
-                          backgroundColor: 'primary.light',
-                          '& .MuiTableCell-root': {
-                            color: 'primary.main'
-                          }
-                        }
-                      }}
-                      onClick={() => handleViewUser(userData)}
-                    >
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={2}>
-                          <Avatar
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              backgroundColor: 'primary.main',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            {getInitials(userData)}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                              {getDisplayName(userData)}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              @{userData?.username}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Typography variant="body2">
-                          {userData?.email || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      
-                      {canViewAllTenants && (
-                        <TableCell>
-                          <Chip
-                            label={userData?.tenantKey || 'Unknown'}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                            sx={{ borderRadius: 2 }}
-                          />
-                        </TableCell>
-                      )}
-                      
-                      <TableCell>
-                        <Chip
-                          icon={userData?.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
-                          label={userData?.directorySource || (userData?.isFederated ? 'AD' : 'LOCAL')}
-                          size="small"
-                          color={userData?.isFederated ? 'info' : 'success'}
-                          sx={{ borderRadius: 2 }}
-                        />
-                      </TableCell>
-                      
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {userData?.roles && userData.roles.length > 0 ? (
-                            userData.roles.map((role, idx) => (
-                              <Chip
-                                key={idx}
-                                label={role}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                                sx={{ borderRadius: 1, fontSize: '0.75rem' }}
-                              />
-                            ))
-                          ) : (
-                            <Chip
-                              label="Žádné role"
-                              size="small"
-                              variant="outlined"
-                              color="default"
-                              sx={{ borderRadius: 1, fontSize: '0.75rem' }}
-                            />
-                          )}
-                        </Box>
-                      </TableCell>
-                      
-                      <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                        <Tooltip title="Akce">
-                          <IconButton
-                            onClick={(e) => handleActionMenuOpen(e, userData)}
-                            sx={{
-                              '&:hover': {
-                                backgroundColor: 'primary.light'
-                              }
-                            }}
-                          >
-                            <MoreVertIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+            <DataTable
+              columns={columns}
+              data={users}
+              onRowClick={handleViewUser}
+              loading={loading}
+            />
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -538,19 +523,6 @@ function UserDirectory({ user }) {
                   color="primary"
                   size="large"
                 />
-              </Box>
-            )}
-
-            {/* Empty State */}
-            {users.length === 0 && !loading && (
-              <Box textAlign="center" py={6}>
-                <PeopleIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Žádní uživatelé nenalezeni
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Zkuste změnit vyhledávací kritéria
-                </Typography>
               </Box>
             )}
           </>
