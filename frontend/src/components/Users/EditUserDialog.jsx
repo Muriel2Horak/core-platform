@@ -113,8 +113,21 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
   const validateForm = () => {
     const errors = {};
 
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Zadejte platnou e-mailovou adresu';
+    // ✅ Email validation
+    if (!formData.email) {
+      errors.email = 'E-mail je povinný';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Neplatný email formát';
+    }
+
+    // ✅ First Name validation (max 50 chars)
+    if (formData.firstName && formData.firstName.length > 50) {
+      errors.firstName = 'Jméno nesmí být delší než 50 znaků';
+    }
+
+    // ✅ Last Name validation (max 50 chars)
+    if (formData.lastName && formData.lastName.length > 50) {
+      errors.lastName = 'Příjmení nesmí být delší než 50 znaků';
     }
 
     setFormErrors(errors);
@@ -124,19 +137,42 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
   const handleChange = (field) => (event) => {
     const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear field error when user starts typing
     if (formErrors[field]) {
       setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    
+    // ✅ Real-time validation for string length
+    if (typeof value === 'string') {
+      const newErrors = { ...formErrors };
+      
+      if (field === 'firstName' && value.length > 50) {
+        newErrors.firstName = 'Jméno nesmí být delší než 50 znaků';
+      }
+      
+      if (field === 'lastName' && value.length > 50) {
+        newErrors.lastName = 'Příjmení nesmí být delší než 50 znaků';
+      }
+      
+      if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        newErrors.email = 'Neplatný email formát';
+      }
+      
+      setFormErrors(newErrors);
     }
   };
 
   const handleSubmit = async () => {
     if (!validateForm()) {
+      setActiveTab(0); // Switch to Basic Info tab if validation fails
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
+      setFormErrors({}); // Clear previous field errors
 
       logger.userAction('USER_UPDATE_ATTEMPT', { userId: user.id });
 
@@ -152,8 +188,25 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
       onClose();
 
     } catch (err) {
-      logger.error('Failed to update user', { error: err.message });
-      setError(err.response?.data?.message || 'Nepodařilo se aktualizovat uživatele');
+      logger.error('Failed to update user', { error: err.message, response: err.response });
+      
+      // 🔍 Parse backend validation errors
+      if (err.response?.status === 400) {
+        const backendError = err.response?.data;
+        
+        // If it's a validation error with field-specific messages
+        if (backendError?.fieldErrors && Object.keys(backendError.fieldErrors).length > 0) {
+          setFormErrors(backendError.fieldErrors);
+          setError('Opravte prosím chyby ve formuláři');
+          setActiveTab(0); // Switch to Basic Info tab
+        } else {
+          // Generic validation error
+          setError(backendError?.message || 'Neplatný formát požadavku nebo chybějící data');
+        }
+      } else {
+        // Other errors (401, 403, 500, etc.)
+        setError(err.response?.data?.message || 'Nepodařilo se aktualizovat uživatele');
+      }
     } finally {
       setLoading(false);
     }
@@ -253,6 +306,8 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
               label="Jméno"
               value={formData.firstName}
               onChange={handleChange('firstName')}
+              error={!!formErrors.firstName}
+              helperText={formErrors.firstName || 'Maximálně 50 znaků'}
               fullWidth
               disabled={loading}
             />
@@ -262,6 +317,8 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
               label="Příjmení"
               value={formData.lastName}
               onChange={handleChange('lastName')}
+              error={!!formErrors.lastName}
+              helperText={formErrors.lastName || 'Maximálně 50 znaků'}
               fullWidth
               disabled={loading}
             />
