@@ -66,13 +66,16 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
   }, [open, user]);
 
   const loadUserData = async () => {
+    // First load available users to resolve manager object
+    await loadUsers();
+    
     setFormData({
       email: user.email || '',
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       enabled: user.enabled !== false,
       emailVerified: user.emailVerified || false,
-      manager: user.manager || null,
+      manager: null, // Will be set after users are loaded
     });
 
     // Load user roles
@@ -104,7 +107,19 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
     try {
       const users = await apiService.getUsers();
       // Exclude current user from manager selection
-      setAvailableUsers((users || []).filter(u => u.id !== user?.id));
+      const filteredUsers = (users || []).filter(u => u.id !== user?.id);
+      setAvailableUsers(filteredUsers);
+      
+      // 🔍 Resolve manager object from username
+      if (user?.manager) {
+        const managerObj = filteredUsers.find(u => u.username === user.manager);
+        if (managerObj) {
+          setFormData(prev => ({ ...prev, manager: managerObj }));
+          logger.info('Manager resolved', { username: user.manager, managerId: managerObj.id });
+        } else {
+          logger.warn('Manager not found in user list', { username: user.manager });
+        }
+      }
     } catch (err) {
       logger.error('Failed to load users', { error: err.message });
     }
@@ -176,8 +191,14 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
 
       logger.userAction('USER_UPDATE_ATTEMPT', { userId: user.id });
 
+      // 🔧 Prepare request data - convert manager object to username string
+      const requestData = {
+        ...formData,
+        manager: formData.manager?.username || null, // Send only username, not full object
+      };
+
       // Update user basic info
-      const updatedUser = await apiService.updateUser(user.id, formData);
+      const updatedUser = await apiService.updateUser(user.id, requestData);
 
       // Sync roles
       await syncRoles();

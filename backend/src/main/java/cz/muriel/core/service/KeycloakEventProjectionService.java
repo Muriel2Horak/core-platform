@@ -203,6 +203,29 @@ public class KeycloakEventProjectionService {
     user.setDeputyTo(userDto.getDeputyTo());
     user.setDeputyReason(userDto.getDeputyReason());
 
+    // 🔗 RESOLVE manager entity reference from username
+    if (userDto.getManager() != null && !userDto.getManager().isEmpty()) {
+      try {
+        Optional<UserDirectoryEntity> managerEntity = 
+            userDirectoryRepository.findByTenantKeyAndUsername(user.getTenantKey(), userDto.getManager());
+        managerEntity.ifPresentOrElse(
+            manager -> {
+              user.setManager(manager);
+              log.debug("✅ Manager entity resolved: {} -> {}", userDto.getManager(), manager.getId());
+            },
+            () -> {
+              user.setManager(null);
+              log.warn("⚠️ Manager not found in UserDirectory: {}", userDto.getManager());
+            }
+        );
+      } catch (Exception e) {
+        log.error("❌ Failed to resolve manager entity: {}", e.getMessage());
+        user.setManager(null);
+      }
+    } else {
+      user.setManager(null);
+    }
+
     log.debug("Extracted custom attributes for user: {}", user.getUsername());
   }
 
