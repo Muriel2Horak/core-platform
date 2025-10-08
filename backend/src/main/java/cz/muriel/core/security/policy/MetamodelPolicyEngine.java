@@ -195,7 +195,7 @@ public class MetamodelPolicyEngine implements PolicyEngine {
     }
 
     if (rule.getGroup() != null) {
-      // TODO: Group support (can map to roles for now)
+      // Groups are mapped to roles for now (future: explicit group membership)
       return hasRole(auth, rule.getGroup());
     }
 
