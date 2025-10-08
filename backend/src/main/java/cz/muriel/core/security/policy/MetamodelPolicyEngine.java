@@ -1,11 +1,15 @@
 package cz.muriel.core.security.policy;
 
+import cz.muriel.core.metamodel.MetamodelRegistry;
+import cz.muriel.core.metamodel.schema.*;
 import cz.muriel.core.security.PolicyEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -14,220 +18,320 @@ import java.util.stream.Collectors;
 /**
  * 🏗️ Metamodel Policy Engine
  * 
- * Implementace PolicyEngine integrovaná s metamodelem. Podporuje: - Access
- * policy (RBAC/ABAC) - Column policy (projekce/masking) - Row policy
- * (filtrování) - Tenant isolation (vždy) - Complex expressions (AND/OR,
- * závorky) - Dot-notation přes relace
+ * Implementace PolicyEngine integrovaná s metamodelem. Podporuje:
+ * - Access policy (RBAC/ABAC)
+ * - Column policy (projekce/masking)
+ * - Tenant isolation (RLS)
+ * - anyOf/allOf operators
+ * - Dot-notation (1 level deep)
  * 
- * Zpětná kompatibilita přes YamlPermissionAdapter.
- * 
- * @version 2.0
+ * @version 3.0 - Using MetamodelRegistry
  */
-@Component("policy") @RequiredArgsConstructor @Slf4j @SuppressWarnings("deprecation") // YamlPermissionAdapter
-                                                                                      // je
-                                                                                      // deprecated,
-                                                                                      // ale
-                                                                                      // používáme
-                                                                                      // pro zpětnou
-                                                                                      // kompatibilitu
+@Component("metamodelPolicy")
+@RequiredArgsConstructor
+@Slf4j
 public class MetamodelPolicyEngine implements PolicyEngine {
 
-  private final YamlPermissionAdapter yamlAdapter;
-
-  // TODO: Inject MetamodelRegistry when available
-  // private final MetamodelRegistry metamodelRegistry;
+  private final MetamodelRegistry registry;
+  
+  private static final String ROLE_ADMIN = "CORE_ROLE_ADMIN";
 
   @Override
   public boolean check(Authentication auth, String entityType, String action,
       @Nullable Object contextId) {
     log.debug("Policy check: entity={}, action={}, contextId={}", entityType, action, contextId);
 
-    // 1. Tenant isolation - VŽDY
-    if (!checkTenantIsolation(auth, entityType, contextId)) {
-      log.warn("Tenant isolation failed for entity={}, user={}", entityType, auth.getName());
+    if (auth == null) {
+      log.debug("No authentication, denying access");
       return false;
     }
 
-    // 2. Získej politiky z metamodelu (nebo YAML jako fallback)
-    List<PolicyModels.AccessPolicy> policies = getAccessPolicies(entityType, action);
+    // Admin bypass
+    if (hasRole(auth, ROLE_ADMIN)) {
+      log.debug("CORE_ROLE_ADMIN detected, granting access");
+      return true;
+    }
 
-    // 3. Vyhodnoť podle priority (DENY má přednost)
-    policies.sort((a, b) -> Integer.compare(b.getPriority(), a.getPriority()));
+    // Get schema
+    Optional<EntitySchema> schemaOpt = registry.getSchema(entityType);
+    if (schemaOpt.isEmpty()) {
+      log.warn("No schema found for entity type: {}", entityType);
+      return false;
+    }
 
-    for (PolicyModels.AccessPolicy policy : policies) {
-      Boolean result = evaluateRule(auth, policy.getRule(), entityType, contextId);
+    EntitySchema schema = schemaOpt.get();
 
-      if (result != null && result) {
-        if (policy.getRule().getType() == PolicyModels.PolicyRule.RuleType.DENY) {
-          log.debug("Explicit DENY for entity={}, action={}", entityType, action);
-          return false;
-        }
-        log.debug("ALLOW for entity={}, action={}", entityType, action);
-        return true;
+    if (schema.getAccessPolicy() == null) {
+      log.warn("No access policy for entity {}, denying access", entityType);
+      return false;
+    }
+
+    // Get rule for action
+    PolicyRule rule = getActionRule(schema.getAccessPolicy(), action);
+    if (rule == null) {
+      log.debug("No policy rule for action {} on entity {}, denying", action, entityType);
+      return false;
+    }
+
+    // Tenant isolation (if not admin and entity has tenantField)
+    if (!hasRole(auth, ROLE_ADMIN) && schema.getTenantField() != null && contextId != null) {
+      String userTenantId = getTenantId(auth);
+      String entityTenantId = extractFieldValue(contextId, schema.getTenantField());
+
+      if (entityTenantId != null && !entityTenantId.equals(userTenantId)) {
+        log.debug("Tenant isolation violation: user={}, entity={}", userTenantId, entityTenantId);
+        return false;
       }
     }
 
-    log.debug("No matching policy, default DENY for entity={}, action={}", entityType, action);
-    return false;
+    boolean result = evaluatePolicyRule(auth, rule, contextId);
+    log.debug("Policy check result: entity={}, action={}, result={}", entityType, action, result);
+    return result;
   }
 
   @Override
   public Set<String> projectColumns(Authentication auth, String entityType, String action) {
     log.debug("Column projection for entity={}, action={}", entityType, action);
 
-    // TODO: Načíst z metamodelu
-    // List<PolicyModels.ColumnPolicy> policies =
-    // metamodelRegistry.getColumnPolicies(entityType, action);
+    Optional<EntitySchema> schemaOpt = registry.getSchema(entityType);
+    if (schemaOpt.isEmpty()) {
+      return Collections.emptySet();
+    }
 
-    // Prozatím vrátit všechny sloupce
-    return Collections.emptySet(); // prázdný = všechny
+    EntitySchema schema = schemaOpt.get();
+
+    // Admin sees all columns
+    if (hasRole(auth, ROLE_ADMIN)) {
+      return schema.getFields().stream()
+          .map(FieldSchema::getName)
+          .collect(Collectors.toSet());
+    }
+
+    Set<String> allowedColumns = new HashSet<>();
+
+    // Base columns from entity-level policy
+    if (schema.getAccessPolicy() != null && check(auth, entityType, action, null)) {
+      // Start with all columns
+      allowedColumns.addAll(
+          schema.getFields().stream()
+              .map(FieldSchema::getName)
+              .collect(Collectors.toSet()));
+    }
+
+    // Filter by column-level policies
+    if (schema.getAccessPolicy() != null && schema.getAccessPolicy().getColumns() != null) {
+      for (var entry : schema.getAccessPolicy().getColumns().entrySet()) {
+        String columnName = entry.getKey();
+        ColumnPolicy colPolicy = entry.getValue();
+
+        PolicyRule colRule = action.equals("read") || action.equals("create")
+            ? colPolicy.getRead()
+            : colPolicy.getWrite();
+
+        if (colRule != null && !evaluatePolicyRule(auth, colRule, null)) {
+          allowedColumns.remove(columnName);
+        }
+      }
+    }
+
+    log.debug("Column projection result: entity={}, action={}, columns={}", entityType, action,
+        allowedColumns);
+    return allowedColumns;
   }
 
   @Override
   public String getRowFilter(Authentication auth, String entityType, String action) {
-    log.debug("Row filter for entity={}, action={}", entityType, action);
+    String tenantId = getTenantId(auth);
 
-    // TODO: Načíst z metamodelu a vygenerovat SQL WHERE
-    // List<PolicyModels.RowPolicy> policies =
-    // metamodelRegistry.getRowPolicies(entityType, action);
+    // Admin sees all
+    if (hasRole(auth, ROLE_ADMIN)) {
+      return "";
+    }
 
-    // Prozatím tenant isolation
-    String tenantKey = getTenantKey(auth);
-    if (tenantKey != null && !tenantKey.equals("admin")) {
-      return "tenant_key = '" + tenantKey + "'";
+    // Tenant isolation
+    Optional<EntitySchema> schemaOpt = registry.getSchema(entityType);
+    if (schemaOpt.isPresent() && schemaOpt.get().getTenantField() != null) {
+      return schemaOpt.get().getTenantField() + " = '" + tenantId + "'";
     }
 
     return "";
   }
 
   /**
-   * Vyhodnotí policy rule
+   * Get policy rule for action
    */
-  private Boolean evaluateRule(Authentication auth, PolicyModels.PolicyRule rule, String entityType,
-      @Nullable Object contextId) {
-    if (rule == null) {
-      return null;
-    }
-
-    return switch (rule.getType()) {
-    case ROLE -> evaluateRoleRule(auth, rule.getExpression());
-    case TENANT -> evaluateTenantRule(auth, entityType, contextId);
-    case AND -> evaluateAndRule(auth, rule.getConditions(), entityType, contextId);
-    case OR -> evaluateOrRule(auth, rule.getConditions(), entityType, contextId);
-    case EXPRESSION -> evaluateSpelExpression(auth, rule.getExpression(), entityType, contextId);
-    case ALLOW -> true;
-    case DENY -> false;
-    default -> {
-      log.warn("Unsupported rule type: {}", rule.getType());
-      yield null;
-    }
+  private PolicyRule getActionRule(AccessPolicy policy, String action) {
+    return switch (action.toLowerCase()) {
+    case "read" -> policy.getRead();
+    case "create" -> policy.getCreate();
+    case "update" -> policy.getUpdate();
+    case "delete" -> policy.getDelete();
+    default -> null;
     };
   }
 
   /**
-   * Vyhodnotí role rule (hasRole('ADMIN'))
+   * Evaluate policy rule recursively
    */
-  private boolean evaluateRoleRule(Authentication auth, String expression) {
-    // Parse: hasRole('CORE_ROLE_ADMIN')
-    String roleName = expression.replaceAll(".*hasRole\\('([^']+)'\\).*", "$1");
-
-    return auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-        .anyMatch(a -> a.equals("ROLE_" + roleName) || a.equals(roleName));
-  }
-
-  /**
-   * Vyhodnotí tenant rule
-   */
-  private boolean evaluateTenantRule(Authentication auth, String entityType,
-      @Nullable Object contextId) {
-    return checkTenantIsolation(auth, entityType, contextId);
-  }
-
-  /**
-   * Vyhodnotí AND rule
-   */
-  private Boolean evaluateAndRule(Authentication auth, List<PolicyModels.PolicyRule> conditions,
-      String entityType, @Nullable Object contextId) {
-    if (conditions == null || conditions.isEmpty()) {
-      return true;
-    }
-
-    for (PolicyModels.PolicyRule condition : conditions) {
-      Boolean result = evaluateRule(auth, condition, entityType, contextId);
-      if (result == null || !result) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Vyhodnotí OR rule
-   */
-  private Boolean evaluateOrRule(Authentication auth, List<PolicyModels.PolicyRule> conditions,
-      String entityType, @Nullable Object contextId) {
-    if (conditions == null || conditions.isEmpty()) {
+  private boolean evaluatePolicyRule(Authentication auth, PolicyRule rule, @Nullable Object entity) {
+    if (rule == null) {
       return false;
     }
 
-    for (PolicyModels.PolicyRule condition : conditions) {
-      Boolean result = evaluateRule(auth, condition, entityType, contextId);
-      if (result != null && result) {
-        return true;
+    // Logical operators
+    if (rule.getAnyOf() != null && !rule.getAnyOf().isEmpty()) {
+      return rule.getAnyOf().stream()
+          .anyMatch(r -> evaluatePolicyRule(auth, r, entity));
+    }
+
+    if (rule.getAllOf() != null && !rule.getAllOf().isEmpty()) {
+      return rule.getAllOf().stream()
+          .allMatch(r -> evaluatePolicyRule(auth, r, entity));
+    }
+
+    // RBAC
+    if (rule.getRole() != null) {
+      return hasRole(auth, rule.getRole());
+    }
+
+    if (rule.getGroup() != null) {
+      // TODO: Group support (can map to roles for now)
+      return hasRole(auth, rule.getGroup());
+    }
+
+    // ABAC
+    if (rule.getSameUser() != null && rule.getSameUser()) {
+      if (entity == null)
+        return false;
+      String entityUserId = extractFieldValue(entity, "user_id");
+      String currentUserId = getUserId(auth);
+      return entityUserId != null && entityUserId.equals(currentUserId);
+    }
+
+    if (rule.getEq() != null) {
+      return evaluateCondition(auth, rule.getEq(), entity, Objects::equals);
+    }
+
+    if (rule.getNe() != null) {
+      return evaluateCondition(auth, rule.getNe(), entity, (a, b) -> !Objects.equals(a, b));
+    }
+
+    if (rule.getContains() != null) {
+      return evaluateCondition(auth, rule.getContains(), entity,
+          (a, b) -> a != null && b != null && a.toString().contains(b.toString()));
+    }
+
+    if (rule.getIn() != null) {
+      return evaluateCondition(auth, rule.getIn(), entity, (a, b) -> b != null
+          && Arrays.asList(b.toString().split(",")).contains(a != null ? a.toString() : ""));
+    }
+
+    return false;
+  }
+
+  /**
+   * Evaluate condition (eq, ne, contains, in)
+   */
+  private boolean evaluateCondition(Authentication auth, Condition condition, @Nullable Object entity,
+      java.util.function.BiPredicate<Object, Object> predicate) {
+    Object leftValue = resolveValue(auth, condition.getLeft(), entity);
+    Object rightValue = resolveValue(auth, condition.getRight(), entity);
+
+    return predicate.test(leftValue, rightValue);
+  }
+
+  /**
+   * Resolve value from expression Supports: ${entity.field}, ${user.claim},
+   * literal values
+   */
+  private Object resolveValue(Authentication auth, String expression, @Nullable Object entity) {
+    if (expression == null) {
+      return null;
+    }
+
+    if (expression.startsWith("${") && expression.endsWith("}")) {
+      String path = expression.substring(2, expression.length() - 1);
+
+      if (path.startsWith("entity.")) {
+        String fieldName = path.substring(7);
+        return entity != null ? extractFieldValue(entity, fieldName) : null;
+      }
+
+      if (path.startsWith("user.")) {
+        String claim = path.substring(5);
+        return switch (claim) {
+        case "tenant_id" -> getTenantId(auth);
+        case "user_id", "id" -> getUserId(auth);
+        default -> getClaimValue(auth, claim);
+        };
       }
     }
-    return false;
+
+    return expression; // Literal value
   }
 
   /**
-   * Vyhodnotí SpEL expression
+   * Extract field value from entity (supports Map and Bean)
    */
-  private boolean evaluateSpelExpression(Authentication auth, String expression, String entityType,
-      @Nullable Object contextId) {
-    // TODO: Implementovat SpEL evaluator s kontextem
-    log.warn("SpEL expression evaluation not yet implemented: {}", expression);
-    return false;
-  }
-
-  /**
-   * Tenant isolation - VŽDY zkontroluje
-   */
-  private boolean checkTenantIsolation(Authentication auth, String entityType,
-      @Nullable Object contextId) {
-    String userTenant = getTenantKey(auth);
-
-    // Admin tenant má přístup všude
-    if ("admin".equals(userTenant)) {
-      return true;
+  private String extractFieldValue(Object entity, String fieldName) {
+    if (entity == null) {
+      return null;
     }
 
-    // TODO: Načíst tenant z entity podle contextId
-    // Prozatím kontrola podle role
-    List<String> roles = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-        .collect(Collectors.toList());
+    try {
+      if (entity instanceof Map<?, ?> map) {
+        Object value = map.get(fieldName);
+        return value != null ? value.toString() : null;
+      }
 
-    return roles.contains("ROLE_CORE_ROLE_ADMIN") || roles.contains("ROLE_CORE_ROLE_TENANT_ADMIN");
+      // Bean property access via reflection
+      String methodName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+      var method = entity.getClass().getMethod(methodName);
+      Object value = method.invoke(entity);
+      return value != null ? value.toString() : null;
+
+    } catch (Exception e) {
+      log.debug("Failed to extract field {} from entity: {}", fieldName, e.getMessage());
+      return null;
+    }
   }
 
   /**
-   * Získá tenant key z Authentication
+   * Get claim value from JWT
    */
-  private String getTenantKey(Authentication auth) {
-    // TODO: Načíst z JWT claim nebo UserDetails
-    return "admin"; // Placeholder
+  private String getClaimValue(Authentication auth, String claim) {
+    if (auth instanceof JwtAuthenticationToken jwtAuth) {
+      Jwt jwt = jwtAuth.getToken();
+      return jwt.getClaimAsString(claim);
+    }
+    return null;
   }
 
-  /**
-   * Získá access policies z metamodelu (nebo YAML fallback)
-   */
-  private List<PolicyModels.AccessPolicy> getAccessPolicies(String entityType, String action) {
-    // TODO: Načíst z MetamodelRegistry
-    // return metamodelRegistry.getAccessPolicies(entityType, action);
+  @Override
+  public boolean hasRole(Authentication auth, String role) {
+    if (auth == null) {
+      return false;
+    }
 
-    // Fallback na YAML adapter
-    return yamlAdapter.getAccessPolicies().stream()
-        .filter(p -> p.getEntityType().equalsIgnoreCase(entityType))
-        .filter(p -> p.getAction().equals(action) || p.getAction().equals("*"))
-        .collect(Collectors.toList());
+    return auth.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .anyMatch(a -> a.equals(role) || a.equals("ROLE_" + role));
+  }
+
+  private String getTenantId(Authentication auth) {
+    if (auth instanceof JwtAuthenticationToken jwtAuth) {
+      Jwt jwt = jwtAuth.getToken();
+      return jwt.getClaimAsString("tenant_id");
+    }
+    return "admin"; // fallback
+  }
+
+  private String getUserId(Authentication auth) {
+    if (auth instanceof JwtAuthenticationToken jwtAuth) {
+      Jwt jwt = jwtAuth.getToken();
+      String sub = jwt.getSubject();
+      return sub != null ? sub : jwt.getClaimAsString("user_id");
+    }
+    return auth != null ? auth.getName() : "unknown";
   }
 }
