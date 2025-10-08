@@ -20,31 +20,32 @@ public class KeycloakAdminConfig {
   @Value("${keycloak.auth-server-url:http://keycloak:8080}")
   private String keycloakServerUrl;
 
-  @Value("${keycloak.admin.username:admin}")
-  private String adminUsername;
-
-  @Value("${keycloak.admin.password:admin}")
-  private String adminPassword;
-
   @Value("${keycloak.admin.realm:master}")
   private String adminRealm;
 
-  @Value("${keycloak.admin.client-id:admin-cli}")
+  @Value("${keycloak.admin.client-id:backend-admin-service}")
   private String adminClientId;
+  
+  @Value("${keycloak.admin.client-secret:}")
+  private String adminClientSecret;
 
   /**
    * 🔧 Keycloak Admin Client Bean
    * 
-   * Používá password grant type pro admin účet Master realm je použit pro
-   * cross-realm operace
+   * Používá client_credentials grant type pro service account
+   * Confidential client s povoleným service account musí být nakonfigurován v Keycloak
    */
   @Bean
   public Keycloak keycloakAdminClient() {
-    log.info("🔐 Initializing Keycloak Admin Client: server={}, realm={}, user={}",
-        keycloakServerUrl, adminRealm, adminUsername);
+    log.info("🔐 Initializing Keycloak Admin Client: server={}, realm={}, clientId={}",
+        keycloakServerUrl, adminRealm, adminClientId);
 
-    return KeycloakBuilder.builder().serverUrl(keycloakServerUrl).realm(adminRealm)
-        .grantType(OAuth2Constants.PASSWORD).clientId(adminClientId).username(adminUsername)
-        .password(adminPassword).build();
+    return KeycloakBuilder.builder()
+        .serverUrl(keycloakServerUrl)
+        .realm(adminRealm)
+        .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+        .clientId(adminClientId)
+        .clientSecret(adminClientSecret)
+        .build();
   }
 }

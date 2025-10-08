@@ -82,20 +82,20 @@ public class SyncHistoryController {
   @DeleteMapping("/cleanup")
   public ResponseEntity<Integer> cleanupOldExecutions(
       @RequestParam(defaultValue = "30") int daysOld) {
-    
+
     LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysOld);
-    
+
     // Najdeme všechny dokončené/chybné starší než cutoff
-    List<SyncExecution> oldExecutions = syncExecutionRepository.findAll().stream()
-        .filter(exec -> exec.getStatus() == SyncStatus.COMPLETED || exec.getStatus() == SyncStatus.FAILED)
+    List<SyncExecution> oldExecutions = syncExecutionRepository.findAll().stream().filter(
+        exec -> exec.getStatus() == SyncStatus.COMPLETED || exec.getStatus() == SyncStatus.FAILED)
         .filter(exec -> exec.getEndTime() != null && exec.getEndTime().isBefore(cutoffDate))
         .toList();
-    
+
     int deletedCount = oldExecutions.size();
     syncExecutionRepository.deleteAll(oldExecutions);
-    
+
     log.info("🗑️ Cleaned up {} old sync executions (older than {} days)", deletedCount, daysOld);
-    
+
     return ResponseEntity.ok(deletedCount);
   }
 
