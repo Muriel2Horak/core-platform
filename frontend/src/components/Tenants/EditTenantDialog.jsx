@@ -69,9 +69,10 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
       fullWidth
       PaperProps={{
         sx: {
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'rgba(255, 255, 255, 0.95) !important',
           backdropFilter: 'blur(10px)',
           borderRadius: 2,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         }
       }}
     >
@@ -91,10 +92,18 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           <TextField
             label="Tenant Key"
-            value={tenant.key}
+            value={tenant.key || ''}
             fullWidth
             disabled
             helperText="Key je immutable"
+          />
+
+          <TextField
+            label="ID"
+            value={tenant.id || 'N/A'}
+            fullWidth
+            disabled
+            helperText="Unikátní identifikátor"
           />
 
           <TextField
@@ -104,6 +113,23 @@ export const EditTenantDialog = ({ open, tenant, onClose, onSuccess }) => {
             fullWidth
             disabled={loading}
             autoFocus
+            helperText="Zobrazovaný název tenantu"
+          />
+
+          <TextField
+            label="Keycloak Realm"
+            value={tenant.realm || tenant.key || 'N/A'}
+            fullWidth
+            disabled
+            helperText="Jméno Keycloak realmu"
+          />
+
+          <TextField
+            label="Subdoména"
+            value={tenant.subdomain || `${tenant.key}.core-platform.local`}
+            fullWidth
+            disabled
+            helperText="URL subdoména pro tento tenant"
           />
         </Box>
       </DialogContent>

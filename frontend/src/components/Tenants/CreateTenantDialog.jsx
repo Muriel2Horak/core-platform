@@ -104,9 +104,10 @@ export const CreateTenantDialog = ({ open, onClose, onSuccess }) => {
       fullWidth
       PaperProps={{
         sx: {
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'rgba(255, 255, 255, 0.95) !important',
           backdropFilter: 'blur(10px)',
           borderRadius: 2,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         }
       }}
     >

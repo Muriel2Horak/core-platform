@@ -15,13 +15,21 @@ Failed to create realm: 403 Forbidden on POST request for
 "https://keycloak:8443/admin/realms"
 ```
 
-**Příčina:** Backend-admin-service client nemá oprávnění vytvářet realmy
+**Příčina:** Backend service account (`backend-admin-service`) získával token z `admin` realmu, ale pro vytváření nových realmů v Keycloak je potřeba být autentizován přes **master** realm s odpovídajícími oprávněními.
 
-**Řešení:**
-1. Zkontrolovat realm-admin.json - client backend-admin-service musí mít:
-   - Service account enabled
-   - Role `manage-realm`, `manage-users`, `manage-clients`
-2. Nebo použít master realm admin token
+**Řešení:** ✅ **OPRAVENO**
+1. Přidána nová metoda `getMasterAdminToken()` v `KeycloakAdminService`, která používá přímé admin credentials z master realmu
+2. Metody `createRealm()`, `deleteRealm()` a `getAllRealms()` nyní používají master admin token místo service account tokenu
+3. Přidána konfigurace do `.env` a `application.properties`:
+   ```properties
+   keycloak.master.username=${KEYCLOAK_MASTER_USERNAME:admin}
+   keycloak.master.password=${KEYCLOAK_MASTER_PASSWORD:admin123}
+   ```
+4. Backend nyní správně používá dva typy autentizace:
+   - **Master realm admin** (admin/admin123) pro realm management (create/delete/list realms)
+   - **Service account** (backend-admin-service) pro běžné admin operace v konkrétních realmech
+
+**Datum opravy:** 7. října 2025
 
 ---
 
@@ -89,13 +97,14 @@ const handleCreate = async (data) => {
 
 ## 🎭 Role Management
 
-### ❌ 3. Kompozitní role - nelze definovat child roles při vytvoření
+### ✅ 3. Kompozitní role - nelze definovat child roles při vytvoření
 **Problém:** Checkbox "Composite" je k dispozici, ale nelze vybrat role
 
-**Řešení:** 
-- V CreateRoleDialog přidat CompositeRoleBuilder
-- Povolit výběr pouze pokud `composite === true`
+**Řešení:** ✅ **OPRAVENO** (7.10.2025)
+- V CreateRoleDialog přidán CompositeRoleBuilder
+- Povoleno výběr pouze pokud `composite === true`
 - Validace: alespoň 1 child role pokud je composite
+- ChildRoles se odesílají v POST request
 
 ```jsx
 {formData.composite && (
@@ -167,34 +176,38 @@ const handleCompositeToggle = () => {
 
 ## 👥 User Management
 
-### ❌ 5. U rolí a uživatelů není vidět tenant/realm
+### ✅ 5. U rolí a uživatelů není vidět tenant/realm
 **Problém:** Nevidíme ke kterému tenantu patří
 
-**Řešení:** Přidat sloupec "Tenant" do tabulek:
+**Řešení:** ✅ **OPRAVENO** (7.10.2025)
+Přidán sloupec "Tenant" do tabulek Roles a Users:
 ```jsx
 <TableCell>
   <Chip 
-    label={user.tenantKey} 
+    label={user?.tenantKey || 'admin'} 
     size="small"
     icon={<BusinessIcon />}
+    color="primary"
+    variant="outlined"
   />
 </TableCell>
 ```
 
 ---
 
-### ❌ 6. Není možnost přidat nadřízeného
+### ✅ 6. Není možnost přidat nadřízeného
 **Problém:** Chybí správa hierarchie (manager relationship)
 
-**Řešení:** V EditUserDialog přidat:
+**Řešení:** ✅ **OPRAVENO** (7.10.2025)
+V EditUserDialog přidán manager field s Autocomplete:
 ```jsx
 <Autocomplete
-  options={users.filter(u => u.id !== user.id)}
-  getOptionLabel={(u) => `${u.displayName} (${u.username})`}
+  options={availableUsers.filter(u => u.id !== user.id)}
+  getOptionLabel={(u) => `${u.firstName} ${u.lastName} (${u.username})`}
   value={formData.manager}
   onChange={(e, manager) => setFormData({...formData, manager})}
   renderInput={(params) => (
-    <TextField {...params} label="Manager" />
+    <TextField {...params} label="Nadřízený (Manager)" />
   )}
 />
 ```
@@ -281,43 +294,43 @@ public List<UserDto> getDirectoryUsers(@AuthenticationPrincipal Jwt jwt) {
 ## 📋 Priorita oprav
 
 ### Vysoká priorita (blocking):
-1. ✅ **P1:** Problém 12 - Nelze vytvořit tenant (403)
-2. ✅ **P1:** Problém 9 - Search vrací 500
-3. ✅ **P1:** Problém 1 - Chybí refresh po editaci
+1. ✅ **P1:** Problém 12 - Nelze vytvořit tenant (403) - **OPRAVENO 7.10.2025**
+2. ⏳ **P1:** Problém 9 - Search vrací 500 - **BACKEND READY, POTŘEBA TEST**
+3. ⏳ **P1:** Problém 1 - Chybí refresh po editaci - **VĚTŠINA OPRAVENO**
 
 ### Střední priorita (UX):
-4. ✅ **P2:** Problém 2 - Click na row
-5. ✅ **P2:** Problém 13 - Fialový dialog
-6. ✅ **P2:** Problém 5 - Zobrazit tenant
-7. ✅ **P2:** Problém 10 - Tenant filtering
+4. ⏳ **P2:** Problém 2 - Click na row - **VĚTŠINA OPRAVENO**
+5. ⏳ **P2:** Problém 13 - Fialový dialog - **V KÓDU OPRAVENO**
+6. ✅ **P2:** Problém 5 - Zobrazit tenant - **OPRAVENO 7.10.2025**
+7. ✅ **P2:** Problém 10 - Tenant filtering - **JIŽ IMPLEMENTOVÁNO**
 
 ### Nízká priorita (features):
-8. ✅ **P3:** Problém 3, 4 - Composite role management
-9. ✅ **P3:** Problém 6 - Manager hierarchy
-10. ✅ **P3:** Problém 7 - Org chart
-11. ✅ **P3:** Problém 8 - Menu structure
-12. ✅ **P3:** Problém 11 - Assign users to role
+8. ✅ **P3:** Problém 3, 4 - Composite role management - **OPRAVENO 7.10.2025**
+9. ✅ **P3:** Problém 6 - Manager hierarchy - **OPRAVENO 7.10.2025**
+10. ❌ **P3:** Problém 7 - Org chart - **TODO**
+11. ❌ **P3:** Problém 8 - Menu structure - **TODO**
+12. ❌ **P3:** Problém 11 - Assign users to role - **TODO**
 
 ---
 
 ## 🔧 Implementační plán
 
-### Fáze 1: Critical Fixes (dnes)
-- [ ] Fix 403 tenant creation
-- [ ] Fix 500 search error
-- [ ] Add refresh after mutations
-- [ ] Fix dialog colors
+### Fáze 1: Critical Fixes
+- [x] Fix 403 tenant creation ✅ **OPRAVENO 7.10.2025**
+- [x] Fix 500 search error ⏳ **BACKEND READY**
+- [x] Add refresh after mutations ⏳ **VĚTŠINA DONE**
+- [x] Fix dialog colors ⏳ **V KÓDU**
 
-### Fáze 2: UX Improvements (zítra)
-- [ ] Click to edit
-- [ ] Tenant column + filter
-- [ ] Menu restructure
+### Fáze 2: UX Improvements
+- [x] Click to edit ⏳ **VĚTŠINA DONE**
+- [x] Tenant column + filter ✅ **OPRAVENO 7.10.2025**
+- [ ] Menu restructure ❌ **TODO**
 
-### Fáze 3: Advanced Features (příští týden)
-- [ ] Composite role builder in create/edit
-- [ ] Manager assignment
-- [ ] Org chart view
-- [ ] Role → Users assignment
+### Fáze 3: Advanced Features
+- [x] Composite role builder in create/edit ✅ **OPRAVENO 7.10.2025**
+- [x] Manager assignment ✅ **OPRAVENO 7.10.2025**
+- [ ] Org chart view ❌ **TODO**
+- [ ] Role → Users assignment ❌ **TODO**
 
 ---
 

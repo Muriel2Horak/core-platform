@@ -53,7 +53,8 @@ public class UserDirectoryService {
           .getContent();
     }
 
-    return userDirectoryRepository.search(query.trim(), PageRequest.of(0, 100, Sort.by("username")));
+    return userDirectoryRepository.search(query.trim(),
+        PageRequest.of(0, 100, Sort.by("username")));
   }
 
   /**

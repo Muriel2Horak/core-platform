@@ -47,10 +47,13 @@ public class UserDirectoryController {
 
     try {
       // Validate pagination parameters
-      if (page < 0) page = 0;
-      if (size < 1) size = 20;
-      if (size > 100) size = 100; // Max 100 items per page
-      
+      if (page < 0)
+        page = 0;
+      if (size < 1)
+        size = 20;
+      if (size > 100)
+        size = 100; // Max 100 items per page
+
       // Permission check - všichni přihlášení mohou číst
       boolean isCoreAdmin = hasRole(jwt, "CORE_ROLE_ADMIN");
 
@@ -100,20 +103,15 @@ public class UserDirectoryController {
 
     } catch (IllegalArgumentException e) {
       log.error("❌ Invalid parameters in User Directory API: {}", e.getMessage());
-      Map<String, Object> errorResponse = Map.of(
-        "error", "Invalid parameters", 
-        "message", e.getMessage(), 
-        "timestamp", java.time.Instant.now().toString()
-      );
+      Map<String, Object> errorResponse = Map.of("error", "Invalid parameters", "message",
+          e.getMessage(), "timestamp", java.time.Instant.now().toString());
       return ResponseEntity.status(400).body(errorResponse);
-      
+
     } catch (Exception e) {
       log.error("❌ Error in User Directory API for user: {}", jwt.getSubject(), e);
-      Map<String, Object> errorResponse = Map.of(
-        "error", "Internal server error", 
-        "message", "Failed to search users. Please try again.", 
-        "timestamp", java.time.Instant.now().toString()
-      );
+      Map<String, Object> errorResponse = Map.of("error", "Internal server error", "message",
+          "Failed to search users. Please try again.", "timestamp",
+          java.time.Instant.now().toString());
       return ResponseEntity.status(500).body(errorResponse);
     }
   }

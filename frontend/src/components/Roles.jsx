@@ -34,6 +34,7 @@ import {
   People as PeopleIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  Business as BusinessIcon,
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
@@ -313,6 +314,7 @@ function Roles({ user }) {
                     <TableRow>
                       <TableCell>Název role</TableCell>
                       <TableCell>Popis</TableCell>
+                      <TableCell>Tenant</TableCell>
                       <TableCell>Typ</TableCell>
                       <TableCell align="center">Počet uživatelů</TableCell>
                       {canManageRoles && <TableCell align="right">Akce</TableCell>}
@@ -343,6 +345,15 @@ function Roles({ user }) {
                           <Typography variant="body2">
                             {role.description || 'Bez popisu'}
                           </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={user?.tenantKey || 'admin'} 
+                            size="small"
+                            icon={<BusinessIcon />}
+                            color="primary"
+                            variant="outlined"
+                          />
                         </TableCell>
                         <TableCell>
                           {getRoleTypeChip(role)}

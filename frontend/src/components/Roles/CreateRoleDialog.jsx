@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import apiService from '../../services/api.js';
 import logger from '../../services/logger.js';
+import { CompositeRoleBuilder } from './CompositeRoleBuilder.jsx';
 
 /**
  * 🆕 Create Role Dialog
@@ -29,6 +30,7 @@ export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
     name: '',
     description: '',
     composite: false,
+    childRoles: [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -50,6 +52,11 @@ export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
       errors.name = 'Název může obsahovat pouze velká písmena a podtržítka';
     }
 
+    // Validace composite role - musí mít alespoň 1 child roli
+    if (formData.composite && (!formData.childRoles || formData.childRoles.length === 0)) {
+      errors.childRoles = 'Composite role musí obsahovat alespoň jednu podřízenou roli';
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -69,6 +76,7 @@ export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
         name: formData.name,
         description: formData.description,
         composite: formData.composite,
+        childRoles: formData.composite ? formData.childRoles : undefined,
       });
 
       logger.userAction('ROLE_CREATED', { name: formData.name });
@@ -89,6 +97,7 @@ export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
       name: '',
       description: '',
       composite: false,
+      childRoles: [],
     });
     setError(null);
     setFormErrors({});
@@ -153,9 +162,19 @@ export const CreateRoleDialog = ({ open, onClose, onSuccess }) => {
           />
 
           {formData.composite && (
-            <Alert severity="info">
-              Composite role může obsahovat další role. Po vytvoření můžete přidat child role v hierarchii.
-            </Alert>
+            <Box sx={{ mt: 2 }}>
+              <CompositeRoleBuilder
+                selectedRoles={formData.childRoles}
+                onRolesChange={(roles) => handleInputChange('childRoles', roles)}
+                excludeRoles={[formData.name]}
+                disabled={loading}
+              />
+              {formErrors.childRoles && (
+                <Alert severity="error" sx={{ mt: 1 }}>
+                  {formErrors.childRoles}
+                </Alert>
+              )}
+            </Box>
           )}
         </Box>
       </DialogContent>

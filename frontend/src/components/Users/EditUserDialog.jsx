@@ -44,10 +44,12 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
     lastName: '',
     enabled: true,
     emailVerified: false,
+    manager: null,
   });
 
   const [userRoles, setUserRoles] = useState([]);
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [availableUsers, setAvailableUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [error, setError] = useState(null);
@@ -58,6 +60,7 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
     if (open && user) {
       loadUserData();
       loadRoles();
+      loadUsers();
     }
   }, [open, user]);
 
@@ -68,6 +71,7 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
       lastName: user.lastName || '',
       enabled: user.enabled !== false,
       emailVerified: user.emailVerified || false,
+      manager: user.manager || null,
     });
 
     // Load user roles
@@ -92,6 +96,16 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
       setError('Nepodařilo se načíst seznam rolí');
     } finally {
       setLoadingRoles(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const users = await apiService.getUsers();
+      // Exclude current user from manager selection
+      setAvailableUsers((users || []).filter(u => u.id !== user?.id));
+    } catch (err) {
+      logger.error('Failed to load users', { error: err.message });
     }
   };
 
@@ -249,6 +263,37 @@ export const EditUserDialog = ({ open, user, onClose, onUserUpdated }) => {
               onChange={handleChange('lastName')}
               fullWidth
               disabled={loading}
+            />
+
+            {/* Manager */}
+            <Autocomplete
+              options={availableUsers}
+              getOptionLabel={(option) => `${option.firstName || ''} ${option.lastName || ''} (${option.username})`.trim()}
+              value={formData.manager}
+              onChange={(event, newValue) => {
+                setFormData(prev => ({ ...prev, manager: newValue }));
+              }}
+              disabled={loading}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Nadřízený (Manager)"
+                  helperText="Vyberte nadřízeného uživatele"
+                />
+              )}
+              renderOption={(props, option) => (
+                <li {...props}>
+                  <Box>
+                    <Typography variant="body1">
+                      {option.firstName} {option.lastName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {option.username} • {option.email}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+              isOptionEqualToValue={(option, value) => option?.id === value?.id}
             />
 
             {/* Switches */}

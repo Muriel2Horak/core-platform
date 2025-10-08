@@ -44,6 +44,13 @@ public class KeycloakAdminService {
   @Value("${keycloak.target-realm}")
   private String targetRealm;
 
+  // 🔐 Master realm credentials for realm management
+  @Value("${keycloak.master.username:admin}")
+  private String masterUsername;
+
+  @Value("${keycloak.master.password:admin123}")
+  private String masterPassword;
+
   private final Map<String, TokenCache> tokenCache = new ConcurrentHashMap<>();
 
   public KeycloakAdminService(ObjectMapper objectMapper) {
@@ -94,6 +101,58 @@ public class KeycloakAdminService {
     } catch (Exception ex) {
       auditLogger.error("ADMIN_TOKEN_ERROR: Unexpected error during token request", ex);
       throw new SecurityException("Admin authentication error", ex);
+    }
+  }
+
+  /**
+   * 🔐 Get Master Realm Admin Token for realm management operations Uses direct
+   * admin credentials instead of service account
+   */
+  private String getMasterAdminToken() {
+    final String cacheKey = "master_admin_token";
+    TokenCache cached = tokenCache.get(cacheKey);
+
+    if (cached != null && cached.expiresAt > Instant.now().getEpochSecond() + 30) {
+      return cached.token;
+    }
+
+    try {
+      log.info("MASTER_TOKEN_REQUEST: Requesting master realm admin token for user: {}",
+          masterUsername);
+
+      String url = keycloakBaseUrl + "/realms/master/protocol/openid-connect/token";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+      MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+      form.add("grant_type", "password");
+      form.add("client_id", "admin-cli");
+      form.add("username", masterUsername);
+      form.add("password", masterPassword);
+
+      ResponseEntity<String> response = restTemplate.postForEntity(url,
+          new HttpEntity<>(form, headers), String.class);
+
+      JsonNode tokenResponse = objectMapper.readTree(response.getBody());
+      String accessToken = tokenResponse.path("access_token").asText();
+      int expiresIn = tokenResponse.path("expires_in").asInt(3600);
+
+      TokenCache newCache = new TokenCache(accessToken, Instant.now().getEpochSecond() + expiresIn);
+      tokenCache.put(cacheKey, newCache);
+
+      auditLogger.info(
+          "MASTER_TOKEN_SUCCESS: Master admin token obtained successfully, expires in: {}s",
+          expiresIn);
+      return accessToken;
+
+    } catch (HttpStatusCodeException ex) {
+      auditLogger.error("MASTER_TOKEN_FAILURE: Failed to obtain master admin token: {} - {}",
+          ex.getStatusCode(), ex.getResponseBodyAsString());
+      throw new SecurityException("Failed to authenticate master admin", ex);
+    } catch (Exception ex) {
+      auditLogger.error("MASTER_TOKEN_ERROR: Unexpected error during master token request", ex);
+      throw new SecurityException("Master admin authentication error", ex);
     }
   }
 
@@ -913,7 +972,8 @@ public class KeycloakAdminService {
    */
   public void createRealm(Map<String, Object> realmConfig) {
     try {
-      String adminToken = getSecureAdminToken();
+      // 🔐 Use master realm admin token for realm creation
+      String adminToken = getMasterAdminToken();
       String url = keycloakBaseUrl + "/admin/realms";
 
       HttpHeaders headers = new HttpHeaders();
@@ -944,7 +1004,8 @@ public class KeycloakAdminService {
    */
   public void deleteRealm(String realmName) {
     try {
-      String adminToken = getSecureAdminToken();
+      // 🔐 Use master realm admin token for realm deletion
+      String adminToken = getMasterAdminToken();
       String url = keycloakBaseUrl + "/admin/realms/" + realmName;
 
       HttpHeaders headers = new HttpHeaders();
@@ -971,7 +1032,8 @@ public class KeycloakAdminService {
    */
   public List<Map<String, Object>> getAllRealms() {
     try {
-      String adminToken = getSecureAdminToken();
+      // 🔐 Use master realm admin token for listing realms
+      String adminToken = getMasterAdminToken();
       String url = keycloakBaseUrl + "/admin/realms";
 
       HttpHeaders headers = new HttpHeaders();

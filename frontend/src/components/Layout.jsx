@@ -29,6 +29,8 @@ import {
   Domain as DomainIcon,
   ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckCircleIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 
 // 🎨 Import nového design systému - OPRAVENO: přímý import z TypeScript souborů
@@ -38,7 +40,8 @@ import { defaultMenuItems } from '../shared/ui/SidebarNav';
 import apiService from '../services/api.js';
 import { UserPropType } from '../shared/propTypes.js';
 
-const drawerWidth = parseInt(tokens.components.layout.sidebarWidth, 10); // 280px z tokens
+const drawerWidthExpanded = parseInt(tokens.components.layout.sidebarWidth, 10); // 280px z tokens
+const drawerWidthCollapsed = 72; // Šířka pro collapsed režim
 
 function Layout({ children, user, onLogout }) {
   const theme = useTheme();
@@ -47,6 +50,11 @@ function Layout({ children, user, onLogout }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Load from localStorage
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved === 'true';
+  });
   const [anchorEl, setAnchorEl] = useState(null);
   
   // ✅ FIXED: Používáme user.tenant místo API volání
@@ -115,6 +123,14 @@ function Layout({ children, user, onLogout }) {
     handleTenantMenuClose();
   };
 
+  const toggleSidebar = () => {
+    const newCollapsed = !sidebarCollapsed;
+    setSidebarCollapsed(newCollapsed);
+    localStorage.setItem('sidebarCollapsed', String(newCollapsed));
+  };
+
+  const drawerWidth = sidebarCollapsed ? drawerWidthCollapsed : drawerWidthExpanded;
+
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
       return `${user.firstName} ${user.lastName}`;
@@ -174,12 +190,12 @@ function Layout({ children, user, onLogout }) {
         ? '1px solid rgba(255, 255, 255, 0.15)'
         : '1px solid rgba(0, 0, 0, 0.1)',
     }}>
-      {/* Header s Core Platform logo */}
+      {/* Header s Axiom logo */}
       <Paper 
         elevation={0}
         sx={{ 
           m: 2, 
-          p: 3, 
+          p: sidebarCollapsed ? 1.5 : 3, 
           borderRadius: tokens.radius.xl,
           background: prefersDarkMode 
             ? 'rgba(255, 255, 255, 0.08)' 
@@ -188,30 +204,124 @@ function Layout({ children, user, onLogout }) {
           border: prefersDarkMode
             ? '1px solid rgba(255, 255, 255, 0.15)'
             : '1px solid rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.3s ease',
+          position: 'relative',
         }}
       >
-        <Typography variant="h5" component="div" sx={{ 
-          fontWeight: tokens.typography.fontWeight.bold, 
-          mb: 0.5,
-          fontSize: tokens.typography.fontSize.xl,
-        }}>
-          🚀 Core Platform
-        </Typography>
-        <Typography variant="body2" sx={{ 
-          opacity: 0.7, 
-          fontSize: tokens.typography.fontSize.sm,
-        }}>
-          {getTenantDisplayInfo().name}
-        </Typography>
+        {!sidebarCollapsed && (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                {/* Axiom Logo SVG */}
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="axiomGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{stopColor: '#1976d2', stopOpacity: 1}} />
+                      <stop offset="100%" style={{stopColor: '#42a5f5', stopOpacity: 1}} />
+                    </linearGradient>
+                  </defs>
+                  {/* A symbol with geometric design */}
+                  <path d="M20 2 L35 15 L30 15 L20 8 L10 15 L5 15 Z" fill="url(#axiomGradient)" />
+                  <path d="M8 18 L12 18 L20 28 L28 18 L32 18 L20 33 Z" fill="url(#axiomGradient)" />
+                  <rect x="18" y="16" width="4" height="18" fill="url(#axiomGradient)" opacity="0.8" />
+                </svg>
+              </Box>
+              
+              {/* Toggle Button - beside logo */}
+              {!isMobile && (
+                <IconButton
+                  onClick={toggleSidebar}
+                  size="small"
+                  sx={{
+                    bgcolor: prefersDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                    '&:hover': {
+                      bgcolor: prefersDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                    },
+                  }}
+                >
+                  <ChevronLeftIcon fontSize="small" />
+                </IconButton>
+              )}
+            </Box>
+            <Typography variant="h5" component="div" sx={{ 
+              fontWeight: tokens.typography.fontWeight.bold, 
+              mb: 0.5,
+              fontSize: tokens.typography.fontSize.xl,
+              background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              Axiom
+            </Typography>
+            <Typography variant="body2" sx={{ 
+              opacity: 0.7, 
+              fontSize: tokens.typography.fontSize.sm,
+            }}>
+              {getTenantDisplayInfo().name}
+            </Typography>
+          </>
+        )}
+        {sidebarCollapsed && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Compact Logo + expand button */}
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="axiomGradientSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor: '#1976d2', stopOpacity: 1}} />
+                  <stop offset="100%" style={{stopColor: '#42a5f5', stopOpacity: 1}} />
+                </linearGradient>
+              </defs>
+              <path d="M20 2 L35 15 L30 15 L20 8 L10 15 L5 15 Z" fill="url(#axiomGradientSmall)" />
+              <path d="M8 18 L12 18 L20 28 L28 18 L32 18 L20 33 Z" fill="url(#axiomGradientSmall)" />
+              <rect x="18" y="16" width="4" height="18" fill="url(#axiomGradientSmall)" opacity="0.8" />
+            </svg>
+            
+            {/* Expand button for collapsed state */}
+            {!isMobile && (
+              <IconButton
+                onClick={toggleSidebar}
+                size="small"
+                sx={{
+                  ml: 1,
+                  bgcolor: prefersDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                  '&:hover': {
+                    bgcolor: prefersDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
+                  },
+                }}
+              >
+                <ChevronRightIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        )}
       </Paper>
 
       {/* 🎨 Nový SidebarNav komponent */}
-      <Box sx={{ flexGrow: 1, overflow: 'auto', px: 1 }}>
+      <Box sx={{
+        flexGrow: 1, 
+        overflow: 'auto',
+        overflowX: 'hidden',
+        px: 1,
+        '&::-webkit-scrollbar': {
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: prefersDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '3px',
+          '&:hover': {
+            background: prefersDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+      }}>
         <SidebarNav
           onItemClick={handleSidebarNavClick}
           currentPath={location.pathname}
           userRoles={user?.roles || []}
-          collapsed={false}
+          collapsed={!isMobile && sidebarCollapsed}
         />
       </Box>
     </Box>
@@ -224,7 +334,7 @@ function Layout({ children, user, onLogout }) {
       if (item.href !== '/' && location.pathname.startsWith(item.href)) return true;
       return false;
     });
-    return activeItem?.label || 'Core Platform';
+    return activeItem?.label || 'Axiom';
   };
 
   return (
@@ -244,6 +354,7 @@ function Layout({ children, user, onLogout }) {
             : '1px solid rgba(0, 0, 0, 0.08)',
           boxShadow: 'none',
           color: prefersDarkMode ? '#ffffff' : '#1a1a1a',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Toolbar sx={{ justifyContent: 'space-between', minHeight: tokens.components.layout.headerHeight }}>
@@ -557,7 +668,11 @@ function Layout({ children, user, onLogout }) {
       {/* Drawer navigation */}
       <Box
         component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+        sx={{ 
+          width: { md: drawerWidth }, 
+          flexShrink: { md: 0 },
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
       >
         <Drawer
           variant="temporary"
@@ -570,7 +685,7 @@ function Layout({ children, user, onLogout }) {
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: drawerWidthExpanded,
               border: 'none',
             },
           }}
@@ -587,6 +702,8 @@ function Layout({ children, user, onLogout }) {
               width: drawerWidth,
               border: 'none',
               boxShadow: tokens.shadows.xl,
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              overflowX: 'hidden',
             },
           }}
           open
@@ -604,6 +721,7 @@ function Layout({ children, user, onLogout }) {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
           background: `linear-gradient(135deg, ${tokens.colors.grey[50]} 0%, #f0f2f5 100%)`,
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <Toolbar sx={{ minHeight: tokens.components.layout.headerHeight }} />
