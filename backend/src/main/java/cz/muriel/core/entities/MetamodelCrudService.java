@@ -5,8 +5,6 @@ import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.FieldSchema;
 import cz.muriel.core.security.PolicyEngine;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -52,40 +50,62 @@ public class MetamodelCrudService {
         
         // Get allowed columns
         Set<String> allowedColumns = policyEngine.projectColumns(auth, entityType, "read");
+        if (allowedColumns.isEmpty()) {
+            // Empty set means all columns for backward compatibility
+            allowedColumns = schema.getFields().stream()
+                .map(FieldSchema::getName)
+                .collect(Collectors.toSet());
+        }
         
-        // Build query
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-        CriteriaQuery<Object[]> query = cb.createQuery(Object[].class);
-        Root<?> root = query.from(getEntityClass(schema.getTable()));
+        // Build SQL query
+        String columns = String.join(", ", allowedColumns);
+        StringBuilder sql = new StringBuilder("SELECT " + columns + " FROM " + schema.getTable());
         
         // Apply filters
-        List<Predicate> predicates = buildPredicates(cb, root, filters, schema);
-        if (!predicates.isEmpty()) {
-            query.where(predicates.toArray(new Predicate[0]));
+        List<String> whereClauses = new ArrayList<>();
+        for (var entry : filters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            
+            if (key.endsWith("__like")) {
+                String field = key.substring(0, key.length() - 6);
+                whereClauses.add(field + " LIKE '%" + sanitize(value) + "%'");
+            } else if (key.endsWith("__in")) {
+                String field = key.substring(0, key.length() - 4);
+                String[] values = value.split(",");
+                String inList = Arrays.stream(values)
+                    .map(v -> "'" + sanitize(v) + "'")
+                    .collect(Collectors.joining(", "));
+                whereClauses.add(field + " IN (" + inList + ")");
+            } else {
+                whereClauses.add(key + " = '" + sanitize(value) + "'");
+            }
+        }
+        
+        if (!whereClauses.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", whereClauses));
         }
         
         // Apply sorting
         if (sort != null && !sort.isBlank()) {
-            Order order = buildOrder(cb, root, sort);
-            if (order != null) {
-                query.orderBy(order);
+            if (sort.startsWith("-")) {
+                sql.append(" ORDER BY ").append(sort.substring(1)).append(" DESC");
+            } else {
+                sql.append(" ORDER BY ").append(sort).append(" ASC");
             }
         }
         
-        // Select only allowed columns
-        List<Selection<?>> selections = buildSelections(root, allowedColumns, schema);
-        query.multiselect(selections);
+        // Apply pagination
+        sql.append(" LIMIT ").append(size).append(" OFFSET ").append(page * size);
         
-        // Execute with pagination
-        TypedQuery<Object[]> typedQuery = entityManager.createQuery(query);
-        typedQuery.setFirstResult(page * size);
-        typedQuery.setMaxResults(size);
-        
-        List<Object[]> results = typedQuery.getResultList();
+        // Execute query
+        @SuppressWarnings("unchecked")
+        List<Object[]> results = entityManager.createNativeQuery(sql.toString()).getResultList();
         
         // Map to response
+        List<String> columnList = new ArrayList<>(allowedColumns);
         return results.stream()
-            .map(row -> mapRowToMap(row, allowedColumns, schema))
+            .map(row -> mapRowToMap(row, columnList))
             .collect(Collectors.toList());
     }
     
@@ -231,6 +251,12 @@ public class MetamodelCrudService {
     
     // Helper methods
     
+    private String sanitize(String value) {
+        if (value == null) return "";
+        // Basic SQL injection prevention
+        return value.replace("'", "''").replace(";", "");
+    }
+    
     private Object findEntityById(EntitySchema schema, String id) {
         String sql = String.format("SELECT * FROM %s WHERE %s = :id",
             schema.getTable(), schema.getIdField());
@@ -242,135 +268,6 @@ public class MetamodelCrudService {
         } catch (Exception e) {
             return null;
         }
-    }
-    
-    private List<Predicate> buildPredicates(
-        CriteriaBuilder cb, 
-        Root<?> root, 
-        Map<String, String> filters,
-        EntitySchema schema
-    ) {
-        List<Predicate> predicates = new ArrayList<>();
-        
-        for (var entry : filters.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            
-            if (key.endsWith("__like")) {
-                String field = key.substring(0, key.length() - 6);
-                predicates.add(cb.like(root.get(field), value));
-            } else if (key.endsWith("__in")) {
-                String field = key.substring(0, key.length() - 4);
-                String[] values = value.split(",");
-                predicates.add(root.get(field).in((Object[]) values));
-            } else {
-                predicates.add(cb.equal(root.get(key), value));
-            }
-        }
-        
-        return predicates;
-    }
-    
-    private Order buildOrder(CriteriaBuilder cb, Root<?> root, String sort) {
-        if (sort.startsWith("-")) {
-            return cb.desc(root.get(sort.substring(1)));
-        } else {
-            return cb.asc(root.get(sort));
-        }
-    }
-    
-    private List<Selection<?>> buildSelections(
-        Root<?> root, 
-        Set<String> allowedColumns,
-        EntitySchema schema
-    ) {
-        return allowedColumns.stream()
-            .map(col -> root.get(col))
-            .collect(Collectors.toList());
-    }
-    
-    private Map<String, Object> mapRowToMap(
-        Object[] row, 
-        Set<String> allowedColumns,
-        EntitySchema schema
-    ) {
-        Map<String, Object> result = new HashMap<>();
-        List<String> columns = new ArrayList<>(allowedColumns);
-        
-        for (int i = 0; i < row.length && i < columns.size(); i++) {
-            result.put(columns.get(i), row[i]);
-        }
-        
-        return result;
-    }
-    
-    private Map<String, Object> projectEntityToMap(
-        Object entity, 
-        Set<String> allowedColumns,
-        EntitySchema schema
-    ) {
-        Map<String, Object> result = new HashMap<>();
-        
-        for (String col : allowedColumns) {
-            try {
-                if (entity instanceof Object[] row) {
-                    // From native query
-                    result.put(col, row[0]); // Simplified
-                } else if (entity instanceof Map) {
-                    result.put(col, ((Map<?, ?>) entity).get(col));
-                }
-            } catch (Exception e) {
-                log.warn("Failed to extract column {}: {}", col, e.getMessage());
-            }
-        }
-        
-        return result;
-    }
-    
-    private String buildInsertSql(EntitySchema schema, Map<String, Object> data) {
-        List<String> columns = new ArrayList<>(data.keySet());
-        List<String> values = columns.stream()
-            .map(col -> formatValue(data.get(col)))
-            .collect(Collectors.toList());
-        
-        return String.format("INSERT INTO %s (%s) VALUES (%s)",
-            schema.getTable(),
-            String.join(", ", columns),
-            String.join(", ", values)
-        );
-    }
-    
-    private String buildUpdateSql(
-        EntitySchema schema, 
-        String id, 
-        Map<String, Object> data,
-        long expectedVersion
-    ) {
-        String setClauses = data.entrySet().stream()
-            .filter(e -> !e.getKey().equals(schema.getIdField()))
-            .filter(e -> !e.getKey().equals(schema.getVersionField()))
-            .map(e -> e.getKey() + " = " + formatValue(e.getValue()))
-            .collect(Collectors.joining(", "));
-        
-        return String.format(
-            "UPDATE %s SET %s, %s = %s + 1 WHERE %s = '%s' AND %s = %d",
-            schema.getTable(),
-            setClauses,
-            schema.getVersionField(),
-            schema.getVersionField(),
-            schema.getIdField(),
-            id,
-            schema.getVersionField(),
-            expectedVersion
-        );
-    }
-    
-    private String formatValue(Object value) {
-        if (value == null) return "NULL";
-        if (value instanceof String) return "'" + value.toString().replace("'", "''") + "'";
-        if (value instanceof Number) return value.toString();
-        if (value instanceof UUID) return "'" + value.toString() + "'";
-        return "'" + value.toString() + "'";
     }
     
     private Long extractVersion(Object entity, EntitySchema schema) {
@@ -396,8 +293,115 @@ public class MetamodelCrudService {
         return "admin";
     }
     
-    private Class<?> getEntityClass(String tableName) {
-        // For now, use Object[] for native queries
-        return Object.class;
+    /**
+     * Map native query result row to Map
+     */
+    private Map<String, Object> mapRowToMap(Object[] row, List<String> columns) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (int i = 0; i < columns.size() && i < row.length; i++) {
+            result.put(columns.get(i), row[i]);
+        }
+        return result;
+    }
+    
+    /**
+     * Project entity to Map with allowed columns
+     */
+    private Map<String, Object> projectEntityToMap(Object entity, Set<String> allowedColumns, EntitySchema schema) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        
+        if (entity instanceof Object[] row) {
+            // From native query result
+            List<String> allColumns = schema.getFields().stream()
+                .map(FieldSchema::getName)
+                .collect(Collectors.toList());
+            
+            for (int i = 0; i < allColumns.size() && i < row.length; i++) {
+                String col = allColumns.get(i);
+                if (allowedColumns.isEmpty() || allowedColumns.contains(col)) {
+                    result.put(col, row[i]);
+                }
+            }
+        } else if (entity instanceof Map<?, ?> map) {
+            // From Map
+            for (var entry : map.entrySet()) {
+                String key = entry.getKey().toString();
+                if (allowedColumns.isEmpty() || allowedColumns.contains(key)) {
+                    result.put(key, entry.getValue());
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Build INSERT SQL statement
+     */
+    private String buildInsertSql(EntitySchema schema, Map<String, Object> data) {
+        List<String> columns = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        
+        for (var entry : data.entrySet()) {
+            columns.add(entry.getKey());
+            values.add(formatValue(entry.getValue()));
+        }
+        
+        return String.format("INSERT INTO %s (%s) VALUES (%s)",
+            schema.getTable(),
+            String.join(", ", columns),
+            String.join(", ", values)
+        );
+    }
+    
+    /**
+     * Build UPDATE SQL statement with version check
+     */
+    private String buildUpdateSql(EntitySchema schema, String id, Map<String, Object> data, long expectedVersion) {
+        List<String> sets = new ArrayList<>();
+        
+        for (var entry : data.entrySet()) {
+            if (!entry.getKey().equals(schema.getIdField())) {
+                sets.add(entry.getKey() + " = " + formatValue(entry.getValue()));
+            }
+        }
+        
+        // Increment version via trigger, just check current version
+        String sql = String.format("UPDATE %s SET %s WHERE %s = '%s'",
+            schema.getTable(),
+            String.join(", ", sets),
+            schema.getIdField(),
+            id
+        );
+        
+        if (schema.getVersionField() != null) {
+            sql += " AND " + schema.getVersionField() + " = " + expectedVersion;
+        }
+        
+        return sql;
+    }
+    
+    /**
+     * Format value for SQL statement
+     */
+    private String formatValue(Object value) {
+        if (value == null) {
+            return "NULL";
+        }
+        
+        if (value instanceof String) {
+            return "'" + sanitize(value.toString()) + "'";
+        }
+        
+        if (value instanceof Number || value instanceof Boolean) {
+            return value.toString();
+        }
+        
+        if (value instanceof UUID) {
+            return "'" + value.toString() + "'";
+        }
+        
+        // Default: convert to string
+        return "'" + sanitize(value.toString()) + "'";
     }
 }
