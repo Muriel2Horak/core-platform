@@ -45,6 +45,7 @@ import {
   DeleteRoleDialog,
   CompositeRoleBuilder,
   RoleUsersView,
+  RoleUsersDialog,
 } from './Roles/index.js';
 
 function Roles({ user }) {
@@ -65,6 +66,7 @@ function Roles({ user }) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [compositeBuilderOpen, setCompositeBuilderOpen] = useState(false);
   const [usersViewOpen, setUsersViewOpen] = useState(false);
+  const [roleUsersDialogOpen, setRoleUsersDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
 
   // Menu state
@@ -439,6 +441,11 @@ function Roles({ user }) {
                             label={role.userCount || 0}
                             size="small"
                             color={role.userCount > 0 ? 'primary' : 'default'}
+                            onClick={() => {
+                              setSelectedRole(role);
+                              setRoleUsersDialogOpen(true);
+                            }}
+                            sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
                           />
                         </TableCell>
                         {canManageRoles && (
@@ -548,6 +555,14 @@ function Roles({ user }) {
           setSelectedRole(null);
         }}
         role={selectedRole}
+      />
+
+      <RoleUsersDialog
+        open={roleUsersDialogOpen}
+        onClose={() => setRoleUsersDialogOpen(false)}
+        role={selectedRole}
+        tenantKey={isCoreAdmin ? selectedTenant : user?.tenantKey}
+        onUpdate={loadRoles}
       />
     </Box>
   );

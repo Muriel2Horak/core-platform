@@ -1710,4 +1710,204 @@ public class KeycloakAdminService {
       return new ArrayList<>();
     }
   }
+
+  /**
+   * 🏢 GET ROLES BY TENANT - Vrátí seznam rolí pro konkrétní tenant (realm)
+   */
+  public List<RoleDto> getRolesByTenant(String tenantKey) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode roles = objectMapper.readTree(response.getBody());
+      List<RoleDto> roleList = new ArrayList<>();
+
+      for (JsonNode role : roles) {
+        // Skip default Keycloak roles
+        String roleName = role.path("name").asText();
+        if (roleName.startsWith("default-") || roleName.startsWith("offline_") 
+            || roleName.equals("uma_authorization")) {
+          continue;
+        }
+
+        RoleDto roleDto = RoleDto.builder()
+            .id(role.path("id").asText())
+            .name(roleName)
+            .description(role.path("description").asText())
+            .composite(role.path("composite").asBoolean())
+            .build();
+        roleList.add(roleDto);
+      }
+
+      log.info("✅ Found {} roles for tenant: {}", roleList.size(), tenantKey);
+      return roleList;
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get roles for tenant: {}", tenantKey, ex);
+      throw new RuntimeException("Failed to get roles for tenant: " + tenantKey, ex);
+    }
+  }
+
+  /**
+   * 👥 GET USERS BY TENANT - Vrátí seznam uživatelů pro konkrétní tenant (realm)
+   */
+  public List<UserDto> getUsersByTenant(String tenantKey) {
+    try {
+      String adminToken = getSecureAdminToken();
+      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users?max=1000";
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode users = objectMapper.readTree(response.getBody());
+      List<UserDto> userList = new ArrayList<>();
+
+      for (JsonNode user : users) {
+        UserDto userDto = UserDto.builder()
+            .id(user.path("id").asText())
+            .username(user.path("username").asText())
+            .email(user.path("email").asText())
+            .firstName(user.path("firstName").asText())
+            .lastName(user.path("lastName").asText())
+            .enabled(user.path("enabled").asBoolean())
+            .emailVerified(user.path("emailVerified").asBoolean())
+            .build();
+        userList.add(userDto);
+      }
+
+      log.info("✅ Found {} users for tenant: {}", userList.size(), tenantKey);
+      return userList;
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get users for tenant: {}", tenantKey, ex);
+      throw new RuntimeException("Failed to get users for tenant: " + tenantKey, ex);
+    }
+  }
+
+  /**
+   * 👥 GET USERS BY ROLE AND TENANT - Vrátí uživatele s danou rolí v konkrétním tenantu
+   */
+  public List<UserDto> getUsersByRoleAndTenant(String roleName, String tenantKey) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get role from specific realm
+      String roleUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles/" + roleName;
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> roleResponse = restTemplate.exchange(roleUrl, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+      JsonNode roleNode = objectMapper.readTree(roleResponse.getBody());
+      String roleId = roleNode.path("id").asText();
+
+      // Get users with this role
+      String usersUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles-by-id/" + roleId + "/users";
+      ResponseEntity<String> response = restTemplate.exchange(usersUrl, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+
+      JsonNode users = objectMapper.readTree(response.getBody());
+      List<UserDto> userList = new ArrayList<>();
+
+      for (JsonNode user : users) {
+        UserDto userDto = UserDto.builder()
+            .id(user.path("id").asText())
+            .username(user.path("username").asText())
+            .email(user.path("email").asText())
+            .firstName(user.path("firstName").asText())
+            .lastName(user.path("lastName").asText())
+            .enabled(user.path("enabled").asBoolean())
+            .emailVerified(user.path("emailVerified").asBoolean())
+            .build();
+        userList.add(userDto);
+      }
+
+      log.info("✅ Found {} users with role {} in tenant {}", userList.size(), roleName, tenantKey);
+      return userList;
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to get users by role {} for tenant {}", roleName, tenantKey, ex);
+      return new ArrayList<>();
+    }
+  }
+
+  /**
+   * ➕ ADD ROLE TO USER IN TENANT - Přidá roli uživateli v konkrétním tenantu
+   */
+  public void addRoleToUser(String userId, String roleName, String tenantKey) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get role from specific realm
+      String roleUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles/" + roleName;
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> roleResponse = restTemplate.exchange(roleUrl, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+      JsonNode roleNode = objectMapper.readTree(roleResponse.getBody());
+
+      Map<String, Object> roleRep = new HashMap<>();
+      roleRep.put("id", roleNode.path("id").asText());
+      roleRep.put("name", roleNode.path("name").asText());
+
+      // Add role to user
+      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users/" + userId + "/role-mappings/realm";
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      restTemplate.exchange(url, HttpMethod.POST, 
+          new HttpEntity<>(List.of(roleRep), headers), Void.class);
+
+      log.info("✅ Added role {} to user {} in tenant {}", roleName, userId, tenantKey);
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to add role {} to user {} in tenant {}", roleName, userId, tenantKey, ex);
+      throw new RuntimeException("Failed to add role to user: " + ex.getMessage(), ex);
+    }
+  }
+
+  /**
+   * ➖ REMOVE ROLE FROM USER IN TENANT - Odebere roli uživateli v konkrétním tenantu
+   */
+  public void removeRoleFromUser(String userId, String roleName, String tenantKey) {
+    try {
+      String adminToken = getSecureAdminToken();
+
+      // Get role from specific realm
+      String roleUrl = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/roles/" + roleName;
+      HttpHeaders headers = new HttpHeaders();
+      headers.setBearerAuth(adminToken);
+
+      ResponseEntity<String> roleResponse = restTemplate.exchange(roleUrl, HttpMethod.GET,
+          new HttpEntity<>(headers), String.class);
+      JsonNode roleNode = objectMapper.readTree(roleResponse.getBody());
+
+      Map<String, Object> roleRep = new HashMap<>();
+      roleRep.put("id", roleNode.path("id").asText());
+      roleRep.put("name", roleNode.path("name").asText());
+
+      // Remove role from user
+      String url = keycloakBaseUrl + "/admin/realms/" + tenantKey + "/users/" + userId + "/role-mappings/realm";
+      headers.setContentType(MediaType.APPLICATION_JSON);
+
+      // Keycloak uses DELETE with body
+      restTemplate.exchange(url, HttpMethod.DELETE, 
+          new HttpEntity<>(List.of(roleRep), headers), Void.class);
+
+      log.info("✅ Removed role {} from user {} in tenant {}", roleName, userId, tenantKey);
+
+    } catch (Exception ex) {
+      log.error("❌ Failed to remove role {} from user {} in tenant {}", roleName, userId, tenantKey, ex);
+      throw new RuntimeException("Failed to remove role from user: " + ex.getMessage(), ex);
+    }
+  }
 }
