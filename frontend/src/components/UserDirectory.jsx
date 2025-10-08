@@ -180,7 +180,7 @@ function UserDirectory({ user }) {
   const handleViewUser = (userData) => {
     setSelectedUser(userData);
     setViewDialog(true);
-    handleActionMenuClose();
+    // Nevoláme handleActionMenuClose() tady - menu už je zavřené přes onClick na TableRow
     logger.userAction('USER_VIEW_CLICKED', { userId: userData.id });
   };
 
@@ -608,7 +608,8 @@ function UserDirectory({ user }) {
           👤 Detail uživatele
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
-          {selectedUser && (
+          {console.log('🔍 Selected user in dialog:', selectedUser)}
+          {selectedUser ? (
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                 <Avatar
@@ -688,6 +689,8 @@ function UserDirectory({ user }) {
                 </Box>
               </Box>
             </Box>
+          ) : (
+            <Typography>Načítání...</Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
