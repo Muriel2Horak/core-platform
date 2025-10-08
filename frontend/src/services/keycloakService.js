@@ -24,8 +24,8 @@ class KeycloakService {
     // 🔧 FIXED: Use same logic as backend - extract tenant from hostname with fallback
     const realm = this.extractRealmFromHostname(hostname);
     
-    // 🔧 FIXED: Build correct Keycloak URL based on realm
-    const keycloakUrl = this.buildKeycloakUrl(hostname, realm);
+    // 🔧 FIXED: Build correct Keycloak URL based on hostname (realm not needed for URL)
+    const keycloakUrl = this.buildKeycloakUrl(hostname);
     
     logger.debug('Using realm from hostname', { 
       hostname, 
@@ -59,16 +59,17 @@ class KeycloakService {
   }
 
   /**
-   * 🔧 BUILD KEYCLOAK URL: Build correct Keycloak URL based on realm
+   * 🔧 BUILD KEYCLOAK URL: Build correct Keycloak URL
+   * Uses nginx proxy, so realm is not needed in URL
    */
-  buildKeycloakUrl(hostname, realm) {
-    // If realm is admin and we're on core-platform.local (no subdomain), use admin subdomain
-    if (realm === 'admin' && hostname === 'core-platform.local') {
-      return 'https://admin.core-platform.local';
-    }
+  buildKeycloakUrl(hostname) {
+    // 🔧 FIXED: Use relative URL to leverage nginx proxy
+    // Nginx routes /realms/* and /admin/* to keycloak service
+    const protocol = window.location.protocol;
+    const port = window.location.port ? `:${window.location.port}` : '';
     
-    // For tenant realms, use the current hostname (which should be tenant.core-platform.local)
-    return `https://${hostname}`;
+    // Use current origin to go through nginx proxy
+    return `${protocol}//${hostname}${port}`;
   }
 
   /**

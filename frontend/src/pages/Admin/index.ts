@@ -4,3 +4,4 @@ export { default as AdminRolesPage } from './AdminRolesPage';
 export { default as AdminTenantsPage } from './AdminTenantsPage';
 export { default as AdminSecurityPage } from './AdminSecurityPage';
 export { default as AdminAuditPage } from './AdminAuditPage';
+export { KeycloakSyncPage } from './KeycloakSyncPage';

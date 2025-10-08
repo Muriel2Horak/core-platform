@@ -47,6 +47,7 @@ import {
   Assessment as AssessmentIcon,
   Shield as ShieldIcon,
   BugReport as BugReportIcon,
+  Sync as SyncIcon,
   ExpandLess,
   ExpandMore,
 } from '@mui/icons-material';
@@ -177,7 +178,59 @@ export const defaultMenuItems: SidebarNavItem[] = [
             description: 'Auditní logy',
             requiredRoles: ['CORE_ROLE_ADMIN'],
           },
+          {
+            id: 'core-admin-keycloak-sync',
+            label: 'Keycloak Sync',
+            icon: <SyncIcon />,
+            href: '/core-admin/keycloak-sync',
+            description: 'Synchronizace z Keycloak',
+            requiredRoles: ['CORE_ROLE_ADMIN'],
+          },
         ],
+      },
+    ],
+  },
+  
+  // 👤 Tenant Administration - sekce pro tenant adminy
+  {
+    id: 'tenant-administration',
+    label: 'Tenant Administrace',
+    icon: <BusinessIcon />,
+    href: '#',  // Jen expandable kontejner
+    description: 'Správa tenantu',
+    requiredRoles: ['TENANT_ADMIN'],
+    children: [
+      {
+        id: 'tenant-admin-dashboard',
+        label: 'Dashboard',
+        icon: <DashboardIcon />,
+        href: '/tenant-admin',
+        description: 'Přehled tenantu',
+        requiredRoles: ['TENANT_ADMIN'],
+      },
+      {
+        id: 'tenant-admin-users',
+        label: 'Uživatelé',
+        icon: <PeopleIcon />,
+        href: '/tenant-admin/users',
+        description: 'Správa uživatelů tenantu',
+        requiredRoles: ['TENANT_ADMIN'],
+      },
+      {
+        id: 'tenant-admin-roles',
+        label: 'Role',
+        icon: <SecurityIcon />,
+        href: '/tenant-admin/roles',
+        description: 'Správa rolí tenantu',
+        requiredRoles: ['TENANT_ADMIN'],
+      },
+      {
+        id: 'tenant-admin-keycloak-sync',
+        label: 'Synchronizace',
+        icon: <SyncIcon />,
+        href: '/tenant-admin/keycloak-sync',
+        description: 'Synchronizace tenantu',
+        requiredRoles: ['TENANT_ADMIN'],
       },
     ],
   },

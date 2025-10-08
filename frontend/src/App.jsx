@@ -23,7 +23,16 @@ import {
   AdminTenantsPage,
   AdminSecurityPage,
   AdminAuditPage,
+  KeycloakSyncPage,
 } from './pages/Admin';
+
+// 🆕 Tenant Admin sekce
+import {
+  TenantDashboard,
+  TenantUsersPage,
+  TenantRolesPage,
+  TenantKeycloakSyncPage,
+} from './pages/TenantAdmin';
 
 // Login komponenta
 const LoginPage = () => {
@@ -41,12 +50,164 @@ const LoginPage = () => {
         alignItems: 'center', 
         height: '100vh',
         flexDirection: 'column',
-        gap: '20px'
+        gap: '32px',
+        background: 'linear-gradient(135deg, #f5f5f7 0%, #e8e8ea 100%)',
+        padding: '20px'
       }}>
-        <div>🔧 Inicializuji autentifikaci...</div>
-        <div style={{ fontSize: '14px', color: '#666' }}>
-          Připojuji se k Keycloak serveru
+        {/* Loading Card */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '24px',
+          padding: '48px 64px',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
+          textAlign: 'center',
+          maxWidth: '500px',
+          width: '100%'
+        }}>
+          {/* Animated Logo */}
+          <div style={{ marginBottom: '32px' }}>
+            <svg width="80" height="80" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" 
+              style={{ 
+                display: 'inline-block',
+                animation: 'pulse 2s ease-in-out infinite'
+              }}>
+              <defs>
+                <linearGradient id="loadingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor: '#1976d2', stopOpacity: 1}} />
+                  <stop offset="100%" style={{stopColor: '#42a5f5', stopOpacity: 1}} />
+                </linearGradient>
+              </defs>
+              <path d="M20 2 L35 15 L30 15 L20 8 L10 15 L5 15 Z" fill="url(#loadingGradient)" />
+              <path d="M8 18 L12 18 L20 28 L28 18 L32 18 L20 33 Z" fill="url(#loadingGradient)" />
+              <rect x="18" y="16" width="4" height="18" fill="url(#loadingGradient)" opacity="0.8" />
+            </svg>
+          </div>
+
+          {/* Loading Text */}
+          <h2 style={{ 
+            fontSize: '28px', 
+            margin: '0 0 12px 0',
+            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            fontWeight: 600,
+          }}>
+            Připojuji se...
+          </h2>
+          
+          <p style={{ 
+            fontSize: '16px', 
+            margin: '0 0 32px 0', 
+            color: '#666',
+            lineHeight: '1.6'
+          }}>
+            Navazuji zabezpečené spojení s autentifikačním serverem
+          </p>
+
+          {/* Animated Progress Dots */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: '12px',
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+              animation: 'bounce 1.4s ease-in-out 0s infinite'
+            }} />
+            <div style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+              animation: 'bounce 1.4s ease-in-out 0.2s infinite'
+            }} />
+            <div style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+              animation: 'bounce 1.4s ease-in-out 0.4s infinite'
+            }} />
+          </div>
+
+          {/* Status Steps */}
+          <div style={{
+            background: 'rgba(25, 118, 210, 0.05)',
+            borderRadius: '12px',
+            padding: '20px',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ 
+                width: '24px', 
+                height: '24px', 
+                borderRadius: '50%', 
+                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                animation: 'spin 1s linear infinite'
+              }}>⟳</div>
+              <span style={{ color: '#1976d2', fontWeight: 500 }}>Ověřuji Keycloak server</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ 
+                width: '24px', 
+                height: '24px', 
+                borderRadius: '50%', 
+                background: '#e0e0e0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#999',
+                fontSize: '16px'
+              }}>○</div>
+              <span style={{ color: '#999' }}>Načítám konfiguraci</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                width: '24px', 
+                height: '24px', 
+                borderRadius: '50%', 
+                background: '#e0e0e0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#999',
+                fontSize: '16px'
+              }}>○</div>
+              <span style={{ color: '#999' }}>Připravuji přihlášení</span>
+            </div>
+          </div>
         </div>
+
+        {/* CSS Animations */}
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.95); }
+          }
+          
+          @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-12px); }
+          }
+          
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -222,11 +383,60 @@ const AppContent = () => {
   const { isAuthenticated, loading, user, logout } = useAuth();
 
   if (loading) {
+    // Show enhanced loading screen while initializing
     return <LoginPage />;
   }
 
   if (!isAuthenticated) {
     return <LoginPage />;
+  }
+
+  // ✅ Show loading while user data is being fetched (authenticated but no user yet)
+  if (!user) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'linear-gradient(135deg, #f5f5f7 0%, #e8e8ea 100%)',
+      }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.08)',
+        }}>
+          <div style={{ marginBottom: '20px' }}>
+            <svg width="60" height="60" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" 
+              style={{ animation: 'pulse 2s ease-in-out infinite' }}>
+              <defs>
+                <linearGradient id="userLoadingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{stopColor: '#1976d2', stopOpacity: 1}} />
+                  <stop offset="100%" style={{stopColor: '#42a5f5', stopOpacity: 1}} />
+                </linearGradient>
+              </defs>
+              <path d="M20 2 L35 15 L30 15 L20 8 L10 15 L5 15 Z" fill="url(#userLoadingGradient)" />
+              <path d="M8 18 L12 18 L20 28 L28 18 L32 18 L20 33 Z" fill="url(#userLoadingGradient)" />
+              <rect x="18" y="16" width="4" height="18" fill="url(#userLoadingGradient)" opacity="0.8" />
+            </svg>
+          </div>
+          <h3 style={{ 
+            margin: '0 0 8px 0', 
+            color: '#1976d2',
+            fontSize: '20px',
+            fontWeight: 600
+          }}>
+            Načítám uživatelský profil...
+          </h3>
+          <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
+            Připravuji vaše pracovní prostředí
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -249,6 +459,15 @@ const AppContent = () => {
           <Route path="tenants" element={<AdminTenantsPage user={user} />} />
           <Route path="security" element={<AdminSecurityPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
+          <Route path="keycloak-sync" element={<KeycloakSyncPage user={user} />} />
+        </Route>
+        
+        {/* 🆕 Tenant Admin sekce - pro tenant administrátory */}
+        <Route path="/tenant-admin">
+          <Route index element={<TenantDashboard user={user} />} />
+          <Route path="users" element={<TenantUsersPage user={user} />} />
+          <Route path="roles" element={<TenantRolesPage user={user} />} />
+          <Route path="keycloak-sync" element={<TenantKeycloakSyncPage user={user} />} />
         </Route>
         
         {/* Legacy routes - redirect na nové core-admin cesty */}
