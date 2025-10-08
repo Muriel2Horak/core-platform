@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -40,6 +40,13 @@ import { defaultMenuItems } from '../shared/ui/SidebarNav';
 import apiService from '../services/api.js';
 import { UserPropType } from '../shared/propTypes.js';
 
+// 🎯 Resize constants
+const SIDEBAR_MIN_WIDTH = 60; // Collapsed mode (icons only)
+const SIDEBAR_MAX_WIDTH = 400; // Maximum expanded width
+const SIDEBAR_DEFAULT_WIDTH = parseInt(tokens.components.layout.sidebarWidth, 10); // 240px
+const SIDEBAR_COLLAPSE_THRESHOLD = 150; // Auto-collapse below this width
+const SIDEBAR_STORAGE_KEY = 'sidebar-width';
+
 const drawerWidthExpanded = parseInt(tokens.components.layout.sidebarWidth, 10); // 280px z tokens
 const drawerWidthCollapsed = 72; // Šířka pro collapsed režim
 
@@ -50,11 +57,19 @@ function Layout({ children, user, onLogout }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    // Load from localStorage
-    const saved = localStorage.getItem('sidebarCollapsed');
-    return saved === 'true';
+  
+  // 📏 Resizable sidebar width
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    return saved ? parseInt(saved, 10) : SIDEBAR_DEFAULT_WIDTH;
   });
+  
+  const [isResizing, setIsResizing] = useState(false);
+  const drawerRef = useRef(null);
+  
+  // Auto-collapse when width is below threshold
+  const sidebarCollapsed = sidebarWidth < SIDEBAR_COLLAPSE_THRESHOLD;
+  
   const [anchorEl, setAnchorEl] = useState(null);
   
   // ✅ FIXED: Používáme user.tenant místo API volání
@@ -109,6 +124,51 @@ function Layout({ children, user, onLogout }) {
     }
   };
 
+  // 🖱️ Resize handlers
+  const handleMouseMove = useCallback((e) => {
+    if (!isResizing) return;
+    
+    const newWidth = e.clientX;
+    
+    // Clamp between min and max
+    if (newWidth >= SIDEBAR_MIN_WIDTH && newWidth <= SIDEBAR_MAX_WIDTH) {
+      setSidebarWidth(newWidth);
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, newWidth.toString());
+    }
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+  }, []);
+
+  // 📌 Add/remove event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   const handleTenantMenuOpen = (event) => {
     setTenantMenuAnchor(event.currentTarget);
   };
@@ -124,12 +184,14 @@ function Layout({ children, user, onLogout }) {
   };
 
   const toggleSidebar = () => {
-    const newCollapsed = !sidebarCollapsed;
-    setSidebarCollapsed(newCollapsed);
-    localStorage.setItem('sidebarCollapsed', String(newCollapsed));
+    // Toggle between collapsed (60px) and default width (240px)
+    const newWidth = sidebarCollapsed ? SIDEBAR_DEFAULT_WIDTH : SIDEBAR_MIN_WIDTH;
+    setSidebarWidth(newWidth);
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, newWidth.toString());
   };
 
-  const drawerWidth = sidebarCollapsed ? drawerWidthCollapsed : drawerWidthExpanded;
+  // Use sidebarWidth directly instead of conditional
+  const drawerWidth = sidebarWidth;
 
   const getUserDisplayName = () => {
     if (user?.firstName && user?.lastName) {
@@ -263,8 +325,14 @@ function Layout({ children, user, onLogout }) {
           </>
         )}
         {sidebarCollapsed && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {/* Compact Logo + expand button */}
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: 1,
+          }}>
+            {/* Compact Logo */}
             <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="axiomGradientSmall" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -283,7 +351,6 @@ function Layout({ children, user, onLogout }) {
                 onClick={toggleSidebar}
                 size="small"
                 sx={{
-                  ml: 1,
                   bgcolor: prefersDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
                   '&:hover': {
                     bgcolor: prefersDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
@@ -695,6 +762,7 @@ function Layout({ children, user, onLogout }) {
         
         <Drawer
           variant="permanent"
+          ref={drawerRef}
           sx={{
             display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': {
@@ -702,13 +770,63 @@ function Layout({ children, user, onLogout }) {
               width: drawerWidth,
               border: 'none',
               boxShadow: tokens.shadows.xl,
-              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: isResizing ? 'none' : 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               overflowX: 'hidden',
+              position: 'relative',
             },
           }}
           open
         >
           {drawer}
+          
+          {/* Resize Handle */}
+          <Box
+            onMouseDown={handleMouseDown}
+            sx={{
+              position: 'absolute',
+              right: '-4px',
+              top: 0,
+              bottom: 0,
+              width: '8px',
+              cursor: 'col-resize',
+              backgroundColor: 'transparent',
+              transition: 'background-color 0.2s ease-in-out',
+              zIndex: 9999,
+              
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                right: '3px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '2px',
+                height: '40px',
+                backgroundColor: 'divider',
+                borderRadius: '2px',
+                opacity: 0,
+                transition: 'opacity 0.2s ease-in-out',
+              },
+              
+              '&:hover': {
+                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                
+                '&::after': {
+                  opacity: 0.8,
+                  backgroundColor: 'primary.main',
+                },
+              },
+              
+              '&:active': {
+                backgroundColor: 'rgba(25, 118, 210, 0.12)',
+                
+                '&::after': {
+                  opacity: 1,
+                  backgroundColor: 'primary.dark',
+                },
+              },
+            }}
+            title="Přetažením změňte šířku sidebaru"
+          />
         </Drawer>
       </Box>
 

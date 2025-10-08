@@ -3,9 +3,10 @@
  * 
  * Hlavní layout wrapper který kombinuje sidebar navigaci s obsahovou oblastí.
  * Podporuje dva módy: 'content' (centrálně zarovnaný) a 'work' (plná šířka).
+ * Sidebar je resizable s auto-collapse při zúžení.
  */
 
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, styled } from '@mui/material';
 import { SidebarNav, SidebarNavItem } from '../../shared/ui/SidebarNav';
 import { PageContainer } from '../../shared/ui/PageContainer.tsx';
@@ -34,18 +35,28 @@ export interface AppShellProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | false;
 }
 
-// 🎨 Styled komponenty
+// � Sidebar resize constants
+const SIDEBAR_MIN_WIDTH = 60; // Collapsed mode (icons only)
+const SIDEBAR_MAX_WIDTH = 400; // Maximum expanded width
+const SIDEBAR_DEFAULT_WIDTH = 240; // Default width (from tokens)
+const SIDEBAR_COLLAPSE_THRESHOLD = 150; // Auto-collapse below this width
+const SIDEBAR_STORAGE_KEY = 'sidebar-width';
+
+// �🎨 Styled komponenty
 const ShellContainer = styled(Box)(() => ({
   display: 'flex',
   minHeight: '100vh',
   backgroundColor: tokens.colors.grey[50],
 }));
 
-const SidebarArea = styled(Box)(() => ({
-  width: tokens.components.layout.sidebarWidth,
+const SidebarArea = styled(Box)<{ width: number; isResizing: boolean }>(({ width, isResizing }) => ({
+  width: `${width}px`,
   flexShrink: 0,
   backgroundColor: tokens.colors.sidebar.bg,
   borderRight: `1px solid ${tokens.colors.grey[200]}`,
+  position: 'relative',
+  transition: isResizing ? 'none' : 'width 0.2s ease-in-out',
+  overflow: 'hidden', // Prevent content overflow during resize
 
   // Sidebar shadow
   boxShadow: tokens.shadows.md,
@@ -57,6 +68,54 @@ const SidebarArea = styled(Box)(() => ({
     top: 0,
     height: '100vh',
     zIndex: 1300,
+  },
+}));
+
+// Resize handle
+const ResizeHandle = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  right: '-4px', // Centered on border
+  top: 0,
+  bottom: 0,
+  width: '8px', // Wider hit area
+  cursor: 'col-resize',
+  backgroundColor: 'rgba(255, 0, 0, 0.1)', // DEBUG: Temporary red background
+  transition: 'background-color 0.2s ease-in-out',
+  zIndex: 9999, // Very high to be on top of everything
+  
+  // DEBUG: Visible border
+  borderLeft: '2px solid red',
+  
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    right: '3px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: '2px',
+    height: '40px',
+    backgroundColor: theme.palette.divider,
+    borderRadius: '2px',
+    opacity: 0,
+    transition: 'opacity 0.2s ease-in-out',
+  },
+  
+  '&:hover': {
+    backgroundColor: 'rgba(25, 118, 210, 0.2)',
+    
+    '&::after': {
+      opacity: 0.8,
+      backgroundColor: theme.palette.primary.main,
+    },
+  },
+  
+  '&:active': {
+    backgroundColor: 'rgba(25, 118, 210, 0.3)',
+    
+    '&::after': {
+      opacity: 1,
+      backgroundColor: theme.palette.primary.dark,
+    },
   },
 }));
 
@@ -94,6 +153,65 @@ export const AppShell: React.FC<AppShellProps> = ({
   const { user } = useAuth();
   const location = useLocation();
 
+  // 📏 Sidebar width state
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    // Load from localStorage or use default
+    const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    return saved ? parseInt(saved, 10) : SIDEBAR_DEFAULT_WIDTH;
+  });
+  
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Auto-collapse when width is below threshold
+  const isCollapsed = sidebarWidth < SIDEBAR_COLLAPSE_THRESHOLD;
+
+  // 🖱️ Mouse move handler for resizing
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+    
+    const newWidth = e.clientX;
+    
+    // Clamp between min and max
+    if (newWidth >= SIDEBAR_MIN_WIDTH && newWidth <= SIDEBAR_MAX_WIDTH) {
+      setSidebarWidth(newWidth);
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, newWidth.toString());
+    }
+  }, [isResizing]);
+
+  // 🖱️ Mouse up handler
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // 🎯 Start resizing
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  // 📌 Add/remove event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
   const handleNavigation = (item: SidebarNavItem) => {
     // V reálné aplikaci by toto bylo řešeno routerem
     window.location.href = item.href;
@@ -106,12 +224,25 @@ export const AppShell: React.FC<AppShellProps> = ({
   return (
     <ShellContainer>
       {/* Sidebar */}
-      <SidebarArea>
-        <SidebarNav
-          onItemClick={handleNavigation}
-          currentPath={location.pathname}
-          userRoles={userRoles}
-          collapsed={false}
+      <SidebarArea ref={sidebarRef} width={sidebarWidth} isResizing={isResizing}>
+        <Box sx={{ 
+          height: '100%', 
+          overflow: 'auto',
+          position: 'relative',
+          zIndex: 1,
+        }}>
+          <SidebarNav
+            onItemClick={handleNavigation}
+            currentPath={location.pathname}
+            userRoles={userRoles}
+            collapsed={isCollapsed}
+          />
+        </Box>
+        
+        {/* Resize Handle - Must be last to be on top */}
+        <ResizeHandle 
+          onMouseDown={handleMouseDown}
+          title="Přetažením změňte šířku sidebaru"
         />
       </SidebarArea>
 
