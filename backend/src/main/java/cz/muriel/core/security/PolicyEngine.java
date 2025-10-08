@@ -74,7 +74,8 @@ public interface PolicyEngine {
    * @return true pokud má roli
    */
   default boolean hasRole(Authentication auth, String role) {
-    if (auth == null) return false;
+    if (auth == null)
+      return false;
     return auth.getAuthorities().stream()
         .anyMatch(a -> a.getAuthority().equals(role) || a.getAuthority().equals("ROLE_" + role));
   }

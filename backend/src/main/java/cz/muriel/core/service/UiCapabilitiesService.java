@@ -25,9 +25,7 @@ import java.util.stream.Collectors;
  * Generuje UI capabilities (menu, features) pro frontend z metamodelu.
  * Podporuje ETag/cache invalidation přes permVersion.
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
+@Service @RequiredArgsConstructor @Slf4j
 public class UiCapabilitiesService {
 
   private final MetamodelRegistry metamodelRegistry;
@@ -72,12 +70,8 @@ public class UiCapabilitiesService {
           // Kontrola required role
           if (menuItem.getRequiredRole() == null || roles.contains(menuItem.getRequiredRole())) {
             UiCapabilitiesDto.MenuItem item = UiCapabilitiesDto.MenuItem.builder()
-                .id(menuItem.getId())
-                .label(menuItem.getLabel())
-                .path(menuItem.getPath())
-                .icon(menuItem.getIcon())
-                .order(menuItem.getOrder())
-                .build();
+                .id(menuItem.getId()).label(menuItem.getLabel()).path(menuItem.getPath())
+                .icon(menuItem.getIcon()).order(menuItem.getOrder()).build();
 
             result.add(item);
           }
@@ -86,9 +80,7 @@ public class UiCapabilitiesService {
     }
 
     // Deduplikace a řazení
-    return result.stream()
-        .distinct()
-        .sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
+    return result.stream().distinct().sorted((a, b) -> Integer.compare(a.getOrder(), b.getOrder()))
         .collect(Collectors.toList());
   }
 
@@ -116,7 +108,8 @@ public class UiCapabilitiesService {
   /**
    * Získá data scope (priority: all_tenants > own_tenant > own_data)
    * 
-   * Note: DataScope není součástí metamodelu FÁZE 1, používá se legacy PermissionService
+   * Note: DataScope není součástí metamodelu FÁZE 1, používá se legacy
+   * PermissionService
    */
   private String getDataScope(List<String> roles) {
     return legacyPermissionService.getDataScope(roles);
@@ -134,7 +127,7 @@ public class UiCapabilitiesService {
       // Hash z metamodelu schémat
       int schemaHash = metamodelRegistry.getAllSchemas().hashCode();
       String input = "metamodel:" + schemaHash + ":" + lastMetamodelChange;
-      
+
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
 
@@ -167,9 +160,7 @@ public class UiCapabilitiesService {
    * Získá seznam rolí z Authentication
    */
   private List<String> getRoles(Authentication auth) {
-    return auth.getAuthorities().stream()
-        .map(GrantedAuthority::getAuthority)
-        .map(a -> a.replace("ROLE_", ""))
-        .collect(Collectors.toList());
+    return auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+        .map(a -> a.replace("ROLE_", "")).collect(Collectors.toList());
   }
 }

@@ -192,3 +192,65 @@ features:
     requiredRole: CORE_ROLE_USER
   - id: user_profile_edit_own
     requiredRole: CORE_ROLE_USER
+
+# PHASE 2: Fulltext Search
+fulltext:
+  - full_name
+  - email
+  - department
+  - position
+  - bio
+
+# PHASE 2: Workflow States & Transitions
+states:
+  - code: draft
+    label: Draft
+    description: Profile is being created
+  - code: active
+    label: Active
+    description: Profile is active and visible
+  - code: suspended
+    label: Suspended
+    description: Profile is temporarily suspended
+  - code: archived
+    label: Archived
+    description: Profile is archived
+
+transitions:
+  - code: ACTIVATE
+    from: draft
+    to: active
+    label: Activate Profile
+    guard:
+      expression: "hasRole('CORE_ROLE_ADMIN')"
+    slaMinutes: 60
+  
+  - code: SUSPEND
+    from: active
+    to: suspended
+    label: Suspend Profile
+    guard:
+      expression: "hasRole('CORE_ROLE_ADMIN')"
+    slaMinutes: 30
+  
+  - code: REACTIVATE
+    from: suspended
+    to: active
+    label: Reactivate Profile
+    guard:
+      expression: "hasRole('CORE_ROLE_ADMIN')"
+    slaMinutes: 30
+  
+  - code: ARCHIVE
+    from: active
+    to: archived
+    label: Archive Profile
+    guard:
+      expression: "hasRole('CORE_ROLE_ADMIN')"
+  
+  - code: ARCHIVE_SUSPENDED
+    from: suspended
+    to: archived
+    label: Archive Suspended Profile
+    guard:
+      expression: "hasRole('CORE_ROLE_ADMIN')"

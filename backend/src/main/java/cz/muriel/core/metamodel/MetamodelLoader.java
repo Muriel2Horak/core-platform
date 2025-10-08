@@ -13,8 +13,7 @@ import java.util.*;
 /**
  * Loads metamodel YAML files from classpath
  */
-@Slf4j
-@Component
+@Slf4j @Component
 public class MetamodelLoader {
 
   private static final String METAMODEL_LOCATION = "classpath:metamodel/*.yaml";

@@ -1,0 +1,86 @@
+package cz.muriel.core.websocket;
+
+import cz.muriel.core.config.WebSocketProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+import org.springframework.web.socket.server.HandshakeInterceptor;
+
+import java.util.Map;
+
+/**
+ * 🌐 WebSocket Configuration for Presence & Editing Indicators
+ */
+@Configuration
+@EnableWebSocket
+@RequiredArgsConstructor
+@Slf4j
+public class WebSocketConfig implements WebSocketConfigurer {
+
+    private final WebSocketProperties webSocketProperties;
+    private final PresenceWebSocketHandler presenceWebSocketHandler;
+
+    @Override
+    public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
+        String[] origins = webSocketProperties.getAllowedOrigins().split(",");
+        
+        registry.addHandler(presenceWebSocketHandler, "/ws/presence")
+            .setAllowedOrigins(origins)
+            .addInterceptors(new AuthenticationHandshakeInterceptor());
+        
+        log.info("WebSocket registered at /ws/presence with origins: {}", webSocketProperties.getAllowedOrigins());
+    }
+
+    /**
+     * Handshake interceptor to validate JWT and extract user info
+     */
+    private static class AuthenticationHandshakeInterceptor implements HandshakeInterceptor {
+
+        @Override
+        public boolean beforeHandshake(
+            @NonNull ServerHttpRequest request,
+            @NonNull ServerHttpResponse response,
+            @NonNull WebSocketHandler wsHandler,
+            @NonNull Map<String, Object> attributes
+        ) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (auth instanceof JwtAuthenticationToken jwtAuth) {
+                Jwt jwt = jwtAuth.getToken();
+                
+                attributes.put("userId", jwt.getSubject());
+                attributes.put("username", jwt.getClaimAsString("preferred_username"));
+                attributes.put("tenantId", jwt.getClaimAsString("tenant"));
+                
+                log.debug("WebSocket handshake: userId={}, tenant={}", 
+                    attributes.get("userId"), attributes.get("tenantId"));
+                
+                return true;
+            }
+            
+            log.warn("WebSocket handshake failed: No JWT authentication");
+            return false;
+        }
+
+        @Override
+        public void afterHandshake(
+            @NonNull ServerHttpRequest request,
+            @NonNull ServerHttpResponse response,
+            @NonNull WebSocketHandler wsHandler,
+            Exception exception
+        ) {
+            // No-op
+        }
+    }
+}

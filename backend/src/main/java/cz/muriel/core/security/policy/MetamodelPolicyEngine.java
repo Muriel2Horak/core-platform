@@ -18,22 +18,17 @@ import java.util.stream.Collectors;
 /**
  * 🏗️ Metamodel Policy Engine
  * 
- * Implementace PolicyEngine integrovaná s metamodelem. Podporuje:
- * - Access policy (RBAC/ABAC)
- * - Column policy (projekce/masking)
- * - Tenant isolation (RLS)
- * - anyOf/allOf operators
- * - Dot-notation (1 level deep)
+ * Implementace PolicyEngine integrovaná s metamodelem. Podporuje: - Access
+ * policy (RBAC/ABAC) - Column policy (projekce/masking) - Tenant isolation
+ * (RLS) - anyOf/allOf operators - Dot-notation (1 level deep)
  * 
  * @version 3.0 - Using MetamodelRegistry
  */
-@Component("metamodelPolicy")
-@RequiredArgsConstructor
-@Slf4j
+@Component("metamodelPolicy") @RequiredArgsConstructor @Slf4j
 public class MetamodelPolicyEngine implements PolicyEngine {
 
   private final MetamodelRegistry registry;
-  
+
   private static final String ROLE_ADMIN = "CORE_ROLE_ADMIN";
 
   @Override
@@ -102,9 +97,7 @@ public class MetamodelPolicyEngine implements PolicyEngine {
 
     // Admin sees all columns
     if (hasRole(auth, ROLE_ADMIN)) {
-      return schema.getFields().stream()
-          .map(FieldSchema::getName)
-          .collect(Collectors.toSet());
+      return schema.getFields().stream().map(FieldSchema::getName).collect(Collectors.toSet());
     }
 
     Set<String> allowedColumns = new HashSet<>();
@@ -113,9 +106,7 @@ public class MetamodelPolicyEngine implements PolicyEngine {
     if (schema.getAccessPolicy() != null && check(auth, entityType, action, null)) {
       // Start with all columns
       allowedColumns.addAll(
-          schema.getFields().stream()
-              .map(FieldSchema::getName)
-              .collect(Collectors.toSet()));
+          schema.getFields().stream().map(FieldSchema::getName).collect(Collectors.toSet()));
     }
 
     // Filter by column-level policies
@@ -124,8 +115,7 @@ public class MetamodelPolicyEngine implements PolicyEngine {
         String columnName = entry.getKey();
         ColumnPolicy colPolicy = entry.getValue();
 
-        PolicyRule colRule = action.equals("read") || action.equals("create")
-            ? colPolicy.getRead()
+        PolicyRule colRule = action.equals("read") || action.equals("create") ? colPolicy.getRead()
             : colPolicy.getWrite();
 
         if (colRule != null && !evaluatePolicyRule(auth, colRule, null)) {
@@ -173,20 +163,19 @@ public class MetamodelPolicyEngine implements PolicyEngine {
   /**
    * Evaluate policy rule recursively
    */
-  private boolean evaluatePolicyRule(Authentication auth, PolicyRule rule, @Nullable Object entity) {
+  private boolean evaluatePolicyRule(Authentication auth, PolicyRule rule,
+      @Nullable Object entity) {
     if (rule == null) {
       return false;
     }
 
     // Logical operators
     if (rule.getAnyOf() != null && !rule.getAnyOf().isEmpty()) {
-      return rule.getAnyOf().stream()
-          .anyMatch(r -> evaluatePolicyRule(auth, r, entity));
+      return rule.getAnyOf().stream().anyMatch(r -> evaluatePolicyRule(auth, r, entity));
     }
 
     if (rule.getAllOf() != null && !rule.getAllOf().isEmpty()) {
-      return rule.getAllOf().stream()
-          .allMatch(r -> evaluatePolicyRule(auth, r, entity));
+      return rule.getAllOf().stream().allMatch(r -> evaluatePolicyRule(auth, r, entity));
     }
 
     // RBAC
@@ -232,8 +221,8 @@ public class MetamodelPolicyEngine implements PolicyEngine {
   /**
    * Evaluate condition (eq, ne, contains, in)
    */
-  private boolean evaluateCondition(Authentication auth, Condition condition, @Nullable Object entity,
-      java.util.function.BiPredicate<Object, Object> predicate) {
+  private boolean evaluateCondition(Authentication auth, Condition condition,
+      @Nullable Object entity, java.util.function.BiPredicate<Object, Object> predicate) {
     Object leftValue = resolveValue(auth, condition.getLeft(), entity);
     Object rightValue = resolveValue(auth, condition.getRight(), entity);
 
@@ -285,7 +274,8 @@ public class MetamodelPolicyEngine implements PolicyEngine {
       }
 
       // Bean property access via reflection
-      String methodName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+      String methodName = "get" + Character.toUpperCase(fieldName.charAt(0))
+          + fieldName.substring(1);
       var method = entity.getClass().getMethod(methodName);
       Object value = method.invoke(entity);
       return value != null ? value.toString() : null;
@@ -313,8 +303,7 @@ public class MetamodelPolicyEngine implements PolicyEngine {
       return false;
     }
 
-    return auth.getAuthorities().stream()
-        .map(GrantedAuthority::getAuthority)
+    return auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
         .anyMatch(a -> a.equals(role) || a.equals("ROLE_" + role));
   }
 

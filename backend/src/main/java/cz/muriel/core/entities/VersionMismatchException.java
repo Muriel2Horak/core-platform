@@ -8,13 +8,14 @@ import java.util.Map;
  */
 @Getter
 public class VersionMismatchException extends RuntimeException {
-    
-    private final long currentVersion;
-    private final Map<String, Object> serverEntity;
-    
-    public VersionMismatchException(String message, long currentVersion, Map<String, Object> serverEntity) {
-        super(message);
-        this.currentVersion = currentVersion;
-        this.serverEntity = serverEntity;
-    }
+
+  private final long currentVersion;
+  private final Map<String, Object> serverEntity;
+
+  public VersionMismatchException(String message, long currentVersion,
+      Map<String, Object> serverEntity) {
+    super(message);
+    this.currentVersion = currentVersion;
+    this.serverEntity = serverEntity;
+  }
 }

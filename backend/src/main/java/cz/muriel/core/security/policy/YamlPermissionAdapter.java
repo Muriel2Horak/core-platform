@@ -13,15 +13,13 @@ import java.util.stream.Collectors;
 /**
  * 🔄 YAML Permission Adapter
  * 
- * Zpětná kompatibilita - adaptuje stávající permissions.yml na PolicyEngine format.
+ * Zpětná kompatibilita - adaptuje stávající permissions.yml na PolicyEngine
+ * format.
  * 
- * @deprecated Použij MetamodelPolicyEngine přímo s metamodelem.
- *             Tato třída bude odstraněna po migraci všech definic do metamodelu.
+ * @deprecated Použij MetamodelPolicyEngine přímo s metamodelem. Tato třída bude
+ * odstraněna po migraci všech definic do metamodelu.
  */
-@Component
-@RequiredArgsConstructor
-@Slf4j
-@Deprecated(since = "2.0", forRemoval = true)
+@Component @RequiredArgsConstructor @Slf4j @Deprecated(since = "2.0", forRemoval = true)
 public class YamlPermissionAdapter {
 
   private final PermissionConfig permissionConfig;
