@@ -46,7 +46,7 @@ export const KeycloakSyncPage = ({ user }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedTenant, setSelectedTenant] = useState('test-tenant'); // Default tenant
+  const [selectedTenants, setSelectedTenants] = useState(['test-tenant']); // Multi-select pro CORE_ADMIN
   const [tenants, setTenants] = useState([]);
 
   // Fetch tenants for selector
@@ -92,19 +92,27 @@ export const KeycloakSyncPage = ({ user }) => {
     return () => clearInterval(interval);
   }, [syncs.length]);
 
-  // Start sync
-  const startSync = async (type, tenantKey) => {
+  // Start sync for multiple tenants
+  const startSync = async (type) => {
+    if (selectedTenants.length === 0) {
+      setError('Vyberte alespoň jeden tenant pro synchronizaci');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const endpoint = `/api/admin/keycloak-sync/${type}/${tenantKey}`;
-      const response = await axios.post(endpoint);
+      // Start sync for all selected tenants
+      const promises = selectedTenants.map(tenantKey => {
+        const endpoint = `/api/admin/keycloak-sync/${type}/${tenantKey}`;
+        return axios.post(endpoint);
+      });
+
+      await Promise.all(promises);
       
-      if (response.data.status === 'started') {
-        // Immediately fetch updated syncs
-        await fetchSyncsAndStats();
-      }
+      // Immediately fetch updated syncs
+      await fetchSyncsAndStats();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to start synchronization');
     } finally {
@@ -131,28 +139,59 @@ export const KeycloakSyncPage = ({ user }) => {
 
       {/* Tenant Selector for CORE_ADMIN */}
       {user?.roles?.includes('CORE_ROLE_ADMIN') && (
-        <Box sx={{ mb: 3, p: 2, background: 'rgba(25, 118, 210, 0.05)', borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Typography variant="h6">Výběr tenantu</Typography>
-            <FormControl size="small" sx={{ minWidth: 250 }}>
-              <InputLabel>Tenant</InputLabel>
-              <Select
-                value={selectedTenant}
-                label="Tenant"
-                onChange={(e) => setSelectedTenant(e.target.value)}
-              >
-                {tenants.map((tenant) => (
-                  <MenuItem key={tenant.key} value={tenant.key}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TenantIcon fontSize="small" />
+        <Box sx={{ mb: 3, p: 3, background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.08), rgba(66, 165, 245, 0.08))', borderRadius: 2, border: '1px solid rgba(25, 118, 210, 0.2)' }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TenantIcon /> Výběr tenantů pro synchronizaci
+          </Typography>
+          
+          <FormControl fullWidth size="small" sx={{ mt: 2 }}>
+            <InputLabel>Vyberte tenanty</InputLabel>
+            <Select
+              multiple
+              value={selectedTenants}
+              label="Vyberte tenanty"
+              onChange={(e) => setSelectedTenants(e.target.value)}
+              renderValue={(selected) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map((value) => (
+                    <Chip 
+                      key={value} 
+                      label={value} 
+                      size="small" 
+                      color="primary"
+                      sx={{ 
+                        fontWeight: 600,
+                        bgcolor: 'primary.main',
+                        color: 'white'
+                      }}
+                    />
+                  ))}
+                </Box>
+              )}
+              sx={{
+                '& .MuiSelect-select': {
+                  py: 1.5
+                }
+              }}
+            >
+              {tenants.map((tenant) => (
+                <MenuItem key={tenant.key} value={tenant.key}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <TenantIcon fontSize="small" color={selectedTenants.includes(tenant.key) ? 'primary' : 'inherit'} />
+                    <Typography sx={{ fontWeight: selectedTenants.includes(tenant.key) ? 600 : 400 }}>
                       {tenant.key}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Chip label={`Vybraný: ${selectedTenant}`} color="primary" />
-          </Box>
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            {selectedTenants.length === 0 && '⚠️ Vyberte alespoň jeden tenant'}
+            {selectedTenants.length === 1 && `📌 Vybraný tenant: ${selectedTenants[0]}`}
+            {selectedTenants.length > 1 && `📌 Vybrané tenanty: ${selectedTenants.length} (${selectedTenants.join(', ')})`}
+          </Typography>
         </Box>
       )}
 
@@ -180,18 +219,29 @@ export const KeycloakSyncPage = ({ user }) => {
             Quick Actions
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Tenant: <Chip label={selectedTenant} size="small" color="primary" />
+            {selectedTenants.length === 0 && '⚠️ Vyberte tenant pro synchronizaci'}
+            {selectedTenants.length === 1 && (
+              <>Synchronizace pro: <Chip label={selectedTenants[0]} size="small" color="primary" sx={{ fontWeight: 600 }} /></>
+            )}
+            {selectedTenants.length > 1 && (
+              <>Synchronizace pro: <Chip label={`${selectedTenants.length} tenantů`} size="small" color="primary" sx={{ fontWeight: 600 }} /></>
+            )}
           </Typography>
 
           <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
             <Button
               variant="contained"
               startIcon={<PeopleIcon />}
-              onClick={() => startSync('users', selectedTenant)}
-              disabled={loading}
+              onClick={() => startSync('users')}
+              disabled={loading || selectedTenants.length === 0}
               sx={{
                 background: 'linear-gradient(135deg, #1976d2, #1565c0)',
-                '&:hover': { background: 'linear-gradient(135deg, #1565c0, #0d47a1)' }
+                '&:hover': { background: 'linear-gradient(135deg, #1565c0, #0d47a1)' },
+                '&.Mui-disabled': {
+                  background: 'rgba(0, 0, 0, 0.26)',
+                  color: 'rgba(0, 0, 0, 0.5)',
+                  fontWeight: 600
+                }
               }}
             >
               Sync Users
@@ -200,11 +250,16 @@ export const KeycloakSyncPage = ({ user }) => {
             <Button
               variant="contained"
               startIcon={<SecurityIcon />}
-              onClick={() => startSync('roles', selectedTenant)}
-              disabled={loading}
+              onClick={() => startSync('roles')}
+              disabled={loading || selectedTenants.length === 0}
               sx={{
                 background: 'linear-gradient(135deg, #7b1fa2, #6a1b9a)',
-                '&:hover': { background: 'linear-gradient(135deg, #6a1b9a, #4a148c)' }
+                '&:hover': { background: 'linear-gradient(135deg, #6a1b9a, #4a148c)' },
+                '&.Mui-disabled': {
+                  background: 'rgba(0, 0, 0, 0.26)',
+                  color: 'rgba(0, 0, 0, 0.5)',
+                  fontWeight: 600
+                }
               }}
             >
               Sync Roles
@@ -213,11 +268,16 @@ export const KeycloakSyncPage = ({ user }) => {
             <Button
               variant="contained"
               startIcon={<GroupIcon />}
-              onClick={() => startSync('groups', selectedTenant)}
-              disabled={loading}
+              onClick={() => startSync('groups')}
+              disabled={loading || selectedTenants.length === 0}
               sx={{
                 background: 'linear-gradient(135deg, #388e3c, #2e7d32)',
-                '&:hover': { background: 'linear-gradient(135deg, #2e7d32, #1b5e20)' }
+                '&:hover': { background: 'linear-gradient(135deg, #2e7d32, #1b5e20)' },
+                '&.Mui-disabled': {
+                  background: 'rgba(0, 0, 0, 0.26)',
+                  color: 'rgba(0, 0, 0, 0.5)',
+                  fontWeight: 600
+                }
               }}
             >
               Sync Groups
@@ -226,11 +286,16 @@ export const KeycloakSyncPage = ({ user }) => {
             <Button
               variant="contained"
               startIcon={<SyncIcon />}
-              onClick={() => startSync('all', selectedTenant)}
-              disabled={loading}
+              onClick={() => startSync('all')}
+              disabled={loading || selectedTenants.length === 0}
               sx={{
                 background: 'linear-gradient(135deg, #f57c00, #ef6c00)',
-                '&:hover': { background: 'linear-gradient(135deg, #ef6c00, #e65100)' }
+                '&:hover': { background: 'linear-gradient(135deg, #ef6c00, #e65100)' },
+                '&.Mui-disabled': {
+                  background: 'rgba(0, 0, 0, 0.26)',
+                  color: 'rgba(0, 0, 0, 0.5)',
+                  fontWeight: 600
+                }
               }}
             >
               Sync All
