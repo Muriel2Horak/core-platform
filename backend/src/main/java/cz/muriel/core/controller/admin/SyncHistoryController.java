@@ -13,16 +13,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * 📊 REST API pro historii synchronizací
  */
-@RestController
-@RequestMapping("/api/admin/sync-history")
-@RequiredArgsConstructor
-@Slf4j
-@PreAuthorize("hasAuthority('CORE_ROLE_ADMIN')")
+@RestController @RequestMapping("/api/admin/sync-history") @RequiredArgsConstructor @Slf4j @PreAuthorize("hasAuthority('CORE_ROLE_ADMIN')")
 public class SyncHistoryController {
 
   private final SyncExecutionRepository syncExecutionRepository;
@@ -33,10 +30,8 @@ public class SyncHistoryController {
   @GetMapping
   public ResponseEntity<Page<SyncExecution>> listSyncExecutions(
       @RequestParam(required = false) String status,
-      @RequestParam(required = false) String tenantKey,
-      @RequestParam(required = false) String type,
-      @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size,
+      @RequestParam(required = false) String tenantKey, @RequestParam(required = false) String type,
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size,
       @RequestParam(defaultValue = "startTime") String sortBy,
       @RequestParam(defaultValue = "DESC") String sortDir) {
 
@@ -65,8 +60,7 @@ public class SyncHistoryController {
    */
   @GetMapping("/{id}")
   public ResponseEntity<SyncExecution> getSyncExecution(@PathVariable String id) {
-    return syncExecutionRepository.findById(id)
-        .map(ResponseEntity::ok)
+    return syncExecutionRepository.findById(id).map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -88,8 +82,21 @@ public class SyncHistoryController {
   @DeleteMapping("/cleanup")
   public ResponseEntity<Integer> cleanupOldExecutions(
       @RequestParam(defaultValue = "30") int daysOld) {
-    // TODO: Implementovat cleanup starších než X dní
-    return ResponseEntity.ok(0);
+    
+    LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysOld);
+    
+    // Najdeme všechny dokončené/chybné starší než cutoff
+    List<SyncExecution> oldExecutions = syncExecutionRepository.findAll().stream()
+        .filter(exec -> exec.getStatus() == SyncStatus.COMPLETED || exec.getStatus() == SyncStatus.FAILED)
+        .filter(exec -> exec.getEndTime() != null && exec.getEndTime().isBefore(cutoffDate))
+        .toList();
+    
+    int deletedCount = oldExecutions.size();
+    syncExecutionRepository.deleteAll(oldExecutions);
+    
+    log.info("🗑️ Cleaned up {} old sync executions (older than {} days)", deletedCount, daysOld);
+    
+    return ResponseEntity.ok(deletedCount);
   }
 
   /**
@@ -97,19 +104,15 @@ public class SyncHistoryController {
    */
   @GetMapping("/stats")
   public ResponseEntity<?> getSyncStats() {
-    List<SyncExecution> running = syncExecutionRepository.findByStatusIn(
-        List.of(SyncStatus.RUNNING));
-    
-    long completedCount = syncExecutionRepository.findByStatusIn(
-        List.of(SyncStatus.COMPLETED)).size();
-    
-    long failedCount = syncExecutionRepository.findByStatusIn(
-        List.of(SyncStatus.FAILED)).size();
+    List<SyncExecution> running = syncExecutionRepository
+        .findByStatusIn(List.of(SyncStatus.RUNNING));
 
-    return ResponseEntity.ok(java.util.Map.of(
-        "running", running.size(),
-        "completed", completedCount,
-        "failed", failedCount
-    ));
+    long completedCount = syncExecutionRepository.findByStatusIn(List.of(SyncStatus.COMPLETED))
+        .size();
+
+    long failedCount = syncExecutionRepository.findByStatusIn(List.of(SyncStatus.FAILED)).size();
+
+    return ResponseEntity.ok(java.util.Map.of("running", running.size(), "completed",
+        completedCount, "failed", failedCount));
   }
 }

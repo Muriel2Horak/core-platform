@@ -49,13 +49,8 @@ public class KeycloakBulkSyncService {
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
     // Vytvoříme DB záznam
-    SyncExecution execution = SyncExecution.builder()
-        .id(syncId)
-        .type("users")
-        .tenantKey(tenantKey)
-        .status(SyncExecution.SyncStatus.RUNNING)
-        .initiatedBy(initiatedBy)
-        .build();
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("users").tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "users", tenantKey);
@@ -110,13 +105,8 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    SyncExecution execution = SyncExecution.builder()
-        .id(syncId)
-        .type("roles")
-        .tenantKey(tenantKey)
-        .status(SyncExecution.SyncStatus.RUNNING)
-        .initiatedBy(initiatedBy)
-        .build();
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("roles").tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "roles", tenantKey);
@@ -170,13 +160,8 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    SyncExecution execution = SyncExecution.builder()
-        .id(syncId)
-        .type("groups")
-        .tenantKey(tenantKey)
-        .status(SyncExecution.SyncStatus.RUNNING)
-        .initiatedBy(initiatedBy)
-        .build();
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("groups").tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "groups", tenantKey);
@@ -230,13 +215,8 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    SyncExecution execution = SyncExecution.builder()
-        .id(syncId)
-        .type("all")
-        .tenantKey(tenantKey)
-        .status(SyncExecution.SyncStatus.RUNNING)
-        .initiatedBy(initiatedBy)
-        .build();
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("all").tenantKey(tenantKey)
+        .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
     SyncProgress progress = new SyncProgress(syncId, "all", tenantKey);
@@ -259,7 +239,8 @@ public class KeycloakBulkSyncService {
       progress.setStatus("completed");
       progress.setEndTime(LocalDateTime.now());
       updateSyncExecution(progress);
-      log.info("✅ Full sync completed for tenant: {} (processed: {})", tenantKey, progress.getProcessed());
+      log.info("✅ Full sync completed for tenant: {} (processed: {})", tenantKey,
+          progress.getProcessed());
 
     } catch (Exception e) {
       progress.setStatus("failed");
@@ -278,13 +259,13 @@ public class KeycloakBulkSyncService {
   private void doSyncUsers(String tenantKey, SyncProgress progress) {
     try {
       log.info("🔄 Fetching users from Keycloak for tenant: {}", tenantKey);
-      
+
       Tenant tenant = tenantRepository.findByKey(tenantKey)
           .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
 
       RealmResource realm = keycloak.realm(tenant.getRealm());
       List<UserRepresentation> users = realm.users().list();
-      
+
       int startTotal = progress.getTotal();
       progress.setTotal(startTotal + users.size());
 
@@ -306,13 +287,13 @@ public class KeycloakBulkSyncService {
   private void doSyncRoles(String tenantKey, SyncProgress progress) {
     try {
       log.info("🔄 Fetching roles from Keycloak for tenant: {}", tenantKey);
-      
+
       Tenant tenant = tenantRepository.findByKey(tenantKey)
           .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
 
       RealmResource realm = keycloak.realm(tenant.getRealm());
       List<RoleRepresentation> roles = realm.roles().list();
-      
+
       int startTotal = progress.getTotal();
       progress.setTotal(startTotal + roles.size());
 
@@ -334,13 +315,13 @@ public class KeycloakBulkSyncService {
   private void doSyncGroups(String tenantKey, SyncProgress progress) {
     try {
       log.info("🔄 Fetching groups from Keycloak for tenant: {}", tenantKey);
-      
+
       Tenant tenant = tenantRepository.findByKey(tenantKey)
           .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
 
       RealmResource realm = keycloak.realm(tenant.getRealm());
       List<GroupRepresentation> groups = realm.groups().groups();
-      
+
       int startTotal = progress.getTotal();
       progress.setTotal(startTotal + groups.size());
 
@@ -391,7 +372,7 @@ public class KeycloakBulkSyncService {
   }
 
   /**
-   *  Synchronizuje uživatele do UserDirectory
+   * Synchronizuje uživatele do UserDirectory
    */
   @Transactional
   private void syncUserToDirectory(UserRepresentation user, String tenantKey) {
@@ -420,7 +401,7 @@ public class KeycloakBulkSyncService {
       execution.setTotalItems(progress.getTotal());
       execution.setProcessedItems(progress.getProcessed());
       execution.setErrors(new ArrayList<>(progress.errors));
-      
+
       if ("completed".equals(progress.getStatus())) {
         execution.setStatus(SyncExecution.SyncStatus.COMPLETED);
         execution.setEndTime(LocalDateTime.now());
@@ -428,7 +409,7 @@ public class KeycloakBulkSyncService {
         execution.setStatus(SyncExecution.SyncStatus.FAILED);
         execution.setEndTime(LocalDateTime.now());
       }
-      
+
       syncExecutionRepository.save(execution);
     });
   }
