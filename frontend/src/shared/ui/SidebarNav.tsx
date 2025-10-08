@@ -198,7 +198,7 @@ export const defaultMenuItems: SidebarNavItem[] = [
     icon: <BusinessIcon />,
     href: '#',  // Jen expandable kontejner
     description: 'Správa tenantu',
-    requiredRoles: ['TENANT_ADMIN'],
+    requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
     children: [
       {
         id: 'tenant-admin-dashboard',
@@ -206,7 +206,7 @@ export const defaultMenuItems: SidebarNavItem[] = [
         icon: <DashboardIcon />,
         href: '/tenant-admin',
         description: 'Přehled tenantu',
-        requiredRoles: ['TENANT_ADMIN'],
+        requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
       },
       {
         id: 'tenant-admin-users',
@@ -214,7 +214,7 @@ export const defaultMenuItems: SidebarNavItem[] = [
         icon: <PeopleIcon />,
         href: '/tenant-admin/users',
         description: 'Správa uživatelů tenantu',
-        requiredRoles: ['TENANT_ADMIN'],
+        requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
       },
       {
         id: 'tenant-admin-roles',
@@ -222,7 +222,7 @@ export const defaultMenuItems: SidebarNavItem[] = [
         icon: <SecurityIcon />,
         href: '/tenant-admin/roles',
         description: 'Správa rolí tenantu',
-        requiredRoles: ['TENANT_ADMIN'],
+        requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
       },
       {
         id: 'tenant-admin-keycloak-sync',
@@ -230,7 +230,7 @@ export const defaultMenuItems: SidebarNavItem[] = [
         icon: <SyncIcon />,
         href: '/tenant-admin/keycloak-sync',
         description: 'Synchronizace tenantu',
-        requiredRoles: ['TENANT_ADMIN'],
+        requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
       },
     ],
   },
