@@ -62,7 +62,8 @@ help-advanced:
 	@echo "  reset-kc                 - Reset Keycloak data"
 	@echo ""
 	@echo "💾 Database:"
-	@echo "  reset-db        - Reset database data"
+	@echo "  reset-db           - Reset database data"
+	@echo "  db-clean-migrate   - Clean DB & run fresh migrations (DEV/CI only)"
 	@echo ""
 	@echo "🧹 Cleanup:"
 	@echo "  clean-artifacts     - Clean test artifacts"
@@ -281,6 +282,35 @@ reset-db:
 	@echo "⏳ Waiting for services..."
 	@sleep 10
 	@echo "✅ Database reset complete"
+
+# Clean database and run fresh migrations (DEV/CI only!)
+.PHONY: db-clean-migrate
+db-clean-migrate:
+	@echo "🔄 Clean database migration (DEV/CI only)..."
+	@echo "⚠️  This will DROP ALL TABLES and run migrations from scratch!"
+	@echo "⚠️  NEVER use in production!"
+	@echo "Press Ctrl+C within 5 seconds to cancel..."
+	@sleep 5
+	@echo "🛑 Stopping backend and database..."
+	docker compose -f docker/docker-compose.yml --env-file .env stop backend db postgres-exporter
+	@echo "🗑️  Removing database volume..."
+	docker volume rm docker_core_db_data 2>/dev/null || echo "Volume already removed"
+	@echo "🚀 Starting fresh database with migrations..."
+	docker compose -f docker/docker-compose.yml --env-file .env start db postgres-exporter
+	@echo "⏳ Waiting for database to be ready..."
+	@sleep 5
+	@echo "✅ Starting backend with fresh migrations..."
+	docker compose -f docker/docker-compose.yml --env-file .env start backend
+	@echo "⏳ Waiting for backend to be ready..."
+	@for i in $$(seq 1 30); do \
+		if curl -s http://localhost:8080/api/health >/dev/null 2>&1; then \
+			echo "✅ Backend is ready with fresh database!"; \
+			exit 0; \
+		fi; \
+		echo "⏳ Waiting... ($$i/30)"; \
+		sleep 2; \
+	done; \
+	echo "⚠️  Backend might still be starting up"
 
 # Build all images
 .PHONY: build

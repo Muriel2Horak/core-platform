@@ -38,19 +38,17 @@ public class Phase2IntegrationTest {
   @Autowired
   private MinioClient minioClient;
 
-  // Testcontainers - auto-cleanup handled by JUnit lifecycle, warnings are false positives
-  @SuppressWarnings("resource")
-  @Container
+  // Testcontainers - auto-cleanup handled by JUnit lifecycle, warnings are false
+  // positives
+  @SuppressWarnings("resource") @Container
   static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
       .withDatabaseName("testdb").withUsername("test").withPassword("test").withReuse(false);
 
-  @SuppressWarnings("resource")
-  @Container
+  @SuppressWarnings("resource") @Container
   static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379)
       .withReuse(false);
 
-  @SuppressWarnings("resource")
-  @Container
+  @SuppressWarnings("resource") @Container
   static GenericContainer<?> minio = new GenericContainer<>("minio/minio:latest")
       .withExposedPorts(9000, 9001).withEnv("MINIO_ROOT_USER", "minioadmin")
       .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
@@ -109,16 +107,16 @@ public class Phase2IntegrationTest {
     // Test MinIO connectivity
     boolean bucketExists = this.minioClient
         .bucketExists(io.minio.BucketExistsArgs.builder().bucket("test-bucket").build());
-        assertThat(bucketExists).isFalse(); // Bucket shouldn't exist yet
-    }
+    assertThat(bucketExists).isFalse(); // Bucket shouldn't exist yet
+  }
 
-    // TODO Phase 2.5+: Expand integration tests with real scenarios
-    // Priority tests to add:
-    // - Workflow: Test state transitions with guards and SLA calculations
-    // - Documents: Test upload, download, text extraction, versioning
-    // - Search: Test fulltext search across entities and documents  
-    // - WebSocket: Test presence tracking and editing indicators
-    // - Cache: Test Redis invalidation on entity updates
-    // - jOOQ: Test type-safe queries and filter parser
-    // - Pagination: Test keyset pagination with cursors
+  // TODO Phase 2.5+: Expand integration tests with real scenarios
+  // Priority tests to add:
+  // - Workflow: Test state transitions with guards and SLA calculations
+  // - Documents: Test upload, download, text extraction, versioning
+  // - Search: Test fulltext search across entities and documents
+  // - WebSocket: Test presence tracking and editing indicators
+  // - Cache: Test Redis invalidation on entity updates
+  // - jOOQ: Test type-safe queries and filter parser
+  // - Pagination: Test keyset pagination with cursors
 }
