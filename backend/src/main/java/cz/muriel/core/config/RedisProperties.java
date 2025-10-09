@@ -7,12 +7,10 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 🔴 Redis Configuration Properties
  */
-@Configuration
-@ConfigurationProperties(prefix = "spring.data.redis")
-@Data
+@Configuration @ConfigurationProperties(prefix = "spring.data.redis") @Data
 public class RedisProperties {
-    private String host = "redis";
-    private int port = 6379;
-    private String password;
-    private int timeout = 2000;
+  private String host = "redis";
+  private int port = 6379;
+  private String password;
+  private int timeout = 2000;
 }

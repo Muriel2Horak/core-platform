@@ -3,7 +3,6 @@ package cz.muriel.core.document;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.config.MinIOProperties;
 import io.minio.*;
-import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.Tika;
@@ -263,7 +262,9 @@ public class DocumentService {
             String metadataJson = rs.getString("metadata");
             if (metadataJson != null) {
                 try {
-                    metadata = objectMapper.readValue(metadataJson, Map.class);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> metadataMap = objectMapper.readValue(metadataJson, Map.class);
+                    metadata = metadataMap;
                 } catch (Exception e) {
                     log.warn("Failed to parse metadata JSON: {}", metadataJson);
                 }

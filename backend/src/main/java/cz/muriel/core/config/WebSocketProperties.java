@@ -7,13 +7,11 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 🌐 WebSocket Configuration Properties
  */
-@Configuration
-@ConfigurationProperties(prefix = "app.websocket")
-@Data
+@Configuration @ConfigurationProperties(prefix = "app.websocket") @Data
 public class WebSocketProperties {
-    private String allowedOrigins = "https://*.core-platform.local,http://localhost:*";
-    private int heartbeatIntervalSeconds = 10;
-    private int presenceTtlSeconds = 30;
-    private int rateLimitEventsPerWindow = 10;
-    private int rateLimitWindowSeconds = 5;
+  private String allowedOrigins = "https://*.core-platform.local,http://localhost:*";
+  private int heartbeatIntervalSeconds = 10;
+  private int presenceTtlSeconds = 30;
+  private int rateLimitEventsPerWindow = 10;
+  private int rateLimitWindowSeconds = 5;
 }

@@ -8,17 +8,14 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 📦 MinIO Configuration
  */
-@Configuration
-@RequiredArgsConstructor
+@Configuration @RequiredArgsConstructor
 public class MinIOConfig {
 
-    private final MinIOProperties minioProperties;
+  private final MinIOProperties minioProperties;
 
-    @Bean
-    public MinioClient minioClient() {
-        return MinioClient.builder()
-            .endpoint(minioProperties.getEndpoint())
-            .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
-            .build();
-    }
+  @Bean
+  public MinioClient minioClient() {
+    return MinioClient.builder().endpoint(minioProperties.getEndpoint())
+        .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey()).build();
+  }
 }

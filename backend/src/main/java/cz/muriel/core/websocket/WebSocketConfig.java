@@ -22,65 +22,56 @@ import java.util.Map;
 /**
  * 🌐 WebSocket Configuration for Presence & Editing Indicators
  */
-@Configuration
-@EnableWebSocket
-@RequiredArgsConstructor
-@Slf4j
+@Configuration @EnableWebSocket @RequiredArgsConstructor @Slf4j
 public class WebSocketConfig implements WebSocketConfigurer {
 
-    private final WebSocketProperties webSocketProperties;
-    private final PresenceWebSocketHandler presenceWebSocketHandler;
+  private final WebSocketProperties webSocketProperties;
+  private final PresenceWebSocketHandler presenceWebSocketHandler;
+
+  @Override
+  public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
+    String[] origins = webSocketProperties.getAllowedOrigins().split(",");
+
+    registry.addHandler(presenceWebSocketHandler, "/ws/presence").setAllowedOrigins(origins)
+        .addInterceptors(new AuthenticationHandshakeInterceptor());
+
+    log.info("WebSocket registered at /ws/presence with origins: {}",
+        webSocketProperties.getAllowedOrigins());
+  }
+
+  /**
+   * Handshake interceptor to validate JWT and extract user info
+   */
+  private static class AuthenticationHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
-    public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
-        String[] origins = webSocketProperties.getAllowedOrigins().split(",");
-        
-        registry.addHandler(presenceWebSocketHandler, "/ws/presence")
-            .setAllowedOrigins(origins)
-            .addInterceptors(new AuthenticationHandshakeInterceptor());
-        
-        log.info("WebSocket registered at /ws/presence with origins: {}", webSocketProperties.getAllowedOrigins());
+    public boolean beforeHandshake(@NonNull ServerHttpRequest request,
+        @NonNull ServerHttpResponse response, @NonNull WebSocketHandler wsHandler,
+        @NonNull Map<String, Object> attributes) {
+      Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+      if (auth instanceof JwtAuthenticationToken jwtAuth) {
+        Jwt jwt = jwtAuth.getToken();
+
+        attributes.put("userId", jwt.getSubject());
+        attributes.put("username", jwt.getClaimAsString("preferred_username"));
+        attributes.put("tenantId", jwt.getClaimAsString("tenant"));
+
+        log.debug("WebSocket handshake: userId={}, tenant={}", attributes.get("userId"),
+            attributes.get("tenantId"));
+
+        return true;
+      }
+
+      log.warn("WebSocket handshake failed: No JWT authentication");
+      return false;
     }
 
-    /**
-     * Handshake interceptor to validate JWT and extract user info
-     */
-    private static class AuthenticationHandshakeInterceptor implements HandshakeInterceptor {
-
-        @Override
-        public boolean beforeHandshake(
-            @NonNull ServerHttpRequest request,
-            @NonNull ServerHttpResponse response,
-            @NonNull WebSocketHandler wsHandler,
-            @NonNull Map<String, Object> attributes
-        ) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            
-            if (auth instanceof JwtAuthenticationToken jwtAuth) {
-                Jwt jwt = jwtAuth.getToken();
-                
-                attributes.put("userId", jwt.getSubject());
-                attributes.put("username", jwt.getClaimAsString("preferred_username"));
-                attributes.put("tenantId", jwt.getClaimAsString("tenant"));
-                
-                log.debug("WebSocket handshake: userId={}, tenant={}", 
-                    attributes.get("userId"), attributes.get("tenantId"));
-                
-                return true;
-            }
-            
-            log.warn("WebSocket handshake failed: No JWT authentication");
-            return false;
-        }
-
-        @Override
-        public void afterHandshake(
-            @NonNull ServerHttpRequest request,
-            @NonNull ServerHttpResponse response,
-            @NonNull WebSocketHandler wsHandler,
-            Exception exception
-        ) {
-            // No-op
-        }
+    @Override
+    public void afterHandshake(@NonNull ServerHttpRequest request,
+        @NonNull ServerHttpResponse response, @NonNull WebSocketHandler wsHandler,
+        Exception exception) {
+      // No-op
     }
+  }
 }

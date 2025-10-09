@@ -19,7 +19,7 @@ public class EntitySchema {
   private UiConfig ui;
   private NavigationConfig navigation;
   private List<FeatureConfig> features;
-  
+
   // Phase 2: Fulltext search and workflow
   private List<String> fulltext;
   private List<StateConfig> states;

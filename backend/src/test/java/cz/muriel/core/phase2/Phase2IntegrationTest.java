@@ -1,17 +1,21 @@
 package cz.muriel.core.phase2;
 
+import io.minio.MinioClient;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -19,82 +23,95 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 
  * Tests for WebSocket, Workflow, Documents and Search functionality
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers
 public class Phase2IntegrationTest {
 
-    @LocalServerPort
-    private int port;
+  @LocalServerPort
+  private int port;
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16")
-        .withDatabaseName("test")
-        .withUsername("test")
-        .withPassword("test");
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
 
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-        .withExposedPorts(6379);
+  @Autowired
+  private RedisTemplate<String, String> redisTemplate;
 
-    @Container
-    static GenericContainer<?> minio = new GenericContainer<>(DockerImageName.parse("minio/minio:latest"))
-        .withCommand("server /data")
-        .withEnv("MINIO_ROOT_USER", "minioadmin")
-        .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
-        .withExposedPorts(9000);
+  @Autowired
+  private MinioClient minioClient;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // Postgres
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        
-        // Redis
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-        
-        // MinIO
-        registry.add("minio.endpoint", () -> 
-            String.format("http://%s:%d", minio.getHost(), minio.getFirstMappedPort())
-        );
-    }
+  @Container
+  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+      .withDatabaseName("testdb").withUsername("test").withPassword("test").withReuse(false);
 
-    @BeforeAll
-    static void setUp() {
-        // Wait for containers to be ready
-        assertTrue(postgres.isRunning());
-        assertTrue(redis.isRunning());
-        assertTrue(minio.isRunning());
-    }
+  @Container
+  static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379)
+      .withReuse(false);
 
-    @Test
-    void contextLoads() {
-        // Basic smoke test
-        assertTrue(port > 0);
-    }
+  @Container
+  static GenericContainer<?> minio = new GenericContainer<>("minio/minio:latest")
+      .withExposedPorts(9000, 9001).withEnv("MINIO_ROOT_USER", "minioadmin")
+      .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
+      .withCommand("server /data --console-address :9001").withReuse(false);
 
-    @Test
-    void testDatabaseMigrations() {
-        // TODO: Verify V5 migration ran successfully
-        // Check entity_state, state_transition, document tables exist
-    }
+  @DynamicPropertySource
+  static void configureProperties(DynamicPropertyRegistry registry) {
+    // Postgres
+    registry.add("spring.datasource.url", postgres::getJdbcUrl);
+    registry.add("spring.datasource.username", postgres::getUsername);
+    registry.add("spring.datasource.password", postgres::getPassword);
 
-    @Test
-    void testRedisConnection() {
-        // TODO: Test Redis connectivity
-        // Test presence key creation
-    }
+    // Redis
+    registry.add("spring.data.redis.host", redis::getHost);
+    registry.add("spring.data.redis.port", redis::getFirstMappedPort);
 
-    @Test
-    void testMinIOConnection() {
-        // TODO: Test MinIO connectivity
-        // Test bucket creation
-    }
+    // MinIO
+    registry.add("minio.endpoint",
+        () -> String.format("http://%s:%d", minio.getHost(), minio.getFirstMappedPort()));
+  }
 
-    // TODO: Add more tests:
-    // - Workflow state transitions
-    // - Document upload/download
-    // - Fulltext search
-    // - WebSocket presence tracking
+  @BeforeAll
+  static void setUp() {
+    // Wait for containers to be ready
+    assertTrue(postgres.isRunning());
+    assertTrue(redis.isRunning());
+    assertTrue(minio.isRunning());
+  }
+
+  @Test
+  void contextLoads() {
+    // Basic smoke test
+    assertTrue(port > 0);
+  }
+
+  @Test
+  void testDatabaseMigration() {
+    // Verify Phase 2 tables exist (V5 migration)
+    var tables = this.jdbcTemplate.queryForList(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('entity_state', 'state_transition', 'document', 'document_index')",
+        String.class);
+    assertThat(tables).hasSize(4);
+    assertThat(tables).contains("entity_state", "state_transition", "document", "document_index");
+  }
+
+  @Test
+  void testRedisConnection() {
+    // Test Redis connectivity
+    this.redisTemplate.opsForValue().set("test:key", "test-value");
+    String value = this.redisTemplate.opsForValue().get("test:key");
+    assertThat(value).isEqualTo("test-value");
+  }
+
+  @Test
+  void testMinioConnection() throws Exception {
+    // Test MinIO connectivity
+    boolean bucketExists = this.minioClient
+        .bucketExists(io.minio.BucketExistsArgs.builder().bucket("test-bucket").build());
+    assertThat(bucketExists).isFalse(); // Bucket shouldn't exist yet
+  }
+
+  // TODO Phase 2.5: Expand integration tests
+  // - Workflow: Test state transitions with guards and SLA
+  // - Documents: Test upload, download, text extraction, versioning
+  // - Search: Test fulltext search across entities and documents
+  // - WebSocket: Test presence tracking and editing indicators
+  // - Cache: Test Redis invalidation on entity updates
 }

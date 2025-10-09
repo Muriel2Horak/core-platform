@@ -8,10 +8,10 @@ import java.util.Map;
  */
 @Data
 public class TransitionConfig {
-    private String code;
-    private String from;
-    private String to;
-    private String label;
-    private Map<String, Object> guard;
-    private Integer slaMinutes;
+  private String code;
+  private String from;
+  private String to;
+  private String label;
+  private Map<String, Object> guard;
+  private Integer slaMinutes;
 }
