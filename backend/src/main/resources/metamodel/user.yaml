@@ -1,0 +1,302 @@
+entity: User
+table: users_directory
+idField: id
+tenantField: tenant_id
+
+# Deterministické UUID generation
+idGeneration:
+  strategy: deterministic
+  sourceFields:
+    - keycloak_user_id
+    - tenant_id
+  algorithm: sha256
+  prefix: "user:"
+
+# Lifecycle hooks
+lifecycle:
+  beforeCreate:
+    - type: generateId
+      field: id
+    - type: setTimestamp
+      field: created_at
+    - type: setTimestamp
+      field: updated_at
+  
+  beforeUpdate:
+    - type: setTimestamp
+      field: updated_at
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    required: true
+  
+  - name: tenant_id
+    type: uuid
+    required: true
+  
+  - name: keycloak_user_id
+    type: string
+    maxLength: 255
+  
+  - name: username
+    type: string
+    required: true
+    maxLength: 255
+  
+  - name: email
+    type: email
+    maxLength: 255
+  
+  - name: first_name
+    type: string
+    maxLength: 255
+  
+  - name: last_name
+    type: string
+    maxLength: 255
+  
+  - name: display_name
+    type: string
+    maxLength: 500
+  
+  - name: is_federated
+    type: boolean
+    required: true
+  
+  - name: manager_id
+    type: uuid
+  
+  - name: status
+    type: string
+    maxLength: 50
+  
+  - name: active
+    type: boolean
+    required: true
+  
+  - name: deleted_at
+    type: timestamp
+  
+  - name: roles_json
+    type: text
+  
+  - name: groups_json
+    type: text
+  
+  # Additional attributes
+  - name: phone_number
+    type: string
+    maxLength: 50
+  
+  - name: department
+    type: string
+    maxLength: 100
+  
+  - name: title
+    type: string
+    maxLength: 200
+  
+  - name: position
+    type: string
+    maxLength: 200
+  
+  - name: manager_username
+    type: string
+    maxLength: 255
+  
+  - name: cost_center
+    type: string
+    maxLength: 100
+  
+  - name: location
+    type: string
+    maxLength: 200
+  
+  - name: phone
+    type: string
+    maxLength: 50
+  
+  - name: deputy_username
+    type: string
+    maxLength: 255
+  
+  - name: deputy_from
+    type: timestamp
+  
+  - name: deputy_to
+    type: timestamp
+  
+  - name: deputy_reason
+    type: text
+  
+  - name: created_at
+    type: timestamp
+    required: true
+  
+  - name: updated_at
+    type: timestamp
+    required: true
+  
+  # Relationships
+  - name: manager
+    type: manyToOne
+    targetEntity: User
+    refField: manager_id
+  
+  - name: roles
+    type: manyToMany
+    targetEntity: Role
+    joinTable: user_roles
+    joinColumn: user_id
+    inverseJoinColumn: role_id
+  
+  - name: groups
+    type: manyToMany
+    targetEntity: Group
+    joinTable: user_groups
+    joinColumn: user_id
+    inverseJoinColumn: group_id
+
+# ABAC Access Policies
+accessPolicy:
+  read:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - role: CORE_ROLE_TENANT_ADMIN
+      - sameUser: true
+  
+  create:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  update:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - allOf:
+          - role: CORE_ROLE_TENANT_ADMIN
+          - eq:
+              left: "${entity.tenant_id}"
+              right: "${user.tenant_id}"
+  
+  delete:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  # Column-level policies
+  columns:
+    email:
+      read:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+          - sameUser: true
+    
+    phone_number:
+      read:
+        anyOf:
+          - role: CORE_ROLE_ADMIN
+          - role: CORE_ROLE_TENANT_ADMIN
+          - sameUser: true
+
+# UI Configuration
+ui:
+  list:
+    columns:
+      - username
+      - display_name
+      - email
+      - department
+      - position
+      - status
+    filters:
+      - department
+      - position
+      - status
+      - active
+    sort:
+      defaultField: username
+      fields:
+        - username
+        - display_name
+        - email
+  
+  detail:
+    sections:
+      - name: Main
+        fields:
+          - username
+          - email
+          - first_name
+          - last_name
+          - display_name
+      
+      - name: Organization
+        fields:
+          - department
+          - position
+          - title
+          - manager
+          - cost_center
+          - location
+      
+      - name: Contact
+        fields:
+          - phone
+          - phone_number
+      
+      - name: Deputy
+        fields:
+          - deputy_username
+          - deputy_from
+          - deputy_to
+          - deputy_reason
+      
+      - name: Access
+        fields:
+          - roles
+          - groups
+          - status
+          - active
+      
+      - name: Keycloak
+        fields:
+          - keycloak_user_id
+          - is_federated
+      
+      - name: Meta
+        fields:
+          - created_at
+          - updated_at
+          - deleted_at
+        readonly: true
+
+# Navigation
+navigation:
+  menu:
+    - id: users
+      label: Users
+      icon: person
+      path: /users
+      requiredRole: CORE_ROLE_TENANT_ADMIN
+      order: 100
+
+# Features
+features:
+  - id: user_management
+    requiredRole: CORE_ROLE_ADMIN
+  - id: user_view
+    requiredRole: CORE_ROLE_TENANT_ADMIN
+  - id: user_profile_view_own
+    requiredRole: CORE_ROLE_USER
+
+# Fulltext search
+fulltext:
+  - username
+  - display_name
+  - email
+  - first_name
+  - last_name
+  - department
+  - position

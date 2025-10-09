@@ -6,16 +6,15 @@ import java.util.List;
 /**
  * Field definition in metamodel
  * 
- * Supported types:
- * - Primitives: uuid, string, email, text, long, timestamp, boolean
- * - References: ref (1:1, 1:N)
- * - Collections: collection (primitives or references)
- * - Relationships: manyToMany, oneToMany, manyToOne
+ * Supported types: - Primitives: uuid, string, email, text, long, timestamp,
+ * boolean - References: ref (1:1, 1:N) - Collections: collection (primitives or
+ * references) - Relationships: manyToMany, oneToMany, manyToOne
  */
 @Data
 public class FieldSchema {
   private String name;
-  private String type; // uuid, string, email, text, long, timestamp, ref, collection, manyToMany, oneToMany, manyToOne
+  private String type; // uuid, string, email, text, long, timestamp, ref, collection, manyToMany,
+                       // oneToMany, manyToOne
   private Boolean pk;
   private Boolean required;
   private Boolean generated;

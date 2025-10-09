@@ -2,10 +2,9 @@ package cz.muriel.core.service;
 
 import cz.muriel.core.entity.SyncExecution;
 import cz.muriel.core.entity.Tenant;
-import cz.muriel.core.entity.UserDirectoryEntity;
+import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.SyncExecutionRepository;
 import cz.muriel.core.repository.TenantRepository;
-import cz.muriel.core.repository.UserDirectoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
@@ -13,6 +12,7 @@ import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 🔄 Bulk synchronizace z Keycloak s progress tracking
+ * 🔄 Bulk synchronizace z Keycloak s progress tracking (Metamodel-based)
  * 
  * Asynchronní synchronizace uživatelů, rolí a skupin z Keycloak do aplikace s
  * real-time progress reporting.
@@ -33,7 +33,8 @@ public class KeycloakBulkSyncService {
 
   private final Keycloak keycloak;
   private final TenantRepository tenantRepository;
-  private final UserDirectoryRepository userDirectoryRepository;
+  private final MetamodelCrudService metamodelService;
+  private final JdbcTemplate jdbcTemplate;
   private final KeycloakSyncService syncService;
   private final SyncExecutionRepository syncExecutionRepository;
   private final TenantService tenantService;
@@ -392,20 +393,27 @@ public class KeycloakBulkSyncService {
     // Convert tenant key to ID
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
 
-    Optional<UserDirectoryEntity> existing = userDirectoryRepository
-        .findByTenantIdAndKeycloakUserId(tenantId, user.getId());
+    // Find existing user
+    String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND keycloak_user_id = ?";
+    List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, tenantId, user.getId());
 
-    UserDirectoryEntity entity = existing.orElse(new UserDirectoryEntity());
-    entity.setKeycloakUserId(user.getId());
-    entity.setTenantId(tenantId);
-    entity.setUsername(user.getUsername());
-    entity.setEmail(user.getEmail());
-    entity.setFirstName(user.getFirstName());
-    entity.setLastName(user.getLastName());
-    // Note: enabled field might not exist on UserDirectoryEntity - check entity
-    // definition
+    Map<String, Object> userMap = existing.isEmpty() ? new HashMap<>() : existing.get(0);
+    
+    // Set fields
+    userMap.put("keycloak_user_id", user.getId());
+    userMap.put("tenant_id", tenantId);
+    userMap.put("username", user.getUsername());
+    userMap.put("email", user.getEmail());
+    userMap.put("first_name", user.getFirstName());
+    userMap.put("last_name", user.getLastName());
 
-    userDirectoryRepository.save(entity);
+    // Save via metamodel
+    if (existing.isEmpty()) {
+      metamodelService.create("User", userMap, null);
+    } else {
+      metamodelService.update("User", userMap.get("id").toString(), 0L, userMap, null);
+    }
+    
     log.debug("✅ User synced: {} ({})", user.getUsername(), user.getId());
   }
 

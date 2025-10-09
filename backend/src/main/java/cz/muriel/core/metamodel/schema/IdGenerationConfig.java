@@ -8,30 +8,28 @@ import java.util.List;
  */
 @Data
 public class IdGenerationConfig {
-  
+
   /**
-   * Generation strategy:
-   * - auto: Database auto-increment or UUID random
-   * - deterministic: UUID generated from source fields (for portability)
-   * - assigned: ID must be manually assigned
+   * Generation strategy: - auto: Database auto-increment or UUID random -
+   * deterministic: UUID generated from source fields (for portability) -
+   * assigned: ID must be manually assigned
    */
   private String strategy; // auto, deterministic, assigned
-  
+
   /**
-   * For deterministic strategy: source fields to hash
-   * Example: ["keycloak_role_id", "tenant_id"]
+   * For deterministic strategy: source fields to hash Example:
+   * ["keycloak_role_id", "tenant_id"]
    */
   private List<String> sourceFields;
-  
+
   /**
-   * Hash algorithm for deterministic UUID
-   * Default: sha256
+   * Hash algorithm for deterministic UUID Default: sha256
    */
   private String algorithm; // sha256, md5
-  
+
   /**
-   * Prefix for composite key (used in hash)
-   * Example: "role:" results in "role:{tenant}:{keycloak_id}"
+   * Prefix for composite key (used in hash) Example: "role:" results in
+   * "role:{tenant}:{keycloak_id}"
    */
   private String prefix;
 }

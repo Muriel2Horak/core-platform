@@ -8,32 +8,25 @@ import java.util.Map;
  */
 @Data
 public class LifecycleAction {
-  
+
   /**
-   * Action type:
-   * - setField: Set field value
-   * - generateId: Generate deterministic ID
-   * - validate: Run validation
-   * - audit: Log action
-   * - notify: Send notification
+   * Action type: - setField: Set field value - generateId: Generate deterministic
+   * ID - validate: Run validation - audit: Log action - notify: Send notification
    * - execute: Execute custom code
    */
   private String type;
-  
+
   /**
    * Target field name (for setField, generateId)
    */
   private String field;
-  
+
   /**
-   * Value or expression (for setField)
-   * Can be:
-   * - Static value: "ACTIVE"
-   * - Expression: "${user.id}"
-   * - Function: "now()", "uuid()"
+   * Value or expression (for setField) Can be: - Static value: "ACTIVE" -
+   * Expression: "${user.id}" - Function: "now()", "uuid()"
    */
   private String value;
-  
+
   /**
    * Additional parameters for the action
    */

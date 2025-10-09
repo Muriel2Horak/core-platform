@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Utility for generating deterministic UUIDs from entity data
- * Ensures same input always produces same UUID - critical for data portability
+ * Utility for generating deterministic UUIDs from entity data Ensures same
+ * input always produces same UUID - critical for data portability
  */
 @Slf4j
 public class DeterministicUuidGenerator {
@@ -29,7 +29,8 @@ public class DeterministicUuidGenerator {
       Map<String, Object> entityData, String algorithm) {
 
     if (sourceFields == null || sourceFields.isEmpty()) {
-      throw new IllegalArgumentException("Source fields required for deterministic UUID generation");
+      throw new IllegalArgumentException(
+          "Source fields required for deterministic UUID generation");
     }
 
     // Build composite string: "prefix:field1Value:field2Value:..."
@@ -56,8 +57,8 @@ public class DeterministicUuidGenerator {
    */
   public static UUID generateFromString(String input, String algorithm) {
     try {
-      MessageDigest digest = MessageDigest.getInstance(
-          algorithm.equalsIgnoreCase("md5") ? "MD5" : "SHA-256");
+      MessageDigest digest = MessageDigest
+          .getInstance(algorithm.equalsIgnoreCase("md5") ? "MD5" : "SHA-256");
 
       byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
 

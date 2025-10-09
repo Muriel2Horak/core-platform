@@ -15,18 +15,19 @@ import java.util.UUID;
 /**
  * Executes lifecycle hooks defined in entity schema
  */
-@Component
-@Slf4j
+@Component @Slf4j
 public class LifecycleHookExecutor {
 
   /**
    * Execute beforeCreate hooks
    */
   public void executeBeforeCreate(EntitySchema schema, Map<String, Object> entity) {
-    if (schema.getLifecycle() == null) return;
+    if (schema.getLifecycle() == null)
+      return;
 
     List<LifecycleAction> hooks = schema.getLifecycle().getBeforeCreate();
-    if (hooks == null) return;
+    if (hooks == null)
+      return;
 
     log.debug("Executing {} beforeCreate hooks for {}", hooks.size(), schema.getEntity());
     for (LifecycleAction action : hooks) {
@@ -38,45 +39,51 @@ public class LifecycleHookExecutor {
    * Execute afterCreate hooks
    */
   public void executeAfterCreate(EntitySchema schema, Map<String, Object> entity) {
-    executeHooks(schema.getLifecycle(), schema.getLifecycle() != null ? 
-        schema.getLifecycle().getAfterCreate() : null, schema, entity, "afterCreate");
+    executeHooks(schema.getLifecycle(),
+        schema.getLifecycle() != null ? schema.getLifecycle().getAfterCreate() : null, schema,
+        entity, "afterCreate");
   }
 
   /**
    * Execute beforeUpdate hooks
    */
   public void executeBeforeUpdate(EntitySchema schema, Map<String, Object> entity) {
-    executeHooks(schema.getLifecycle(), schema.getLifecycle() != null ? 
-        schema.getLifecycle().getBeforeUpdate() : null, schema, entity, "beforeUpdate");
+    executeHooks(schema.getLifecycle(),
+        schema.getLifecycle() != null ? schema.getLifecycle().getBeforeUpdate() : null, schema,
+        entity, "beforeUpdate");
   }
 
   /**
    * Execute afterUpdate hooks
    */
   public void executeAfterUpdate(EntitySchema schema, Map<String, Object> entity) {
-    executeHooks(schema.getLifecycle(), schema.getLifecycle() != null ? 
-        schema.getLifecycle().getAfterUpdate() : null, schema, entity, "afterUpdate");
+    executeHooks(schema.getLifecycle(),
+        schema.getLifecycle() != null ? schema.getLifecycle().getAfterUpdate() : null, schema,
+        entity, "afterUpdate");
   }
 
   /**
    * Execute beforeDelete hooks
    */
   public void executeBeforeDelete(EntitySchema schema, Map<String, Object> entity) {
-    executeHooks(schema.getLifecycle(), schema.getLifecycle() != null ? 
-        schema.getLifecycle().getBeforeDelete() : null, schema, entity, "beforeDelete");
+    executeHooks(schema.getLifecycle(),
+        schema.getLifecycle() != null ? schema.getLifecycle().getBeforeDelete() : null, schema,
+        entity, "beforeDelete");
   }
 
   /**
    * Execute afterDelete hooks
    */
   public void executeAfterDelete(EntitySchema schema, Map<String, Object> entity) {
-    executeHooks(schema.getLifecycle(), schema.getLifecycle() != null ? 
-        schema.getLifecycle().getAfterDelete() : null, schema, entity, "afterDelete");
+    executeHooks(schema.getLifecycle(),
+        schema.getLifecycle() != null ? schema.getLifecycle().getAfterDelete() : null, schema,
+        entity, "afterDelete");
   }
 
-  private void executeHooks(LifecycleConfig config, List<LifecycleAction> hooks, 
+  private void executeHooks(LifecycleConfig config, List<LifecycleAction> hooks,
       EntitySchema schema, Map<String, Object> entity, String phase) {
-    if (config == null || hooks == null) return;
+    if (config == null || hooks == null)
+      return;
 
     log.debug("Executing {} {} hooks for {}", hooks.size(), phase, schema.getEntity());
     for (LifecycleAction action : hooks) {
@@ -93,28 +100,28 @@ public class LifecycleHookExecutor {
     log.debug("Executing {} action: {} on {}", phase, action.getType(), action.getField());
 
     switch (action.getType()) {
-      case "setField":
-        executeSetField(action, entity);
-        break;
+    case "setField":
+      executeSetField(action, entity);
+      break;
 
-      case "generateId":
-        executeGenerateId(action, schema, entity);
-        break;
+    case "generateId":
+      executeGenerateId(action, schema, entity);
+      break;
 
-      case "setTimestamp":
-        executeSetTimestamp(action, entity);
-        break;
+    case "setTimestamp":
+      executeSetTimestamp(action, entity);
+      break;
 
-      case "validate":
-        executeValidate(action, entity);
-        break;
+    case "validate":
+      executeValidate(action, entity);
+      break;
 
-      case "audit":
-        executeAudit(action, schema, entity, phase);
-        break;
+    case "audit":
+      executeAudit(action, schema, entity, phase);
+      break;
 
-      default:
-        log.warn("Unknown lifecycle action type: {}", action.getType());
+    default:
+      log.warn("Unknown lifecycle action type: {}", action.getType());
     }
   }
 
@@ -147,12 +154,9 @@ public class LifecycleHookExecutor {
       return;
     }
 
-    UUID id = DeterministicUuidGenerator.generate(
-        schema.getIdGeneration().getPrefix(),
-        schema.getIdGeneration().getSourceFields(),
-        entity,
-        schema.getIdGeneration().getAlgorithm()
-    );
+    UUID id = DeterministicUuidGenerator.generate(schema.getIdGeneration().getPrefix(),
+        schema.getIdGeneration().getSourceFields(), entity,
+        schema.getIdGeneration().getAlgorithm());
 
     String idField = action.getField() != null ? action.getField() : schema.getIdField();
     entity.put(idField, id);
@@ -184,8 +188,8 @@ public class LifecycleHookExecutor {
   /**
    * Audit logging
    */
-  private void executeAudit(LifecycleAction action, EntitySchema schema,
-      Map<String, Object> entity, String phase) {
+  private void executeAudit(LifecycleAction action, EntitySchema schema, Map<String, Object> entity,
+      String phase) {
     log.info("AUDIT: {} {} on {}, entity: {}", phase, schema.getEntity(),
         entity.get(schema.getIdField()), action.getParams());
   }
@@ -194,7 +198,8 @@ public class LifecycleHookExecutor {
    * Resolve value from expression or function
    */
   private Object resolveValue(String value, Map<String, Object> entity) {
-    if (value == null) return null;
+    if (value == null)
+      return null;
 
     // Handle functions
     if (value.equals("now()")) {

@@ -12,9 +12,7 @@ import java.util.*;
 /**
  * Resolves Many-to-Many and other relationships for metamodel entities
  */
-@Component
-@Slf4j
-@RequiredArgsConstructor
+@Component @Slf4j @RequiredArgsConstructor
 public class RelationshipResolver {
 
   private final EntityManager entityManager;
@@ -74,9 +72,8 @@ public class RelationshipResolver {
     }
 
     // Query: SELECT target_id FROM junction_table WHERE entity_id = ?
-    String sql = String.format(
-        "SELECT %s FROM %s WHERE %s = '%s'",
-        inverseJoinColumn, joinTable, joinColumn, entityId);
+    String sql = String.format("SELECT %s FROM %s WHERE %s = '%s'", inverseJoinColumn, joinTable,
+        joinColumn, entityId);
 
     log.debug("Loading M:N relationship '{}': {}", field.getName(), sql);
 
@@ -142,27 +139,24 @@ public class RelationshipResolver {
 
     if (relationshipData == null) {
       // Clear all relationships
-      String deleteSql = String.format(
-          "DELETE FROM %s WHERE %s = '%s'",
-          joinTable, joinColumn, entityId);
+      String deleteSql = String.format("DELETE FROM %s WHERE %s = '%s'", joinTable, joinColumn,
+          entityId);
       entityManager.createNativeQuery(deleteSql).executeUpdate();
       log.debug("Cleared M:N relationships for '{}'", field.getName());
       return;
     }
 
     // Clear existing relationships
-    String deleteSql = String.format(
-        "DELETE FROM %s WHERE %s = '%s'",
-        joinTable, joinColumn, entityId);
+    String deleteSql = String.format("DELETE FROM %s WHERE %s = '%s'", joinTable, joinColumn,
+        entityId);
     entityManager.createNativeQuery(deleteSql).executeUpdate();
 
     // Insert new relationships
     if (relationshipData instanceof Collection<?>) {
       Collection<?> targetIds = (Collection<?>) relationshipData;
       for (Object targetId : targetIds) {
-        String insertSql = String.format(
-            "INSERT INTO %s (%s, %s) VALUES ('%s', '%s')",
-            joinTable, joinColumn, inverseJoinColumn, entityId, targetId);
+        String insertSql = String.format("INSERT INTO %s (%s, %s) VALUES ('%s', '%s')", joinTable,
+            joinColumn, inverseJoinColumn, entityId, targetId);
         entityManager.createNativeQuery(insertSql).executeUpdate();
       }
       log.debug("Saved {} M:N relationships for '{}'", targetIds.size(), field.getName());
@@ -191,18 +185,15 @@ public class RelationshipResolver {
       return;
     }
 
-    String deleteSql = String.format(
-        "DELETE FROM %s WHERE %s = '%s'",
-        joinTable, joinColumn, entityId);
+    String deleteSql = String.format("DELETE FROM %s WHERE %s = '%s'", joinTable, joinColumn,
+        entityId);
 
     int deleted = entityManager.createNativeQuery(deleteSql).executeUpdate();
     log.debug("Deleted {} M:N junction records for '{}'", deleted, field.getName());
   }
 
   private FieldSchema findField(EntitySchema schema, String fieldName) {
-    return schema.getFields().stream()
-        .filter(f -> f.getName().equals(fieldName))
-        .findFirst()
+    return schema.getFields().stream().filter(f -> f.getName().equals(fieldName)).findFirst()
         .orElse(null);
   }
 }

@@ -1,0 +1,155 @@
+entity: Group
+table: groups
+idField: id
+tenantField: tenant_id
+
+# Deterministické UUID generation
+idGeneration:
+  strategy: deterministic
+  sourceFields:
+    - keycloak_group_id
+    - tenant_id
+  algorithm: sha256
+  prefix: "group:"
+
+# Lifecycle hooks
+lifecycle:
+  beforeCreate:
+    - type: generateId
+      field: id
+    - type: setTimestamp
+      field: created_at
+    - type: setTimestamp
+      field: updated_at
+  
+  beforeUpdate:
+    - type: setTimestamp
+      field: updated_at
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    required: true
+  
+  - name: tenant_id
+    type: uuid
+    required: true
+  
+  - name: keycloak_group_id
+    type: string
+    required: true
+    maxLength: 255
+  
+  - name: name
+    type: string
+    required: true
+    maxLength: 255
+  
+  - name: path
+    type: string
+    required: true
+    maxLength: 500
+  
+  - name: parent_group_id
+    type: uuid
+  
+  - name: created_at
+    type: timestamp
+    required: true
+  
+  - name: updated_at
+    type: timestamp
+    required: true
+  
+  # Relationships
+  - name: parentGroup
+    type: manyToOne
+    targetEntity: Group
+    refField: parent_group_id
+  
+  - name: subGroups
+    type: oneToMany
+    targetEntity: Group
+    mappedBy: parentGroup
+  
+  - name: users
+    type: manyToMany
+    targetEntity: User
+    mappedBy: groups  # Inverse side
+
+# ABAC Access Policies
+accessPolicy:
+  read:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - role: CORE_ROLE_TENANT_ADMIN
+  
+  create:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  update:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  delete:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+
+# UI Configuration
+ui:
+  list:
+    columns:
+      - name
+      - path
+    filters:
+      - parentGroup
+    sort:
+      defaultField: path
+      fields:
+        - name
+        - path
+  
+  detail:
+    sections:
+      - name: Main
+        fields:
+          - name
+          - path
+      
+      - name: Keycloak
+        fields:
+          - keycloak_group_id
+      
+      - name: Hierarchy
+        fields:
+          - parentGroup
+          - subGroups
+      
+      - name: Members
+        fields:
+          - users
+      
+      - name: Meta
+        fields:
+          - created_at
+          - updated_at
+        readonly: true
+
+# Navigation
+navigation:
+  menu:
+    - id: groups
+      label: Groups
+      icon: people
+      path: /groups
+      requiredRole: CORE_ROLE_ADMIN
+      order: 210
+
+# Features
+features:
+  - id: group_management
+    requiredRole: CORE_ROLE_ADMIN
+  - id: group_view
+    requiredRole: CORE_ROLE_TENANT_ADMIN

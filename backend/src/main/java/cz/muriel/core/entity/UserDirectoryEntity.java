@@ -118,9 +118,9 @@ public class UserDirectoryEntity extends MultiTenantEntity {
   private Set<GroupEntity> groups = new HashSet<>();
 
   /**
-   * 🔐 DETERMINISTICKÉ UUID GENERATION
-   * Generates consistent UUID from keycloakUserId + tenantId
-   * This ensures same user always has same UUID across database instances
+   * 🔐 DETERMINISTICKÉ UUID GENERATION Generates consistent UUID from
+   * keycloakUserId + tenantId This ensures same user always has same UUID across
+   * database instances
    */
   @PrePersist
   protected void onCreate() {

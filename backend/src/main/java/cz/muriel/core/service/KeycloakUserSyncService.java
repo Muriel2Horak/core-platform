@@ -3,10 +3,9 @@ package cz.muriel.core.service;
 import cz.muriel.core.cdc.ChangeEvent;
 import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.entity.UserChangeEventEntity;
-import cz.muriel.core.entity.UserDirectoryEntity;
-import cz.muriel.core.repository.UserDirectoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,17 +13,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 🔄 V5 Keycloak User Sync Service - CDC ONLY
+ * 🔄 V6 Keycloak User Sync Service - CDC ONLY (Metamodel-based)
  * 
- * ✅ CLEAN: Bulk synchronizace uživatelů přímo přes CDC ❌ ODSTRANĚNO:
- * KeycloakWebhookEventDto dependency
+ * ✅ CLEAN: Bulk synchronizace uživatelů přímo přes CDC
+ * ✅ REFACTORED: Používá metamodel API místo JPA entit
  */
 @Service @RequiredArgsConstructor @Slf4j
 public class KeycloakUserSyncService {
 
   private final KeycloakEventProjectionService projectionService;
   private final TenantService tenantService;
-  private final UserDirectoryRepository userDirectoryRepository;
+  private final JdbcTemplate jdbcTemplate;
 
   /**
    * ✅ CDC Bulk synchronizace uživatelů z change events
@@ -172,16 +171,19 @@ public class KeycloakUserSyncService {
   /**
    * Získá uživatele z lokální projekce
    */
-  public Optional<UserDirectoryEntity> getUserProjection(String keycloakUserId, String tenantKey) {
+  public Optional<Map<String, Object>> getUserProjection(String keycloakUserId, String tenantKey) {
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
-    return userDirectoryRepository.findByTenantIdAndKeycloakUserId(tenantId, keycloakUserId);
+    String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND keycloak_user_id = ?";
+    List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, tenantId, keycloakUserId);
+    return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
   }
 
   /**
    * Získá všechny uživatele pro tenant z lokální projekce
    */
-  public List<UserDirectoryEntity> getAllUsersForTenant(String tenantKey) {
+  public List<Map<String, Object>> getAllUsersForTenant(String tenantKey) {
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
-    return userDirectoryRepository.findByTenantId(tenantId);
+    String sql = "SELECT * FROM users_directory WHERE tenant_id = ?";
+    return jdbcTemplate.queryForList(sql, tenantId);
   }
 }

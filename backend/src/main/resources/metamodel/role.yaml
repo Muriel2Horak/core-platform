@@ -1,0 +1,165 @@
+entity: Role
+table: roles
+idField: id
+tenantField: tenant_id
+
+# Deterministické UUID generation
+idGeneration:
+  strategy: deterministic
+  sourceFields:
+    - keycloak_role_id
+    - tenant_id
+  algorithm: sha256
+  prefix: "role:"
+
+# Lifecycle hooks
+lifecycle:
+  beforeCreate:
+    - type: generateId
+      field: id
+    - type: setTimestamp
+      field: created_at
+    - type: setTimestamp
+      field: updated_at
+  
+  beforeUpdate:
+    - type: setTimestamp
+      field: updated_at
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    required: true
+  
+  - name: tenant_id
+    type: uuid
+    required: true
+  
+  - name: keycloak_role_id
+    type: string
+    required: true
+    maxLength: 255
+  
+  - name: name
+    type: string
+    required: true
+    maxLength: 255
+  
+  - name: description
+    type: text
+  
+  - name: role_type
+    type: string
+    required: true
+    maxLength: 50
+  
+  - name: client_id
+    type: string
+    maxLength: 255
+  
+  - name: composite
+    type: boolean
+    required: true
+  
+  - name: created_at
+    type: timestamp
+    required: true
+  
+  - name: updated_at
+    type: timestamp
+    required: true
+  
+  # M:N Relationships
+  - name: childRoles
+    type: manyToMany
+    targetEntity: Role
+    joinTable: role_composites
+    joinColumn: parent_role_id
+    inverseJoinColumn: child_role_id
+    bidirectional: true
+    inverseName: parentRoles
+  
+  - name: users
+    type: manyToMany
+    targetEntity: User
+    mappedBy: roles  # Inverse side - owned by User
+
+# ABAC Access Policies
+accessPolicy:
+  read:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+      - role: CORE_ROLE_TENANT_ADMIN
+  
+  create:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  update:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+  
+  delete:
+    anyOf:
+      - role: CORE_ROLE_ADMIN
+
+# UI Configuration
+ui:
+  list:
+    columns:
+      - name
+      - role_type
+      - composite
+      - description
+    filters:
+      - role_type
+      - composite
+    sort:
+      defaultField: name
+      fields:
+        - name
+        - role_type
+  
+  detail:
+    sections:
+      - name: Main
+        fields:
+          - name
+          - description
+          - role_type
+          - client_id
+          - composite
+      
+      - name: Keycloak
+        fields:
+          - keycloak_role_id
+      
+      - name: Relationships
+        fields:
+          - childRoles
+          - parentRoles
+          - users
+      
+      - name: Meta
+        fields:
+          - created_at
+          - updated_at
+        readonly: true
+
+# Navigation
+navigation:
+  menu:
+    - id: roles
+      label: Roles
+      icon: shield
+      path: /roles
+      requiredRole: CORE_ROLE_ADMIN
+      order: 200
+
+# Features
+features:
+  - id: role_management
+    requiredRole: CORE_ROLE_ADMIN
+  - id: role_view
+    requiredRole: CORE_ROLE_TENANT_ADMIN
