@@ -3,6 +3,7 @@ package cz.muriel.core.controller.admin;
 import cz.muriel.core.entity.SyncExecution;
 import cz.muriel.core.entity.SyncExecution.SyncStatus;
 import cz.muriel.core.repository.SyncExecutionRepository;
+import cz.muriel.core.service.TenantService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 📊 REST API pro historii synchronizací
@@ -23,6 +25,7 @@ import java.util.List;
 public class SyncHistoryController {
 
   private final SyncExecutionRepository syncExecutionRepository;
+  private final TenantService tenantService;
 
   /**
    * 📋 Seznam všech synchronizací s paginací a filtrací
@@ -42,12 +45,14 @@ public class SyncHistoryController {
 
     if (status != null && tenantKey != null) {
       SyncStatus syncStatus = SyncStatus.valueOf(status.toUpperCase());
-      results = syncExecutionRepository.findByStatusAndTenantKey(syncStatus, tenantKey, pageable);
+      UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+      results = syncExecutionRepository.findByStatusAndTenantId(syncStatus, tenantId, pageable);
     } else if (status != null) {
       SyncStatus syncStatus = SyncStatus.valueOf(status.toUpperCase());
       results = syncExecutionRepository.findByStatus(syncStatus, pageable);
     } else if (tenantKey != null) {
-      results = syncExecutionRepository.findByTenantKey(tenantKey, pageable);
+      UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+      results = syncExecutionRepository.findByTenantId(tenantId, pageable);
     } else {
       results = syncExecutionRepository.findAll(pageable);
     }

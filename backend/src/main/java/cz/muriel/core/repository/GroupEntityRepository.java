@@ -16,102 +16,101 @@ import java.util.UUID;
 @Repository
 public interface GroupEntityRepository extends JpaRepository<GroupEntity, UUID> {
 
-  // =====================================================
-  // 🔍 BASIC LOOKUPS
-  // =====================================================
+    // =====================================================
+    // 🔍 BASIC LOOKUPS
+    // =====================================================
 
-  /**
-   * Find group by Keycloak Group ID and tenant
-   */
-  Optional<GroupEntity> findByKeycloakGroupIdAndTenantKey(String keycloakGroupId, String tenantKey);
+    /**
+     * Find group by Keycloak Group ID and tenant
+     */
+    Optional<GroupEntity> findByKeycloakGroupIdAndTenantId(String keycloakGroupId, UUID tenantId);
 
-  /**
-   * Find group by name and tenant
-   */
-  Optional<GroupEntity> findByNameAndTenantKey(String name, String tenantKey);
+    /**
+     * Find group by name and tenant
+     */
+    Optional<GroupEntity> findByNameAndTenantId(String name, UUID tenantId);
 
-  /**
-   * Find group by path and tenant
-   */
-  Optional<GroupEntity> findByPathAndTenantKey(String path, String tenantKey);
+    /**
+     * Find group by path and tenant
+     */
+    Optional<GroupEntity> findByPathAndTenantId(String path, UUID tenantId);
 
-  /**
-   * Find all groups for a tenant
-   */
-  List<GroupEntity> findByTenantKey(String tenantKey);
+    /**
+     * Find all groups for a tenant
+     */
+    List<GroupEntity> findByTenantId(UUID tenantId);
 
-  /**
-   * Check if group exists by Keycloak ID and tenant
-   */
-  boolean existsByKeycloakGroupIdAndTenantKey(String keycloakGroupId, String tenantKey);
+    /**
+     * Check if group exists by Keycloak ID and tenant
+     */
+    boolean existsByKeycloakGroupIdAndTenantId(String keycloakGroupId, UUID tenantId);
 
-  // =====================================================
-  // 🌲 HIERARCHICAL QUERIES
-  // =====================================================
+    // =====================================================
+    // 🌲 HIERARCHICAL QUERIES
+    // =====================================================
 
-  /**
-   * Find all root groups (groups with no parent)
-   */
-  @Query("SELECT g FROM GroupEntity g WHERE g.tenantKey = :tenantKey AND g.parentGroup IS NULL")
-  List<GroupEntity> findRootGroups(@Param("tenantKey") String tenantKey);
+    /**
+     * Find all root groups (groups with no parent)
+     */
+    @Query("SELECT g FROM GroupEntity g WHERE g.tenantId = :tenantId AND g.parentGroup IS NULL")
+    List<GroupEntity> findRootGroups(@Param("tenantId") UUID tenantId);
 
-  /**
-   * Find direct children of a parent group
-   */
-  List<GroupEntity> findByParentGroupIdAndTenantKey(UUID parentGroupId, String tenantKey);
+    /**
+     * Find direct children of a parent group
+     */
+    List<GroupEntity> findByParentGroupIdAndTenantId(UUID parentGroupId, UUID tenantId);
 
-  /**
-   * Find all groups at specific depth level
-   */
-  @Query("SELECT g FROM GroupEntity g WHERE g.tenantKey = :tenantKey "
-      + "AND LENGTH(g.path) - LENGTH(REPLACE(g.path, '/', '')) = :level + 1")
-  List<GroupEntity> findByLevel(@Param("level") int level, @Param("tenantKey") String tenantKey);
+    /**
+     * Find all groups at specific depth level
+     */
+    @Query("SELECT g FROM GroupEntity g WHERE g.tenantId = :tenantId "
+            + "AND LENGTH(g.path) - LENGTH(REPLACE(g.path, '/', '')) = :level + 1")
+    List<GroupEntity> findByLevel(@Param("level") int level, @Param("tenantId") UUID tenantId);
 
-  /**
-   * Find all descendants of a group (using path prefix)
-   */
-  @Query("SELECT g FROM GroupEntity g WHERE g.tenantKey = :tenantKey "
-      + "AND g.path LIKE CONCAT(:parentPath, '/%')")
-  List<GroupEntity> findDescendants(@Param("parentPath") String parentPath,
-      @Param("tenantKey") String tenantKey);
+    /**
+     * Find all descendants of a group (using path prefix)
+     */
+    @Query("SELECT g FROM GroupEntity g WHERE g.tenantId = :tenantId "
+            + "AND g.path LIKE CONCAT(:parentPath, '/%')")
+    List<GroupEntity> findDescendants(@Param("parentPath") String parentPath,
+            @Param("tenantId") UUID tenantId);
 
-  /**
-   * Find all groups in a path hierarchy Example: "/admin/users" returns [admin,
-   * admin/users]
-   */
-  @Query("SELECT g FROM GroupEntity g WHERE g.tenantKey = :tenantKey "
-      + "AND :path LIKE CONCAT(g.path, '%')")
-  List<GroupEntity> findPathHierarchy(@Param("path") String path,
-      @Param("tenantKey") String tenantKey);
+    /**
+     * Find all groups in a path hierarchy Example: "/admin/users" returns [admin,
+     * admin/users]
+     */
+    @Query("SELECT g FROM GroupEntity g WHERE g.tenantId = :tenantId "
+            + "AND :path LIKE CONCAT(g.path, '%')")
+    List<GroupEntity> findPathHierarchy(@Param("path") String path,
+            @Param("tenantId") UUID tenantId);
 
-  // =====================================================
-  // 📊 STATISTICS & SEARCH
-  // =====================================================
+    // =====================================================
+    // 📊 STATISTICS & SEARCH
+    // =====================================================
 
-  /**
-   * Count groups by tenant
-   */
-  long countByTenantKey(String tenantKey);
+    /**
+     * Count groups by tenant
+     */
+    long countByTenantId(UUID tenantId);
 
-  /**
-   * Count root groups
-   */
-  @Query("SELECT COUNT(g) FROM GroupEntity g WHERE g.tenantKey = :tenantKey AND g.parentGroup IS NULL")
-  long countRootGroups(@Param("tenantKey") String tenantKey);
+    /**
+     * Count root groups
+     */
+    @Query("SELECT COUNT(g) FROM GroupEntity g WHERE g.tenantId = :tenantId AND g.parentGroup IS NULL")
+    long countRootGroups(@Param("tenantId") UUID tenantId);
 
-  /**
-   * Search groups by name pattern
-   */
-  @Query("SELECT g FROM GroupEntity g " + "WHERE g.tenantKey = :tenantKey "
-      + "AND LOWER(g.name) LIKE LOWER(CONCAT('%', :query, '%'))")
-  List<GroupEntity> searchGroups(@Param("query") String query,
-      @Param("tenantKey") String tenantKey);
+    /**
+     * Search groups by name pattern
+     */
+    @Query("SELECT g FROM GroupEntity g " + "WHERE g.tenantId = :tenantId "
+            + "AND LOWER(g.name) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<GroupEntity> searchGroups(@Param("query") String query, @Param("tenantId") UUID tenantId);
 
-  /**
-   * Find groups containing specific users (by path pattern)
-   */
-  @Query("SELECT DISTINCT g FROM GroupEntity g " + "JOIN g.users u "
-      + "WHERE g.tenantKey = :tenantKey AND u.id = :userId")
-  List<GroupEntity> findGroupsByUserId(@Param("userId") UUID userId,
-      @Param("tenantKey") String tenantKey);
+    /**
+     * Find groups containing specific users (by path pattern)
+     */
+    @Query("SELECT DISTINCT g FROM GroupEntity g " + "JOIN g.users u "
+            + "WHERE g.tenantId = :tenantId AND u.id = :userId")
+    List<GroupEntity> findGroupsByUserId(@Param("userId") UUID userId,
+            @Param("tenantId") UUID tenantId);
 }

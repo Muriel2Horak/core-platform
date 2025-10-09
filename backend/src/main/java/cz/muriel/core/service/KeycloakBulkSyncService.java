@@ -36,6 +36,7 @@ public class KeycloakBulkSyncService {
   private final UserDirectoryRepository userDirectoryRepository;
   private final KeycloakSyncService syncService;
   private final SyncExecutionRepository syncExecutionRepository;
+  private final TenantService tenantService;
 
   // Progress tracking pro aktivní synchronizace
   private final Map<String, SyncProgress> activeSyncs = new ConcurrentHashMap<>();
@@ -48,8 +49,11 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
     // Vytvoříme DB záznam
-    SyncExecution execution = SyncExecution.builder().id(syncId).type("users").tenantKey(tenantKey)
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("users").tenantId(tenantId)
         .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
@@ -105,7 +109,10 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    SyncExecution execution = SyncExecution.builder().id(syncId).type("roles").tenantKey(tenantKey)
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("roles").tenantId(tenantId)
         .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
@@ -160,7 +167,10 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    SyncExecution execution = SyncExecution.builder().id(syncId).type("groups").tenantKey(tenantKey)
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("groups").tenantId(tenantId)
         .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
@@ -215,7 +225,10 @@ public class KeycloakBulkSyncService {
     String syncId = UUID.randomUUID().toString();
     String initiatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
-    SyncExecution execution = SyncExecution.builder().id(syncId).type("all").tenantKey(tenantKey)
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
+    SyncExecution execution = SyncExecution.builder().id(syncId).type("all").tenantId(tenantId)
         .status(SyncExecution.SyncStatus.RUNNING).initiatedBy(initiatedBy).build();
     syncExecutionRepository.save(execution);
 
@@ -376,12 +389,15 @@ public class KeycloakBulkSyncService {
    */
   @Transactional
   private void syncUserToDirectory(UserRepresentation user, String tenantKey) {
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
     Optional<UserDirectoryEntity> existing = userDirectoryRepository
-        .findByTenantKeyAndKeycloakUserId(tenantKey, user.getId());
+        .findByTenantIdAndKeycloakUserId(tenantId, user.getId());
 
     UserDirectoryEntity entity = existing.orElse(new UserDirectoryEntity());
     entity.setKeycloakUserId(user.getId());
-    entity.setTenantKey(tenantKey);
+    entity.setTenantId(tenantId);
     entity.setUsername(user.getUsername());
     entity.setEmail(user.getEmail());
     entity.setFirstName(user.getFirstName());

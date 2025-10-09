@@ -19,22 +19,22 @@ public interface GroupRepository extends JpaRepository<GroupEntity, UUID> {
   /**
    * Find group by Keycloak group ID and tenant
    */
-  Optional<GroupEntity> findByKeycloakGroupIdAndTenantKey(String keycloakGroupId, String tenantKey);
+  Optional<GroupEntity> findByKeycloakGroupIdAndTenantId(String keycloakGroupId, UUID tenantId);
 
   /**
    * Find group by path and tenant
    */
-  Optional<GroupEntity> findByPathAndTenantKey(String path, String tenantKey);
+  Optional<GroupEntity> findByPathAndTenantId(String path, UUID tenantId);
 
   /**
    * Find all groups for a tenant
    */
-  List<GroupEntity> findByTenantKey(String tenantKey);
+  List<GroupEntity> findByTenantId(UUID tenantId);
 
   /**
    * Find root groups (no parent) for a tenant
    */
-  List<GroupEntity> findByTenantKeyAndParentGroupIsNull(String tenantKey);
+  List<GroupEntity> findByTenantIdAndParentGroupIsNull(UUID tenantId);
 
   /**
    * Find child groups of a parent group
@@ -44,17 +44,17 @@ public interface GroupRepository extends JpaRepository<GroupEntity, UUID> {
   /**
    * Find groups by name pattern (case-insensitive)
    */
-  @Query("SELECT g FROM GroupEntity g WHERE g.tenantKey = :tenantKey AND LOWER(g.name) LIKE LOWER(CONCAT('%', :name, '%'))")
-  List<GroupEntity> findByTenantKeyAndNameContainingIgnoreCase(@Param("tenantKey") String tenantKey,
+  @Query("SELECT g FROM GroupEntity g WHERE g.tenantId = :tenantId AND LOWER(g.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+  List<GroupEntity> findByTenantIdAndNameContainingIgnoreCase(@Param("tenantId") UUID tenantId,
       @Param("name") String name);
 
   /**
    * Check if group exists by Keycloak ID
    */
-  boolean existsByKeycloakGroupIdAndTenantKey(String keycloakGroupId, String tenantKey);
+  boolean existsByKeycloakGroupIdAndTenantId(String keycloakGroupId, UUID tenantId);
 
   /**
    * Delete group by Keycloak ID and tenant
    */
-  void deleteByKeycloakGroupIdAndTenantKey(String keycloakGroupId, String tenantKey);
+  void deleteByKeycloakGroupIdAndTenantId(String keycloakGroupId, UUID tenantId);
 }

@@ -9,6 +9,7 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity @Table(name = "sync_executions") @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class SyncExecution {
@@ -20,7 +21,7 @@ public class SyncExecution {
   private String type; // users, roles, groups, all
 
   @Column(nullable = false)
-  private String tenantKey;
+  private UUID tenantId;
 
   @Column(nullable = false) @Enumerated(EnumType.STRING)
   private SyncStatus status;

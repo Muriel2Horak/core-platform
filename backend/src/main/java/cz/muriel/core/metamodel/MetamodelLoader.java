@@ -1,11 +1,12 @@
 package cz.muriel.core.metamodel;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
 import java.util.*;
@@ -19,7 +20,7 @@ public class MetamodelLoader {
   private static final String METAMODEL_LOCATION = "classpath:metamodel/*.yaml";
 
   private final PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-  private final Yaml yaml = new Yaml();
+  private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
   /**
    * Load all metamodel schemas from classpath
@@ -33,7 +34,7 @@ public class MetamodelLoader {
 
       for (Resource resource : resources) {
         try (InputStream is = resource.getInputStream()) {
-          EntitySchema schema = yaml.load(is);
+          EntitySchema schema = yamlMapper.readValue(is, EntitySchema.class);
 
           // Validation
           validateSchema(schema, resource.getFilename());

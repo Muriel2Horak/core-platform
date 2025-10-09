@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 public class RoleExpansionService {
 
   private final RoleEntityRepository roleRepository;
+  private final TenantService tenantService;
+
+
 
   // =====================================================
   // 🔍 COMPOSITE ROLE EXPANSION
@@ -78,7 +81,7 @@ public class RoleExpansionService {
    * Gets the complete role hierarchy tree for a tenant
    */
   public List<RoleHierarchyNode> getRoleHierarchyTree(String tenantKey) {
-    List<RoleEntity> rootRoles = roleRepository.findRootRoles(tenantKey);
+    List<RoleEntity> rootRoles = roleRepository.findRootRoles(tenantService.getTenantIdFromKey(tenantKey));
 
     return rootRoles.stream().map(this::buildHierarchyNode).collect(Collectors.toList());
   }
@@ -146,8 +149,8 @@ public class RoleExpansionService {
 
     // Add new relationships
     for (String childRoleName : childRoleNames) {
-      Optional<RoleEntity> childRole = roleRepository.findByNameAndTenantKey(childRoleName,
-          tenantKey);
+      Optional<RoleEntity> childRole = roleRepository.findByNameAndTenantId(childRoleName,
+          tenantService.getTenantIdFromKey(tenantKey));
       childRole.ifPresent(parentRole::addChildRole);
     }
 

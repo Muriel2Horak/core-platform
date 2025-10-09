@@ -16,85 +16,85 @@ import java.util.UUID;
 @Repository
 public interface RoleEntityRepository extends JpaRepository<RoleEntity, UUID> {
 
-  // =====================================================
-  // 🔍 BASIC LOOKUPS
-  // =====================================================
+    // =====================================================
+    // 🔍 BASIC LOOKUPS
+    // =====================================================
 
-  /**
-   * Find role by Keycloak Role ID and tenant
-   */
-  Optional<RoleEntity> findByKeycloakRoleIdAndTenantKey(String keycloakRoleId, String tenantKey);
+    /**
+     * Find role by Keycloak Role ID and tenant
+     */
+    Optional<RoleEntity> findByKeycloakRoleIdAndTenantId(String keycloakRoleId, UUID tenantId);
 
-  /**
-   * Find role by name and tenant
-   */
-  Optional<RoleEntity> findByNameAndTenantKey(String name, String tenantKey);
+    /**
+     * Find role by name and tenant
+     */
+    Optional<RoleEntity> findByNameAndTenantId(String name, UUID tenantId);
 
-  /**
-   * Find all roles for a tenant
-   */
-  List<RoleEntity> findByTenantKey(String tenantKey);
+    /**
+     * Find all roles for a tenant
+     */
+    List<RoleEntity> findByTenantId(UUID tenantId);
 
-  /**
-   * Find roles by type and tenant
-   */
-  List<RoleEntity> findByRoleTypeAndTenantKey(RoleEntity.RoleType roleType, String tenantKey);
+    /**
+     * Find roles by type and tenant
+     */
+    List<RoleEntity> findByRoleTypeAndTenantId(RoleEntity.RoleType roleType, UUID tenantId);
 
-  /**
-   * Check if role exists by Keycloak ID and tenant
-   */
-  boolean existsByKeycloakRoleIdAndTenantKey(String keycloakRoleId, String tenantKey);
+    /**
+     * Check if role exists by Keycloak ID and tenant
+     */
+    boolean existsByKeycloakRoleIdAndTenantId(String keycloakRoleId, UUID tenantId);
 
-  // =====================================================
-  // 🎭 COMPOSITE ROLE QUERIES
-  // =====================================================
+    // =====================================================
+    // 🎭 COMPOSITE ROLE QUERIES
+    // =====================================================
 
-  /**
-   * Find all composite roles (roles that contain other roles)
-   */
-  List<RoleEntity> findByCompositeAndTenantKey(Boolean composite, String tenantKey);
+    /**
+     * Find all composite roles (roles that contain other roles)
+     */
+    List<RoleEntity> findByCompositeAndTenantId(Boolean composite, UUID tenantId);
 
-  /**
-   * Find all root roles (roles with no parents)
-   */
-  @Query("SELECT r FROM RoleEntity r WHERE r.tenantKey = :tenantKey AND SIZE(r.parentRoles) = 0")
-  List<RoleEntity> findRootRoles(@Param("tenantKey") String tenantKey);
+    /**
+     * Find all root roles (roles with no parents)
+     */
+    @Query("SELECT r FROM RoleEntity r WHERE r.tenantId = :tenantId AND SIZE(r.parentRoles) = 0")
+    List<RoleEntity> findRootRoles(@Param("tenantId") UUID tenantId);
 
-  /**
-   * Find all child roles of a parent role
-   */
-  @Query("SELECT DISTINCT child FROM RoleEntity parent " + "JOIN parent.childRoles child "
-      + "WHERE parent.id = :parentId AND parent.tenantKey = :tenantKey")
-  List<RoleEntity> findChildRoles(@Param("parentId") UUID parentId,
-      @Param("tenantKey") String tenantKey);
+    /**
+     * Find all child roles of a parent role
+     */
+    @Query("SELECT DISTINCT child FROM RoleEntity parent " + "JOIN parent.childRoles child "
+            + "WHERE parent.id = :parentId AND parent.tenantId = :tenantId")
+    List<RoleEntity> findChildRoles(@Param("parentId") UUID parentId,
+            @Param("tenantId") UUID tenantId);
 
-  /**
-   * Find all parent roles of a child role
-   */
-  @Query("SELECT DISTINCT parent FROM RoleEntity child " + "JOIN child.parentRoles parent "
-      + "WHERE child.id = :childId AND child.tenantKey = :tenantKey")
-  List<RoleEntity> findParentRoles(@Param("childId") UUID childId,
-      @Param("tenantKey") String tenantKey);
+    /**
+     * Find all parent roles of a child role
+     */
+    @Query("SELECT DISTINCT parent FROM RoleEntity child " + "JOIN child.parentRoles parent "
+            + "WHERE child.id = :childId AND child.tenantId = :tenantId")
+    List<RoleEntity> findParentRoles(@Param("childId") UUID childId,
+            @Param("tenantId") UUID tenantId);
 
-  // =====================================================
-  // 📊 STATISTICS & SEARCH
-  // =====================================================
+    // =====================================================
+    // 📊 STATISTICS & SEARCH
+    // =====================================================
 
-  /**
-   * Count roles by tenant
-   */
-  long countByTenantKey(String tenantKey);
+    /**
+     * Count roles by tenant
+     */
+    long countByTenantId(UUID tenantId);
 
-  /**
-   * Count composite roles by tenant
-   */
-  long countByCompositeAndTenantKey(Boolean composite, String tenantKey);
+    /**
+     * Count composite roles by tenant
+     */
+    long countByCompositeAndTenantId(Boolean composite, UUID tenantId);
 
-  /**
-   * Search roles by name pattern
-   */
-  @Query("SELECT r FROM RoleEntity r " + "WHERE r.tenantKey = :tenantKey "
-      + "AND (LOWER(r.name) LIKE LOWER(CONCAT('%', :query, '%')) "
-      + "OR LOWER(r.description) LIKE LOWER(CONCAT('%', :query, '%')))")
-  List<RoleEntity> searchRoles(@Param("query") String query, @Param("tenantKey") String tenantKey);
+    /**
+     * Search roles by name pattern
+     */
+    @Query("SELECT r FROM RoleEntity r " + "WHERE r.tenantId = :tenantId "
+            + "AND (LOWER(r.name) LIKE LOWER(CONCAT('%', :query, '%')) "
+            + "OR LOWER(r.description) LIKE LOWER(CONCAT('%', :query, '%')))")
+    List<RoleEntity> searchRoles(@Param("query") String query, @Param("tenantId") UUID tenantId);
 }

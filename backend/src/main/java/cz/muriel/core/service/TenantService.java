@@ -90,6 +90,24 @@ public class TenantService {
   }
 
   /**
+   * 🔄 HELPER: Convert tenant key to UUID Used by services to convert API input
+   * (tenantKey) to repository input (tenantId)
+   */
+  public UUID getTenantIdFromKey(String tenantKey) {
+    return findTenantByKey(tenantKey).map(Tenant::getId)
+        .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantKey));
+  }
+
+  /**
+   * 🔄 HELPER: Convert tenant UUID to key Used to convert repository output
+   * (tenantId) to API output (tenantKey)
+   */
+  public String getTenantKeyFromId(UUID tenantId) {
+    return tenantRepository.findById(tenantId).map(Tenant::getKey)
+        .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+  }
+
+  /**
    * 🔍 CDC SUPPORT: Find tenant by Keycloak realm_id 🆕 OPTIMIZED: Uses
    * keycloak_realm_id column for direct lookup
    */

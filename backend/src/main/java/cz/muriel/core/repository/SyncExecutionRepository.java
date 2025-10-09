@@ -11,24 +11,25 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface SyncExecutionRepository extends JpaRepository<SyncExecution, String> {
 
-  Page<SyncExecution> findByStatus(SyncStatus status, Pageable pageable);
+    Page<SyncExecution> findByStatus(SyncStatus status, Pageable pageable);
 
-  Page<SyncExecution> findByTenantKey(String tenantKey, Pageable pageable);
+    Page<SyncExecution> findByTenantId(UUID tenantId, Pageable pageable);
 
-  Page<SyncExecution> findByStatusAndTenantKey(SyncStatus status, String tenantKey,
-      Pageable pageable);
+    Page<SyncExecution> findByStatusAndTenantId(SyncStatus status, UUID tenantId,
+            Pageable pageable);
 
-  @Query("SELECT s FROM SyncExecution s WHERE s.status = :status AND s.startTime >= :since ORDER BY s.startTime DESC")
-  List<SyncExecution> findRecentByStatus(@Param("status") SyncStatus status,
-      @Param("since") LocalDateTime since);
+    @Query("SELECT s FROM SyncExecution s WHERE s.status = :status AND s.startTime >= :since ORDER BY s.startTime DESC")
+    List<SyncExecution> findRecentByStatus(@Param("status") SyncStatus status,
+            @Param("since") LocalDateTime since);
 
-  @Query("SELECT s FROM SyncExecution s WHERE s.tenantKey = :tenantKey ORDER BY s.startTime DESC")
-  Page<SyncExecution> findByTenantKeyOrderByStartTimeDesc(@Param("tenantKey") String tenantKey,
-      Pageable pageable);
+    @Query("SELECT s FROM SyncExecution s WHERE s.tenantId = :tenantId ORDER BY s.startTime DESC")
+    Page<SyncExecution> findByTenantIdOrderByStartTimeDesc(@Param("tenantId") UUID tenantId,
+            Pageable pageable);
 
-  List<SyncExecution> findByStatusIn(List<SyncStatus> statuses);
+    List<SyncExecution> findByStatusIn(List<SyncStatus> statuses);
 }

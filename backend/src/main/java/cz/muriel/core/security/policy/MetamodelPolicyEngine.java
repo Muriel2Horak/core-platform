@@ -2,7 +2,6 @@ package cz.muriel.core.security.policy;
 
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.*;
-import cz.muriel.core.security.PolicyEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
@@ -24,7 +23,7 @@ import java.util.stream.Collectors;
  * 
  * @version 3.0 - Using MetamodelRegistry
  */
-@Component("metamodelPolicy") @RequiredArgsConstructor @Slf4j
+@Component @RequiredArgsConstructor @Slf4j
 public class MetamodelPolicyEngine implements PolicyEngine {
 
   private final MetamodelRegistry registry;
@@ -129,7 +128,6 @@ public class MetamodelPolicyEngine implements PolicyEngine {
     return allowedColumns;
   }
 
-  @Override
   public String getRowFilter(Authentication auth, String entityType, String action) {
     String tenantId = getTenantId(auth);
 
@@ -307,7 +305,8 @@ public class MetamodelPolicyEngine implements PolicyEngine {
         .anyMatch(a -> a.equals(role) || a.equals("ROLE_" + role));
   }
 
-  private String getTenantId(Authentication auth) {
+  @Override
+  public String getTenantId(Authentication auth) {
     if (auth instanceof JwtAuthenticationToken jwtAuth) {
       Jwt jwt = jwtAuth.getToken();
       return jwt.getClaimAsString("tenant_id");
@@ -315,7 +314,8 @@ public class MetamodelPolicyEngine implements PolicyEngine {
     return "admin"; // fallback
   }
 
-  private String getUserId(Authentication auth) {
+  @Override
+  public String getUserId(Authentication auth) {
     if (auth instanceof JwtAuthenticationToken jwtAuth) {
       Jwt jwt = jwtAuth.getToken();
       String sub = jwt.getSubject();

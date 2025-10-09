@@ -10,10 +10,11 @@ import lombok.experimental.SuperBuilder;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import java.util.UUID;
 
-@MappedSuperclass @FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantKey", type = String.class)) @Filter(name = "tenantFilter", condition = "tenant_key = :tenantKey") @Data @NoArgsConstructor @AllArgsConstructor @SuperBuilder
+@MappedSuperclass @FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class)) @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId") @Data @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public abstract class MultiTenantEntity {
 
-  @Column(name = "tenant_key", nullable = false)
-  private String tenantKey;
+  @Column(name = "tenant_id", nullable = false)
+  private UUID tenantId;
 }

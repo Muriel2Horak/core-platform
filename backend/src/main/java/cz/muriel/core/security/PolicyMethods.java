@@ -1,5 +1,6 @@
 package cz.muriel.core.security;
 
+import cz.muriel.core.security.policy.PolicyEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;

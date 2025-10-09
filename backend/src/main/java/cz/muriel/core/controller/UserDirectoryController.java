@@ -139,7 +139,9 @@ public class UserDirectoryController {
     boolean isTenantAdmin = hasRole(jwt, "CORE_ROLE_TENANT_ADMIN")
         || hasRole(jwt, "CORE_ROLE_USER_MANAGER");
     boolean isMe = currentUserId.equals(user.getKeycloakUserId());
-    boolean sameTenant = user.getTenantKey().equals(getCurrentTenantKey(jwt));
+    // Convert tenant key to UUID for comparison
+    UUID currentTenantId = tenantService.getTenantIdFromKey(getCurrentTenantKey(jwt));
+    boolean sameTenant = user.getTenantId().equals(currentTenantId);
 
     // Access control
     if (!isCoreAdmin && !isMe && !(isTenantAdmin && sameTenant)) {
@@ -241,7 +243,9 @@ public class UserDirectoryController {
     boolean isTenantAdmin = hasRole(jwt, "CORE_ROLE_TENANT_ADMIN")
         || hasRole(jwt, "CORE_ROLE_USER_MANAGER");
     boolean isMe = currentUserId.equals(user.getKeycloakUserId());
-    boolean sameTenant = user.getTenantKey().equals(getCurrentTenantKey(jwt));
+    // Convert tenant key to UUID for comparison
+    UUID currentTenantId = tenantService.getTenantIdFromKey(getCurrentTenantKey(jwt));
+    boolean sameTenant = user.getTenantId().equals(currentTenantId);
 
     return isMe || isCoreAdmin || (isTenantAdmin && sameTenant);
   }
@@ -250,19 +254,22 @@ public class UserDirectoryController {
     boolean isCoreAdmin = hasRole(jwt, "CORE_ROLE_ADMIN");
     boolean isTenantAdmin = hasRole(jwt, "CORE_ROLE_TENANT_ADMIN")
         || hasRole(jwt, "CORE_ROLE_USER_MANAGER");
-    boolean sameTenant = user.getTenantKey().equals(getCurrentTenantKey(jwt));
+    // Convert tenant key to UUID for comparison
+    UUID currentTenantId = tenantService.getTenantIdFromKey(getCurrentTenantKey(jwt));
+    boolean sameTenant = user.getTenantId().equals(currentTenantId);
 
     return isCoreAdmin || (isTenantAdmin && sameTenant);
   }
 
   private Map<String, Object> buildUserResponse(UserDirectoryEntity user) {
+    // Convert UUID tenantId to String tenantKey for API response
+    String tenantKey = tenantService.getTenantKeyFromId(user.getTenantId());
     return Map.of("id", user.getId(), "username", user.getUsername(), "firstName",
         user.getFirstName() != null ? user.getFirstName() : "", "lastName",
         user.getLastName() != null ? user.getLastName() : "", "email",
-        user.getEmail() != null ? user.getEmail() : "", "tenantKey", user.getTenantKey(),
-        "tenantName", getTenantNameByKey(user.getTenantKey()), "directorySource",
-        user.getIsFederated() ? "AD" : "LOCAL", "isFederated", user.getIsFederated(), "updatedAt",
-        user.getUpdatedAt());
+        user.getEmail() != null ? user.getEmail() : "", "tenantKey", tenantKey, "tenantName",
+        getTenantNameByKey(tenantKey), "directorySource", user.getIsFederated() ? "AD" : "LOCAL",
+        "isFederated", user.getIsFederated(), "updatedAt", user.getUpdatedAt());
   }
 
   private Map<String, Object> buildUserDetailResponse(UserDirectoryEntity user, Jwt jwt) {

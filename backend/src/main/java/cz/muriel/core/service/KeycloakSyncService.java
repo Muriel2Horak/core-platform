@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * 🔄 V5 Enhanced Keycloak Sync Service Handles synchronization of users, roles,
@@ -26,6 +27,7 @@ public class KeycloakSyncService {
   private final GroupRepository groupRepository;
   private final UserDirectoryRepository userDirectoryRepository;
   private final KeycloakAdminService keycloakAdminService;
+  private final TenantService tenantService;
 
   // =====================================================
   // 🎭 ROLE SYNCHRONIZATION
@@ -66,12 +68,12 @@ public class KeycloakSyncService {
     String keycloakRoleId = roleData.path("id").asText();
     String roleName = roleData.path("name").asText();
 
-    Optional<RoleEntity> existingRole = roleRepository
-        .findByKeycloakRoleIdAndTenantKey(keycloakRoleId, tenantKey);
+    Optional<RoleEntity> existingRole = roleRepository.findByKeycloakRoleIdAndTenantId(
+        keycloakRoleId, tenantService.getTenantIdFromKey(tenantKey));
 
     RoleEntity role = existingRole.orElse(new RoleEntity());
     role.setKeycloakRoleId(keycloakRoleId);
-    role.setTenantKey(tenantKey);
+    role.setTenantId(tenantService.getTenantIdFromKey(tenantKey));
     role.setName(roleName);
     role.setDescription(roleData.path("description").asText(null));
     role.setComposite(roleData.path("composite").asBoolean(false));
@@ -92,7 +94,8 @@ public class KeycloakSyncService {
    * Handle role deletion
    */
   private void handleRoleDelete(String keycloakRoleId, String tenantKey) {
-    roleRepository.deleteByKeycloakRoleIdAndTenantKey(keycloakRoleId, tenantKey);
+    roleRepository.deleteByKeycloakRoleIdAndTenantId(keycloakRoleId,
+        tenantService.getTenantIdFromKey(tenantKey));
     log.debug("Role deleted: {} from tenant {}", keycloakRoleId, tenantKey);
   }
 
@@ -137,20 +140,20 @@ public class KeycloakSyncService {
     String groupName = groupData.path("name").asText();
     String groupPath = groupData.path("path").asText();
 
-    Optional<GroupEntity> existingGroup = groupRepository
-        .findByKeycloakGroupIdAndTenantKey(keycloakGroupId, tenantKey);
+    Optional<GroupEntity> existingGroup = groupRepository.findByKeycloakGroupIdAndTenantId(
+        keycloakGroupId, tenantService.getTenantIdFromKey(tenantKey));
 
     GroupEntity group = existingGroup.orElse(new GroupEntity());
     group.setKeycloakGroupId(keycloakGroupId);
-    group.setTenantKey(tenantKey);
+    group.setTenantId(tenantService.getTenantIdFromKey(tenantKey));
     group.setName(groupName);
     group.setPath(groupPath);
 
     // Handle parent group relationship
     if (groupData.has("parentId") && !groupData.path("parentId").isNull()) {
       String parentKeycloakId = groupData.path("parentId").asText();
-      Optional<GroupEntity> parentGroup = groupRepository
-          .findByKeycloakGroupIdAndTenantKey(parentKeycloakId, tenantKey);
+      Optional<GroupEntity> parentGroup = groupRepository.findByKeycloakGroupIdAndTenantId(
+          parentKeycloakId, tenantService.getTenantIdFromKey(tenantKey));
       parentGroup.ifPresent(group::setParentGroup);
     }
 
@@ -162,7 +165,8 @@ public class KeycloakSyncService {
    * Handle group deletion
    */
   private void handleGroupDelete(String keycloakGroupId, String tenantKey) {
-    groupRepository.deleteByKeycloakGroupIdAndTenantKey(keycloakGroupId, tenantKey);
+    groupRepository.deleteByKeycloakGroupIdAndTenantId(keycloakGroupId,
+        tenantService.getTenantIdFromKey(tenantKey));
     log.debug("Group deleted: {} from tenant {}", keycloakGroupId, tenantKey);
   }
 
@@ -197,7 +201,8 @@ public class KeycloakSyncService {
 
       // Add current roles
       for (String roleName : keycloakRoles) {
-        Optional<RoleEntity> roleOpt = roleRepository.findByNameAndTenantKey(roleName, tenantKey);
+        Optional<RoleEntity> roleOpt = roleRepository.findByNameAndTenantId(roleName,
+            tenantService.getTenantIdFromKey(tenantKey));
 
         roleOpt.ifPresent(role -> user.getRoles().add(role));
       }
@@ -241,10 +246,11 @@ public class KeycloakSyncService {
       user.getGroups().clear();
 
       // Add current groups
+      UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
       for (JsonNode groupNode : keycloakGroups) {
         String groupId = groupNode.path("id").asText();
-        Optional<GroupEntity> groupOpt = groupRepository.findByKeycloakGroupIdAndTenantKey(groupId,
-            tenantKey);
+        Optional<GroupEntity> groupOpt = groupRepository.findByKeycloakGroupIdAndTenantId(groupId,
+            tenantId);
 
         groupOpt.ifPresent(group -> user.getGroups().add(group));
       }

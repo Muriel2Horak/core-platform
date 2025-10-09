@@ -24,7 +24,9 @@ import java.util.Map;
  * Handles User Directory, Tenants, and all core application entities. This is
  * marked as @Primary to be the default EntityManagerFactory.
  */
-@Configuration @EnableTransactionManagement @EnableJpaRepositories(basePackages = "cz.muriel.core.repository", excludeFilters = @org.springframework.context.annotation.ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "cz\\.muriel\\.core\\.repository\\.keycloak\\..*"), entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
+@Configuration @EnableTransactionManagement @EnableJpaRepositories(basePackages = {
+    "cz.muriel.core.repository",
+    "cz.muriel.core.locks" }, excludeFilters = @org.springframework.context.annotation.ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "cz\\.muriel\\.core\\.repository\\.keycloak\\..*"), entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class PrimaryJpaConfig {
 
   @Primary @Bean(name = "dataSourceProperties") @ConfigurationProperties("spring.datasource")
@@ -47,7 +49,7 @@ public class PrimaryJpaConfig {
     properties.put("hibernate.show_sql", false);
     properties.put("hibernate.format_sql", true);
 
-    return builder.dataSource(dataSource).packages("cz.muriel.core.entity")
+    return builder.dataSource(dataSource).packages("cz.muriel.core.entity", "cz.muriel.core.locks")
         .persistenceUnit("default").properties(properties).build();
   }
 

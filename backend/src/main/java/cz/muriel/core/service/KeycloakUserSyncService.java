@@ -173,13 +173,15 @@ public class KeycloakUserSyncService {
    * Získá uživatele z lokální projekce
    */
   public Optional<UserDirectoryEntity> getUserProjection(String keycloakUserId, String tenantKey) {
-    return userDirectoryRepository.findByTenantKeyAndKeycloakUserId(tenantKey, keycloakUserId);
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+    return userDirectoryRepository.findByTenantIdAndKeycloakUserId(tenantId, keycloakUserId);
   }
 
   /**
    * Získá všechny uživatele pro tenant z lokální projekce
    */
   public List<UserDirectoryEntity> getAllUsersForTenant(String tenantKey) {
-    return userDirectoryRepository.findByTenantKey(tenantKey);
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+    return userDirectoryRepository.findByTenantId(tenantId);
   }
 }

@@ -147,7 +147,7 @@ ui:
       - department
       - position
     sort:
-      default: full_name
+      defaultField: full_name
       fields:
         - full_name
         - email

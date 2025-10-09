@@ -3,7 +3,7 @@ package cz.muriel.core.entities;
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.FieldSchema;
-import cz.muriel.core.security.PolicyEngine;
+import cz.muriel.core.security.policy.PolicyEngine;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

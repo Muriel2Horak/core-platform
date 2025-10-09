@@ -66,7 +66,7 @@ ON CONFLICT (key) DO NOTHING;
 -- 1.3) USER DIRECTORY - Unified user directory
 CREATE TABLE IF NOT EXISTS users_directory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_key TEXT NOT NULL REFERENCES tenants(key) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     keycloak_user_id TEXT,
     username TEXT NOT NULL,
     email TEXT,
@@ -107,12 +107,12 @@ CREATE TABLE IF NOT EXISTS users_directory (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_users_directory_tenant_key ON users_directory(tenant_key);
-CREATE INDEX idx_users_directory_tenant_username ON users_directory(tenant_key, username);
-CREATE INDEX idx_users_directory_tenant_email ON users_directory(tenant_key, email);
-CREATE INDEX idx_users_directory_tenant_keycloak_user ON users_directory(tenant_key, keycloak_user_id);
+CREATE INDEX idx_users_directory_tenant ON users_directory(tenant_id);
+CREATE INDEX idx_users_directory_tenant_username ON users_directory(tenant_id, username);
+CREATE INDEX idx_users_directory_tenant_email ON users_directory(tenant_id, email);
+CREATE INDEX idx_users_directory_tenant_keycloak_user ON users_directory(tenant_id, keycloak_user_id);
 CREATE INDEX idx_users_directory_manager ON users_directory(manager_id);
-CREATE INDEX idx_users_directory_active ON users_directory(tenant_key, active);
+CREATE INDEX idx_users_directory_active ON users_directory(tenant_id, active);
 CREATE INDEX idx_users_directory_deleted_at ON users_directory(deleted_at) WHERE deleted_at IS NOT NULL;
 
 -- =====================================================
@@ -123,7 +123,7 @@ CREATE INDEX idx_users_directory_deleted_at ON users_directory(deleted_at) WHERE
 CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     keycloak_role_id TEXT NOT NULL,
-    tenant_key TEXT NOT NULL REFERENCES tenants(key) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     description TEXT,
     composite BOOLEAN NOT NULL DEFAULT FALSE,
@@ -131,13 +131,12 @@ CREATE TABLE IF NOT EXISTS roles (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
-    CONSTRAINT uq_roles_keycloak_id_tenant UNIQUE (keycloak_role_id, tenant_key)
+    CONSTRAINT uq_roles_keycloak_id_tenant UNIQUE (keycloak_role_id, tenant_id)
 );
 
-CREATE INDEX idx_roles_tenant_key ON roles(tenant_key);
+CREATE INDEX idx_roles_tenant ON roles(tenant_id);
 CREATE INDEX idx_roles_keycloak_id ON roles(keycloak_role_id);
-CREATE INDEX idx_roles_name ON roles(tenant_key, name);
-CREATE INDEX idx_roles_tenant_name ON roles(tenant_key, name);
+CREATE INDEX idx_roles_name ON roles(tenant_id, name);
 CREATE INDEX idx_roles_composite ON roles(composite) WHERE composite = true;
 
 -- 2.2) ROLE COMPOSITES
@@ -164,7 +163,7 @@ CREATE INDEX idx_role_hierarchy_child ON role_hierarchy(child_role_id);
 CREATE TABLE IF NOT EXISTS groups (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     keycloak_group_id TEXT NOT NULL,
-    tenant_key TEXT NOT NULL REFERENCES tenants(key) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     path TEXT NOT NULL,
     parent_group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
@@ -172,16 +171,15 @@ CREATE TABLE IF NOT EXISTS groups (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
-    CONSTRAINT uq_groups_keycloak_id_tenant UNIQUE (keycloak_group_id, tenant_key),
-    CONSTRAINT uk_group_path_tenant UNIQUE (path, tenant_key)
+    CONSTRAINT uq_groups_keycloak_id_tenant UNIQUE (keycloak_group_id, tenant_id),
+    CONSTRAINT uk_group_path_tenant UNIQUE (path, tenant_id)
 );
 
-CREATE INDEX idx_groups_tenant_key ON groups(tenant_key);
+CREATE INDEX idx_groups_tenant ON groups(tenant_id);
 CREATE INDEX idx_groups_keycloak_id ON groups(keycloak_group_id);
-CREATE INDEX idx_groups_path ON groups(tenant_key, path);
+CREATE INDEX idx_groups_path ON groups(tenant_id, path);
 CREATE INDEX idx_groups_parent ON groups(parent_group_id) WHERE parent_group_id IS NOT NULL;
-CREATE INDEX idx_groups_tenant_path ON groups(tenant_key, path);
-CREATE INDEX idx_groups_tenant_name ON groups(tenant_key, name);
+CREATE INDEX idx_groups_tenant_name ON groups(tenant_id, name);
 
 -- =====================================================
 -- SECTION 3: USER MAPPINGS
@@ -225,7 +223,7 @@ CREATE INDEX idx_kc_event_log_created_at ON kc_event_log(created_at);
 CREATE TABLE IF NOT EXISTS sync_executions (
     id VARCHAR(36) PRIMARY KEY,
     type VARCHAR(50) NOT NULL,
-    tenant_key TEXT NOT NULL REFERENCES tenants(key) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     status VARCHAR(20) NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP,
@@ -241,10 +239,10 @@ CREATE TABLE IF NOT EXISTS sync_execution_errors (
 );
 
 CREATE INDEX idx_sync_status ON sync_executions(status);
-CREATE INDEX idx_sync_tenant ON sync_executions(tenant_key);
+CREATE INDEX idx_sync_tenant ON sync_executions(tenant_id);
 CREATE INDEX idx_sync_start_time ON sync_executions(start_time DESC);
 CREATE INDEX idx_sync_type ON sync_executions(type);
-CREATE INDEX idx_sync_status_tenant ON sync_executions(status, tenant_key);
+CREATE INDEX idx_sync_status_tenant ON sync_executions(status, tenant_id);
 
 COMMENT ON TABLE sync_executions IS 'Historie synchronizačních operací z Keycloak';
 COMMENT ON TABLE sync_execution_errors IS 'Chybové zprávy synchronizací';
@@ -256,7 +254,7 @@ COMMENT ON TABLE sync_execution_errors IS 'Chybové zprávy synchronizací';
 -- 5.1) EDIT LOCKS - Soft locking
 CREATE TABLE IF NOT EXISTS edit_locks (
     id BIGSERIAL PRIMARY KEY,
-    tenant_id TEXT NOT NULL,
+    tenant_id UUID NOT NULL,
     entity_type TEXT NOT NULL,
     entity_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
@@ -423,13 +421,13 @@ ALTER TABLE user_profile ENABLE ROW LEVEL SECURITY;
 
 -- Create tenant isolation policies
 CREATE POLICY tenant_isolation_users ON users_directory
-    USING (tenant_key = current_setting('app.tenant_id', true));
+    USING (tenant_id::text = current_setting('app.tenant_id', true));
 
 CREATE POLICY tenant_isolation_roles ON roles
-    USING (tenant_key = current_setting('app.tenant_id', true));
+    USING (tenant_id::text = current_setting('app.tenant_id', true));
 
 CREATE POLICY tenant_isolation_groups ON groups
-    USING (tenant_key = current_setting('app.tenant_id', true));
+    USING (tenant_id::text = current_setting('app.tenant_id', true));
 
 CREATE POLICY tenant_isolation_user_profile ON user_profile
     USING (tenant_id = current_setting('app.tenant_id', true));
@@ -622,7 +620,7 @@ SELECT
     ud.department,
     ud.position
 FROM users_directory ud
-WHERE ud.tenant_key = 'admin' 
+WHERE ud.tenant_id = generate_tenant_uuid('admin')
   AND NOT EXISTS (SELECT 1 FROM user_profile up WHERE up.user_id = ud.id)
 LIMIT 5;
 

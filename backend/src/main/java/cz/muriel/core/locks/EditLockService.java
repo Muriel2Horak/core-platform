@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Edit lock service for preventing concurrent modifications
@@ -24,7 +25,7 @@ public class EditLockService {
    * @throws LockConflictException if lock is held by another user
    */
   @Transactional
-  public EditLock acquireLock(String tenantId, String entityType, String entityId, String userId,
+  public EditLock acquireLock(UUID tenantId, String entityType, String entityId, String userId,
       int ttlSeconds) {
 
     Optional<EditLock> existing = repository.findByTenantIdAndEntityTypeAndEntityId(tenantId,
@@ -70,7 +71,7 @@ public class EditLockService {
    * @return true if released, false if not found or not owner
    */
   @Transactional
-  public boolean releaseLock(String tenantId, String entityType, String entityId, String userId,
+  public boolean releaseLock(UUID tenantId, String entityType, String entityId, String userId,
       boolean isAdmin) {
 
     Optional<EditLock> existing = repository.findByTenantIdAndEntityTypeAndEntityId(tenantId,
@@ -95,7 +96,7 @@ public class EditLockService {
   /**
    * Check if entity is locked
    */
-  public Optional<EditLock> getLock(String tenantId, String entityType, String entityId) {
+  public Optional<EditLock> getLock(UUID tenantId, String entityType, String entityId) {
     return repository.findByTenantIdAndEntityTypeAndEntityId(tenantId, entityType, entityId)
         .filter(lock -> lock.getExpiresAt().isAfter(Instant.now()));
   }

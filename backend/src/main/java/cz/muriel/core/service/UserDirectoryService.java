@@ -20,6 +20,7 @@ import java.util.UUID;
 public class UserDirectoryService {
 
   private final UserDirectoryRepository userDirectoryRepository;
+  private final TenantService tenantService;
 
   /**
    * Find user by username (case insensitive)
@@ -123,8 +124,9 @@ public class UserDirectoryService {
       throw new IllegalStateException("No tenant context available");
     }
 
-    // 🎯 AUTO-SET: Automaticky nastav tenant key z kontextu
-    user.setTenantKey(currentTenantKey);
+    // 🎯 AUTO-SET: Automatically set tenant ID from context
+    UUID tenantId = tenantService.getTenantIdFromKey(currentTenantKey);
+    user.setTenantId(tenantId);
 
     log.debug("Creating/updating user {} in tenant {}", user.getUsername(), currentTenantKey);
 
@@ -170,7 +172,8 @@ public class UserDirectoryService {
    * 📊 STATS: Počet uživatelů v tenantu podle tenant key
    */
   public long countUsersByTenantKey(String tenantKey) {
-    return userDirectoryRepository.countByTenantKey(tenantKey);
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+    return userDirectoryRepository.countByTenantId(tenantId);
   }
 
   // Private helper methods

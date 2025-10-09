@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class GroupHierarchyService {
 
   private final GroupEntityRepository groupRepository;
+  private final TenantService tenantService;
 
   // =====================================================
   // 🌳 HIERARCHY NAVIGATION
@@ -27,7 +28,8 @@ public class GroupHierarchyService {
    * Gets the complete group hierarchy tree for a tenant
    */
   public List<GroupHierarchyNode> getGroupHierarchyTree(String tenantKey) {
-    List<GroupEntity> rootGroups = groupRepository.findRootGroups(tenantKey);
+    List<GroupEntity> rootGroups = groupRepository
+        .findRootGroups(tenantService.getTenantIdFromKey(tenantKey));
 
     return rootGroups.stream().map(this::buildHierarchyNode)
         .sorted(Comparator.comparing(GroupHierarchyNode::getName)).collect(Collectors.toList());
@@ -85,7 +87,8 @@ public class GroupHierarchyService {
       currentPath.append("/").append(part);
       String path = currentPath.toString();
 
-      Optional<GroupEntity> groupAtPath = groupRepository.findByPathAndTenantKey(path, tenantKey);
+      Optional<GroupEntity> groupAtPath = groupRepository.findByPathAndTenantId(path,
+          tenantService.getTenantIdFromKey(tenantKey));
       groupAtPath.ifPresent(g -> {
         GroupBreadcrumb breadcrumb = new GroupBreadcrumb();
         breadcrumb.setId(g.getId());
@@ -106,7 +109,7 @@ public class GroupHierarchyService {
    * Finds groups at specific depth level
    */
   public List<GroupEntity> getGroupsByLevel(int level, String tenantKey) {
-    return groupRepository.findByLevel(level, tenantKey);
+    return groupRepository.findByLevel(level, tenantService.getTenantIdFromKey(tenantKey));
   }
 
   /**
@@ -129,12 +132,13 @@ public class GroupHierarchyService {
   public List<GroupEntity> getSiblings(GroupEntity group, String tenantKey) {
     if (group.isRootGroup()) {
       // Root groups - get all other root groups
-      return groupRepository.findRootGroups(tenantKey).stream()
+      return groupRepository.findRootGroups(tenantService.getTenantIdFromKey(tenantKey)).stream()
           .filter(g -> !g.getId().equals(group.getId())).collect(Collectors.toList());
     } else {
       // Non-root - get siblings from same parent
+      UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
       return groupRepository
-          .findByParentGroupIdAndTenantKey(group.getParentGroup().getId(), tenantKey).stream()
+          .findByParentGroupIdAndTenantId(group.getParentGroup().getId(), tenantId).stream()
           .filter(g -> !g.getId().equals(group.getId())).collect(Collectors.toList());
     }
   }
@@ -220,7 +224,8 @@ public class GroupHierarchyService {
    */
   public List<String> validateHierarchy(String tenantKey) {
     List<String> issues = new ArrayList<>();
-    List<GroupEntity> allGroups = groupRepository.findByTenantKey(tenantKey);
+    List<GroupEntity> allGroups = groupRepository
+        .findByTenantId(tenantService.getTenantIdFromKey(tenantKey));
 
     for (GroupEntity group : allGroups) {
       // Check path consistency

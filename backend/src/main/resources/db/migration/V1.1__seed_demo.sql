@@ -11,27 +11,27 @@ ON CONFLICT (key) DO NOTHING;
 
 -- Seed demo users for test-tenant
 INSERT INTO users_directory (
-    tenant_key, username, email, first_name, last_name, 
+    tenant_id, username, email, first_name, last_name, 
     display_name, department, position, active
 ) VALUES
-    ('test-tenant', 'alice', 'alice@test-tenant.local', 'Alice', 'Anderson', 'Alice Anderson', 'Engineering', 'Senior Developer', true),
-    ('test-tenant', 'bob', 'bob@test-tenant.local', 'Bob', 'Brown', 'Bob Brown', 'Engineering', 'Team Lead', true),
-    ('test-tenant', 'charlie', 'charlie@test-tenant.local', 'Charlie', 'Chen', 'Charlie Chen', 'Product', 'Product Manager', true)
+    (generate_tenant_uuid('test-tenant'), 'alice', 'alice@test-tenant.local', 'Alice', 'Anderson', 'Alice Anderson', 'Engineering', 'Senior Developer', true),
+    (generate_tenant_uuid('test-tenant'), 'bob', 'bob@test-tenant.local', 'Bob', 'Brown', 'Bob Brown', 'Engineering', 'Team Lead', true),
+    (generate_tenant_uuid('test-tenant'), 'charlie', 'charlie@test-tenant.local', 'Charlie', 'Chen', 'Charlie Chen', 'Product', 'Product Manager', true)
 ON CONFLICT DO NOTHING;
 
 -- Seed demo users for company-b
 INSERT INTO users_directory (
-    tenant_key, username, email, first_name, last_name, 
+    tenant_id, username, email, first_name, last_name, 
     display_name, department, position, active
 ) VALUES
-    ('company-b', 'diana', 'diana@company-b.local', 'Diana', 'Davis', 'Diana Davis', 'Sales', 'Account Manager', true),
-    ('company-b', 'eric', 'eric@company-b.local', 'Eric', 'Evans', 'Eric Evans', 'Support', 'Support Engineer', true)
+    (generate_tenant_uuid('company-b'), 'diana', 'diana@company-b.local', 'Diana', 'Davis', 'Diana Davis', 'Sales', 'Account Manager', true),
+    (generate_tenant_uuid('company-b'), 'eric', 'eric@company-b.local', 'Eric', 'Evans', 'Eric Evans', 'Support', 'Support Engineer', true)
 ON CONFLICT DO NOTHING;
 
 -- Create user profiles for test-tenant users
 INSERT INTO user_profile (tenant_id, user_id, full_name, email, department, position, bio)
 SELECT 
-    ud.tenant_key as tenant_id,
+    ud.tenant_id as tenant_id,
     ud.id as user_id,
     ud.display_name as full_name,
     ud.email,
@@ -39,7 +39,7 @@ SELECT
     ud.position,
     'Demo user for testing' as bio
 FROM users_directory ud
-WHERE ud.tenant_key IN ('test-tenant', 'company-b')
+WHERE ud.tenant_id IN (generate_tenant_uuid('test-tenant'), generate_tenant_uuid('company-b'))
   AND NOT EXISTS (SELECT 1 FROM user_profile up WHERE up.user_id = ud.id);
 
 -- Set initial states for user profiles
@@ -67,8 +67,8 @@ DECLARE
     v_doc3_id UUID := gen_random_uuid();
 BEGIN
     -- Get user IDs
-    SELECT id INTO v_alice_id FROM users_directory WHERE username = 'alice' AND tenant_key = 'test-tenant';
-    SELECT id INTO v_bob_id FROM users_directory WHERE username = 'bob' AND tenant_key = 'test-tenant';
+    SELECT id INTO v_alice_id FROM users_directory WHERE username = 'alice' AND tenant_id = generate_tenant_uuid('test-tenant');
+    SELECT id INTO v_bob_id FROM users_directory WHERE username = 'bob' AND tenant_id = generate_tenant_uuid('test-tenant');
     
     IF v_alice_id IS NOT NULL AND v_bob_id IS NOT NULL THEN
         -- Insert demo documents

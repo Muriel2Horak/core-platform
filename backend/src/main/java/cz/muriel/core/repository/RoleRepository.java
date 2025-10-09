@@ -17,30 +17,30 @@ public interface RoleRepository extends JpaRepository<RoleEntity, UUID> {
   /**
    * Find role by Keycloak role ID and tenant
    */
-  Optional<RoleEntity> findByKeycloakRoleIdAndTenantKey(String keycloakRoleId, String tenantKey);
+  Optional<RoleEntity> findByKeycloakRoleIdAndTenantId(String keycloakRoleId, UUID tenantId);
 
   /**
    * Find role by name and tenant
    */
-  Optional<RoleEntity> findByNameAndTenantKey(String name, String tenantKey);
+  Optional<RoleEntity> findByNameAndTenantId(String name, UUID tenantId);
 
   /**
    * Find all roles for a tenant
    */
-  List<RoleEntity> findByTenantKey(String tenantKey);
+  List<RoleEntity> findByTenantId(UUID tenantId);
 
   /**
    * Find all roles of specific type for a tenant
    */
-  List<RoleEntity> findByTenantKeyAndRoleType(String tenantKey, RoleEntity.RoleType roleType);
+  List<RoleEntity> findByTenantIdAndRoleType(UUID tenantId, RoleEntity.RoleType roleType);
 
   /**
    * Check if role exists by Keycloak ID
    */
-  boolean existsByKeycloakRoleIdAndTenantKey(String keycloakRoleId, String tenantKey);
+  boolean existsByKeycloakRoleIdAndTenantId(String keycloakRoleId, UUID tenantId);
 
   /**
    * Delete role by Keycloak ID and tenant
    */
-  void deleteByKeycloakRoleIdAndTenantKey(String keycloakRoleId, String tenantKey);
+  void deleteByKeycloakRoleIdAndTenantId(String keycloakRoleId, UUID tenantId);
 }

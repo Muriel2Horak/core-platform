@@ -149,7 +149,7 @@ public class KeycloakEventProjectionService {
         log.debug("Updating existing user: {}", username);
       } else {
         user = new UserDirectoryEntity();
-        user.setTenantKey(tenant.getKey());
+        user.setTenantId(tenant.getId());
         user.setCreatedAt(LocalDateTime.now());
         log.debug("Creating new user: {}", username);
       }
@@ -207,7 +207,7 @@ public class KeycloakEventProjectionService {
     if (userDto.getManager() != null && !userDto.getManager().isEmpty()) {
       try {
         Optional<UserDirectoryEntity> managerEntity = userDirectoryRepository
-            .findByTenantKeyAndUsername(user.getTenantKey(), userDto.getManager());
+            .findByTenantIdAndUsername(user.getTenantId(), userDto.getManager());
         managerEntity.ifPresentOrElse(manager -> {
           user.setManager(manager);
           log.debug("✅ Manager entity resolved: {} -> {}", userDto.getManager(), manager.getId());
@@ -303,14 +303,14 @@ public class KeycloakEventProjectionService {
 
       String roleName = roleNode.path("name").asText();
 
-      Optional<RoleEntity> existingRole = roleRepository.findByKeycloakRoleIdAndTenantKey(roleId,
-          tenant.getKey());
+      Optional<RoleEntity> existingRole = roleRepository.findByKeycloakRoleIdAndTenantId(roleId,
+          tenant.getId());
 
       RoleEntity role = existingRole.orElse(new RoleEntity());
       role.setKeycloakRoleId(roleId);
       role.setName(roleName);
       role.setDescription(roleNode.path("description").asText(null));
-      role.setTenantKey(tenant.getKey());
+      role.setTenantId(tenant.getId());
       role.setComposite(roleNode.path("composite").asBoolean(false));
 
       role = roleRepository.save(role);
@@ -341,14 +341,14 @@ public class KeycloakEventProjectionService {
         String compositeName = compositeNode.path("name").asText();
 
         Optional<RoleEntity> compositeRole = roleRepository
-            .findByKeycloakRoleIdAndTenantKey(compositeId, tenant.getKey());
+            .findByKeycloakRoleIdAndTenantId(compositeId, tenant.getId());
 
         if (compositeRole.isEmpty()) {
           RoleEntity newComposite = new RoleEntity();
           newComposite.setKeycloakRoleId(compositeId);
           newComposite.setName(compositeName);
           newComposite.setDescription(compositeNode.path("description").asText(null));
-          newComposite.setTenantKey(tenant.getKey());
+          newComposite.setTenantId(tenant.getId());
           newComposite.setComposite(compositeNode.path("composite").asBoolean(false));
 
           compositeRole = Optional.of(roleRepository.save(newComposite));
@@ -366,8 +366,8 @@ public class KeycloakEventProjectionService {
   }
 
   private void deleteRoleById(String roleId, Tenant tenant) {
-    Optional<RoleEntity> role = roleRepository.findByKeycloakRoleIdAndTenantKey(roleId,
-        tenant.getKey());
+    Optional<RoleEntity> role = roleRepository.findByKeycloakRoleIdAndTenantId(roleId,
+        tenant.getId());
 
     if (role.isPresent()) {
       roleRepository.delete(role.get());
@@ -391,19 +391,19 @@ public class KeycloakEventProjectionService {
       String groupPath = groupNode.path("path").asText("/" + groupName);
 
       Optional<GroupEntity> existingGroup = groupRepository
-          .findByKeycloakGroupIdAndTenantKey(groupId, tenant.getKey());
+          .findByKeycloakGroupIdAndTenantId(groupId, tenant.getId());
 
       GroupEntity group = existingGroup.orElse(new GroupEntity());
       group.setKeycloakGroupId(groupId);
       group.setName(groupName);
       group.setPath(groupPath);
-      group.setTenantKey(tenant.getKey());
+      group.setTenantId(tenant.getId());
 
       // Determine parent from path
       if (groupPath.lastIndexOf("/") > 0) {
         String parentPath = groupPath.substring(0, groupPath.lastIndexOf("/"));
-        Optional<GroupEntity> parent = groupRepository.findByPathAndTenantKey(parentPath,
-            tenant.getKey());
+        Optional<GroupEntity> parent = groupRepository.findByPathAndTenantId(parentPath,
+            tenant.getId());
         parent.ifPresent(group::setParentGroup);
       } else {
         group.setParentGroup(null);
@@ -433,13 +433,13 @@ public class KeycloakEventProjectionService {
         String childPath = childNode.path("path").asText();
 
         Optional<GroupEntity> existingChild = groupRepository
-            .findByKeycloakGroupIdAndTenantKey(childId, tenant.getKey());
+            .findByKeycloakGroupIdAndTenantId(childId, tenant.getId());
 
         GroupEntity child = existingChild.orElse(new GroupEntity());
         child.setKeycloakGroupId(childId);
         child.setName(childName);
         child.setPath(childPath);
-        child.setTenantKey(tenant.getKey());
+        child.setTenantId(tenant.getId());
         child.setParentGroup(parentGroup);
 
         groupRepository.save(child);
@@ -454,8 +454,8 @@ public class KeycloakEventProjectionService {
   }
 
   private void deleteGroupById(String groupId, Tenant tenant) {
-    Optional<GroupEntity> group = groupRepository.findByKeycloakGroupIdAndTenantKey(groupId,
-        tenant.getKey());
+    Optional<GroupEntity> group = groupRepository.findByKeycloakGroupIdAndTenantId(groupId,
+        tenant.getId());
 
     if (group.isPresent()) {
       groupRepository.delete(group.get());
@@ -573,12 +573,15 @@ public class KeycloakEventProjectionService {
 
     log.debug("Syncing user projection: userId={}, tenant={}", keycloakUserId, tenantKey);
 
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
     // Najdi nebo vytvoř UserDirectoryEntity
     UserDirectoryEntity user = userDirectoryRepository
-        .findByTenantKeyAndKeycloakUserId(tenantKey, keycloakUserId).orElseGet(() -> {
+        .findByTenantIdAndKeycloakUserId(tenantId, keycloakUserId).orElseGet(() -> {
           UserDirectoryEntity newUser = new UserDirectoryEntity();
           newUser.setKeycloakUserId(keycloakUserId);
-          newUser.setTenantKey(tenantKey);
+          newUser.setTenantId(tenantId);
           return newUser;
         });
 
@@ -615,7 +618,10 @@ public class KeycloakEventProjectionService {
 
     log.debug("Handling user deletion: userId={}, tenant={}", keycloakUserId, tenantKey);
 
-    userDirectoryRepository.findByTenantKeyAndKeycloakUserId(tenantKey, keycloakUserId)
+    // Convert tenant key to ID
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
+    userDirectoryRepository.findByTenantIdAndKeycloakUserId(tenantId, keycloakUserId)
         .ifPresent(user -> {
           userDirectoryRepository.delete(user);
           log.info("✅ User projection deleted: userId={}, tenant={}", keycloakUserId, tenantKey);

@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * REST controller for edit locks
@@ -26,7 +27,7 @@ public class EditLockController {
   public ResponseEntity<?> acquireLock(@PathVariable String entityType,
       @PathVariable String entityId, @RequestBody AcquireLockRequest request, Authentication auth) {
     try {
-      String tenantId = getTenantId(auth);
+      UUID tenantId = getTenantId(auth);
       String userId = getUserId(auth);
 
       int ttl = request.ttlSeconds != null ? request.ttlSeconds : 300; // 5 min default
@@ -47,7 +48,7 @@ public class EditLockController {
   @DeleteMapping("/{entityType}/{entityId}")
   public ResponseEntity<?> releaseLock(@PathVariable String entityType,
       @PathVariable String entityId, Authentication auth) {
-    String tenantId = getTenantId(auth);
+    UUID tenantId = getTenantId(auth);
     String userId = getUserId(auth);
     boolean isAdmin = hasRole(auth, "CORE_ROLE_ADMIN");
 
@@ -67,19 +68,20 @@ public class EditLockController {
   @GetMapping("/{entityType}/{entityId}")
   public ResponseEntity<?> getLockStatus(@PathVariable String entityType,
       @PathVariable String entityId, Authentication auth) {
-    String tenantId = getTenantId(auth);
+    UUID tenantId = getTenantId(auth);
 
     return lockService.getLock(tenantId, entityType, entityId)
         .map(lock -> ResponseEntity.ok((Object) Map.of("locked", true, "lock", lock)))
         .orElse(ResponseEntity.ok(Map.of("locked", false)));
   }
 
-  private String getTenantId(Authentication auth) {
+  private UUID getTenantId(Authentication auth) {
     if (auth instanceof JwtAuthenticationToken jwtAuth) {
       Jwt jwt = jwtAuth.getToken();
-      return jwt.getClaimAsString("tenant_id");
+      String tenantIdStr = jwt.getClaimAsString("tenant_id");
+      return tenantIdStr != null ? UUID.fromString(tenantIdStr) : null;
     }
-    return "admin"; // fallback
+    return null; // fallback
   }
 
   private String getUserId(Authentication auth) {

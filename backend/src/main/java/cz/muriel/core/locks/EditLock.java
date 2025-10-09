@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Edit lock entity for optimistic concurrency control
@@ -18,7 +19,7 @@ public class EditLock {
   private Long id;
 
   @Column(name = "tenant_id", nullable = false)
-  private String tenantId;
+  private UUID tenantId;
 
   @Column(name = "entity_type", nullable = false)
   private String entityType;

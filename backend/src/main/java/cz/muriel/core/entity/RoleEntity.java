@@ -67,13 +67,13 @@ public class RoleEntity extends MultiTenantEntity {
 
   /**
    * 🔐 DETERMINISTICKÉ UUID GENERATION Generates consistent UUID from
-   * keycloakRoleId + tenantKey This ensures same role always has same UUID across
+   * keycloakRoleId + tenantId This ensures same role always has same UUID across
    * database instances
    */
   @PrePersist
   protected void onCreate() {
-    if (id == null && keycloakRoleId != null && getTenantKey() != null) {
-      id = generateUuidFromKeycloakId(keycloakRoleId, getTenantKey());
+    if (id == null && keycloakRoleId != null && getTenantId() != null) {
+      id = generateUuidFromKeycloakId(keycloakRoleId, getTenantId());
     }
     if (createdAt == null) {
       createdAt = LocalDateTime.now();
@@ -89,12 +89,12 @@ public class RoleEntity extends MultiTenantEntity {
   }
 
   /**
-   * 🔐 STATIC HELPER: Generate deterministic UUID from Keycloak ID + Tenant
+   * 🔐 STATIC HELPER: Generate deterministic UUID from Keycloak ID + Tenant ID
    */
-  public static UUID generateUuidFromKeycloakId(String keycloakRoleId, String tenantKey) {
+  public static UUID generateUuidFromKeycloakId(String keycloakRoleId, UUID tenantId) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      String composite = "role:" + tenantKey + ":" + keycloakRoleId;
+      String composite = "role:" + tenantId.toString() + ":" + keycloakRoleId;
       byte[] hash = digest.digest(composite.getBytes(StandardCharsets.UTF_8));
 
       // Convert first 16 bytes to UUID

@@ -61,12 +61,12 @@ public class GroupEntity extends MultiTenantEntity {
 
   /**
    * 🔐 DETERMINISTICKÉ UUID GENERATION Generates consistent UUID from
-   * keycloakGroupId + tenantKey
+   * keycloakGroupId + tenantId
    */
   @PrePersist
   protected void onCreate() {
-    if (id == null && keycloakGroupId != null && getTenantKey() != null) {
-      id = generateUuidFromKeycloakId(keycloakGroupId, getTenantKey());
+    if (id == null && keycloakGroupId != null && getTenantId() != null) {
+      id = generateUuidFromKeycloakId(keycloakGroupId, getTenantId());
     }
     if (createdAt == null) {
       createdAt = LocalDateTime.now();
@@ -82,12 +82,12 @@ public class GroupEntity extends MultiTenantEntity {
   }
 
   /**
-   * 🔐 STATIC HELPER: Generate deterministic UUID from Keycloak ID + Tenant
+   * 🔐 STATIC HELPER: Generate deterministic UUID from Keycloak ID + Tenant ID
    */
-  public static UUID generateUuidFromKeycloakId(String keycloakGroupId, String tenantKey) {
+  public static UUID generateUuidFromKeycloakId(String keycloakGroupId, UUID tenantId) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      String composite = "group:" + tenantKey + ":" + keycloakGroupId;
+      String composite = "group:" + tenantId.toString() + ":" + keycloakGroupId;
       byte[] hash = digest.digest(composite.getBytes(StandardCharsets.UTF_8));
 
       long mostSigBits = 0;
