@@ -190,18 +190,30 @@ public class KeycloakEventProjectionService {
         while (!success && attempt < maxRetries) {
           try {
             // Reload user from database to get latest version
-            Map<String, Object> currentUser = metamodelService.getById("User",
-                user.get("id").toString(), new SystemAuthentication());
+            String userIdStr = user.get("id").toString();
+            Map<String, Object> currentUser = metamodelService.getById("User", userIdStr,
+                new SystemAuthentication());
 
-            Object currentVersion = currentUser != null ? currentUser.get("version") : 0L;
+            if (currentUser == null) {
+              log.warn("⚠️ User not found in metamodel during update: {}", userIdStr);
+              break;
+            }
+
+            Object currentVersion = currentUser.get("version");
             Long version = currentVersion instanceof Number ? ((Number) currentVersion).longValue()
                 : 0L;
 
-            metamodelService.update("User", user.get("id").toString(), version, user,
+            // Merge current data with new data
+            // Note: System fields (id, version, created_at, updated_at) are automatically
+            // filtered by MetamodelCrudService.update()
+            Map<String, Object> mergedUser = new HashMap<>(currentUser);
+            mergedUser.putAll(user);
+
+            metamodelService.update("User", userIdStr, version, mergedUser,
                 new SystemAuthentication());
 
             success = true;
-            log.info("✅ User updated: {} (attempt {})", username, attempt + 1);
+            log.info("✅ User updated: {} (attempt {}, version {})", username, attempt + 1, version);
           } catch (cz.muriel.core.entities.VersionMismatchException e) {
             attempt++;
             if (attempt >= maxRetries) {
@@ -211,7 +223,12 @@ public class KeycloakEventProjectionService {
             }
             log.warn("⚠️ Version conflict for user {}, retrying ({}/{})", username, attempt,
                 maxRetries);
-            Thread.sleep(100 * attempt); // Exponential backoff
+            try {
+              Thread.sleep(100 * attempt); // Exponential backoff
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              throw new RuntimeException("Interrupted during retry", ie);
+            }
           }
         }
       }

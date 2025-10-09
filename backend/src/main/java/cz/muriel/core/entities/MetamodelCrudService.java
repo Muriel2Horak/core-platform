@@ -203,11 +203,28 @@ public class MetamodelCrudService {
               policyEngine.projectColumns(auth, entityType, "read"), schema));
     }
 
-    // ✨ LIFECYCLE: Execute beforeUpdate hooks
-    lifecycleExecutor.executeBeforeUpdate(schema, data);
+    // 🔒 Filter out system/protected fields
+    Map<String, Object> safeData = filterSystemFields(data, schema);
 
-    // Build UPDATE with version check
-    String updateSql = buildUpdateSql(schema, id, data, expectedVersion);
+    // 🔍 Detect actual changes by comparing with current entity
+    Map<String, Object> currentData = projectEntityToMap(entity,
+        policyEngine.projectColumns(auth, entityType, "read"), schema);
+    Map<String, Object> changedFields = detectChanges(currentData, safeData);
+
+    // ⚡ Skip update if no changes
+    if (changedFields.isEmpty()) {
+      log.debug("No changes detected for {} with id {}, skipping update", entityType, id);
+      return currentData; // Return current data without update
+    }
+
+    log.debug("Updating {} fields for {} with id {}: {}", changedFields.size(), entityType, id,
+        changedFields.keySet());
+
+    // ✨ LIFECYCLE: Execute beforeUpdate hooks
+    lifecycleExecutor.executeBeforeUpdate(schema, changedFields);
+
+    // Build UPDATE with version check (only changed fields)
+    String updateSql = buildUpdateSql(schema, id, changedFields, expectedVersion);
     int affected = entityManager.createNativeQuery(updateSql).executeUpdate();
 
     if (affected == 0) {
@@ -217,10 +234,10 @@ public class MetamodelCrudService {
     }
 
     // ✨ RELATIONSHIPS: Update M:N relationships
-    relationshipResolver.saveRelationships(schema, id, data);
+    relationshipResolver.saveRelationships(schema, id, safeData);
 
     // ✨ LIFECYCLE: Execute afterUpdate hooks
-    lifecycleExecutor.executeAfterUpdate(schema, data);
+    lifecycleExecutor.executeAfterUpdate(schema, changedFields);
 
     // Return updated entity
     return getById(entityType, id, auth);
@@ -376,7 +393,9 @@ public class MetamodelCrudService {
     List<String> sets = new ArrayList<>();
 
     for (var entry : data.entrySet()) {
-      if (!entry.getKey().equals(schema.getIdField())) {
+      // Skip ID field and version field (version is managed by trigger)
+      if (!entry.getKey().equals(schema.getIdField())
+          && !entry.getKey().equals(schema.getVersionField())) {
         sets.add(entry.getKey() + " = " + formatValue(entry.getValue()));
       }
     }
@@ -414,5 +433,89 @@ public class MetamodelCrudService {
 
     // Default: convert to string
     return "'" + sanitize(value.toString()) + "'";
+  }
+
+  /**
+   * 🔒 Filter out system/protected fields that should not be updated from
+   * external input
+   * 
+   * System fields include: - ID field (primary key) - Version field (managed by
+   * optimistic locking) - Timestamp fields with auto-generation (created_at,
+   * updated_at) - Any field marked as 'generated' in schema
+   */
+  private Map<String, Object> filterSystemFields(Map<String, Object> data, EntitySchema schema) {
+    Map<String, Object> filtered = new HashMap<>(data);
+
+    // Remove ID field
+    if (schema.getIdField() != null) {
+      filtered.remove(schema.getIdField());
+    }
+
+    // Remove version field (managed by trigger)
+    if (schema.getVersionField() != null) {
+      filtered.remove(schema.getVersionField());
+    }
+
+    // Remove auto-generated timestamp fields
+    filtered.remove("created_at");
+    filtered.remove("updated_at");
+
+    // Remove fields marked as 'generated' in schema
+    if (schema.getFields() != null) {
+      schema.getFields().stream().filter(f -> Boolean.TRUE.equals(f.getGenerated()))
+          .forEach(f -> filtered.remove(f.getName()));
+    }
+
+    return filtered;
+  }
+
+  /**
+   * 🔍 Detect actual changes by comparing new data with current entity state
+   * 
+   * This optimizes updates by only sending changed fields to the database.
+   * Benefits: - Reduces database load - Avoids unnecessary trigger executions -
+   * Provides clearer audit trail
+   * 
+   * @return Map containing only fields that have changed
+   */
+  private Map<String, Object> detectChanges(Map<String, Object> currentData,
+      Map<String, Object> newData) {
+    Map<String, Object> changes = new HashMap<>();
+
+    for (Map.Entry<String, Object> entry : newData.entrySet()) {
+      String key = entry.getKey();
+      Object newValue = entry.getValue();
+      Object currentValue = currentData.get(key);
+
+      // Check if value has actually changed
+      if (!valuesEqual(currentValue, newValue)) {
+        changes.put(key, newValue);
+      }
+    }
+
+    return changes;
+  }
+
+  /**
+   * Compare two values for equality, handling nulls and different types
+   */
+  private boolean valuesEqual(Object v1, Object v2) {
+    if (v1 == null && v2 == null)
+      return true;
+    if (v1 == null || v2 == null)
+      return false;
+
+    // Handle numbers with different precision (e.g., Integer vs Long)
+    if (v1 instanceof Number && v2 instanceof Number) {
+      return ((Number) v1).doubleValue() == ((Number) v2).doubleValue();
+    }
+
+    // Handle timestamps/dates
+    if (v1 instanceof java.time.temporal.Temporal && v2 instanceof java.time.temporal.Temporal) {
+      return v1.toString().equals(v2.toString());
+    }
+
+    // Standard equality
+    return v1.equals(v2);
   }
 }
