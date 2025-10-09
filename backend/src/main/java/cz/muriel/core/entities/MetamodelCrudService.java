@@ -137,9 +137,11 @@ public class MetamodelCrudService {
     // ✨ LIFECYCLE: Execute beforeCreate hooks
     lifecycleExecutor.executeBeforeCreate(schema, data);
 
-    // Add tenant_id from JWT
+    // Add tenant_id from JWT (only if not already set - important for
+    // SystemAuthentication)
     String tenantId = getTenantId(auth);
-    if (schema.getTenantField() != null) {
+    if (schema.getTenantField() != null && tenantId != null
+        && !data.containsKey(schema.getTenantField())) {
       data.put(schema.getTenantField(), tenantId);
     }
 

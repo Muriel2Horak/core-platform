@@ -5,6 +5,7 @@ import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.SyncExecutionRepository;
 import cz.muriel.core.repository.TenantRepository;
+import cz.muriel.core.security.SystemAuthentication;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
@@ -398,7 +399,7 @@ public class KeycloakBulkSyncService {
     List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, tenantId, user.getId());
 
     Map<String, Object> userMap = existing.isEmpty() ? new HashMap<>() : existing.get(0);
-    
+
     // Set fields
     userMap.put("keycloak_user_id", user.getId());
     userMap.put("tenant_id", tenantId);
@@ -407,13 +408,19 @@ public class KeycloakBulkSyncService {
     userMap.put("first_name", user.getFirstName());
     userMap.put("last_name", user.getLastName());
 
-    // Save via metamodel
+    // Set is_federated for new users
     if (existing.isEmpty()) {
-      metamodelService.create("User", userMap, null);
-    } else {
-      metamodelService.update("User", userMap.get("id").toString(), 0L, userMap, null);
+      userMap.put("is_federated", false); // Default: local user, not federated
     }
-    
+
+    // Save via metamodel with SystemAuthentication
+    if (existing.isEmpty()) {
+      metamodelService.create("User", userMap, new SystemAuthentication());
+    } else {
+      metamodelService.update("User", userMap.get("id").toString(), 0L, userMap,
+          new SystemAuthentication());
+    }
+
     log.debug("✅ User synced: {} ({})", user.getUsername(), user.getId());
   }
 

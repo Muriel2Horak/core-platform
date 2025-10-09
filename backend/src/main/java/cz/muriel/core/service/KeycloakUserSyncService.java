@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 /**
  * 🔄 V6 Keycloak User Sync Service - CDC ONLY (Metamodel-based)
  * 
- * ✅ CLEAN: Bulk synchronizace uživatelů přímo přes CDC
- * ✅ REFACTORED: Používá metamodel API místo JPA entit
+ * ✅ CLEAN: Bulk synchronizace uživatelů přímo přes CDC ✅ REFACTORED: Používá
+ * metamodel API místo JPA entit
  */
 @Service @RequiredArgsConstructor @Slf4j
 public class KeycloakUserSyncService {

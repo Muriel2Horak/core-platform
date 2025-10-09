@@ -2,6 +2,7 @@ package cz.muriel.core.security.policy;
 
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.*;
+import cz.muriel.core.security.SystemAuthentication;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
@@ -38,6 +39,12 @@ public class MetamodelPolicyEngine implements PolicyEngine {
     if (auth == null) {
       log.debug("No authentication, denying access");
       return false;
+    }
+
+    // System authentication bypass (for internal operations like Keycloak sync)
+    if (hasRole(auth, "SYSTEM") || hasRole(auth, "ROLE_SYSTEM")) {
+      log.debug("SYSTEM authentication detected, granting access");
+      return true;
     }
 
     // Admin bypass
@@ -93,6 +100,11 @@ public class MetamodelPolicyEngine implements PolicyEngine {
     }
 
     EntitySchema schema = schemaOpt.get();
+
+    // System authentication sees all columns
+    if (hasRole(auth, "SYSTEM") || hasRole(auth, "ROLE_SYSTEM")) {
+      return schema.getFields().stream().map(FieldSchema::getName).collect(Collectors.toSet());
+    }
 
     // Admin sees all columns
     if (hasRole(auth, ROLE_ADMIN)) {
@@ -307,6 +319,11 @@ public class MetamodelPolicyEngine implements PolicyEngine {
 
   @Override
   public String getTenantId(Authentication auth) {
+    // SystemAuthentication: tenant_id should come from data, not auth
+    if (auth instanceof SystemAuthentication) {
+      return null; // Don't override tenant_id in data
+    }
+
     if (auth instanceof JwtAuthenticationToken jwtAuth) {
       Jwt jwt = jwtAuth.getToken();
       return jwt.getClaimAsString("tenant_id");

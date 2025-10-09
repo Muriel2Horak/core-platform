@@ -2,6 +2,7 @@ package cz.muriel.core.service;
 
 import cz.muriel.core.auth.KeycloakAdminService;
 import cz.muriel.core.entities.MetamodelCrudService;
+import cz.muriel.core.security.SystemAuthentication;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,8 +13,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 
 /**
- * 🔄 V6 Metamodel-Based Keycloak Sync Service 
- * Handles synchronization of users, roles, and groups from Keycloak using metamodel API
+ * 🔄 V6 Metamodel-Based Keycloak Sync Service Handles synchronization of users,
+ * roles, and groups from Keycloak using metamodel API
  */
 @Service @RequiredArgsConstructor @Slf4j @Transactional
 public class KeycloakSyncService {
@@ -67,7 +68,7 @@ public class KeycloakSyncService {
     Map<String, Object> existingRole = findRoleByKeycloakId(keycloakRoleId, tenantId);
 
     Map<String, Object> roleMap = existingRole != null ? existingRole : new HashMap<>();
-    
+
     // Set fields
     roleMap.put("keycloak_role_id", keycloakRoleId);
     roleMap.put("tenant_id", tenantId);
@@ -83,13 +84,15 @@ public class KeycloakSyncService {
       roleMap.put("role_type", "REALM");
     }
 
-    // Save via metamodel (will generate deterministic UUID if new)
+    // Save via metamodel with SystemAuthentication (will generate deterministic
+    // UUID if new)
     if (existingRole == null) {
-      metamodelService.create("Role", roleMap, null);
+      metamodelService.create("Role", roleMap, new SystemAuthentication());
     } else {
-      metamodelService.update("Role", roleMap.get("id").toString(), 0L, roleMap, null);
+      metamodelService.update("Role", roleMap.get("id").toString(), 0L, roleMap,
+          new SystemAuthentication());
     }
-    
+
     log.debug("Role synchronized: {} ({})", roleName, keycloakRoleId);
   }
 
@@ -99,13 +102,13 @@ public class KeycloakSyncService {
   private void handleRoleDelete(String keycloakRoleId, String tenantKey) {
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
     Map<String, Object> role = findRoleByKeycloakId(keycloakRoleId, tenantId);
-    
+
     if (role != null) {
-      metamodelService.delete("Role", role.get("id").toString(), null);
+      metamodelService.delete("Role", role.get("id").toString(), new SystemAuthentication());
       log.debug("Role deleted: {} from tenant {}", keycloakRoleId, tenantKey);
     }
   }
-  
+
   /**
    * Helper to find role by Keycloak ID
    */
@@ -161,7 +164,7 @@ public class KeycloakSyncService {
     Map<String, Object> existingGroup = findGroupByKeycloakId(keycloakGroupId, tenantId);
 
     Map<String, Object> groupMap = existingGroup != null ? existingGroup : new HashMap<>();
-    
+
     // Set fields
     groupMap.put("keycloak_group_id", keycloakGroupId);
     groupMap.put("tenant_id", tenantId);
@@ -177,13 +180,14 @@ public class KeycloakSyncService {
       }
     }
 
-    // Save via metamodel
+    // Save via metamodel with SystemAuthentication
     if (existingGroup == null) {
-      metamodelService.create("Group", groupMap, null);
+      metamodelService.create("Group", groupMap, new SystemAuthentication());
     } else {
-      metamodelService.update("Group", groupMap.get("id").toString(), 0L, groupMap, null);
+      metamodelService.update("Group", groupMap.get("id").toString(), 0L, groupMap,
+          new SystemAuthentication());
     }
-    
+
     log.debug("Group synchronized: {} ({})", groupName, keycloakGroupId);
   }
 
@@ -193,13 +197,13 @@ public class KeycloakSyncService {
   private void handleGroupDelete(String keycloakGroupId, String tenantKey) {
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
     Map<String, Object> group = findGroupByKeycloakId(keycloakGroupId, tenantId);
-    
+
     if (group != null) {
-      metamodelService.delete("Group", group.get("id").toString(), null);
+      metamodelService.delete("Group", group.get("id").toString(), new SystemAuthentication());
       log.debug("Group deleted: {} from tenant {}", keycloakGroupId, tenantKey);
     }
   }
-  
+
   /**
    * Helper to find group by Keycloak ID
    */
@@ -222,7 +226,7 @@ public class KeycloakSyncService {
 
     try {
       UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
-      
+
       // Find user in local DB
       Map<String, Object> user = findUserByKeycloakId(keycloakUserId, tenantId);
 
@@ -247,7 +251,8 @@ public class KeycloakSyncService {
         }
       }
 
-      log.debug("User roles synchronized: {} roles for user {}", keycloakRoles.size(), keycloakUserId);
+      log.debug("User roles synchronized: {} roles for user {}", keycloakRoles.size(),
+          keycloakUserId);
 
     } catch (Exception e) {
       log.error("Failed to sync user roles: userId={}", keycloakUserId, e);
@@ -267,7 +272,7 @@ public class KeycloakSyncService {
 
     try {
       UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
-      
+
       // Find user in local DB
       Map<String, Object> user = findUserByKeycloakId(keycloakUserId, tenantId);
 
@@ -287,20 +292,21 @@ public class KeycloakSyncService {
       for (JsonNode groupNode : keycloakGroups) {
         String groupId = groupNode.path("id").asText();
         Map<String, Object> group = findGroupByKeycloakId(groupId, tenantId);
-        
+
         if (group != null) {
           String insertSql = "INSERT INTO user_groups (user_id, group_id) VALUES (?, ?)";
           jdbcTemplate.update(insertSql, user.get("id"), group.get("id"));
         }
       }
 
-      log.debug("User groups synchronized: {} groups for user {}", keycloakGroups.size(), keycloakUserId);
+      log.debug("User groups synchronized: {} groups for user {}", keycloakGroups.size(),
+          keycloakUserId);
 
     } catch (Exception e) {
       log.error("Failed to sync user groups: userId={}", keycloakUserId, e);
     }
   }
-  
+
   /**
    * Helper to find user by Keycloak ID
    */
@@ -309,7 +315,7 @@ public class KeycloakSyncService {
     List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, keycloakUserId, tenantId);
     return results.isEmpty() ? null : results.get(0);
   }
-  
+
   /**
    * Helper to find role by name
    */

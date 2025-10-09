@@ -7,6 +7,7 @@ import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.KeycloakEventLogRepository;
 import cz.muriel.core.entity.KeycloakEventLog;
 import cz.muriel.core.auth.KeycloakAdminService;
+import cz.muriel.core.security.SystemAuthentication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -26,8 +27,8 @@ import java.util.*;
 /**
  * 🔄 V6 Keycloak Event Projection Service - CDC ONLY (Metamodel-based)
  * 
- * ✅ REFACTORED: Migrated to metamodel API - uses Map<String, Object> instead of JPA entities
- * ✅ CLEAN: Používá čistě CDC data z change_events tabulky
+ * ✅ REFACTORED: Migrated to metamodel API - uses Map<String, Object> instead of
+ * JPA entities ✅ CLEAN: Používá čistě CDC data z change_events tabulky
  */
 @Service @RequiredArgsConstructor @Slf4j @Transactional
 public class KeycloakEventProjectionService {
@@ -134,7 +135,7 @@ public class KeycloakEventProjectionService {
       // Find existing user via SQL
       String findSql = "SELECT * FROM users_directory WHERE keycloak_user_id = ?";
       List<Map<String, Object>> existingUsers = jdbcTemplate.queryForList(findSql, userId);
-      
+
       if (existingUsers.isEmpty()) {
         // Try by username as fallback
         findSql = "SELECT * FROM users_directory WHERE LOWER(username) = LOWER(?)";
@@ -143,11 +144,12 @@ public class KeycloakEventProjectionService {
 
       Map<String, Object> user;
       boolean isNew = existingUsers.isEmpty();
-      
+
       if (isNew) {
         user = new HashMap<>();
         user.put("tenant_id", tenant.getId());
         user.put("created_at", LocalDateTime.now());
+        user.put("is_federated", false); // Default: local user, not federated
         log.debug("Creating new user: {}", username);
       } else {
         user = new HashMap<>(existingUsers.get(0));
@@ -168,19 +170,21 @@ public class KeycloakEventProjectionService {
       }
 
       // Build display name
-      String displayName = buildDisplayName((String)user.get("first_name"), (String)user.get("last_name"));
+      String displayName = buildDisplayName((String) user.get("first_name"),
+          (String) user.get("last_name"));
       user.put("display_name", displayName);
 
       // ✅ Extract custom attributes from UserDto
       extractUserAttributesFromDto(user, userDto);
 
-      // Save via metamodel
+      // Save via metamodel with SystemAuthentication
       if (isNew) {
-        metamodelService.create("User", user, null);
+        metamodelService.create("User", user, new SystemAuthentication());
       } else {
-        metamodelService.update("User", user.get("id").toString(), 0L, user, null);
+        metamodelService.update("User", user.get("id").toString(), 0L, user,
+            new SystemAuthentication());
       }
-      
+
       log.info("✅ User synced: {}", username);
 
     } catch (Exception e) {
@@ -189,8 +193,8 @@ public class KeycloakEventProjectionService {
   }
 
   /**
-   * ✅ Extract user attributes from UserDto to User Map
-   * Obsahuje všechny atributy načtené z Keycloaku pomocí KeycloakAdminService
+   * ✅ Extract user attributes from UserDto to User Map Obsahuje všechny atributy
+   * načtené z Keycloaku pomocí KeycloakAdminService
    */
   private void extractUserAttributesFromDto(Map<String, Object> user, UserDto userDto) {
     // 🏢 Organizační struktura
@@ -212,8 +216,9 @@ public class KeycloakEventProjectionService {
       try {
         UUID tenantId = (UUID) user.get("tenant_id");
         String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND username = ?";
-        List<Map<String, Object>> managers = jdbcTemplate.queryForList(sql, tenantId, userDto.getManager());
-        
+        List<Map<String, Object>> managers = jdbcTemplate.queryForList(sql, tenantId,
+            userDto.getManager());
+
         if (!managers.isEmpty()) {
           Map<String, Object> manager = managers.get(0);
           user.put("manager_id", manager.get("id"));
@@ -235,10 +240,10 @@ public class KeycloakEventProjectionService {
 
   /**
    * ✅ Extract custom user attributes from Keycloak (JsonNode version)
+   * 
    * @deprecated Use extractUserAttributesFromDto() instead
    */
-  @Deprecated
-  @SuppressWarnings("unused")
+  @Deprecated @SuppressWarnings("unused")
   private void extractUserAttributes(Map<String, Object> user, JsonNode attributes) {
     // Helper to extract first value from array attributes
     java.util.function.Function<String, String> getFirst = key -> {
@@ -290,7 +295,8 @@ public class KeycloakEventProjectionService {
       user.put("deleted_at", LocalDateTime.now());
       user.put("updated_at", LocalDateTime.now());
 
-      metamodelService.update("User", user.get("id").toString(), 0L, user, null);
+      metamodelService.update("User", user.get("id").toString(), 0L, user,
+          new SystemAuthentication());
       log.info("✅ User soft deleted: {}", user.get("username"));
     }
   }
@@ -313,20 +319,22 @@ public class KeycloakEventProjectionService {
       String sql = "SELECT * FROM roles WHERE keycloak_role_id = ? AND tenant_id = ?";
       List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, roleId, tenant.getId());
 
-      Map<String, Object> role = existing.isEmpty() ? new HashMap<>() : new HashMap<>(existing.get(0));
+      Map<String, Object> role = existing.isEmpty() ? new HashMap<>()
+          : new HashMap<>(existing.get(0));
       role.put("keycloak_role_id", roleId);
       role.put("name", roleName);
       role.put("description", roleNode.path("description").asText(null));
       role.put("tenant_id", tenant.getId());
       role.put("composite", roleNode.path("composite").asBoolean(false));
 
-      // Save via metamodel
+      // Save via metamodel with SystemAuthentication
       if (existing.isEmpty()) {
-        role = metamodelService.create("Role", role, null);
+        role = metamodelService.create("Role", role, new SystemAuthentication());
       } else {
-        role = metamodelService.update("Role", role.get("id").toString(), 0L, role, null);
+        role = metamodelService.update("Role", role.get("id").toString(), 0L, role,
+            new SystemAuthentication());
       }
-      
+
       log.info("✅ Role synced: {}", roleName);
 
       // Sync composites if needed
@@ -358,7 +366,8 @@ public class KeycloakEventProjectionService {
 
         // Find or create composite role
         String findSql = "SELECT * FROM roles WHERE keycloak_role_id = ? AND tenant_id = ?";
-        List<Map<String, Object>> existingComposites = jdbcTemplate.queryForList(findSql, compositeKeycloakId, tenant.getId());
+        List<Map<String, Object>> existingComposites = jdbcTemplate.queryForList(findSql,
+            compositeKeycloakId, tenant.getId());
 
         Map<String, Object> compositeRole;
         if (existingComposites.isEmpty()) {
@@ -369,8 +378,9 @@ public class KeycloakEventProjectionService {
           compositeRole.put("description", compositeNode.path("description").asText(null));
           compositeRole.put("tenant_id", tenant.getId());
           compositeRole.put("composite", compositeNode.path("composite").asBoolean(false));
-          
-          compositeRole = metamodelService.create("Role", compositeRole, null);
+
+          compositeRole = metamodelService.create("Role", compositeRole,
+              new SystemAuthentication());
         } else {
           compositeRole = existingComposites.get(0);
         }
@@ -417,7 +427,8 @@ public class KeycloakEventProjectionService {
       String sql = "SELECT * FROM groups WHERE keycloak_group_id = ? AND tenant_id = ?";
       List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, groupId, tenant.getId());
 
-      Map<String, Object> group = existing.isEmpty() ? new HashMap<>() : new HashMap<>(existing.get(0));
+      Map<String, Object> group = existing.isEmpty() ? new HashMap<>()
+          : new HashMap<>(existing.get(0));
       group.put("keycloak_group_id", groupId);
       group.put("name", groupName);
       group.put("path", groupPath);
@@ -427,8 +438,9 @@ public class KeycloakEventProjectionService {
       if (groupPath.lastIndexOf("/") > 0) {
         String parentPath = groupPath.substring(0, groupPath.lastIndexOf("/"));
         String findParentSql = "SELECT * FROM groups WHERE path = ? AND tenant_id = ?";
-        List<Map<String, Object>> parents = jdbcTemplate.queryForList(findParentSql, parentPath, tenant.getId());
-        
+        List<Map<String, Object>> parents = jdbcTemplate.queryForList(findParentSql, parentPath,
+            tenant.getId());
+
         if (!parents.isEmpty()) {
           group.put("parent_group_id", parents.get(0).get("id"));
         } else {
@@ -438,13 +450,14 @@ public class KeycloakEventProjectionService {
         group.put("parent_group_id", null);
       }
 
-      // Save via metamodel
+      // Save via metamodel with SystemAuthentication
       if (existing.isEmpty()) {
-        group = metamodelService.create("Group", group, null);
+        group = metamodelService.create("Group", group, new SystemAuthentication());
       } else {
-        group = metamodelService.update("Group", group.get("id").toString(), 0L, group, null);
+        group = metamodelService.update("Group", group.get("id").toString(), 0L, group,
+            new SystemAuthentication());
       }
-      
+
       log.info("✅ Group synced: {} (path: {})", groupName, groupPath);
 
       syncGroupChildren(group, groupId, tenant);
@@ -469,22 +482,25 @@ public class KeycloakEventProjectionService {
 
         // Find or create child group
         String sql = "SELECT * FROM groups WHERE keycloak_group_id = ? AND tenant_id = ?";
-        List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, childId, tenant.getId());
+        List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, childId,
+            tenant.getId());
 
-        Map<String, Object> child = existing.isEmpty() ? new HashMap<>() : new HashMap<>(existing.get(0));
+        Map<String, Object> child = existing.isEmpty() ? new HashMap<>()
+            : new HashMap<>(existing.get(0));
         child.put("keycloak_group_id", childId);
         child.put("name", childName);
         child.put("path", childPath);
         child.put("tenant_id", tenant.getId());
         child.put("parent_group_id", parentGroup.get("id"));
 
-        // Save via metamodel
+        // Save via metamodel with SystemAuthentication
         if (existing.isEmpty()) {
-          child = metamodelService.create("Group", child, null);
+          child = metamodelService.create("Group", child, new SystemAuthentication());
         } else {
-          child = metamodelService.update("Group", child.get("id").toString(), 0L, child, null);
+          child = metamodelService.update("Group", child.get("id").toString(), 0L, child,
+              new SystemAuthentication());
         }
-        
+
         log.debug("✅ Synced child group: {}", childName);
 
         // Recursively sync children
@@ -626,11 +642,12 @@ public class KeycloakEventProjectionService {
 
     Map<String, Object> user;
     boolean isNew = existing.isEmpty();
-    
+
     if (isNew) {
       user = new HashMap<>();
       user.put("keycloak_user_id", keycloakUserId);
       user.put("tenant_id", tenantId);
+      user.put("is_federated", false); // Default: local user, not federated
     } else {
       user = new HashMap<>(existing.get(0));
     }
@@ -641,16 +658,21 @@ public class KeycloakEventProjectionService {
     String firstName = event.getFieldValue("first_name");
     String lastName = event.getFieldValue("last_name");
 
-    if (username != null) user.put("username", username);
-    if (email != null) user.put("email", email);
-    if (firstName != null) user.put("first_name", firstName);
-    if (lastName != null) user.put("last_name", lastName);
+    if (username != null)
+      user.put("username", username);
+    if (email != null)
+      user.put("email", email);
+    if (firstName != null)
+      user.put("first_name", firstName);
+    if (lastName != null)
+      user.put("last_name", lastName);
 
-    // Ulož via metamodel
+    // Ulož via metamodel with SystemAuthentication
     if (isNew) {
-      metamodelService.create("User", user, null);
+      metamodelService.create("User", user, new SystemAuthentication());
     } else {
-      metamodelService.update("User", user.get("id").toString(), 0L, user, null);
+      metamodelService.update("User", user.get("id").toString(), 0L, user,
+          new SystemAuthentication());
     }
 
     log.info("✅ User projection synced: userId={}, username={}, tenant={}", keycloakUserId,
@@ -674,7 +696,7 @@ public class KeycloakEventProjectionService {
     // Find and delete user
     String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND keycloak_user_id = ?";
     List<Map<String, Object>> users = jdbcTemplate.queryForList(sql, tenantId, keycloakUserId);
-    
+
     if (!users.isEmpty()) {
       Map<String, Object> user = users.get(0);
       metamodelService.delete("User", user.get("id").toString(), null);
