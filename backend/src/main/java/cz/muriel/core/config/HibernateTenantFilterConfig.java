@@ -39,7 +39,7 @@ public class HibernateTenantFilterConfig {
 
     try {
       // 🎯 SIMPLIFIED: Use tenantKey directly (no UUID conversion needed)
-      session.enableFilter("tenantFilter").setParameter("tenantKey", tenantKey);
+      session.enableFilter("tenantFilter").setParameter("tenantId", tenantKey);
       log.debug("Enabled tenant filter for tenant: {}", tenantKey);
 
       return joinPoint.proceed();

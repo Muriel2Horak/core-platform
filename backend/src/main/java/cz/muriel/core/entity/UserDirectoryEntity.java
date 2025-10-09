@@ -8,6 +8,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.experimental.SuperBuilder;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -17,7 +20,8 @@ import java.util.UUID;
     "roles", "groups" }) @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class UserDirectoryEntity extends MultiTenantEntity {
 
-  @Id @GeneratedValue(strategy = GenerationType.AUTO)
+  @Id
+  // ❌ REMOVED: @GeneratedValue - používáme deterministické UUID
   private UUID id;
 
   @Column(name = "keycloak_user_id")
@@ -113,15 +117,59 @@ public class UserDirectoryEntity extends MultiTenantEntity {
   @ManyToMany @JoinTable(name = "user_groups", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "group_id")) @Builder.Default
   private Set<GroupEntity> groups = new HashSet<>();
 
+  /**
+   * 🔐 DETERMINISTICKÉ UUID GENERATION
+   * Generates consistent UUID from keycloakUserId + tenantId
+   * This ensures same user always has same UUID across database instances
+   */
   @PrePersist
   protected void onCreate() {
-    createdAt = LocalDateTime.now();
-    updatedAt = LocalDateTime.now();
+    if (id == null && keycloakUserId != null && getTenantId() != null) {
+      id = generateUuidFromKeycloakId(keycloakUserId, getTenantId());
+    }
+    if (createdAt == null) {
+      createdAt = LocalDateTime.now();
+    }
+    if (updatedAt == null) {
+      updatedAt = LocalDateTime.now();
+    }
   }
 
   @PreUpdate
   protected void onUpdate() {
     updatedAt = LocalDateTime.now();
+  }
+
+  /**
+   * 🔐 STATIC HELPER: Generate deterministic UUID from Keycloak ID + Tenant ID
+   */
+  public static UUID generateUuidFromKeycloakId(String keycloakUserId, UUID tenantId) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      String composite = "user:" + tenantId.toString() + ":" + keycloakUserId;
+      byte[] hash = digest.digest(composite.getBytes(StandardCharsets.UTF_8));
+
+      // Convert first 16 bytes to UUID
+      long mostSigBits = 0;
+      long leastSigBits = 0;
+
+      for (int i = 0; i < 8; i++) {
+        mostSigBits = (mostSigBits << 8) | (hash[i] & 0xff);
+      }
+      for (int i = 8; i < 16; i++) {
+        leastSigBits = (leastSigBits << 8) | (hash[i] & 0xff);
+      }
+
+      // Set version (4) and variant (2) bits for UUID compliance
+      mostSigBits &= ~(0xF000L << 48);
+      mostSigBits |= (0x4000L << 48); // Version 4
+      leastSigBits &= ~(0xC000000000000000L);
+      leastSigBits |= 0x8000000000000000L; // Variant 2
+
+      return new UUID(mostSigBits, leastSigBits);
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("SHA-256 algorithm not available", e);
+    }
   }
 
   // Helper methods

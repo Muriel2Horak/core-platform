@@ -24,4 +24,10 @@ public class EntitySchema {
   private List<String> fulltext;
   private List<StateConfig> states;
   private List<TransitionConfig> transitions;
+
+  // ✨ NEW: ID Generation strategy
+  private IdGenerationConfig idGeneration;
+
+  // ✨ NEW: Lifecycle hooks
+  private LifecycleConfig lifecycle;
 }
