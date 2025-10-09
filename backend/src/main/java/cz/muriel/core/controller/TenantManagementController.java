@@ -60,10 +60,12 @@ public class TenantManagementController {
 
       // 3. Return success response with tenant details
       Map<String, Object> response = Map.of("success", true, "message",
-          "Tenant created successfully", "tenant",
-          Map.of("id", tenant.get().getId(), "key", tenant.get().getKey(), "displayName",
-              request.getDisplayName(), "realm", tenant.get().getKey(), "subdomain",
-              request.getKey() + "." + domain));
+          "Tenant created successfully", "tenant", Map.of("id", tenant.get().getId().toString(), // Convert
+                                                                                                 // UUID
+                                                                                                 // to
+                                                                                                 // string
+              "key", tenant.get().getKey(), "displayName", request.getDisplayName(), "realm",
+              tenant.get().getKey(), "subdomain", request.getKey() + "." + domain));
 
       log.info("✅ Tenant created successfully: {}", request.getKey());
       return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -142,7 +144,8 @@ public class TenantManagementController {
 
       Map<String, Object> response = Map.of("success", true, "message",
           "Tenant updated successfully", "tenant",
-          Map.of("id", tenant.map(Tenant::getId).orElse(null), "key", tenantKey, "displayName",
+          Map.of("id", tenant.map(t -> t.getId().toString()).orElse(null), // Convert UUID to string
+              "key", tenantKey, "displayName",
               displayName != null ? displayName : tenantService.getTenantDisplayName(tenantKey),
               "realm", tenantKey));
 
@@ -170,9 +173,11 @@ public class TenantManagementController {
       List<Tenant> tenants = tenantService.getAllTenants();
 
       var tenantList = tenants.stream()
-          .map(tenant -> Map.<String, Object>of("id", tenant.getId(), "key", tenant.getKey(),
-              "displayName", tenantService.getTenantDisplayName(tenant.getKey()), "realm",
-              tenant.getKey(), "subdomain", tenant.getKey() + "." + domain))
+          .map(tenant -> Map.<String, Object>of("id", tenant.getId().toString(), // Convert UUID to
+                                                                                 // string
+              "key", tenant.getKey(), "displayName",
+              tenantService.getTenantDisplayName(tenant.getKey()), "realm", tenant.getKey(),
+              "subdomain", tenant.getKey() + "." + domain))
           .toList();
 
       Map<String, Object> response = Map.of("success", true, "tenants", tenantList, "total",

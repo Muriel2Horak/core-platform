@@ -264,16 +264,32 @@ public class UserDirectoryController {
   private Map<String, Object> buildUserResponse(UserDirectoryEntity user) {
     // Convert UUID tenantId to String tenantKey for API response
     String tenantKey = tenantService.getTenantKeyFromId(user.getTenantId());
-    return Map.of("id", user.getId(), "username", user.getUsername(), "firstName",
-        user.getFirstName() != null ? user.getFirstName() : "", "lastName",
-        user.getLastName() != null ? user.getLastName() : "", "email",
-        user.getEmail() != null ? user.getEmail() : "", "tenantKey", tenantKey, "tenantName",
-        getTenantNameByKey(tenantKey), "directorySource", user.getIsFederated() ? "AD" : "LOCAL",
-        "isFederated", user.getIsFederated(), "updatedAt", user.getUpdatedAt());
+
+    // Build manager username from manager entity
+    String managerUsername = null;
+    if (user.getManager() != null) {
+      managerUsername = user.getManager().getUsername();
+    }
+
+    Map<String, Object> response = new java.util.HashMap<>();
+    response.put("id", user.getId());
+    response.put("username", user.getUsername());
+    response.put("firstName", user.getFirstName() != null ? user.getFirstName() : "");
+    response.put("lastName", user.getLastName() != null ? user.getLastName() : "");
+    response.put("email", user.getEmail() != null ? user.getEmail() : "");
+    response.put("tenantKey", tenantKey);
+    response.put("tenantName", getTenantNameByKey(tenantKey));
+    response.put("directorySource", user.getIsFederated() ? "AD" : "LOCAL");
+    response.put("isFederated", user.getIsFederated());
+    response.put("enabled", user.getActive() != null ? user.getActive() : false);
+    response.put("manager", managerUsername != null ? managerUsername : "");
+    response.put("updatedAt", user.getUpdatedAt());
+
+    return response;
   }
 
   private Map<String, Object> buildUserDetailResponse(UserDirectoryEntity user, Jwt jwt) {
-    Map<String, Object> response = buildUserResponse(user);
+    Map<String, Object> response = new java.util.HashMap<>(buildUserResponse(user));
 
     // Add editability flags
     response.put("isEditableByMe", canEditUser(user, jwt));
@@ -284,7 +300,7 @@ public class UserDirectoryController {
     response.put("title", user.getTitle());
     response.put("phoneNumber", user.getPhoneNumber());
     response.put("status", user.getStatus());
-    response.put("active", user.getActive());
+    // active je již v buildUserResponse jako "enabled"
 
     return response;
   }

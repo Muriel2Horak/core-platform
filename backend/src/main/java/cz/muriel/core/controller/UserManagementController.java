@@ -106,6 +106,15 @@ public class UserManagementController {
     return ResponseEntity.ok().build();
   }
 
+  @GetMapping("/{id}/groups")
+  public ResponseEntity<com.fasterxml.jackson.databind.JsonNode> getUserGroups(
+      @PathVariable String id) {
+    log.info("Getting groups for user: {}", id);
+
+    com.fasterxml.jackson.databind.JsonNode groups = keycloakAdminService.getUserGroups(id);
+    return ResponseEntity.ok(groups);
+  }
+
   // Helper DTO for role assignment
   public static class RoleAssignmentRequest {
     private String roleName;

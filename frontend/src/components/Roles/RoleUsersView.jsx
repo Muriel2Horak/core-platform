@@ -29,7 +29,7 @@ import logger from '../../services/logger.js';
  * 👥 Role Users View
  * Zobrazení všech uživatelů s konkrétní rolí
  */
-export const RoleUsersView = ({ open, role, onClose }) => {
+export const RoleUsersView = ({ open, role, onClose, tenantKey = null }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -38,19 +38,20 @@ export const RoleUsersView = ({ open, role, onClose }) => {
     if (open && role) {
       loadUsers();
     }
-  }, [open, role]);
+  }, [open, role, tenantKey]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const usersData = await apiService.getRoleUsers(role.name);
+      const usersData = await apiService.getRoleUsers(role.name, tenantKey);
       setUsers(usersData || []);
 
       logger.info('Role users loaded', { 
         role: role.name, 
-        count: usersData?.length || 0 
+        count: usersData?.length || 0,
+        tenantKey 
       });
 
     } catch (err) {
@@ -193,4 +194,5 @@ RoleUsersView.propTypes = {
   open: PropTypes.bool.isRequired,
   role: PropTypes.object,
   onClose: PropTypes.func.isRequired,
+  tenantKey: PropTypes.string,
 };

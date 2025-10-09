@@ -180,13 +180,45 @@ public class KeycloakEventProjectionService {
       // Save via metamodel with SystemAuthentication
       if (isNew) {
         metamodelService.create("User", user, new SystemAuthentication());
+        log.info("✅ User created: {}", username);
       } else {
-        metamodelService.update("User", user.get("id").toString(), 0L, user,
-            new SystemAuthentication());
+        // Retry mechanism for version conflicts
+        int maxRetries = 3;
+        int attempt = 0;
+        boolean success = false;
+
+        while (!success && attempt < maxRetries) {
+          try {
+            // Reload user from database to get latest version
+            Map<String, Object> currentUser = metamodelService.getById("User",
+                user.get("id").toString(), new SystemAuthentication());
+
+            Object currentVersion = currentUser != null ? currentUser.get("version") : 0L;
+            Long version = currentVersion instanceof Number ? ((Number) currentVersion).longValue()
+                : 0L;
+
+            metamodelService.update("User", user.get("id").toString(), version, user,
+                new SystemAuthentication());
+
+            success = true;
+            log.info("✅ User updated: {} (attempt {})", username, attempt + 1);
+          } catch (cz.muriel.core.entities.VersionMismatchException e) {
+            attempt++;
+            if (attempt >= maxRetries) {
+              log.error("❌ Version conflict after {} retries for user: {}", maxRetries, username,
+                  e);
+              throw e;
+            }
+            log.warn("⚠️ Version conflict for user {}, retrying ({}/{})", username, attempt,
+                maxRetries);
+            Thread.sleep(100 * attempt); // Exponential backoff
+          }
+        }
       }
 
-      log.info("✅ User synced: {}", username);
-
+    } catch (cz.muriel.core.entities.VersionMismatchException e) {
+      log.error("Failed to sync user from Keycloak due to version conflict: {}", userId, e);
+      throw new RuntimeException("Version conflict syncing user: " + userId, e);
     } catch (Exception e) {
       log.error("Failed to sync user from Keycloak: {}", userId, e);
     }
@@ -331,7 +363,11 @@ public class KeycloakEventProjectionService {
       if (existing.isEmpty()) {
         role = metamodelService.create("Role", role, new SystemAuthentication());
       } else {
-        role = metamodelService.update("Role", role.get("id").toString(), 0L, role,
+        // Get current version from existing role
+        Long currentVersion = existing.get(0).get("version") != null
+            ? ((Number) existing.get(0).get("version")).longValue()
+            : 0L;
+        role = metamodelService.update("Role", role.get("id").toString(), currentVersion, role,
             new SystemAuthentication());
       }
 
@@ -454,7 +490,11 @@ public class KeycloakEventProjectionService {
       if (existing.isEmpty()) {
         group = metamodelService.create("Group", group, new SystemAuthentication());
       } else {
-        group = metamodelService.update("Group", group.get("id").toString(), 0L, group,
+        // Get current version from existing group
+        Long currentVersion = existing.get(0).get("version") != null
+            ? ((Number) existing.get(0).get("version")).longValue()
+            : 0L;
+        group = metamodelService.update("Group", group.get("id").toString(), currentVersion, group,
             new SystemAuthentication());
       }
 
@@ -497,8 +537,12 @@ public class KeycloakEventProjectionService {
         if (existing.isEmpty()) {
           child = metamodelService.create("Group", child, new SystemAuthentication());
         } else {
-          child = metamodelService.update("Group", child.get("id").toString(), 0L, child,
-              new SystemAuthentication());
+          // Get current version from existing child group
+          Long currentVersion = existing.get(0).get("version") != null
+              ? ((Number) existing.get(0).get("version")).longValue()
+              : 0L;
+          child = metamodelService.update("Group", child.get("id").toString(), currentVersion,
+              child, new SystemAuthentication());
         }
 
         log.debug("✅ Synced child group: {}", childName);

@@ -251,18 +251,15 @@ const LoginPage = () => {
         
         <h1 style={{ 
           fontSize: '42px', 
-          margin: '0 0 10px 0', 
+          margin: '20px 0 0 0', 
           background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
           fontWeight: 700,
         }}>
-          Core Platform
+          Axiom
         </h1>
-        <p style={{ fontSize: '16px', margin: '0', opacity: 0.7, color: '#6b6b6b' }}>
-          Enterprise aplikační platforma
-        </p>
       </div>
       
       {error && (

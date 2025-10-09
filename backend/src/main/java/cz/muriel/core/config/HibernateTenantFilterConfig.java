@@ -8,9 +8,12 @@ import org.hibernate.Session;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.tenant.TenantContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+
+import java.util.UUID;
 
 /**
  * AOP Aspect pro automatické zapínání Hibernate tenant filtru při každém
@@ -38,9 +41,10 @@ public class HibernateTenantFilterConfig {
     Session session = entityManager.unwrap(Session.class);
 
     try {
-      // 🎯 SIMPLIFIED: Use tenantKey directly (no UUID conversion needed)
-      session.enableFilter("tenantFilter").setParameter("tenantId", tenantKey);
-      log.debug("Enabled tenant filter for tenant: {}", tenantKey);
+      // 🎯 Convert tenantKey to deterministic UUID
+      UUID tenantId = Tenant.generateUuidFromKey(tenantKey);
+      session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
+      log.debug("Enabled tenant filter for tenant: {} (UUID: {})", tenantKey, tenantId);
 
       return joinPoint.proceed();
 

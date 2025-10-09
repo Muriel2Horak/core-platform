@@ -313,7 +313,16 @@ class ApiService {
     await axios.delete(`/api/roles/${parentRoleName}/composites/${childRoleName}`);
   }
 
-  async getRoleUsers(roleName) {
+  async getRoleUsers(roleName, tenantKey = null) {
+    // Pro CORE_ADMIN s tenant parametrem použijeme admin endpoint
+    if (tenantKey) {
+      const response = await axios.get(`/api/admin/roles/${roleName}/users`, {
+        params: { tenantKey }
+      });
+      return response.data;
+    }
+    
+    // Pro běžné uživatele použijeme standardní endpoint
     const response = await axios.get(`/api/roles/${roleName}/users`);
     return response.data;
   }

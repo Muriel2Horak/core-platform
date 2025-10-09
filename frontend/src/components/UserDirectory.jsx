@@ -12,6 +12,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  MenuItem,
   Card,
   CardContent,
   Avatar,
@@ -43,7 +44,8 @@ import {
   List as ListIcon,
   Person as PersonIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import apiService from '../services/api.js';
 import logger from '../services/logger.js';
@@ -643,19 +645,23 @@ function UserDirectory({ user }) {
           }
         }}
       >
-        <DialogTitle sx={{ fontWeight: 600, fontSize: '1.5rem' }}>
+        <DialogTitle sx={{ 
+          fontWeight: 600, 
+          fontSize: '1.5rem',
+          pb: 1
+        }}>
           👤 Detail uživatele
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
           {selectedUser ? (
             <Box>
               {/* User Header */}
-              <Box sx={{ p: 3, pb: 0 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <Box sx={{ p: 3, pb: 2, backgroundColor: 'background.default' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar
                     sx={{
-                      width: 60,
-                      height: 60,
+                      width: 64,
+                      height: 64,
                       backgroundColor: 'primary.main',
                       fontSize: '1.5rem',
                       fontWeight: 'bold'
@@ -663,14 +669,23 @@ function UserDirectory({ user }) {
                   >
                     {getInitials(selectedUser)}
                   </Avatar>
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
                       {getDisplayName(selectedUser)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       @{selectedUser.username}
                     </Typography>
                   </Box>
+                  <Chip
+                    label={selectedUser.enabled ? 'Aktivní' : 'Neaktivní'}
+                    size="medium"
+                    sx={{
+                      backgroundColor: selectedUser.enabled ? 'success.main' : 'error.main',
+                      color: 'white',
+                      fontWeight: 600
+                    }}
+                  />
                 </Box>
               </Box>
 
@@ -678,7 +693,12 @@ function UserDirectory({ user }) {
               <Tabs
                 value={viewDialogTab}
                 onChange={(e, newValue) => setViewDialogTab(newValue)}
-                sx={{ borderBottom: 1, borderColor: 'divider', px: 3 }}
+                sx={{ 
+                  borderBottom: 1, 
+                  borderColor: 'divider', 
+                  px: 3,
+                  backgroundColor: 'background.default'
+                }}
               >
                 <Tab icon={<PersonIcon />} iconPosition="start" label="Informace" />
                 <Tab icon={<OrgChartIcon />} iconPosition="start" label="Org. Chart" />
@@ -687,18 +707,22 @@ function UserDirectory({ user }) {
               {/* Tab 0: User Info */}
               {viewDialogTab === 0 && (
                 <Box sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <Box>
-                      <Typography variant="body2" color="text.secondary">Email</Typography>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 500 }}>
+                        Email
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
                         {selectedUser.email || 'Neuvedeno'}
                       </Typography>
                     </Box>
 
                     {selectedUser.firstName && (
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Jméno</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 500 }}>
+                          Jméno
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
                           {selectedUser.firstName}
                         </Typography>
                       </Box>
@@ -706,8 +730,10 @@ function UserDirectory({ user }) {
 
                     {selectedUser.lastName && (
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Příjmení</Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontWeight: 500 }}>
+                          Příjmení
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: 'text.primary' }}>
                           {selectedUser.lastName}
                         </Typography>
                       </Box>
@@ -715,7 +741,9 @@ function UserDirectory({ user }) {
 
                     {selectedUser.manager && (
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Nadřízený</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                          Nadřízený
+                        </Typography>
                         <Box sx={{ mt: 0.5 }}>
                           <Chip
                             avatar={
@@ -734,7 +762,12 @@ function UserDirectory({ user }) {
                               const managerUser = users.find(u => u.username === selectedUser.manager);
                               if (managerUser) handleViewUser(managerUser);
                             }}
-                            sx={{ cursor: 'pointer' }}
+                            sx={{ 
+                              cursor: 'pointer',
+                              '&:hover': {
+                                backgroundColor: 'action.hover'
+                              }
+                            }}
                           />
                         </Box>
                       </Box>
@@ -742,49 +775,45 @@ function UserDirectory({ user }) {
 
                     {canViewAllTenants && (
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Tenant</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                          Tenant
+                        </Typography>
                         <Chip
+                          icon={<BusinessIcon fontSize="small" />}
                           label={selectedUser.tenantKey || 'Unknown'}
-                          size="small"
+                          size="medium"
                           color="primary"
-                          sx={{ mt: 0.5 }}
+                          variant="outlined"
+                          sx={{ borderRadius: 2 }}
                         />
                       </Box>
                     )}
 
                     <Box>
-                      <Typography variant="body2" color="text.secondary">Zdroj</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                        Zdroj
+                      </Typography>
                       <Chip
                         icon={selectedUser.isFederated ? <CloudIcon fontSize="small" /> : <ServerIcon fontSize="small" />}
                         label={selectedUser.directorySource || (selectedUser.isFederated ? 'AD' : 'LOCAL')}
-                        size="small"
+                        size="medium"
                         color={selectedUser.isFederated ? 'info' : 'success'}
-                        sx={{ mt: 0.5 }}
-                      />
-                    </Box>
-
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Stav</Typography>
-                      <Chip
-                        label={selectedUser.enabled ? 'Aktivní' : 'Neaktivní'}
-                        size="small"
-                        sx={{
-                          mt: 0.5,
-                          backgroundColor: selectedUser.enabled ? 'success.main' : 'error.main',
-                          color: 'white',
-                          fontWeight: 600
-                        }}
+                        variant="outlined"
+                        sx={{ borderRadius: 2 }}
                       />
                     </Box>
 
                     {selectedUser.emailVerified !== undefined && (
                       <Box>
-                        <Typography variant="body2" color="text.secondary">Email ověřen</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 500 }}>
+                          Email ověřen
+                        </Typography>
                         <Chip
                           label={selectedUser.emailVerified ? 'Ano' : 'Ne'}
-                          size="small"
+                          size="medium"
                           color={selectedUser.emailVerified ? 'success' : 'default'}
-                          sx={{ mt: 0.5 }}
+                          variant="outlined"
+                          sx={{ borderRadius: 2 }}
                         />
                       </Box>
                     )}

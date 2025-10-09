@@ -46,8 +46,9 @@ public class TenantController {
 
     // 🎯 OPTIMIZED: Lazy-load display names from Keycloak only when needed
     var response = tenants.stream()
-        .map(tenant -> Map.<String, Object>of("id", tenant.getId(), "key", tenant.getKey(), "name",
-            tenantService.getTenantDisplayName(tenant.getKey()), // Lazy-loaded
+        .map(tenant -> Map.<String, Object>of("id", tenant.getId().toString(), // Convert UUID to
+                                                                               // string
+            "key", tenant.getKey(), "name", tenantService.getTenantDisplayName(tenant.getKey()), // Lazy-loaded
             "realm", tenant.getKey() // realm = key
         )).toList();
 

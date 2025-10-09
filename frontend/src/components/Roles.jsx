@@ -135,7 +135,10 @@ function Roles({ user }) {
       const rolesWithUserCount = await Promise.all(
         (rolesData || []).map(async (role) => {
           try {
-            const users = await apiService.getRoleUsers(role.name);
+            // Pro CORE_ADMIN předáme tenantKey
+            const users = isCoreAdmin 
+              ? await apiService.getRoleUsers(role.name, tenantToLoad)
+              : await apiService.getRoleUsers(role.name);
             console.log(`👥 Users for ${role.name}:`, users?.length || 0, users);
             return {
               ...role,
@@ -586,6 +589,7 @@ function Roles({ user }) {
         onSuccess={handleRoleUpdated}
         onDelete={handleRoleDeleted}
         user={user}
+        tenantKey={isCoreAdmin ? selectedTenant : null}
       />
 
       <RoleUsersDialog

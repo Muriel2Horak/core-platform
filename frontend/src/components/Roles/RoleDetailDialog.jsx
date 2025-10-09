@@ -47,7 +47,7 @@ import logger from '../../services/logger.js';
  * - Uživatelé (správa přiřazení)
  * - Nebezpečná zóna (smazání)
  */
-export const RoleDetailDialog = ({ open, role, onClose, onSuccess, onDelete, user }) => {
+export const RoleDetailDialog = ({ open, role, onClose, onSuccess, onDelete, user, tenantKey = null }) => {
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -152,7 +152,7 @@ export const RoleDetailDialog = ({ open, role, onClose, onSuccess, onDelete, use
     try {
       setUsersLoading(true);
       const [roleUsers, allUsers] = await Promise.all([
-        apiService.getRoleUsers(role.name),
+        apiService.getRoleUsers(role.name, tenantKey),
         apiService.getUsers(),
       ]);
       
@@ -679,4 +679,5 @@ RoleDetailDialog.propTypes = {
   onSuccess: PropTypes.func,
   onDelete: PropTypes.func,
   user: PropTypes.object,
+  tenantKey: PropTypes.string,
 };

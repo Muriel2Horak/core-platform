@@ -85,7 +85,7 @@ export const RoleUsersDialog = ({ open, onClose, role, tenantKey, onUpdate }) =>
     if (!tenantKey) return;
     
     try {
-      const endpoint = `/api/admin/users/tenant/${tenantKey}`;
+      const endpoint = `/api/admin/roles/users/tenant/${tenantKey}`;
       const response = await axios.get(endpoint);
       
       // Filtrujeme uživatele, kteří už v roli nejsou
