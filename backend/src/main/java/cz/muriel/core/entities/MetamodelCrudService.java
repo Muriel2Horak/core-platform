@@ -1,6 +1,7 @@
 package cz.muriel.core.entities;
 
 import cz.muriel.core.metamodel.MetamodelRegistry;
+import cz.muriel.core.metamodel.lifecycle.LifecycleHookExecutor;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.FieldSchema;
 import cz.muriel.core.security.policy.PolicyEngine;
@@ -26,6 +27,7 @@ public class MetamodelCrudService {
   private final MetamodelRegistry registry;
   private final PolicyEngine policyEngine;
   private final EntityManager entityManager;
+  private final LifecycleHookExecutor lifecycleExecutor;
 
   /**
    * List entities with filtering, sorting and pagination
@@ -130,6 +132,9 @@ public class MetamodelCrudService {
       Authentication auth) {
     EntitySchema schema = registry.getSchemaOrThrow(entityType);
 
+    // ✨ LIFECYCLE: Execute beforeCreate hooks
+    lifecycleExecutor.executeBeforeCreate(schema, data);
+
     // Add tenant_id from JWT
     String tenantId = getTenantId(auth);
     if (schema.getTenantField() != null) {
@@ -153,6 +158,9 @@ public class MetamodelCrudService {
     if (affected == 0) {
       throw new RuntimeException("Failed to create entity");
     }
+
+    // ✨ LIFECYCLE: Execute afterCreate hooks
+    lifecycleExecutor.executeAfterCreate(schema, data);
 
     // Return created entity
     Object id = data.get(schema.getIdField());
@@ -186,6 +194,9 @@ public class MetamodelCrudService {
               policyEngine.projectColumns(auth, entityType, "read"), schema));
     }
 
+    // ✨ LIFECYCLE: Execute beforeUpdate hooks
+    lifecycleExecutor.executeBeforeUpdate(schema, data);
+
     // Build UPDATE with version check
     String updateSql = buildUpdateSql(schema, id, data, expectedVersion);
     int affected = entityManager.createNativeQuery(updateSql).executeUpdate();
@@ -195,6 +206,9 @@ public class MetamodelCrudService {
       throw new VersionMismatchException("Update failed - version mismatch or entity deleted",
           currentVersion, null);
     }
+
+    // ✨ LIFECYCLE: Execute afterUpdate hooks
+    lifecycleExecutor.executeAfterUpdate(schema, data);
 
     // Return updated entity
     return getById(entityType, id, auth);
@@ -218,12 +232,22 @@ public class MetamodelCrudService {
       throw new AccessDeniedException("No permission to delete this " + entityType);
     }
 
+    // Convert entity to map for lifecycle hooks
+    Map<String, Object> entityMap = projectEntityToMap(entity,
+        policyEngine.projectColumns(auth, entityType, "read"), schema);
+
+    // ✨ LIFECYCLE: Execute beforeDelete hooks
+    lifecycleExecutor.executeBeforeDelete(schema, entityMap);
+
     // Execute DELETE
     String deleteSql = String.format("DELETE FROM %s WHERE %s = '%s'", schema.getTable(),
         schema.getIdField(), id);
 
     entityManager.createNativeQuery(deleteSql).executeUpdate();
     log.info("Deleted entity: {} id={}", entityType, id);
+
+    // ✨ LIFECYCLE: Execute afterDelete hooks
+    lifecycleExecutor.executeAfterDelete(schema, entityMap);
   }
 
   // Helper methods
