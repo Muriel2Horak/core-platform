@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
@@ -105,8 +106,10 @@ public class ChangeEventPollingService {
 
   /**
    * 🔧 Zpracuje jednotlivý event
+   * 
+   * ⚠️ NO @Transactional here! Each sub-operation (projection, save) uses its own
+   * transaction to allow retry loop with fresh DB reads
    */
-  @Transactional
   protected void processEvent(ChangeEventEntity event) {
     log.debug("🔄 Processing event: id={}, type={}, entity={}, realm={}", event.getId(),
         event.getEventType(), event.getEntityId(), event.getRealmId());
@@ -124,15 +127,14 @@ public class ChangeEventPollingService {
         return;
       }
 
-      // Deleguj zpracování na projection service
+      // Deleguj zpracování na projection service (NO transaction here!)
       projectionService.processCdcEvent(event.getEventType(), event.getEntityId(),
           event.getRealmId(), tenantKey, null // Payload není potřeba, projection service si dotáhne
                                               // data z Keycloak API
       );
 
-      // Označ event jako zpracovaný
-      event.markAsProcessed();
-      changeEventRepository.save(event);
+      // Označ event jako zpracovaný (v separátní transakci)
+      markEventAsProcessed(event);
 
       log.debug("✅ Event {} processed successfully", event.getId());
 
@@ -140,6 +142,15 @@ public class ChangeEventPollingService {
       log.error("❌ Failed to process event {}: {}", event.getId(), e.getMessage());
       throw e; // Re-throw pro statistiky
     }
+  }
+
+  /**
+   * 🔐 Mark event as processed in separate transaction
+   */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  protected void markEventAsProcessed(ChangeEventEntity event) {
+    event.markAsProcessed();
+    changeEventRepository.save(event);
   }
 
   /**

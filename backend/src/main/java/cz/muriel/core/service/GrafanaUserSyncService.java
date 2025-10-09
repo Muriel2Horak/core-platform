@@ -355,7 +355,8 @@ public class GrafanaUserSyncService {
     public Map<String, Object> syncAllMonitoringUsers(String realmId) {
         log.info("🔄 Starting full Grafana sync for realm: {}", realmId);
 
-        // ⚠️ Warn if syncing non-admin realm (will create users, but they won't be able to login)
+        // ⚠️ Warn if syncing non-admin realm (will create users, but they won't be able
+        // to login)
         if (!"admin".equals(realmId)) {
             log.warn(
                     "⚠️ Syncing non-admin realm '{}' - users will be created in Grafana but cannot login via OAuth/JWT (Grafana is configured for admin realm only)",

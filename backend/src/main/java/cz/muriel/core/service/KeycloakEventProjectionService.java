@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
@@ -29,8 +30,12 @@ import java.util.*;
  * 
  * ✅ REFACTORED: Migrated to metamodel API - uses Map<String, Object> instead of
  * JPA entities ✅ CLEAN: Používá čistě CDC data z change_events tabulky
+ * 
+ * ⚠️ TRANSACTION STRATEGY: - NO class-level @Transactional to allow retry with
+ * new transactions - Each retry gets REQUIRES_NEW transaction to see latest DB
+ * state
  */
-@Service @RequiredArgsConstructor @Slf4j @Transactional
+@Service @RequiredArgsConstructor @Slf4j
 public class KeycloakEventProjectionService {
 
   private final MetamodelCrudService metamodelService;
@@ -190,50 +195,30 @@ public class KeycloakEventProjectionService {
 
       // Save via metamodel with SystemAuthentication
       if (isNew) {
-        metamodelService.create("User", user, new SystemAuthentication());
+        createUserInNewTransaction(user);
         log.info("✅ User created: {}", username);
       } else {
         // Retry mechanism for version conflicts with exponential backoff
-        int maxRetries = 5; // Increased from 3
+        // Each retry gets a NEW transaction to see latest DB state
+        int maxRetries = 5;
         int attempt = 0;
         boolean success = false;
 
         while (!success && attempt < maxRetries) {
           try {
-            // Reload user from database to get latest version
-            String userIdStr = user.get("id").toString();
-            Map<String, Object> currentUser = metamodelService.getById("User", userIdStr,
-                new SystemAuthentication());
+            attempt++;
 
-            if (currentUser == null) {
-              log.warn("⚠️ User not found in metamodel during update: {}", userIdStr);
-              break;
-            }
-
-            Object currentVersion = currentUser.get("version");
-            Long version = currentVersion instanceof Number ? ((Number) currentVersion).longValue()
-                : 0L;
-
-            // Merge current data with new data
-            // Note: System fields (id, version, created_at, updated_at) are automatically
-            // filtered by MetamodelCrudService.update()
-            Map<String, Object> mergedUser = new HashMap<>(currentUser);
-            mergedUser.putAll(user);
-
-            metamodelService.update("User", userIdStr, version, mergedUser,
-                new SystemAuthentication());
+            // ⚡ KRITICKÉ: Volání v NOVÉ transakci pro každý pokus
+            // Tím zajistíme, že vždy čteme aktuální stav z DB
+            updateUserInNewTransaction(user, username);
 
             success = true;
-            log.info("✅ User updated: {} (attempt {}/{}, version {})", username, attempt + 1,
-                maxRetries, version);
+            log.info("✅ User updated: {} (attempt {}/{})", username, attempt, maxRetries);
+
           } catch (cz.muriel.core.entities.VersionMismatchException e) {
-            attempt++;
             if (attempt >= maxRetries) {
-              // ⚠️ KRITICKÁ ZMĚNA: Neházet exception, jen logovat a pokračovat
-              // CDC event bude označen jako úspěšný, další event (pokud přijde) to zkusí
-              // znovu
               log.error(
-                  "❌ Version conflict after {} retries for user: {} - SKIPPING this update to prevent CDC blocking. Next event will retry.",
+                  "❌ Version conflict after {} retries for user: {} - SKIPPING this update to prevent CDC blocking.",
                   maxRetries, username);
               success = true; // Mark as "success" to prevent CDC retry loop
               break;
@@ -241,8 +226,8 @@ public class KeycloakEventProjectionService {
             log.warn("⚠️ Version conflict for user {}, retrying ({}/{})", username, attempt,
                 maxRetries);
             try {
-              // Exponential backoff with jitter: 100ms, 200ms, 400ms, 800ms, 1600ms
-              long backoffMs = 100L * (1L << (attempt - 1)); // 2^(attempt-1) * 100ms
+              // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms
+              long backoffMs = 100L * (1L << (attempt - 1));
               Thread.sleep(backoffMs);
             } catch (InterruptedException ie) {
               Thread.currentThread().interrupt();
@@ -258,6 +243,45 @@ public class KeycloakEventProjectionService {
       // Neházet dál, aby CDC processor mohl pokračovat
       log.error("❌ Failed to sync user from Keycloak: {} - {}", userId, e.getMessage(), e);
     }
+  }
+
+  /**
+   * 🔄 Create user in NEW transaction (for retry isolation)
+   */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  private void createUserInNewTransaction(Map<String, Object> user) {
+    metamodelService.create("User", user, new SystemAuthentication());
+  }
+
+  /**
+   * 🔄 Update user in NEW transaction (for retry isolation)
+   * 
+   * ⚡ KRITICKÉ: Každé volání této metody vytváří NOVOU transakci Tím zajistíme,
+   * že retry loop vždy čte AKTUÁLNÍ stav z DB, ne snapshot
+   */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  private void updateUserInNewTransaction(Map<String, Object> userData, String username) {
+    // Reload user from database to get LATEST version (in THIS transaction)
+    String userIdStr = userData.get("id").toString();
+    Map<String, Object> currentUser = metamodelService.getById("User", userIdStr,
+        new SystemAuthentication());
+
+    if (currentUser == null) {
+      log.warn("⚠️ User not found in metamodel during update: {}", userIdStr);
+      return;
+    }
+
+    Object currentVersion = currentUser.get("version");
+    Long version = currentVersion instanceof Number ? ((Number) currentVersion).longValue() : 0L;
+
+    // Merge current data with new data
+    Map<String, Object> mergedUser = new HashMap<>(currentUser);
+    mergedUser.putAll(userData);
+
+    log.debug("Updating user {} with version {}", username, version);
+
+    // This will throw VersionMismatchException if version changed
+    metamodelService.update("User", userIdStr, version, mergedUser, new SystemAuthentication());
   }
 
   /**

@@ -181,8 +181,69 @@ public class LifecycleHookExecutor {
    * Execute validation
    */
   private void executeValidate(LifecycleAction action, Map<String, Object> entity) {
-    // TODO: Implement validation logic based on action.params
-    log.debug("Validation action - placeholder");
+    Map<String, Object> params = action.getParams();
+    if (params == null || params.isEmpty()) {
+      log.debug("Validation action without params, skipping");
+      return;
+    }
+
+    String field = action.getField();
+    Object value = entity.get(field);
+
+    // Check "required" validation
+    if (Boolean.TRUE.equals(params.get("required")) && value == null) {
+      throw new IllegalArgumentException(
+          String.format("Field '%s' is required but was null", field));
+    }
+
+    // Check "minLength" validation for strings
+    if (value instanceof String str && params.containsKey("minLength")) {
+      int minLength = (int) params.get("minLength");
+      if (str.length() < minLength) {
+        throw new IllegalArgumentException(
+            String.format("Field '%s' must be at least %d characters, got %d", 
+                field, minLength, str.length()));
+      }
+    }
+
+    // Check "maxLength" validation for strings
+    if (value instanceof String str && params.containsKey("maxLength")) {
+      int maxLength = (int) params.get("maxLength");
+      if (str.length() > maxLength) {
+        throw new IllegalArgumentException(
+            String.format("Field '%s' must be at most %d characters, got %d", 
+                field, maxLength, str.length()));
+      }
+    }
+
+    // Check "min" validation for numbers
+    if (value instanceof Number num && params.containsKey("min")) {
+      double min = ((Number) params.get("min")).doubleValue();
+      if (num.doubleValue() < min) {
+        throw new IllegalArgumentException(
+            String.format("Field '%s' must be >= %s, got %s", field, min, num));
+      }
+    }
+
+    // Check "max" validation for numbers
+    if (value instanceof Number num && params.containsKey("max")) {
+      double max = ((Number) params.get("max")).doubleValue();
+      if (num.doubleValue() > max) {
+        throw new IllegalArgumentException(
+            String.format("Field '%s' must be <= %s, got %s", field, max, num));
+      }
+    }
+
+    // Check "pattern" validation (regex)
+    if (value instanceof String str && params.containsKey("pattern")) {
+      String pattern = (String) params.get("pattern");
+      if (!str.matches(pattern)) {
+        throw new IllegalArgumentException(
+            String.format("Field '%s' does not match pattern: %s", field, pattern));
+      }
+    }
+
+    log.debug("Validation passed for field '{}'", field);
   }
 
   /**

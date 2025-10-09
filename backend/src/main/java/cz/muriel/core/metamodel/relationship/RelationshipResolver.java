@@ -1,5 +1,6 @@
 package cz.muriel.core.metamodel.relationship;
 
+import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.FieldSchema;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import jakarta.persistence.EntityManager;
@@ -16,6 +17,7 @@ import java.util.*;
 public class RelationshipResolver {
 
   private final EntityManager entityManager;
+  private final MetamodelRegistry registry;
 
   /**
    * Load M:N relationships for an entity
@@ -64,7 +66,6 @@ public class RelationshipResolver {
     String joinTable = field.getJoinTable();
     String joinColumn = field.getJoinColumn();
     String inverseJoinColumn = field.getInverseJoinColumn();
-    String targetEntity = field.getTargetEntity();
 
     if (joinTable == null || joinColumn == null || inverseJoinColumn == null) {
       log.warn("M:N field '{}' missing junction table configuration", field.getName());
@@ -88,17 +89,49 @@ public class RelationshipResolver {
    * Load 1:N relationship
    */
   private void loadOneToMany(Map<String, Object> entity, Object entityId, FieldSchema field) {
-    String targetEntity = field.getTargetEntity();
     String refField = field.getRefField(); // Foreign key field in target entity
+    String targetEntityType = field.getRefEntity();
 
     if (refField == null) {
       log.warn("1:N field '{}' missing refField", field.getName());
       return;
     }
 
-    // TODO: Need target table name - requires registry lookup
-    log.debug("1:N relationship '{}' - placeholder", field.getName());
-    entity.put(field.getName(), Collections.emptyList());
+    if (targetEntityType == null) {
+      log.warn("1:N field '{}' missing refEntity", field.getName());
+      return;
+    }
+
+    // Lookup target table name from registry
+    Optional<EntitySchema> targetSchemaOpt = registry.getSchema(targetEntityType);
+    if (targetSchemaOpt.isEmpty()) {
+      log.warn("1:N field '{}': target entity '{}' not found in registry", field.getName(), targetEntityType);
+      entity.put(field.getName(), Collections.emptyList());
+      return;
+    }
+
+    EntitySchema targetSchema = targetSchemaOpt.get();
+    String targetTable = targetSchema.getTable();
+    
+    // Query target table for related entities
+    String sql = String.format(
+        "SELECT * FROM %s WHERE %s = ?", 
+        targetTable, 
+        refField
+    );
+    
+    try {
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> relatedEntities = entityManager.createNativeQuery(sql)
+          .setParameter(1, entityId)
+          .getResultList();
+      
+      entity.put(field.getName(), relatedEntities);
+      log.debug("1:N relationship '{}' loaded {} entities", field.getName(), relatedEntities.size());
+    } catch (Exception e) {
+      log.error("Failed to load 1:N relationship '{}': {}", field.getName(), e.getMessage());
+      entity.put(field.getName(), Collections.emptyList());
+    }
   }
 
   /**

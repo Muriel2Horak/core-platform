@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -103,8 +104,12 @@ public class MetamodelCrudService {
 
   /**
    * Get entity by ID
+   * 
+   * ⚠️ REQUIRES_NEW: Get fresh data from DB, not from parent transaction's read
+   * view This is critical for retry loops that need to see updated version
+   * numbers
    */
-  @Transactional(readOnly = true)
+  @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
   public Map<String, Object> getById(String entityType, String id, Authentication auth) {
     EntitySchema schema = registry.getSchemaOrThrow(entityType);
 
@@ -178,8 +183,11 @@ public class MetamodelCrudService {
 
   /**
    * Update entity with optimistic locking
+   * 
+   * ⚠️ REQUIRES_NEW: Each update gets fresh transaction to see latest DB state
+   * This is critical for retry loops that need to read updated version numbers
    */
-  @Transactional
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public Map<String, Object> update(String entityType, String id, long expectedVersion,
       Map<String, Object> data, Authentication auth) {
     EntitySchema schema = registry.getSchemaOrThrow(entityType);
@@ -292,7 +300,12 @@ public class MetamodelCrudService {
   }
 
   private Object findEntityById(EntitySchema schema, String id) {
-    String sql = String.format("SELECT * FROM %s WHERE %s = :id", schema.getTable(),
+    // ✅ Explicitly specify column order to match schema fields
+    List<String> columns = schema.getFields().stream().map(FieldSchema::getName)
+        .collect(Collectors.toList());
+
+    String columnList = String.join(", ", columns);
+    String sql = String.format("SELECT %s FROM %s WHERE %s = :id", columnList, schema.getTable(),
         schema.getIdField());
 
     try {

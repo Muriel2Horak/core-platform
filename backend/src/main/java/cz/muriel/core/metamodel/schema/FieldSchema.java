@@ -20,6 +20,7 @@ public class FieldSchema {
   private Boolean generated;
   private Boolean unique;
   private Integer maxLength;
+  private Object defaultValue; // Default value for the field
 
   // For reference types (ref, manyToOne)
   private String refEntity;
