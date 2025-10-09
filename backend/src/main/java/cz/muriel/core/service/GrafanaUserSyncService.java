@@ -180,7 +180,7 @@ public class GrafanaUserSyncService {
     /**
      * 🔍 Zkontroluje, jestli uživatel existuje v Grafaně
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("rawtypes")
     private boolean userExistsInGrafana(String username) {
         try {
             ResponseEntity<Map[]> response = restTemplate.exchange(
@@ -203,7 +203,7 @@ public class GrafanaUserSyncService {
     /**
      * ❌ Deaktivuje Grafana uživatele POUZE pokud existuje
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("rawtypes")
     private void deactivateGrafanaUserIfExists(String username) {
         try {
             // STEP 1: Zkontroluj existenci
@@ -239,7 +239,7 @@ public class GrafanaUserSyncService {
     /**
      * ✅ Vytvoří nebo aktualizuje Grafana uživatele
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("rawtypes")
     private void createOrUpdateGrafanaUser(String username, String email, String name,
             String grafanaRole) {
         try {
