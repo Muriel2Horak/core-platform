@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
  * 
  * Klíčové features: - ✅ Zpracovává composite roles (např. CORE_ROLE_ADMIN
  * obsahuje CORE_ROLE_MONITORING) - ✅ Kontroluje existenci uživatele v Grafaně
- * před deaktivací - ✅ Automaticky vytváří/aktualizuje/deaktivuje Grafana účty
- * - ✅ Manuální sync všech monitoring uživatelů
+ * před deaktivací - ✅ Automaticky vytváří/aktualizuje/deaktivuje Grafana účty -
+ * ✅ Manuální sync všech monitoring uživatelů
  * 
  * Aktivace při CDC eventech: - USER_ROLE_ASSIGNED → kontrola monitoring rolí →
  * create/update Grafana user - USER_ROLE_REMOVED → kontrola monitoring rolí →
@@ -74,6 +74,16 @@ public class GrafanaUserSyncService {
 
             log.info("🔄 Processing role change: {} for user: {} in realm: {}", eventType, userId,
                     realmId);
+
+            // ⚠️ MULTI-TENANCY LIMITATION: Grafana OAuth/JWT jsou fixně na admin realm
+            // → Synchronizujeme JEN uživatele z admin realmu
+            // → Tenant monitoring users musí být v admin realmu (s tenant_key attributem)
+            if (!"admin".equals(realmId)) {
+                log.debug(
+                        "⏭️ Skipping Grafana sync for non-admin realm: {} (user: {}). Grafana only supports admin realm authentication.",
+                        realmId, userId);
+                return;
+            }
 
             // STEP 1: Načíst uživatele z Keycloak
             UserRepresentation user = getUserFromKeycloak(userId, realmId);
@@ -335,11 +345,22 @@ public class GrafanaUserSyncService {
     /**
      * 🔄 Synchronizuje VŠECHNY uživatele s MONITORING rolemi z Keycloak do Grafany
      * 
-     * Použití: - Při prvním spuštění systému - Manuální re-sync přes admin endpoint -
-     * Oprava stavu po výpadku
+     * ⚠️ MULTI-TENANCY: Defaultně synchro jen admin realm (Grafana limitation)
+     * 
+     * Použití: - Při prvním spuštění systému - Manuální re-sync přes admin endpoint
+     * - Oprava stavu po výpadku
+     * 
+     * @param realmId - Keycloak realm ID (default: "admin")
      */
     public Map<String, Object> syncAllMonitoringUsers(String realmId) {
         log.info("🔄 Starting full Grafana sync for realm: {}", realmId);
+
+        // ⚠️ Warn if syncing non-admin realm (will create users, but they won't be able to login)
+        if (!"admin".equals(realmId)) {
+            log.warn(
+                    "⚠️ Syncing non-admin realm '{}' - users will be created in Grafana but cannot login via OAuth/JWT (Grafana is configured for admin realm only)",
+                    realmId);
+        }
 
         int syncedCount = 0;
         int skippedCount = 0;
@@ -383,8 +404,7 @@ public class GrafanaUserSyncService {
             this.totalFailedSyncs = errorCount;
             this.lastSyncTimestamp = System.currentTimeMillis();
 
-            log.info(
-                    "✅ Grafana sync completed: synced={}, skipped={}, errors={}, realm={}",
+            log.info("✅ Grafana sync completed: synced={}, skipped={}, errors={}, realm={}",
                     syncedCount, skippedCount, errorCount, realmId);
 
             return Map.of("success", true, "realm", realmId, "syncedUsers", syncedCount,

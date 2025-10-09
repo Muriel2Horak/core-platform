@@ -18,9 +18,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Key features: - Per-entity locks (not global) - Automatic lock cleanup - Fair
  * locking (FIFO order) - Timeout support
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class CdcLockService {
 
   // Entity type + entity ID → Lock
@@ -79,9 +77,8 @@ public class CdcLockService {
       LockCallback<T> callback) {
     boolean acquired = acquireLock(entityType, entityId, timeoutSeconds);
     if (!acquired) {
-      throw new RuntimeException(
-          "Failed to acquire lock for " + entityType + ":" + entityId + " after " + timeoutSeconds
-              + "s");
+      throw new RuntimeException("Failed to acquire lock for " + entityType + ":" + entityId
+          + " after " + timeoutSeconds + "s");
     }
 
     try {

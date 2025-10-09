@@ -224,13 +224,16 @@ public class KeycloakEventProjectionService {
                 new SystemAuthentication());
 
             success = true;
-            log.info("✅ User updated: {} (attempt {}/{}, version {})", username, attempt + 1, maxRetries, version);
+            log.info("✅ User updated: {} (attempt {}/{}, version {})", username, attempt + 1,
+                maxRetries, version);
           } catch (cz.muriel.core.entities.VersionMismatchException e) {
             attempt++;
             if (attempt >= maxRetries) {
               // ⚠️ KRITICKÁ ZMĚNA: Neházet exception, jen logovat a pokračovat
-              // CDC event bude označen jako úspěšný, další event (pokud přijde) to zkusí znovu
-              log.error("❌ Version conflict after {} retries for user: {} - SKIPPING this update to prevent CDC blocking. Next event will retry.", 
+              // CDC event bude označen jako úspěšný, další event (pokud přijde) to zkusí
+              // znovu
+              log.error(
+                  "❌ Version conflict after {} retries for user: {} - SKIPPING this update to prevent CDC blocking. Next event will retry.",
                   maxRetries, username);
               success = true; // Mark as "success" to prevent CDC retry loop
               break;
@@ -613,13 +616,13 @@ public class KeycloakEventProjectionService {
                 new SystemAuthentication());
 
             success = true;
-            log.info("✅ Group updated: {} (path: {}, attempt {}/{}, version {})", groupName, groupPath,
-                attempt + 1, maxRetries, currentVersion);
+            log.info("✅ Group updated: {} (path: {}, attempt {}/{}, version {})", groupName,
+                groupPath, attempt + 1, maxRetries, currentVersion);
           } catch (cz.muriel.core.entities.VersionMismatchException e) {
             attempt++;
             if (attempt >= maxRetries) {
-              log.error("❌ Version conflict after {} retries for group: {} - SKIPPING",
-                  maxRetries, groupName);
+              log.error("❌ Version conflict after {} retries for group: {} - SKIPPING", maxRetries,
+                  groupName);
               success = true; // Skip to prevent blocking
               break;
             }
