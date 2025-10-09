@@ -256,7 +256,7 @@ services:
       # Workaround: Používáme admin realm pro všechny tenant JWT (sdílený veřejný klíč)
       - GF_AUTH_JWT_JWK_SET_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
       - GF_AUTH_JWT_CACHE_TTL=60m
-      - GF_AUTH_JWT_AUTO_SIGN_UP=false
+      - GF_AUTH_JWT_AUTO_SIGN_UP=true
       # 🎭 Role mapping based on Keycloak roles
       - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_MONITORING') && 'Editor' || contains(realm_access.roles[*], 'CORE_TENANT_ADMIN') && 'Editor' || contains(realm_access.roles[*], 'CORE_ROLE_TENANT_MONITORING') && 'Viewer' || 'Viewer'
       - GF_AUTH_JWT_SKIP_ORG_ROLE_SYNC=false
@@ -264,19 +264,19 @@ services:
       # 🔓 DŮLEŽITÉ: Povolit login form pro fallback + admin přístup
       - GF_AUTH_DISABLE_LOGIN_FORM=false
       
-      # 🔐 OAuth2 / Keycloak SSO Configuration (DISABLED for iframe - using JWT only)
-      - GF_AUTH_GENERIC_OAUTH_ENABLED=false
-      # - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
-      # - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
-      # - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
-      # - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}
-      # - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
-      # - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://admin.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
-      # - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=http://keycloak:8080/realms/admin/protocol/openid-connect/token
-      # - GF_AUTH_GENERIC_OAUTH_API_URL=http://keycloak:8080/realms/admin/protocol/openid-connect/userinfo
-      # - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_USER') && 'Editor' || 'Viewer'
-      # - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true
-      # - GF_AUTH_GENERIC_OAUTH_USE_PKCE=true
+      # 🔐 OAuth2 / Keycloak SSO Configuration (for direct login + SSO)
+      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+      - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
+      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://admin.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+      - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/token
+      - GF_AUTH_GENERIC_OAUTH_API_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/userinfo
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_MONITORING') && 'Editor' || contains(realm_access.roles[*], 'CORE_TENANT_ADMIN') && 'Editor' || contains(realm_access.roles[*], 'CORE_ROLE_TENANT_MONITORING') && 'Viewer' || 'Viewer'
+      - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true
+      - GF_AUTH_GENERIC_OAUTH_USE_PKCE=true
       
       # 🔒 Security settings
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}

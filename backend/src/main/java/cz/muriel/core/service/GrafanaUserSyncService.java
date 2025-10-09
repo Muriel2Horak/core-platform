@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  * Klíčové features: - ✅ Zpracovává composite roles (např. CORE_ROLE_ADMIN
  * obsahuje CORE_ROLE_MONITORING) - ✅ Kontroluje existenci uživatele v Grafaně
  * před deaktivací - ✅ Automaticky vytváří/aktualizuje/deaktivuje Grafana účty
+ * - ✅ Manuální sync všech monitoring uživatelů
  * 
  * Aktivace při CDC eventech: - USER_ROLE_ASSIGNED → kontrola monitoring rolí →
  * create/update Grafana user - USER_ROLE_REMOVED → kontrola monitoring rolí →
@@ -47,6 +48,11 @@ public class GrafanaUserSyncService {
     private static final String CORE_ROLE_TENANT_MONITORING = "CORE_ROLE_TENANT_MONITORING";
     private static final String CORE_ROLE_ADMIN = "CORE_ROLE_ADMIN";
     private static final String CORE_TENANT_ADMIN = "CORE_TENANT_ADMIN";
+
+    // 📊 Statistics
+    private int totalSyncedUsers = 0;
+    private int totalFailedSyncs = 0;
+    private long lastSyncTimestamp = 0;
 
     /**
      * 🔄 Zpracuje USER_ROLE_ASSIGNED/REMOVED eventy
@@ -324,5 +330,80 @@ public class GrafanaUserSyncService {
         headers.set("Authorization", "Basic " + encodedAuth);
 
         return headers;
+    }
+
+    /**
+     * 🔄 Synchronizuje VŠECHNY uživatele s MONITORING rolemi z Keycloak do Grafany
+     * 
+     * Použití: - Při prvním spuštění systému - Manuální re-sync přes admin endpoint -
+     * Oprava stavu po výpadku
+     */
+    public Map<String, Object> syncAllMonitoringUsers(String realmId) {
+        log.info("🔄 Starting full Grafana sync for realm: {}", realmId);
+
+        int syncedCount = 0;
+        int skippedCount = 0;
+        int errorCount = 0;
+        List<String> errors = new ArrayList<>();
+
+        try {
+            // STEP 1: Načti VŠECHNY uživatele z realmu
+            List<UserRepresentation> allUsers = keycloakAdminClient.realm(realmId).users().list();
+            log.info("📋 Found {} users in realm {}", allUsers.size(), realmId);
+
+            // STEP 2: Pro každého uživatele zkontroluj monitoring role
+            for (UserRepresentation user : allUsers) {
+                try {
+                    Set<String> effectiveRoles = getEffectiveUserRoles(user.getId(), realmId);
+                    boolean hasMonitoringAccess = hasAnyMonitoringRole(effectiveRoles);
+
+                    if (hasMonitoringAccess) {
+                        String grafanaRole = determineGrafanaRole(effectiveRoles);
+                        createOrUpdateGrafanaUser(user.getUsername(), user.getEmail(),
+                                getFullName(user), grafanaRole);
+                        syncedCount++;
+                        log.debug("✅ Synced user: {} with role: {}", user.getUsername(),
+                                grafanaRole);
+                    } else {
+                        skippedCount++;
+                        log.debug("⏭️ Skipped user: {} (no monitoring roles)", user.getUsername());
+                    }
+
+                } catch (Exception e) {
+                    errorCount++;
+                    String errorMsg = "Failed to sync user: " + user.getUsername() + " - "
+                            + e.getMessage();
+                    errors.add(errorMsg);
+                    log.error("❌ {}", errorMsg, e);
+                }
+            }
+
+            // STEP 3: Update statistics
+            this.totalSyncedUsers = syncedCount;
+            this.totalFailedSyncs = errorCount;
+            this.lastSyncTimestamp = System.currentTimeMillis();
+
+            log.info(
+                    "✅ Grafana sync completed: synced={}, skipped={}, errors={}, realm={}",
+                    syncedCount, skippedCount, errorCount, realmId);
+
+            return Map.of("success", true, "realm", realmId, "syncedUsers", syncedCount,
+                    "skippedUsers", skippedCount, "errors", errorCount, "errorMessages", errors,
+                    "timestamp", this.lastSyncTimestamp);
+
+        } catch (Exception e) {
+            log.error("❌ Failed to sync Grafana users for realm: {}", realmId, e);
+            return Map.of("success", false, "error", e.getMessage(), "realm", realmId);
+        }
+    }
+
+    /**
+     * 📊 Vrátí status synchronizace
+     */
+    public Map<String, Object> getSyncStatus() {
+        return Map.of("totalSyncedUsers", totalSyncedUsers, "totalFailedSyncs", totalFailedSyncs,
+                "lastSyncTimestamp", lastSyncTimestamp, "lastSyncDate",
+                lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toString() : "Never",
+                "grafanaUrl", grafanaUrl);
     }
 }

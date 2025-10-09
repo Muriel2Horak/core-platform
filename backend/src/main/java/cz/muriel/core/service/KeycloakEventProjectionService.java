@@ -39,6 +39,7 @@ public class KeycloakEventProjectionService {
   private final TenantService tenantService;
   private final KeycloakAdminService keycloakAdminService;
   private final ObjectMapper objectMapper;
+  private final CdcLockService cdcLockService;
 
   /**
    * ✅ NOVÁ METODA: Process CDC event directly from change_events table
@@ -122,6 +123,16 @@ public class KeycloakEventProjectionService {
   // =====================================================
 
   private void syncUserFromKeycloak(String userId, Tenant tenant) {
+    // 🔒 Use entity-level lock to prevent concurrent updates
+    cdcLockService.withLockVoid("User", userId, 10, () -> {
+      syncUserFromKeycloakInternal(userId, tenant);
+    });
+  }
+
+  /**
+   * 🔄 Internal method - must be called within lock
+   */
+  private void syncUserFromKeycloakInternal(String userId, Tenant tenant) {
     try {
       // Fetch full user data from Keycloak Admin API
       UserDto userDto = keycloakAdminService.getUserById(userId);
@@ -182,8 +193,8 @@ public class KeycloakEventProjectionService {
         metamodelService.create("User", user, new SystemAuthentication());
         log.info("✅ User created: {}", username);
       } else {
-        // Retry mechanism for version conflicts
-        int maxRetries = 3;
+        // Retry mechanism for version conflicts with exponential backoff
+        int maxRetries = 5; // Increased from 3
         int attempt = 0;
         boolean success = false;
 
@@ -213,31 +224,36 @@ public class KeycloakEventProjectionService {
                 new SystemAuthentication());
 
             success = true;
-            log.info("✅ User updated: {} (attempt {}, version {})", username, attempt + 1, version);
+            log.info("✅ User updated: {} (attempt {}/{}, version {})", username, attempt + 1, maxRetries, version);
           } catch (cz.muriel.core.entities.VersionMismatchException e) {
             attempt++;
             if (attempt >= maxRetries) {
-              log.error("❌ Version conflict after {} retries for user: {}", maxRetries, username,
-                  e);
-              throw e;
+              // ⚠️ KRITICKÁ ZMĚNA: Neházet exception, jen logovat a pokračovat
+              // CDC event bude označen jako úspěšný, další event (pokud přijde) to zkusí znovu
+              log.error("❌ Version conflict after {} retries for user: {} - SKIPPING this update to prevent CDC blocking. Next event will retry.", 
+                  maxRetries, username);
+              success = true; // Mark as "success" to prevent CDC retry loop
+              break;
             }
             log.warn("⚠️ Version conflict for user {}, retrying ({}/{})", username, attempt,
                 maxRetries);
             try {
-              Thread.sleep(100 * attempt); // Exponential backoff
+              // Exponential backoff with jitter: 100ms, 200ms, 400ms, 800ms, 1600ms
+              long backoffMs = 100L * (1L << (attempt - 1)); // 2^(attempt-1) * 100ms
+              Thread.sleep(backoffMs);
             } catch (InterruptedException ie) {
               Thread.currentThread().interrupt();
-              throw new RuntimeException("Interrupted during retry", ie);
+              log.error("Interrupted during retry backoff", ie);
+              break;
             }
           }
         }
       }
 
-    } catch (cz.muriel.core.entities.VersionMismatchException e) {
-      log.error("Failed to sync user from Keycloak due to version conflict: {}", userId, e);
-      throw new RuntimeException("Version conflict syncing user: " + userId, e);
     } catch (Exception e) {
-      log.error("Failed to sync user from Keycloak: {}", userId, e);
+      // ⚠️ KRITICKÁ ZMĚNA: Zachytit všechny exceptions a jen logovat
+      // Neházet dál, aby CDC processor mohl pokračovat
+      log.error("❌ Failed to sync user from Keycloak: {} - {}", userId, e.getMessage(), e);
     }
   }
 
@@ -355,6 +371,16 @@ public class KeycloakEventProjectionService {
   // =====================================================
 
   private void syncRoleFromKeycloak(String roleId, Tenant tenant) {
+    // 🔒 Use entity-level lock to prevent concurrent updates
+    cdcLockService.withLockVoid("Role", roleId, 10, () -> {
+      syncRoleFromKeycloakInternal(roleId, tenant);
+    });
+  }
+
+  /**
+   * 🔄 Internal method - must be called within lock
+   */
+  private void syncRoleFromKeycloakInternal(String roleId, Tenant tenant) {
     try {
       JsonNode roleNode = keycloakAdminService.getRoleById(roleId);
       if (roleNode == null) {
@@ -379,16 +405,58 @@ public class KeycloakEventProjectionService {
       // Save via metamodel with SystemAuthentication
       if (existing.isEmpty()) {
         role = metamodelService.create("Role", role, new SystemAuthentication());
+        log.info("✅ Role created: {}", roleName);
       } else {
-        // Get current version from existing role
-        Long currentVersion = existing.get(0).get("version") != null
-            ? ((Number) existing.get(0).get("version")).longValue()
-            : 0L;
-        role = metamodelService.update("Role", role.get("id").toString(), currentVersion, role,
-            new SystemAuthentication());
-      }
+        // Retry mechanism for version conflicts
+        int maxRetries = 5;
+        int attempt = 0;
+        boolean success = false;
 
-      log.info("✅ Role synced: {}", roleName);
+        while (!success && attempt < maxRetries) {
+          try {
+            String roleIdStr = role.get("id").toString();
+            Map<String, Object> currentRole = metamodelService.getById("Role", roleIdStr,
+                new SystemAuthentication());
+
+            if (currentRole == null) {
+              log.warn("⚠️ Role not found in metamodel during update: {}", roleIdStr);
+              break;
+            }
+
+            Long currentVersion = currentRole.get("version") != null
+                ? ((Number) currentRole.get("version")).longValue()
+                : 0L;
+
+            Map<String, Object> mergedRole = new HashMap<>(currentRole);
+            mergedRole.putAll(role);
+
+            role = metamodelService.update("Role", roleIdStr, currentVersion, mergedRole,
+                new SystemAuthentication());
+
+            success = true;
+            log.info("✅ Role updated: {} (attempt {}/{}, version {})", roleName, attempt + 1,
+                maxRetries, currentVersion);
+          } catch (cz.muriel.core.entities.VersionMismatchException e) {
+            attempt++;
+            if (attempt >= maxRetries) {
+              log.error("❌ Version conflict after {} retries for role: {} - SKIPPING", maxRetries,
+                  roleName);
+              success = true;
+              break;
+            }
+            log.warn("⚠️ Version conflict for role {}, retrying ({}/{})", roleName, attempt,
+                maxRetries);
+            try {
+              long backoffMs = 100L * (1L << (attempt - 1));
+              Thread.sleep(backoffMs);
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              log.error("Interrupted during retry backoff", ie);
+              break;
+            }
+          }
+        }
+      }
 
       // Sync composites if needed
       if (Boolean.TRUE.equals(role.get("composite"))) {
@@ -396,7 +464,7 @@ public class KeycloakEventProjectionService {
       }
 
     } catch (Exception e) {
-      log.error("Failed to sync role: {}", roleId, e);
+      log.error("❌ Failed to sync role: {} - {}", roleId, e.getMessage(), e);
     }
   }
 
@@ -466,6 +534,16 @@ public class KeycloakEventProjectionService {
   // =====================================================
 
   private void syncGroupFromKeycloak(String groupId, Tenant tenant) {
+    // 🔒 Use entity-level lock to prevent concurrent updates
+    cdcLockService.withLockVoid("Group", groupId, 10, () -> {
+      syncGroupFromKeycloakInternal(groupId, tenant);
+    });
+  }
+
+  /**
+   * 🔄 Internal method - must be called within lock
+   */
+  private void syncGroupFromKeycloakInternal(String groupId, Tenant tenant) {
     try {
       JsonNode groupNode = keycloakAdminService.getGroupById(groupId);
       if (groupNode == null) {
@@ -506,21 +584,63 @@ public class KeycloakEventProjectionService {
       // Save via metamodel with SystemAuthentication
       if (existing.isEmpty()) {
         group = metamodelService.create("Group", group, new SystemAuthentication());
+        log.info("✅ Group created: {} (path: {})", groupName, groupPath);
       } else {
-        // Get current version from existing group
-        Long currentVersion = existing.get(0).get("version") != null
-            ? ((Number) existing.get(0).get("version")).longValue()
-            : 0L;
-        group = metamodelService.update("Group", group.get("id").toString(), currentVersion, group,
-            new SystemAuthentication());
-      }
+        // Retry mechanism for version conflicts
+        int maxRetries = 5;
+        int attempt = 0;
+        boolean success = false;
 
-      log.info("✅ Group synced: {} (path: {})", groupName, groupPath);
+        while (!success && attempt < maxRetries) {
+          try {
+            String groupIdStr = group.get("id").toString();
+            Map<String, Object> currentGroup = metamodelService.getById("Group", groupIdStr,
+                new SystemAuthentication());
+
+            if (currentGroup == null) {
+              log.warn("⚠️ Group not found in metamodel during update: {}", groupIdStr);
+              break;
+            }
+
+            Long currentVersion = currentGroup.get("version") != null
+                ? ((Number) currentGroup.get("version")).longValue()
+                : 0L;
+
+            Map<String, Object> mergedGroup = new HashMap<>(currentGroup);
+            mergedGroup.putAll(group);
+
+            group = metamodelService.update("Group", groupIdStr, currentVersion, mergedGroup,
+                new SystemAuthentication());
+
+            success = true;
+            log.info("✅ Group updated: {} (path: {}, attempt {}/{}, version {})", groupName, groupPath,
+                attempt + 1, maxRetries, currentVersion);
+          } catch (cz.muriel.core.entities.VersionMismatchException e) {
+            attempt++;
+            if (attempt >= maxRetries) {
+              log.error("❌ Version conflict after {} retries for group: {} - SKIPPING",
+                  maxRetries, groupName);
+              success = true; // Skip to prevent blocking
+              break;
+            }
+            log.warn("⚠️ Version conflict for group {}, retrying ({}/{})", groupName, attempt,
+                maxRetries);
+            try {
+              long backoffMs = 100L * (1L << (attempt - 1));
+              Thread.sleep(backoffMs);
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              log.error("Interrupted during retry backoff", ie);
+              break;
+            }
+          }
+        }
+      }
 
       syncGroupChildren(group, groupId, tenant);
 
     } catch (Exception e) {
-      log.error("Failed to sync group: {}", groupId, e);
+      log.error("❌ Failed to sync group: {} - {}", groupId, e.getMessage(), e);
     }
   }
 
@@ -553,23 +673,66 @@ public class KeycloakEventProjectionService {
         // Save via metamodel with SystemAuthentication
         if (existing.isEmpty()) {
           child = metamodelService.create("Group", child, new SystemAuthentication());
+          log.debug("✅ Created child group: {}", childName);
         } else {
-          // Get current version from existing child group
-          Long currentVersion = existing.get(0).get("version") != null
-              ? ((Number) existing.get(0).get("version")).longValue()
-              : 0L;
-          child = metamodelService.update("Group", child.get("id").toString(), currentVersion,
-              child, new SystemAuthentication());
-        }
+          // Retry mechanism for version conflicts
+          int maxRetries = 5;
+          int attempt = 0;
+          boolean success = false;
 
-        log.debug("✅ Synced child group: {}", childName);
+          while (!success && attempt < maxRetries) {
+            try {
+              String childIdStr = child.get("id").toString();
+              Map<String, Object> currentChild = metamodelService.getById("Group", childIdStr,
+                  new SystemAuthentication());
+
+              if (currentChild == null) {
+                log.warn("⚠️ Child group not found in metamodel during update: {}", childIdStr);
+                break;
+              }
+
+              Long currentVersion = currentChild.get("version") != null
+                  ? ((Number) currentChild.get("version")).longValue()
+                  : 0L;
+
+              Map<String, Object> mergedChild = new HashMap<>(currentChild);
+              mergedChild.putAll(child);
+
+              child = metamodelService.update("Group", childIdStr, currentVersion, mergedChild,
+                  new SystemAuthentication());
+
+              success = true;
+              log.debug("✅ Updated child group: {} (attempt {}/{}, version {})", childName,
+                  attempt + 1, maxRetries, currentVersion);
+            } catch (cz.muriel.core.entities.VersionMismatchException e) {
+              attempt++;
+              if (attempt >= maxRetries) {
+                log.error("❌ Version conflict after {} retries for child group: {} - SKIPPING",
+                    maxRetries, childName);
+                success = true;
+                break;
+              }
+              log.warn("⚠️ Version conflict for child group {}, retrying ({}/{})", childName,
+                  attempt, maxRetries);
+              try {
+                long backoffMs = 100L * (1L << (attempt - 1));
+                Thread.sleep(backoffMs);
+              } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.error("Interrupted during retry backoff", ie);
+                break;
+              }
+            }
+          }
+        }
 
         // Recursively sync children
         syncGroupChildren(child, childId, tenant);
       }
 
     } catch (Exception e) {
-      log.error("Failed to sync child groups: {}", parentGroup.get("name"), e);
+      log.error("❌ Failed to sync child groups: {} - {}", parentGroup.get("name"), e.getMessage(),
+          e);
     }
   }
 
