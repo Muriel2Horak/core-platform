@@ -3,20 +3,16 @@ package cz.muriel.core.service;
 import cz.muriel.core.cdc.ChangeEvent;
 import cz.muriel.core.dto.UserDto;
 import cz.muriel.core.entity.Tenant;
-import cz.muriel.core.entity.UserDirectoryEntity;
-import cz.muriel.core.repository.UserDirectoryRepository;
+import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.KeycloakEventLogRepository;
 import cz.muriel.core.entity.KeycloakEventLog;
 import cz.muriel.core.auth.KeycloakAdminService;
-import cz.muriel.core.entity.RoleEntity;
-import cz.muriel.core.entity.GroupEntity;
-import cz.muriel.core.repository.RoleEntityRepository;
-import cz.muriel.core.repository.GroupEntityRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,23 +20,23 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.*;
 
 /**
- * 🔄 V5 Keycloak Event Projection Service - CDC ONLY
+ * 🔄 V6 Keycloak Event Projection Service - CDC ONLY (Metamodel-based)
  * 
- * ✅ CLEAN: Používá čistě CDC data z change_events tabulky ❌ ODSTRANĚNO:
- * KeycloakWebhookEventDto dependency
+ * ✅ REFACTORED: Migrated to metamodel API - uses Map<String, Object> instead of JPA entities
+ * ✅ CLEAN: Používá čistě CDC data z change_events tabulky
  */
 @Service @RequiredArgsConstructor @Slf4j @Transactional
 public class KeycloakEventProjectionService {
 
-  private final UserDirectoryRepository userDirectoryRepository;
+  private final MetamodelCrudService metamodelService;
+  private final JdbcTemplate jdbcTemplate;
   private final KeycloakEventLogRepository eventLogRepository;
   private final TenantService tenantService;
   private final KeycloakAdminService keycloakAdminService;
-  private final RoleEntityRepository roleRepository;
-  private final GroupEntityRepository groupRepository;
   private final ObjectMapper objectMapper;
 
   /**
@@ -135,48 +131,56 @@ public class KeycloakEventProjectionService {
 
       String username = userDto.getUsername();
 
-      // Find existing user
-      Optional<UserDirectoryEntity> existingUser = userDirectoryRepository
-          .findByKeycloakUserId(userId);
-
-      if (existingUser.isEmpty()) {
-        existingUser = userDirectoryRepository.findByUsernameIgnoreCase(username);
+      // Find existing user via SQL
+      String findSql = "SELECT * FROM users_directory WHERE keycloak_user_id = ?";
+      List<Map<String, Object>> existingUsers = jdbcTemplate.queryForList(findSql, userId);
+      
+      if (existingUsers.isEmpty()) {
+        // Try by username as fallback
+        findSql = "SELECT * FROM users_directory WHERE LOWER(username) = LOWER(?)";
+        existingUsers = jdbcTemplate.queryForList(findSql, username);
       }
 
-      UserDirectoryEntity user;
-      if (existingUser.isPresent()) {
-        user = existingUser.get();
-        log.debug("Updating existing user: {}", username);
-      } else {
-        user = new UserDirectoryEntity();
-        user.setTenantId(tenant.getId());
-        user.setCreatedAt(LocalDateTime.now());
+      Map<String, Object> user;
+      boolean isNew = existingUsers.isEmpty();
+      
+      if (isNew) {
+        user = new HashMap<>();
+        user.put("tenant_id", tenant.getId());
+        user.put("created_at", LocalDateTime.now());
         log.debug("Creating new user: {}", username);
+      } else {
+        user = new HashMap<>(existingUsers.get(0));
+        log.debug("Updating existing user: {}", username);
       }
 
       // Update user fields from Keycloak data
-      user.setKeycloakUserId(userId);
-      user.setUsername(username);
-      user.setEmail(userDto.getEmail());
-      user.setFirstName(userDto.getFirstName());
-      user.setLastName(userDto.getLastName());
-      user.setActive(userDto.isEnabled());
-      user.setUpdatedAt(LocalDateTime.now());
+      user.put("keycloak_user_id", userId);
+      user.put("username", username);
+      user.put("email", userDto.getEmail());
+      user.put("first_name", userDto.getFirstName());
+      user.put("last_name", userDto.getLastName());
+      user.put("active", userDto.isEnabled());
+      user.put("updated_at", LocalDateTime.now());
 
-      if (user.getActive()) {
-        user.setDeletedAt(null); // Clear soft delete if re-enabling
+      if (Boolean.TRUE.equals(user.get("active"))) {
+        user.put("deleted_at", null); // Clear soft delete if re-enabling
       }
 
       // Build display name
-      String displayName = buildDisplayName(user.getFirstName(), user.getLastName());
-      user.setDisplayName(displayName);
+      String displayName = buildDisplayName((String)user.get("first_name"), (String)user.get("last_name"));
+      user.put("display_name", displayName);
 
-      // ✅ Extract custom attributes from UserDto (již implementováno v
-      // KeycloakAdminService)
-      // UserDto již obsahuje všechny organizační atributy z Keycloaku
+      // ✅ Extract custom attributes from UserDto
       extractUserAttributesFromDto(user, userDto);
 
-      userDirectoryRepository.save(user);
+      // Save via metamodel
+      if (isNew) {
+        metamodelService.create("User", user, null);
+      } else {
+        metamodelService.update("User", user.get("id").toString(), 0L, user, null);
+      }
+      
       log.info("✅ User synced: {}", username);
 
     } catch (Exception e) {
@@ -185,56 +189,57 @@ public class KeycloakEventProjectionService {
   }
 
   /**
-   * ✅ Extract user attributes from UserDto to UserDirectoryEntity UserDto již
-   * obsahuje všechny atributy načtené z Keycloaku pomocí KeycloakAdminService
+   * ✅ Extract user attributes from UserDto to User Map
+   * Obsahuje všechny atributy načtené z Keycloaku pomocí KeycloakAdminService
    */
-  private void extractUserAttributesFromDto(UserDirectoryEntity user, UserDto userDto) {
+  private void extractUserAttributesFromDto(Map<String, Object> user, UserDto userDto) {
     // 🏢 Organizační struktura
-    user.setDepartment(userDto.getDepartment());
-    user.setPosition(userDto.getPosition());
-    user.setManagerUsername(userDto.getManager());
-    user.setCostCenter(userDto.getCostCenter());
-    user.setLocation(userDto.getLocation());
-    user.setPhone(userDto.getPhone());
+    user.put("department", userDto.getDepartment());
+    user.put("position", userDto.getPosition());
+    user.put("manager_username", userDto.getManager());
+    user.put("cost_center", userDto.getCostCenter());
+    user.put("location", userDto.getLocation());
+    user.put("phone", userDto.getPhone());
 
     // 👥 Zástupství
-    user.setDeputy(userDto.getDeputy());
-    user.setDeputyFrom(userDto.getDeputyFrom());
-    user.setDeputyTo(userDto.getDeputyTo());
-    user.setDeputyReason(userDto.getDeputyReason());
+    user.put("deputy_username", userDto.getDeputy());
+    user.put("deputy_from", userDto.getDeputyFrom());
+    user.put("deputy_to", userDto.getDeputyTo());
+    user.put("deputy_reason", userDto.getDeputyReason());
 
     // 🔗 RESOLVE manager entity reference from username
     if (userDto.getManager() != null && !userDto.getManager().isEmpty()) {
       try {
-        Optional<UserDirectoryEntity> managerEntity = userDirectoryRepository
-            .findByTenantIdAndUsername(user.getTenantId(), userDto.getManager());
-        managerEntity.ifPresentOrElse(manager -> {
-          user.setManager(manager);
-          log.debug("✅ Manager entity resolved: {} -> {}", userDto.getManager(), manager.getId());
-        }, () -> {
-          user.setManager(null);
+        UUID tenantId = (UUID) user.get("tenant_id");
+        String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND username = ?";
+        List<Map<String, Object>> managers = jdbcTemplate.queryForList(sql, tenantId, userDto.getManager());
+        
+        if (!managers.isEmpty()) {
+          Map<String, Object> manager = managers.get(0);
+          user.put("manager_id", manager.get("id"));
+          log.debug("✅ Manager entity resolved: {} -> {}", userDto.getManager(), manager.get("id"));
+        } else {
+          user.put("manager_id", null);
           log.warn("⚠️ Manager not found in UserDirectory: {}", userDto.getManager());
-        });
+        }
       } catch (Exception e) {
         log.error("❌ Failed to resolve manager entity: {}", e.getMessage());
-        user.setManager(null);
+        user.put("manager_id", null);
       }
     } else {
-      user.setManager(null);
+      user.put("manager_id", null);
     }
 
-    log.debug("Extracted custom attributes for user: {}", user.getUsername());
+    log.debug("Extracted custom attributes for user: {}", user.get("username"));
   }
 
   /**
-   * ✅ Extract custom user attributes from Keycloak (JsonNode version - for direct
-   * API calls)
-   * 
-   * @deprecated Use extractUserAttributesFromDto() instead - UserDto already
-   * contains all attributes
+   * ✅ Extract custom user attributes from Keycloak (JsonNode version)
+   * @deprecated Use extractUserAttributesFromDto() instead
    */
-  @Deprecated @SuppressWarnings("unused")
-  private void extractUserAttributes(UserDirectoryEntity user, JsonNode attributes) {
+  @Deprecated
+  @SuppressWarnings("unused")
+  private void extractUserAttributes(Map<String, Object> user, JsonNode attributes) {
     // Helper to extract first value from array attributes
     java.util.function.Function<String, String> getFirst = key -> {
       JsonNode node = attributes.path(key);
@@ -244,22 +249,22 @@ public class KeycloakEventProjectionService {
       return null;
     };
 
-    user.setPhoneNumber(getFirst.apply("phoneNumber"));
-    user.setDepartment(getFirst.apply("department"));
-    user.setTitle(getFirst.apply("title"));
-    user.setPosition(getFirst.apply("position"));
-    user.setManagerUsername(getFirst.apply("manager"));
-    user.setCostCenter(getFirst.apply("costCenter"));
-    user.setLocation(getFirst.apply("location"));
-    user.setPhone(getFirst.apply("phone"));
-    user.setDeputy(getFirst.apply("deputy"));
-    user.setDeputyReason(getFirst.apply("deputyReason"));
+    user.put("phone_number", getFirst.apply("phoneNumber"));
+    user.put("department", getFirst.apply("department"));
+    user.put("title", getFirst.apply("title"));
+    user.put("position", getFirst.apply("position"));
+    user.put("manager_username", getFirst.apply("manager"));
+    user.put("cost_center", getFirst.apply("costCenter"));
+    user.put("location", getFirst.apply("location"));
+    user.put("phone", getFirst.apply("phone"));
+    user.put("deputy_username", getFirst.apply("deputy"));
+    user.put("deputy_reason", getFirst.apply("deputyReason"));
 
     // Date parsing
     String deputyFromStr = getFirst.apply("deputyFrom");
     if (deputyFromStr != null) {
       try {
-        user.setDeputyFrom(java.time.LocalDate.parse(deputyFromStr));
+        user.put("deputy_from", LocalDate.parse(deputyFromStr));
       } catch (Exception e) {
         log.warn("Failed to parse deputyFrom: {}", deputyFromStr);
       }
@@ -268,7 +273,7 @@ public class KeycloakEventProjectionService {
     String deputyToStr = getFirst.apply("deputyTo");
     if (deputyToStr != null) {
       try {
-        user.setDeputyTo(java.time.LocalDate.parse(deputyToStr));
+        user.put("deputy_to", LocalDate.parse(deputyToStr));
       } catch (Exception e) {
         log.warn("Failed to parse deputyTo: {}", deputyToStr);
       }
@@ -276,16 +281,17 @@ public class KeycloakEventProjectionService {
   }
 
   private void softDeleteUser(String userId, Tenant tenant) {
-    Optional<UserDirectoryEntity> user = userDirectoryRepository.findByKeycloakUserId(userId);
+    String sql = "SELECT * FROM users_directory WHERE keycloak_user_id = ?";
+    List<Map<String, Object>> users = jdbcTemplate.queryForList(sql, userId);
 
-    if (user.isPresent()) {
-      UserDirectoryEntity userEntity = user.get();
-      userEntity.setActive(false);
-      userEntity.setDeletedAt(LocalDateTime.now());
-      userEntity.setUpdatedAt(LocalDateTime.now());
+    if (!users.isEmpty()) {
+      Map<String, Object> user = new HashMap<>(users.get(0));
+      user.put("active", false);
+      user.put("deleted_at", LocalDateTime.now());
+      user.put("updated_at", LocalDateTime.now());
 
-      userDirectoryRepository.save(userEntity);
-      log.info("✅ User soft deleted: {}", userEntity.getUsername());
+      metamodelService.update("User", user.get("id").toString(), 0L, user, null);
+      log.info("✅ User soft deleted: {}", user.get("username"));
     }
   }
 
@@ -303,21 +309,28 @@ public class KeycloakEventProjectionService {
 
       String roleName = roleNode.path("name").asText();
 
-      Optional<RoleEntity> existingRole = roleRepository.findByKeycloakRoleIdAndTenantId(roleId,
-          tenant.getId());
+      // Find existing role
+      String sql = "SELECT * FROM roles WHERE keycloak_role_id = ? AND tenant_id = ?";
+      List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, roleId, tenant.getId());
 
-      RoleEntity role = existingRole.orElse(new RoleEntity());
-      role.setKeycloakRoleId(roleId);
-      role.setName(roleName);
-      role.setDescription(roleNode.path("description").asText(null));
-      role.setTenantId(tenant.getId());
-      role.setComposite(roleNode.path("composite").asBoolean(false));
+      Map<String, Object> role = existing.isEmpty() ? new HashMap<>() : new HashMap<>(existing.get(0));
+      role.put("keycloak_role_id", roleId);
+      role.put("name", roleName);
+      role.put("description", roleNode.path("description").asText(null));
+      role.put("tenant_id", tenant.getId());
+      role.put("composite", roleNode.path("composite").asBoolean(false));
 
-      role = roleRepository.save(role);
+      // Save via metamodel
+      if (existing.isEmpty()) {
+        role = metamodelService.create("Role", role, null);
+      } else {
+        role = metamodelService.update("Role", role.get("id").toString(), 0L, role, null);
+      }
+      
       log.info("✅ Role synced: {}", roleName);
 
       // Sync composites if needed
-      if (Boolean.TRUE.equals(role.getComposite())) {
+      if (Boolean.TRUE.equals(role.get("composite"))) {
         syncRoleComposites(role, roleId, tenant);
       }
 
@@ -326,7 +339,7 @@ public class KeycloakEventProjectionService {
     }
   }
 
-  private void syncRoleComposites(RoleEntity parentRole, String roleId, Tenant tenant) {
+  private void syncRoleComposites(Map<String, Object> parentRole, String roleId, Tenant tenant) {
     try {
       JsonNode composites = keycloakAdminService.getRoleComposites(roleId);
 
@@ -334,44 +347,54 @@ public class KeycloakEventProjectionService {
         return;
       }
 
-      parentRole.getChildRoles().clear();
+      // Clear existing composite mappings (junction table)
+      UUID parentRoleId = (UUID) parentRole.get("id");
+      String deleteSql = "DELETE FROM role_composites WHERE parent_role_id = ?";
+      jdbcTemplate.update(deleteSql, parentRoleId);
 
       for (JsonNode compositeNode : composites) {
-        String compositeId = compositeNode.path("id").asText();
+        String compositeKeycloakId = compositeNode.path("id").asText();
         String compositeName = compositeNode.path("name").asText();
 
-        Optional<RoleEntity> compositeRole = roleRepository
-            .findByKeycloakRoleIdAndTenantId(compositeId, tenant.getId());
+        // Find or create composite role
+        String findSql = "SELECT * FROM roles WHERE keycloak_role_id = ? AND tenant_id = ?";
+        List<Map<String, Object>> existingComposites = jdbcTemplate.queryForList(findSql, compositeKeycloakId, tenant.getId());
 
-        if (compositeRole.isEmpty()) {
-          RoleEntity newComposite = new RoleEntity();
-          newComposite.setKeycloakRoleId(compositeId);
-          newComposite.setName(compositeName);
-          newComposite.setDescription(compositeNode.path("description").asText(null));
-          newComposite.setTenantId(tenant.getId());
-          newComposite.setComposite(compositeNode.path("composite").asBoolean(false));
-
-          compositeRole = Optional.of(roleRepository.save(newComposite));
+        Map<String, Object> compositeRole;
+        if (existingComposites.isEmpty()) {
+          // Create new composite role
+          compositeRole = new HashMap<>();
+          compositeRole.put("keycloak_role_id", compositeKeycloakId);
+          compositeRole.put("name", compositeName);
+          compositeRole.put("description", compositeNode.path("description").asText(null));
+          compositeRole.put("tenant_id", tenant.getId());
+          compositeRole.put("composite", compositeNode.path("composite").asBoolean(false));
+          
+          compositeRole = metamodelService.create("Role", compositeRole, null);
+        } else {
+          compositeRole = existingComposites.get(0);
         }
 
-        parentRole.addChildRole(compositeRole.get());
+        // Add to junction table
+        String insertSql = "INSERT INTO role_composites (parent_role_id, child_role_id) VALUES (?, ?)";
+        jdbcTemplate.update(insertSql, parentRoleId, compositeRole.get("id"));
       }
 
-      roleRepository.save(parentRole);
-      log.info("✅ Synced {} composite roles for: {}", composites.size(), parentRole.getName());
+      log.info("✅ Synced {} composite roles for: {}", composites.size(), parentRole.get("name"));
 
     } catch (Exception e) {
-      log.error("Failed to sync composite roles: {}", parentRole.getName(), e);
+      log.error("Failed to sync composite roles: {}", parentRole.get("name"), e);
     }
   }
 
   private void deleteRoleById(String roleId, Tenant tenant) {
-    Optional<RoleEntity> role = roleRepository.findByKeycloakRoleIdAndTenantId(roleId,
-        tenant.getId());
+    String sql = "SELECT * FROM roles WHERE keycloak_role_id = ? AND tenant_id = ?";
+    List<Map<String, Object>> roles = jdbcTemplate.queryForList(sql, roleId, tenant.getId());
 
-    if (role.isPresent()) {
-      roleRepository.delete(role.get());
-      log.info("✅ Role deleted: {}", role.get().getName());
+    if (!roles.isEmpty()) {
+      Map<String, Object> role = roles.get(0);
+      metamodelService.delete("Role", role.get("id").toString(), null);
+      log.info("✅ Role deleted: {}", role.get("name"));
     }
   }
 
@@ -390,26 +413,38 @@ public class KeycloakEventProjectionService {
       String groupName = groupNode.path("name").asText();
       String groupPath = groupNode.path("path").asText("/" + groupName);
 
-      Optional<GroupEntity> existingGroup = groupRepository
-          .findByKeycloakGroupIdAndTenantId(groupId, tenant.getId());
+      // Find existing group
+      String sql = "SELECT * FROM groups WHERE keycloak_group_id = ? AND tenant_id = ?";
+      List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, groupId, tenant.getId());
 
-      GroupEntity group = existingGroup.orElse(new GroupEntity());
-      group.setKeycloakGroupId(groupId);
-      group.setName(groupName);
-      group.setPath(groupPath);
-      group.setTenantId(tenant.getId());
+      Map<String, Object> group = existing.isEmpty() ? new HashMap<>() : new HashMap<>(existing.get(0));
+      group.put("keycloak_group_id", groupId);
+      group.put("name", groupName);
+      group.put("path", groupPath);
+      group.put("tenant_id", tenant.getId());
 
       // Determine parent from path
       if (groupPath.lastIndexOf("/") > 0) {
         String parentPath = groupPath.substring(0, groupPath.lastIndexOf("/"));
-        Optional<GroupEntity> parent = groupRepository.findByPathAndTenantId(parentPath,
-            tenant.getId());
-        parent.ifPresent(group::setParentGroup);
+        String findParentSql = "SELECT * FROM groups WHERE path = ? AND tenant_id = ?";
+        List<Map<String, Object>> parents = jdbcTemplate.queryForList(findParentSql, parentPath, tenant.getId());
+        
+        if (!parents.isEmpty()) {
+          group.put("parent_group_id", parents.get(0).get("id"));
+        } else {
+          group.put("parent_group_id", null);
+        }
       } else {
-        group.setParentGroup(null);
+        group.put("parent_group_id", null);
       }
 
-      group = groupRepository.save(group);
+      // Save via metamodel
+      if (existing.isEmpty()) {
+        group = metamodelService.create("Group", group, null);
+      } else {
+        group = metamodelService.update("Group", group.get("id").toString(), 0L, group, null);
+      }
+      
       log.info("✅ Group synced: {} (path: {})", groupName, groupPath);
 
       syncGroupChildren(group, groupId, tenant);
@@ -419,7 +454,7 @@ public class KeycloakEventProjectionService {
     }
   }
 
-  private void syncGroupChildren(GroupEntity parentGroup, String groupId, Tenant tenant) {
+  private void syncGroupChildren(Map<String, Object> parentGroup, String groupId, Tenant tenant) {
     try {
       JsonNode children = keycloakAdminService.getGroupChildren(groupId);
 
@@ -432,34 +467,43 @@ public class KeycloakEventProjectionService {
         String childName = childNode.path("name").asText();
         String childPath = childNode.path("path").asText();
 
-        Optional<GroupEntity> existingChild = groupRepository
-            .findByKeycloakGroupIdAndTenantId(childId, tenant.getId());
+        // Find or create child group
+        String sql = "SELECT * FROM groups WHERE keycloak_group_id = ? AND tenant_id = ?";
+        List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, childId, tenant.getId());
 
-        GroupEntity child = existingChild.orElse(new GroupEntity());
-        child.setKeycloakGroupId(childId);
-        child.setName(childName);
-        child.setPath(childPath);
-        child.setTenantId(tenant.getId());
-        child.setParentGroup(parentGroup);
+        Map<String, Object> child = existing.isEmpty() ? new HashMap<>() : new HashMap<>(existing.get(0));
+        child.put("keycloak_group_id", childId);
+        child.put("name", childName);
+        child.put("path", childPath);
+        child.put("tenant_id", tenant.getId());
+        child.put("parent_group_id", parentGroup.get("id"));
 
-        groupRepository.save(child);
+        // Save via metamodel
+        if (existing.isEmpty()) {
+          child = metamodelService.create("Group", child, null);
+        } else {
+          child = metamodelService.update("Group", child.get("id").toString(), 0L, child, null);
+        }
+        
         log.debug("✅ Synced child group: {}", childName);
 
+        // Recursively sync children
         syncGroupChildren(child, childId, tenant);
       }
 
     } catch (Exception e) {
-      log.error("Failed to sync child groups: {}", parentGroup.getName(), e);
+      log.error("Failed to sync child groups: {}", parentGroup.get("name"), e);
     }
   }
 
   private void deleteGroupById(String groupId, Tenant tenant) {
-    Optional<GroupEntity> group = groupRepository.findByKeycloakGroupIdAndTenantId(groupId,
-        tenant.getId());
+    String sql = "SELECT * FROM groups WHERE keycloak_group_id = ? AND tenant_id = ?";
+    List<Map<String, Object>> groups = jdbcTemplate.queryForList(sql, groupId, tenant.getId());
 
-    if (group.isPresent()) {
-      groupRepository.delete(group.get());
-      log.info("✅ Group deleted: {}", group.get().getName());
+    if (!groups.isEmpty()) {
+      Map<String, Object> group = groups.get(0);
+      metamodelService.delete("Group", group.get("id").toString(), null);
+      log.info("✅ Group deleted: {}", group.get("name"));
     }
   }
 
@@ -576,14 +620,20 @@ public class KeycloakEventProjectionService {
     // Convert tenant key to ID
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
 
-    // Najdi nebo vytvoř UserDirectoryEntity
-    UserDirectoryEntity user = userDirectoryRepository
-        .findByTenantIdAndKeycloakUserId(tenantId, keycloakUserId).orElseGet(() -> {
-          UserDirectoryEntity newUser = new UserDirectoryEntity();
-          newUser.setKeycloakUserId(keycloakUserId);
-          newUser.setTenantId(tenantId);
-          return newUser;
-        });
+    // Najdi nebo vytvoř User map
+    String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND keycloak_user_id = ?";
+    List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, tenantId, keycloakUserId);
+
+    Map<String, Object> user;
+    boolean isNew = existing.isEmpty();
+    
+    if (isNew) {
+      user = new HashMap<>();
+      user.put("keycloak_user_id", keycloakUserId);
+      user.put("tenant_id", tenantId);
+    } else {
+      user = new HashMap<>(existing.get(0));
+    }
 
     // Aktualizuj základní data z CDC
     String username = event.getFieldValue("username");
@@ -591,17 +641,17 @@ public class KeycloakEventProjectionService {
     String firstName = event.getFieldValue("first_name");
     String lastName = event.getFieldValue("last_name");
 
-    if (username != null)
-      user.setUsername(username);
-    if (email != null)
-      user.setEmail(email);
-    if (firstName != null)
-      user.setFirstName(firstName);
-    if (lastName != null)
-      user.setLastName(lastName);
+    if (username != null) user.put("username", username);
+    if (email != null) user.put("email", email);
+    if (firstName != null) user.put("first_name", firstName);
+    if (lastName != null) user.put("last_name", lastName);
 
-    // Ulož
-    userDirectoryRepository.save(user);
+    // Ulož via metamodel
+    if (isNew) {
+      metamodelService.create("User", user, null);
+    } else {
+      metamodelService.update("User", user.get("id").toString(), 0L, user, null);
+    }
 
     log.info("✅ User projection synced: userId={}, username={}, tenant={}", keycloakUserId,
         username, tenantKey);
@@ -621,10 +671,14 @@ public class KeycloakEventProjectionService {
     // Convert tenant key to ID
     UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
 
-    userDirectoryRepository.findByTenantIdAndKeycloakUserId(tenantId, keycloakUserId)
-        .ifPresent(user -> {
-          userDirectoryRepository.delete(user);
-          log.info("✅ User projection deleted: userId={}, tenant={}", keycloakUserId, tenantKey);
-        });
+    // Find and delete user
+    String sql = "SELECT * FROM users_directory WHERE tenant_id = ? AND keycloak_user_id = ?";
+    List<Map<String, Object>> users = jdbcTemplate.queryForList(sql, tenantId, keycloakUserId);
+    
+    if (!users.isEmpty()) {
+      Map<String, Object> user = users.get(0);
+      metamodelService.delete("User", user.get("id").toString(), null);
+      log.info("✅ User projection deleted: userId={}, tenant={}", keycloakUserId, tenantKey);
+    }
   }
 }
