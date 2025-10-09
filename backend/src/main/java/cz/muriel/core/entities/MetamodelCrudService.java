@@ -2,6 +2,7 @@ package cz.muriel.core.entities;
 
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.lifecycle.LifecycleHookExecutor;
+import cz.muriel.core.metamodel.relationship.RelationshipResolver;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.FieldSchema;
 import cz.muriel.core.security.policy.PolicyEngine;
@@ -28,6 +29,7 @@ public class MetamodelCrudService {
   private final PolicyEngine policyEngine;
   private final EntityManager entityManager;
   private final LifecycleHookExecutor lifecycleExecutor;
+  private final RelationshipResolver relationshipResolver;
 
   /**
    * List entities with filtering, sorting and pagination
@@ -159,11 +161,16 @@ public class MetamodelCrudService {
       throw new RuntimeException("Failed to create entity");
     }
 
+    // Get generated ID
+    Object id = data.get(schema.getIdField());
+
+    // ✨ RELATIONSHIPS: Save M:N relationships
+    relationshipResolver.saveRelationships(schema, id, data);
+
     // ✨ LIFECYCLE: Execute afterCreate hooks
     lifecycleExecutor.executeAfterCreate(schema, data);
 
     // Return created entity
-    Object id = data.get(schema.getIdField());
     return getById(entityType, id.toString(), auth);
   }
 
@@ -207,6 +214,9 @@ public class MetamodelCrudService {
           currentVersion, null);
     }
 
+    // ✨ RELATIONSHIPS: Update M:N relationships
+    relationshipResolver.saveRelationships(schema, id, data);
+
     // ✨ LIFECYCLE: Execute afterUpdate hooks
     lifecycleExecutor.executeAfterUpdate(schema, data);
 
@@ -238,6 +248,9 @@ public class MetamodelCrudService {
 
     // ✨ LIFECYCLE: Execute beforeDelete hooks
     lifecycleExecutor.executeBeforeDelete(schema, entityMap);
+
+    // ✨ RELATIONSHIPS: Delete M:N junction records
+    relationshipResolver.deleteRelationships(schema, id);
 
     // Execute DELETE
     String deleteSql = String.format("DELETE FROM %s WHERE %s = '%s'", schema.getTable(),
