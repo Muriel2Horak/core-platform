@@ -29,6 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 public abstract class AbstractIntegrationTest {
 
   @Container
+  @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically
   protected static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
       "postgres:16-alpine").withDatabaseName("testdb").withUsername("test").withPassword("test")
           .withReuse(true); // Reuse container across tests for speed

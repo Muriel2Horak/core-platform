@@ -12,22 +12,17 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Test Security Configuration
  * 
- * Disables all security for integration tests.
- * Active only in 'test' profile.
+ * Disables all security for integration tests. Active only in 'test' profile.
  */
-@TestConfiguration
-@EnableWebSecurity
-@Profile("test")
+@TestConfiguration @EnableWebSecurity @Profile("test")
 public class TestSecurityConfig {
 
-  @Bean
-  @Primary
-  @Order(1)
+  @Bean @Primary @Order(1)
   SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
 
-    http.csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
-        .anonymous(anonymous -> {});  // Enable anonymous access
+    http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
+        .anonymous(anonymous -> {
+        }); // Enable anonymous access
 
     return http.build();
   }

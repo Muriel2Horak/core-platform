@@ -25,10 +25,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.*;
 
-@Configuration
-@EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
-@Profile("!test")  // Not active in test profile - use TestSecurityConfig instead
+@Configuration @EnableWebSecurity @EnableMethodSecurity(prePostEnabled = true) @Profile("!test") // Not
+                                                                                                 // active
+                                                                                                 // in
+                                                                                                 // test
+                                                                                                 // profile
+                                                                                                 // -
+                                                                                                 // use
+                                                                                                 // TestSecurityConfig
+                                                                                                 // instead
 public class SecurityConfig {
 
   @Value("${cors.origins:http://localhost:3000}")

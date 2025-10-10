@@ -19,10 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Profile("!test")  // Don't run in test profile - tests use TestAuthFilter instead
+@Slf4j @Service @RequiredArgsConstructor @Profile("!test") // Don't run in test profile - tests use
+                                                           // TestAuthFilter instead
 public class KeycloakInitializationService implements ApplicationRunner {
 
   private final KeycloakAdminService keycloakAdminService;
