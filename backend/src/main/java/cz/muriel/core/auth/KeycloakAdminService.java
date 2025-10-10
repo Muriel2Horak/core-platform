@@ -719,6 +719,7 @@ public class KeycloakAdminService {
 
   /**
    * Přiřadí client role uživateli (používá se pro realm-management admin role)
+   * POZOR: Pro service account uživatele a realm-management role používá MASTER realm!
    */
   public void assignClientRoleToUser(String userId, String clientId, String roleName) {
     try {
@@ -726,20 +727,25 @@ public class KeycloakAdminService {
 
       String adminToken = getSecureAdminToken();
 
-      // 1. Najdi client UUID podle clientId
-      String clientUuid = getClientUuidByClientId(clientId, adminToken);
+      // 🔧 FIX: Pro realm-management klienta používáme adminRealm (master), ne targetRealm
+      // realm-management je specifický klient v master realmu pro správu všech realmů
+      String realmToUse = "realm-management".equals(clientId) ? adminRealm : targetRealm;
+      log.debug("Using realm {} for client {} role assignment", realmToUse, clientId);
+
+      // 1. Najdi client UUID podle clientId v příslušném realmu
+      String clientUuid = getClientUuidByClientId(clientId, realmToUse, adminToken);
       if (clientUuid == null) {
-        throw new RuntimeException("Client not found: " + clientId);
+        throw new RuntimeException("Client not found: " + clientId + " in realm: " + realmToUse);
       }
 
       // 2. Najdi role definition
-      JsonNode roleNode = getClientRole(clientUuid, roleName, adminToken);
+      JsonNode roleNode = getClientRole(clientUuid, roleName, realmToUse, adminToken);
       if (roleNode == null) {
         throw new RuntimeException("Client role not found: " + roleName + " in client " + clientId);
       }
 
-      // 3. Přiřaď role uživateli
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/users/" + userId
+      // 3. Přiřaď role uživateli v příslušném realmu
+      String url = keycloakBaseUrl + "/admin/realms/" + realmToUse + "/users/" + userId
           + "/role-mappings/clients/" + clientUuid;
 
       HttpHeaders headers = new HttpHeaders();
@@ -765,11 +771,11 @@ public class KeycloakAdminService {
   }
 
   /**
-   * Najdi UUID klienta podle clientId
+   * Najdi UUID klienta podle clientId v zadaném realmu
    */
-  private String getClientUuidByClientId(String clientId, String adminToken) {
+  private String getClientUuidByClientId(String clientId, String realmName, String adminToken) {
     try {
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/clients?clientId="
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients?clientId="
           + clientId;
 
       HttpHeaders headers = new HttpHeaders();
@@ -787,17 +793,17 @@ public class KeycloakAdminService {
       return null;
 
     } catch (Exception ex) {
-      log.error("Failed to get client UUID for clientId: {}", clientId, ex);
+      log.error("Failed to get client UUID for clientId: {} in realm: {}", clientId, realmName, ex);
       return null;
     }
   }
 
   /**
-   * Najdi client role podle názvu
+   * Najdi client role podle názvu v zadaném realmu
    */
-  private JsonNode getClientRole(String clientUuid, String roleName, String adminToken) {
+  private JsonNode getClientRole(String clientUuid, String roleName, String realmName, String adminToken) {
     try {
-      String url = keycloakBaseUrl + "/admin/realms/" + targetRealm + "/clients/" + clientUuid
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients/" + clientUuid
           + "/roles/" + roleName;
 
       HttpHeaders headers = new HttpHeaders();
@@ -809,7 +815,7 @@ public class KeycloakAdminService {
       return objectMapper.readTree(response.getBody());
 
     } catch (Exception ex) {
-      log.error("Failed to get client role {} for client {}", roleName, clientUuid, ex);
+      log.error("Failed to get client role {} for client {} in realm {}", roleName, clientUuid, realmName, ex);
       return null;
     }
   }

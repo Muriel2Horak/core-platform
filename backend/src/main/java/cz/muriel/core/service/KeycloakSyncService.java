@@ -314,8 +314,7 @@ public class KeycloakSyncService {
     Map<String, Object> user = findUserByKeycloakId(keycloakUserId, tenantId);
 
     if (user != null) {
-      metamodelService.delete("User", user.get("id").toString(),
-          new SystemAuthentication());
+      metamodelService.delete("User", user.get("id").toString(), new SystemAuthentication());
       log.debug("User deleted: {} from tenant {}", keycloakUserId, tenantKey);
     }
   }
