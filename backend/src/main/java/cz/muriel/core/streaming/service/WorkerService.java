@@ -31,6 +31,7 @@ public class WorkerService {
   private final CommandQueueRepository commandQueueRepository;
   private final WorkStateRepository workStateRepository;
   private final OutboxFinalRepository outboxFinalRepository;
+  @SuppressWarnings("unused") // Used in @PostConstruct init() to load globalConfig
   private final MetamodelLoader metamodelLoader;
   private final InflightPublisher inflightPublisher;
   private final StreamingMetrics metrics;

@@ -138,7 +138,11 @@ public class KeycloakEventProjectionService {
 
   /**
    * 🔄 Internal method - must be called within lock
+   * 
+   * @deprecated Old implementation - kept for reference, replaced by
+   * KeycloakSyncService
    */
+  @Deprecated @SuppressWarnings("unused")
   private void syncUserFromKeycloakInternal(String userId, Tenant tenant) {
     try {
       // Fetch full user data from Keycloak Admin API

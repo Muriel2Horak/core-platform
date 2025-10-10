@@ -327,6 +327,7 @@ public class KeycloakInitializationService implements ApplicationRunner {
    * backup řešení pro případy, kdy import realmu nevytvoří service account
    * automaticky
    */
+  @SuppressWarnings("unused")
   private UserDto createServiceAccountUser(String serviceAccountUsername) {
     try {
       log.info("Creating service account user: {}", serviceAccountUsername);
@@ -353,6 +354,7 @@ public class KeycloakInitializationService implements ApplicationRunner {
   /**
    * Přiřadí client role service accountu (rozšíření pro realm-management role)
    */
+  @SuppressWarnings("unused")
   private void assignClientRoleToServiceAccount(String userId, String clientId, String roleName) {
     try {
       keycloakAdminService.assignClientRoleToUser(userId, clientId, roleName);

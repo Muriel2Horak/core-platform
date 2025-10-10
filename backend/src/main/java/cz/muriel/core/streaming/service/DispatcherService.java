@@ -32,6 +32,7 @@ public class DispatcherService {
   private final OutboxFinalRepository outboxFinalRepository;
   private final KafkaTemplate<String, String> kafkaTemplate;
   private final StreamingConfig streamingConfig;
+  @SuppressWarnings("unused") // Used in @PostConstruct init() to load globalConfig
   private final MetamodelLoader metamodelLoader;
   private final StreamingMetrics metrics;
 

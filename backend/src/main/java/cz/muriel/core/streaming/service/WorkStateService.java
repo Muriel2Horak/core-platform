@@ -23,6 +23,7 @@ import java.util.UUID;
 public class WorkStateService {
 
   private final WorkStateRepository workStateRepository;
+  @SuppressWarnings("unused") // Used in constructor to load schemas
   private final MetamodelLoader metamodelLoader;
   private Map<String, EntitySchema> schemas;
 

@@ -1,114 +1,114 @@
-<?xml version="1.0" encoding="UTF-8"?>  <!-- 🔧 BETTER: AUDIT Loki appender s environment variable -->
-  <appender name="AUDIT_LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-    <http>
-      <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
-    </http>
-    <format>
-      <label>
-        <pattern>container=core-backend,service=backend,source=backend,level=AUDIT,event_type=audit,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
-      </label>
-      <message>
-        <pattern>[AUDIT] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
-      </message>
-    </format>
-    <batchMaxItems>50</batchMaxItems>
-    <batchTimeout>5000</batchTimeout>
-  </appender>
+<?xml version="1.0" encoding="UTF-8"?><!-- 🔧 BETTER: AUDIT Loki appender s environment variable -->
+<appender name="AUDIT_LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+  <http>
+    <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
+  </http>
+  <format>
+    <label>
+      <pattern>container=core-backend,service=backend,source=backend,level=AUDIT,event_type=audit,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
+    </label>
+    <message>
+      <pattern>[AUDIT] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
+    </message>
+  </format>
+  <batchMaxItems>50</batchMaxItems>
+  <batchTimeout>5000</batchTimeout>
+</appender>
 
-  <!-- Monitoring BFF appender -->
-  <appender name="MONITORING_BFF_LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-    <http>
-      <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
-    </http>
-    <format>
-      <label>
-        <pattern>container=core-backend,service=monitoring-bff,source=backend,level=%level,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown},orgId=${mdc:orgId:-unknown}</pattern>
-      </label>
-      <message>
-        <pattern>{"timestamp":"%date{ISO8601}","level":"%level","logger":"%logger{36}","tenant":"${mdc:tenant:-unknown}","orgId":"${mdc:orgId:-unknown}","user":"${mdc:user:-unknown}","endpoint":"${mdc:endpoint:-unknown}","method":"${mdc:method:-unknown}","status":"${mdc:status:-unknown}","duration":"${mdc:duration:-0}","message":"%msg"}%n</pattern>
-      </message>
-    </format>
-    <batchMaxItems>100</batchMaxItems>
-    <batchTimeout>10000</batchTimeout>
-  </appender>
-  <!-- Console appender pro development -->
-  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-      <includeContext>true</includeContext>
-      <includeMdc>true</includeMdc>
-      <customFields>{"service":"core-platform-backend","source":"backend","tenant":"${mdc:tenant:-unknown}"}</customFields>
-    </encoder>
-  </appender>
+<!-- Monitoring BFF appender -->
+<appender name="MONITORING_BFF_LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+  <http>
+    <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
+  </http>
+  <format>
+    <label>
+      <pattern>container=core-backend,service=monitoring-bff,source=backend,level=%level,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown},orgId=${mdc:orgId:-unknown}</pattern>
+    </label>
+    <message>
+      <pattern>{"timestamp":"%date{ISO8601}","level":"%level","logger":"%logger{36}","tenant":"${mdc:tenant:-unknown}","orgId":"${mdc:orgId:-unknown}","user":"${mdc:user:-unknown}","endpoint":"${mdc:endpoint:-unknown}","method":"${mdc:method:-unknown}","status":"${mdc:status:-unknown}","duration":"${mdc:duration:-0}","message":"%msg"}%n</pattern>
+    </message>
+  </format>
+  <batchMaxItems>100</batchMaxItems>
+  <batchTimeout>10000</batchTimeout>
+</appender>
+<!-- Console appender pro development -->
+<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+  <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+    <includeContext>true</includeContext>
+    <includeMdc>true</includeMdc>
+    <customFields>{"service":"core-platform-backend","source":"backend","tenant":"${mdc:tenant:-unknown}"}</customFields>
+  </encoder>
+</appender>
 
-  <!-- 🔐 AUDIT appender pro bezpečnostní logy -->
-  <appender name="AUDIT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-      <includeContext>true</includeContext>
-      <includeMdc>true</includeMdc>
-      <customFields>{"service":"core-platform-backend","source":"backend","event_type":"audit","level":"AUDIT","tenant":"${mdc:tenant:-unknown}"}</customFields>
-    </encoder>
-  </appender>
+<!-- 🔐 AUDIT appender pro bezpečnostní logy -->
+<appender name="AUDIT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+  <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+    <includeContext>true</includeContext>
+    <includeMdc>true</includeMdc>
+    <customFields>{"service":"core-platform-backend","source":"backend","event_type":"audit","level":"AUDIT","tenant":"${mdc:tenant:-unknown}"}</customFields>
+  </encoder>
+</appender>
 
-  <!-- 🔧 BETTER: Loki appender s environment variable pro URL -->
-  <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-    <http>
-      <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
-    </http>
-    <format>
-      <label>
-        <pattern>container=core-backend,service=backend,source=backend,level=%level,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
-      </label>
-      <message>
-        <pattern>[%level] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
-      </message>
-    </format>
-    <batchMaxItems>100</batchMaxItems>
-    <batchTimeout>10000</batchTimeout>
-    <sendingThreads>2</sendingThreads>
-  </appender>
+<!-- 🔧 BETTER: Loki appender s environment variable pro URL -->
+<appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+  <http>
+    <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
+  </http>
+  <format>
+    <label>
+      <pattern>container=core-backend,service=backend,source=backend,level=%level,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
+    </label>
+    <message>
+      <pattern>[%level] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
+    </message>
+  </format>
+  <batchMaxItems>100</batchMaxItems>
+  <batchTimeout>10000</batchTimeout>
+  <sendingThreads>2</sendingThreads>
+</appender>
 
-  <!-- 🔧 BETTER: AUDIT Loki appender s environment variable -->
-  <appender name="AUDIT_LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-    <http>
-      <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
-    </http>
-    <format>
-      <label>
-        <pattern>container=core-backend,service=backend,source=backend,level=AUDIT,event_type=audit,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
-      </label>
-      <message>
-        <pattern>[AUDIT] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
-      </message>
-    </format>
-    <batchMaxItems>50</batchMaxItems>
-    <batchTimeout>5000</batchTimeout>
-    <sendingThreads>1</sendingThreads>
-  </appender>
+<!-- 🔧 BETTER: AUDIT Loki appender s environment variable -->
+<appender name="AUDIT_LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+  <http>
+    <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
+  </http>
+  <format>
+    <label>
+      <pattern>container=core-backend,service=backend,source=backend,level=AUDIT,event_type=audit,environment=${ENVIRONMENT:-development},tenant=${mdc:tenant:-unknown}</pattern>
+    </label>
+    <message>
+      <pattern>[AUDIT] %date{yyyy-MM-dd HH:mm:ss.SSS} %logger{36} [tenant:${mdc:tenant:-unknown}] - %msg%n</pattern>
+    </message>
+  </format>
+  <batchMaxItems>50</batchMaxItems>
+  <batchTimeout>5000</batchTimeout>
+  <sendingThreads>1</sendingThreads>
+</appender>
 
-  <!-- Root logger -->
-  <root level="${LOG_LEVEL:-INFO}">
-    <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="LOKI"/>
-  </root>
+<!-- Root logger -->
+<root level="${LOG_LEVEL:-INFO}">
+  <appender-ref ref="CONSOLE"/>
+  <appender-ref ref="LOKI"/>
+</root>
 
-  <!-- 🔐 AUDIT logger - KRITICKÉ pro security -->
-  <logger name="AUDIT" level="${AUDIT_LOG_LEVEL:-INFO}" additivity="false">
-    <appender-ref ref="AUDIT_CONSOLE"/>
-    <appender-ref ref="AUDIT_LOKI"/>
-  </logger>
+<!-- 🔐 AUDIT logger - KRITICKÉ pro security -->
+<logger name="AUDIT" level="${AUDIT_LOG_LEVEL:-INFO}" additivity="false">
+  <appender-ref ref="AUDIT_CONSOLE"/>
+  <appender-ref ref="AUDIT_LOKI"/>
+</logger>
 
-  <!-- Monitoring BFF logger - strukturované JSON logy -->
-  <logger name="cz.muriel.core.monitoring.bff" level="DEBUG" additivity="false">
-    <appender-ref ref="CONSOLE"/>
-    <appender-ref ref="MONITORING_BFF_LOKI"/>
-  </logger>
+<!-- Monitoring BFF logger - strukturované JSON logy -->
+<logger name="cz.muriel.core.monitoring.bff" level="DEBUG" additivity="false">
+  <appender-ref ref="CONSOLE"/>
+  <appender-ref ref="MONITORING_BFF_LOKI"/>
+</logger>
 
-  <!-- Spring Boot specific loggers -->
-  <logger name="org.springframework" level="INFO"/>
-  <logger name="org.hibernate" level="WARN"/>
-  <logger name="org.postgresql" level="WARN"/>
+<!-- Spring Boot specific loggers -->
+<logger name="org.springframework" level="INFO"/>
+<logger name="org.hibernate" level="WARN"/>
+<logger name="org.postgresql" level="WARN"/>
 
-  <!-- Naše aplikační logy -->
-  <logger name="cz.muriel.core" level="${LOGGING_LEVEL_CZ_MURIEL_CORE:-DEBUG}"/>
-  <logger name="FRONTEND" level="INFO"/>
+<!-- Naše aplikační logy -->
+<logger name="cz.muriel.core" level="${LOGGING_LEVEL_CZ_MURIEL_CORE:-DEBUG}"/>
+<logger name="FRONTEND" level="INFO"/>
 </configuration>

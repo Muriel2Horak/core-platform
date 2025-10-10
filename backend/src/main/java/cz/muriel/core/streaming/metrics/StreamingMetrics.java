@@ -4,7 +4,6 @@ import cz.muriel.core.streaming.repository.CommandQueueRepository;
 import cz.muriel.core.streaming.repository.OutboxFinalRepository;
 import cz.muriel.core.streaming.repository.WorkStateRepository;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

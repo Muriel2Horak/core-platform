@@ -27,9 +27,7 @@ import reactor.netty.resources.ConnectionProvider;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-@Configuration
-@EnableCaching
-@Slf4j
+@Configuration @EnableCaching @Slf4j
 public class MonitoringBffConfig {
 
   @Bean @ConfigurationProperties(prefix = "monitoring.grafana")
@@ -39,43 +37,46 @@ public class MonitoringBffConfig {
 
   @Bean
   public CircuitBreakerRegistry circuitBreakerRegistry() {
-    CircuitBreakerConfig config = CircuitBreakerConfig.custom()
-        .failureRateThreshold(50) // Open circuit if 50% of requests fail
+    CircuitBreakerConfig config = CircuitBreakerConfig.custom().failureRateThreshold(50) // Open
+                                                                                         // circuit
+                                                                                         // if 50%
+                                                                                         // of
+                                                                                         // requests
+                                                                                         // fail
         .waitDurationInOpenState(Duration.ofSeconds(30)) // Wait 30s before half-open
         .slidingWindowSize(10) // Track last 10 requests
         .minimumNumberOfCalls(5) // Min 5 calls before calculating failure rate
         .permittedNumberOfCallsInHalfOpenState(3) // Allow 3 test calls in half-open
-        .automaticTransitionFromOpenToHalfOpenEnabled(true)
-        .build();
-    
+        .automaticTransitionFromOpenToHalfOpenEnabled(true).build();
+
     return CircuitBreakerRegistry.of(config);
   }
 
   @Bean
   public CircuitBreaker grafanaCircuitBreaker(CircuitBreakerRegistry registry) {
     CircuitBreaker circuitBreaker = registry.circuitBreaker("grafana");
-    
+
     // Log circuit breaker state changes
     circuitBreaker.getEventPublisher()
-        .onStateTransition(event -> 
-            log.warn("Circuit breaker state changed: {} -> {}", 
-                event.getStateTransition().getFromState(),
-                event.getStateTransition().getToState()))
-        .onError(event -> 
-            log.error("Circuit breaker error: {}", event.getThrowable().getMessage()));
-    
+        .onStateTransition(event -> log.warn("Circuit breaker state changed: {} -> {}",
+            event.getStateTransition().getFromState(), event.getStateTransition().getToState()))
+        .onError(
+            event -> log.error("Circuit breaker error: {}", event.getThrowable().getMessage()));
+
     return circuitBreaker;
   }
 
   @Bean
   public WebClient grafanaWebClient(GrafanaProperties props, CircuitBreaker circuitBreaker) {
     // Connection pool configuration (production-ready)
-    ConnectionProvider provider = ConnectionProvider.builder("grafana-pool")
-        .maxConnections(100)                          // Max 100 concurrent connections
-        .maxIdleTime(Duration.ofSeconds(20))          // Close idle connections after 20s
-        .maxLifeTime(Duration.ofMinutes(5))           // Max connection lifetime: 5 minutes
+    ConnectionProvider provider = ConnectionProvider.builder("grafana-pool").maxConnections(100) // Max
+                                                                                                 // 100
+                                                                                                 // concurrent
+                                                                                                 // connections
+        .maxIdleTime(Duration.ofSeconds(20)) // Close idle connections after 20s
+        .maxLifeTime(Duration.ofMinutes(5)) // Max connection lifetime: 5 minutes
         .pendingAcquireTimeout(Duration.ofSeconds(5)) // Wait max 5s for available connection
-        .evictInBackground(Duration.ofSeconds(30))    // Background eviction every 30s
+        .evictInBackground(Duration.ofSeconds(30)) // Background eviction every 30s
         .build();
 
     // HttpClient with timeouts and connection pool
@@ -90,41 +91,36 @@ public class MonitoringBffConfig {
         .build();
 
     // Add circuit breaker filter
-    ExchangeFilterFunction circuitBreakerFilter = (request, next) -> 
-        next.exchange(request)
-            .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
-            .onErrorResume(throwable -> {
-              log.error("Grafana request failed (circuit breaker): {}", throwable.getMessage());
-              return Mono.error(new RuntimeException("Grafana service unavailable", throwable));
-            });
+    ExchangeFilterFunction circuitBreakerFilter = (request, next) -> next.exchange(request)
+        .transformDeferred(CircuitBreakerOperator.of(circuitBreaker)).onErrorResume(throwable -> {
+          log.error("Grafana request failed (circuit breaker): {}", throwable.getMessage());
+          return Mono.error(new RuntimeException("Grafana service unavailable", throwable));
+        });
 
-    return WebClient.builder()
-        .baseUrl(props.getBaseUrl())
-        .clientConnector(new ReactorClientHttpConnector(httpClient))
-        .exchangeStrategies(strategies)
-        .filter(circuitBreakerFilter)
-        .build();
+    return WebClient.builder().baseUrl(props.getBaseUrl())
+        .clientConnector(new ReactorClientHttpConnector(httpClient)).exchangeStrategies(strategies)
+        .filter(circuitBreakerFilter).build();
   }
 
   /**
-   * Caffeine cache manager for query result caching
-   * - TTL: 30 seconds (short for real-time monitoring data)
-   * - Max size: 1000 entries per cache
-   * - Stats enabled for monitoring
+   * Caffeine cache manager for query result caching - TTL: 30 seconds (short for
+   * real-time monitoring data) - Max size: 1000 entries per cache - Stats enabled
+   * for monitoring
    */
   @Bean
   public CacheManager cacheManager() {
-    CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries", "grafana-dashboards");
+    CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
+        "grafana-dashboards");
     cacheManager.setCaffeine(caffeineConfig());
     return cacheManager;
   }
 
   @Bean
   public Caffeine<Object, Object> caffeineConfig() {
-    return Caffeine.newBuilder()
-        .expireAfterWrite(30, TimeUnit.SECONDS)  // Short TTL for real-time data
-        .maximumSize(1000)                       // Max 1000 entries
-        .recordStats();                          // Enable stats for monitoring
+    return Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS) // Short TTL for real-time
+                                                                        // data
+        .maximumSize(1000) // Max 1000 entries
+        .recordStats(); // Enable stats for monitoring
   }
 
   @Data

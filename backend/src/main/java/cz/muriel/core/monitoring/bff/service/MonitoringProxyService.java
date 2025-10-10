@@ -27,14 +27,10 @@ public class MonitoringProxyService {
    * Forward POST /api/ds/query request to Grafana. Used by Grafana Scenes to
    * query datasources.
    * 
-   * Cached for 30s using cache key: user:{subject}:query:{bodyHashCode}
-   * Cache eviction strategy: TTL-based (30s for real-time data)
+   * Cached for 30s using cache key: user:{subject}:query:{bodyHashCode} Cache
+   * eviction strategy: TTL-based (30s for real-time data)
    */
-  @Cacheable(
-      value = "grafana-queries", 
-      key = "#jwt.subject + ':query:' + #body.hashCode()",
-      unless = "#result.statusCode.value() != 200"
-  )
+  @Cacheable(value = "grafana-queries", key = "#jwt.subject + ':query:' + #body.hashCode()", unless = "#result.statusCode.value() != 200")
   public ResponseEntity<String> forwardQuery(Jwt jwt, Map<String, Object> body) {
     TenantBinding binding = tenantOrgService.resolve(jwt);
     String tenantId = binding.tenantId();
@@ -61,11 +57,7 @@ public class MonitoringProxyService {
    * 
    * Cached for 30s for dashboard metadata (unlikely to change frequently)
    */
-  @Cacheable(
-      value = "grafana-dashboards",
-      key = "#jwt.subject + ':' + #path",
-      unless = "#result.statusCode.value() != 200"
-  )
+  @Cacheable(value = "grafana-dashboards", key = "#jwt.subject + ':' + #path", unless = "#result.statusCode.value() != 200")
   public ResponseEntity<String> forwardGet(Jwt jwt, String path) {
     TenantBinding binding = tenantOrgService.resolve(jwt);
     String tenantId = binding.tenantId();
