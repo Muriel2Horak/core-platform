@@ -129,7 +129,7 @@ public class KeycloakEventProjectionService {
   // =====================================================
 
   private void syncUserFromKeycloak(String userId, Tenant tenant) {
-    // 🔒 Use entity-level lock to prevent concurrent updates  
+    // 🔒 Use entity-level lock to prevent concurrent updates
     cdcLockService.withLockVoid("User", userId, 10, () -> {
       // ✨ Use shared sync service (same logic as bulk sync)
       keycloakSyncService.syncUserFromKeycloak(userId, tenant.getKey(), "CREATE_OR_UPDATE");
@@ -166,8 +166,10 @@ public class KeycloakEventProjectionService {
       if (isNew) {
         user = new HashMap<>();
 
-        // 🆔 No need to generate UUID manually - MetamodelCrudService will auto-generate UUID v7
-        // This ensures globally unique, time-ordered IDs that never repeat across environments
+        // 🆔 No need to generate UUID manually - MetamodelCrudService will
+        // auto-generate UUID v7
+        // This ensures globally unique, time-ordered IDs that never repeat across
+        // environments
 
         user.put("tenant_id", tenant.getId());
         user.put("created_at", LocalDateTime.now());

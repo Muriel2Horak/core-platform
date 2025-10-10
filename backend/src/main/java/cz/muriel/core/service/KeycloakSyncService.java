@@ -255,7 +255,7 @@ public class KeycloakSyncService {
 
     // Find existing user using SQL (try by keycloak_user_id first, then username)
     Map<String, Object> existingUser = findUserByKeycloakId(keycloakUserId, tenantId);
-    
+
     if (existingUser == null) {
       // Fallback: try by username
       String sql = "SELECT * FROM users_directory WHERE LOWER(username) = LOWER(?) AND tenant_id = ?";
@@ -287,10 +287,8 @@ public class KeycloakSyncService {
     }
 
     // Build display name
-    String displayName = buildDisplayName(
-        (String) userMap.get("first_name"),
-        (String) userMap.get("last_name")
-    );
+    String displayName = buildDisplayName((String) userMap.get("first_name"),
+        (String) userMap.get("last_name"));
     userMap.put("display_name", displayName);
 
     // Extract custom attributes from UserDto
@@ -298,11 +296,11 @@ public class KeycloakSyncService {
 
     // Save via metamodel with SystemAuthentication
     if (isNew) {
-      metamodelService.create("UserDirectory", userMap, new SystemAuthentication());
+      metamodelService.create("User", userMap, new SystemAuthentication());
       log.debug("User created: {} ({})", username, keycloakUserId);
     } else {
       // For updates, use version 0 (will be handled by metamodel)
-      metamodelService.update("UserDirectory", userMap.get("id").toString(), 0L, userMap,
+      metamodelService.update("User", userMap.get("id").toString(), 0L, userMap,
           new SystemAuthentication());
       log.debug("User updated: {} ({})", username, keycloakUserId);
     }
@@ -316,7 +314,8 @@ public class KeycloakSyncService {
     Map<String, Object> user = findUserByKeycloakId(keycloakUserId, tenantId);
 
     if (user != null) {
-      metamodelService.delete("UserDirectory", user.get("id").toString(), new SystemAuthentication());
+      metamodelService.delete("User", user.get("id").toString(),
+          new SystemAuthentication());
       log.debug("User deleted: {} from tenant {}", keycloakUserId, tenantKey);
     }
   }
@@ -338,7 +337,8 @@ public class KeycloakSyncService {
   /**
    * Extract custom attributes from UserDto
    */
-  private void extractUserAttributes(Map<String, Object> userMap, cz.muriel.core.dto.UserDto userData) {
+  private void extractUserAttributes(Map<String, Object> userMap,
+      cz.muriel.core.dto.UserDto userData) {
     // Extract custom attributes if available
     Map<String, String> customAttributes = userData.getCustomAttributes();
     if (customAttributes != null) {
@@ -348,7 +348,7 @@ public class KeycloakSyncService {
         userMap.put(entry.getKey(), entry.getValue());
       }
     }
-    
+
     // Also extract direct fields from UserDto
     if (userData.getPhone() != null) {
       userMap.put("phone", userData.getPhone());
