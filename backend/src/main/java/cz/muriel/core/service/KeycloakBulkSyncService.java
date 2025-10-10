@@ -75,8 +75,8 @@ public class KeycloakBulkSyncService {
       int processed = 0;
       for (UserRepresentation user : users) {
         try {
-          // Synchronize user to UserDirectory
-          syncUserToDirectory(user, tenantKey);
+          // ✨ Use shared sync service (same logic as CDC sync)
+          syncService.syncUserFromKeycloak(user.getId(), tenantKey, "CREATE_OR_UPDATE");
           processed++;
           progress.setProcessed(processed);
 
@@ -285,7 +285,8 @@ public class KeycloakBulkSyncService {
       progress.setTotal(startTotal + users.size());
 
       for (UserRepresentation user : users) {
-        syncUserToDirectory(user, tenantKey);
+        // ✨ Use shared sync service (same logic as CDC sync)
+        syncService.syncUserFromKeycloak(user.getId(), tenantKey, "CREATE_OR_UPDATE");
         progress.setProcessed(progress.getProcessed() + 1);
       }
 
@@ -401,7 +402,8 @@ public class KeycloakBulkSyncService {
     Map<String, Object> userMap = existing.isEmpty() ? new HashMap<>() : existing.get(0);
     boolean isNew = existing.isEmpty();
 
-    // 🆔 No need to generate UUID manually - MetamodelCrudService will auto-generate UUID v7
+    // 🆔 No need to generate UUID manually - MetamodelCrudService will
+    // auto-generate UUID v7
     if (isNew) {
       userMap.put("tenant_id", tenantId);
       userMap.put("created_at", LocalDateTime.now());

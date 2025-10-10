@@ -7,15 +7,17 @@ import java.util.UUID;
 /**
  * 🆔 UUID Version 7 Generator
  * 
- * Generates time-ordered UUIDs that are:
- * - Globally unique (safe for parallel/distributed systems)
- * - Never repeat (even across different databases)
- * - Sortable by creation time
- * - Better for database indexes than random UUIDs
+ * Generates time-ordered UUIDs that are: - Globally unique (safe for
+ * parallel/distributed systems) - Never repeat (even across different
+ * databases) - Sortable by creation time - Better for database indexes than
+ * random UUIDs
  * 
- * Format: [timestamp_ms (48 bits)][version (4 bits)][random (12 bits)][variant (2 bits)][random (62 bits)]
+ * Format: [timestamp_ms (48 bits)][version (4 bits)][random (12 bits)][variant
+ * (2 bits)][random (62 bits)]
  * 
- * @see <a href="https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format">UUID v7 RFC Draft</a>
+ * @see <a href=
+ * "https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format">UUID
+ * v7 RFC Draft</a>
  */
 public class UUIDv7Generator {
 
@@ -43,7 +45,8 @@ public class UUIDv7Generator {
     byte[] randomBytes = new byte[10];
     RANDOM.nextBytes(randomBytes);
 
-    // Build most significant bits: [timestamp_ms (48 bits)][version (4 bits)][random (12 bits)]
+    // Build most significant bits: [timestamp_ms (48 bits)][version (4
+    // bits)][random (12 bits)]
     long mostSigBits = 0;
 
     // Timestamp (48 bits)

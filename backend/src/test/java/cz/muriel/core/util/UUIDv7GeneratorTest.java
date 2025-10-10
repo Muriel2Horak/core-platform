@@ -18,7 +18,7 @@ class UUIDv7GeneratorTest {
   @Test
   void testGenerateProducesVersion7UUID() {
     UUID uuid = UUIDv7Generator.generate();
-    
+
     assertNotNull(uuid);
     assertEquals(7, uuid.version(), "UUID should be version 7");
   }
@@ -39,40 +39,37 @@ class UUIDv7GeneratorTest {
   @Test
   void testUUIDsAreSortableByTime() {
     UUID uuid1 = UUIDv7Generator.generate();
-    
+
     // Wait a bit
     try {
       Thread.sleep(10);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
-    
+
     UUID uuid2 = UUIDv7Generator.generate();
 
     // UUID v7 should be sortable by creation time
-    assertTrue(uuid1.compareTo(uuid2) < 0, 
-        "Earlier UUID should be less than later UUID");
+    assertTrue(uuid1.compareTo(uuid2) < 0, "Earlier UUID should be less than later UUID");
   }
 
   @Test
   void testGetTimestampExtractsCorrectTime() {
     Instant now = Instant.now();
     UUID uuid = UUIDv7Generator.generate(now);
-    
+
     Instant extracted = UUIDv7Generator.getTimestamp(uuid);
-    
+
     // Should be within 1ms (timestamp has millisecond precision)
     Duration diff = Duration.between(now, extracted);
-    assertTrue(diff.abs().toMillis() <= 1, 
-        "Extracted timestamp should match original within 1ms");
+    assertTrue(diff.abs().toMillis() <= 1, "Extracted timestamp should match original within 1ms");
   }
 
   @Test
   void testGetTimestampThrowsForNonV7UUID() {
     UUID randomUUID = UUID.randomUUID(); // This is version 4
-    
-    assertThrows(IllegalArgumentException.class, 
-        () -> UUIDv7Generator.getTimestamp(randomUUID),
+
+    assertThrows(IllegalArgumentException.class, () -> UUIDv7Generator.getTimestamp(randomUUID),
         "Should throw exception for non-v7 UUID");
   }
 
@@ -80,7 +77,7 @@ class UUIDv7GeneratorTest {
   void testIsUUIDv7() {
     UUID v7uuid = UUIDv7Generator.generate();
     UUID v4uuid = UUID.randomUUID();
-    
+
     assertTrue(UUIDv7Generator.isUUIDv7(v7uuid), "Should recognize v7 UUID");
     assertFalse(UUIDv7Generator.isUUIDv7(v4uuid), "Should reject v4 UUID");
     assertFalse(UUIDv7Generator.isUUIDv7(null), "Should handle null");
@@ -90,10 +87,10 @@ class UUIDv7GeneratorTest {
   void testGenerateWithSpecificTimestamp() {
     Instant timestamp = Instant.parse("2025-10-10T12:00:00Z");
     UUID uuid = UUIDv7Generator.generate(timestamp);
-    
+
     assertNotNull(uuid);
     assertEquals(7, uuid.version());
-    
+
     Instant extracted = UUIDv7Generator.getTimestamp(uuid);
     assertEquals(timestamp, extracted, "Timestamp should match");
   }

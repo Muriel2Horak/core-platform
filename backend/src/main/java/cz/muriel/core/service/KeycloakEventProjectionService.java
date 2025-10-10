@@ -43,6 +43,7 @@ public class KeycloakEventProjectionService {
   private final KeycloakEventLogRepository eventLogRepository;
   private final TenantService tenantService;
   private final KeycloakAdminService keycloakAdminService;
+  private final KeycloakSyncService keycloakSyncService;
   private final ObjectMapper objectMapper;
   private final CdcLockService cdcLockService;
 
@@ -128,9 +129,10 @@ public class KeycloakEventProjectionService {
   // =====================================================
 
   private void syncUserFromKeycloak(String userId, Tenant tenant) {
-    // 🔒 Use entity-level lock to prevent concurrent updates
+    // 🔒 Use entity-level lock to prevent concurrent updates  
     cdcLockService.withLockVoid("User", userId, 10, () -> {
-      syncUserFromKeycloakInternal(userId, tenant);
+      // ✨ Use shared sync service (same logic as bulk sync)
+      keycloakSyncService.syncUserFromKeycloak(userId, tenant.getKey(), "CREATE_OR_UPDATE");
     });
   }
 

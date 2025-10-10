@@ -214,7 +214,161 @@ public class KeycloakSyncService {
   }
 
   // =====================================================
-  // 🔗 USER-ROLE MAPPING SYNCHRONIZATION
+  // � USER SYNCHRONIZATION
+  // =====================================================
+
+  /**
+   * Synchronize user from Keycloak Called when user_changed notification is
+   * received
+   */
+  public void syncUserFromKeycloak(String keycloakUserId, String tenantKey, String operation) {
+    log.debug("Syncing user: id={}, tenant={}, operation={}", keycloakUserId, tenantKey, operation);
+
+    if ("DELETE".equals(operation)) {
+      handleUserDelete(keycloakUserId, tenantKey);
+      return;
+    }
+
+    try {
+      // Fetch user details from Keycloak
+      var userData = keycloakAdminService.getUserById(keycloakUserId);
+
+      if (userData == null) {
+        log.warn("User not found in Keycloak: {}", keycloakUserId);
+        return;
+      }
+
+      upsertUser(userData, tenantKey);
+
+    } catch (Exception e) {
+      log.error("Failed to sync user from Keycloak: userId={}", keycloakUserId, e);
+    }
+  }
+
+  /**
+   * Upsert user entity from Keycloak data
+   */
+  private void upsertUser(cz.muriel.core.dto.UserDto userData, String tenantKey) {
+    String keycloakUserId = userData.getId();
+    String username = userData.getUsername();
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+
+    // Find existing user using SQL (try by keycloak_user_id first, then username)
+    Map<String, Object> existingUser = findUserByKeycloakId(keycloakUserId, tenantId);
+    
+    if (existingUser == null) {
+      // Fallback: try by username
+      String sql = "SELECT * FROM users_directory WHERE LOWER(username) = LOWER(?) AND tenant_id = ?";
+      List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, username, tenantId);
+      existingUser = results.isEmpty() ? null : results.get(0);
+    }
+
+    Map<String, Object> userMap = existingUser != null ? existingUser : new HashMap<>();
+    boolean isNew = existingUser == null;
+
+    // Set fields
+    if (isNew) {
+      userMap.put("tenant_id", tenantId);
+      userMap.put("created_at", java.time.LocalDateTime.now());
+      userMap.put("is_federated", false); // Default: local user, not federated
+    }
+
+    userMap.put("keycloak_user_id", keycloakUserId);
+    userMap.put("username", username);
+    userMap.put("email", userData.getEmail());
+    userMap.put("first_name", userData.getFirstName());
+    userMap.put("last_name", userData.getLastName());
+    userMap.put("active", userData.isEnabled());
+    userMap.put("updated_at", java.time.LocalDateTime.now());
+
+    // Clear soft delete if re-enabling
+    if (Boolean.TRUE.equals(userMap.get("active"))) {
+      userMap.put("deleted_at", null);
+    }
+
+    // Build display name
+    String displayName = buildDisplayName(
+        (String) userMap.get("first_name"),
+        (String) userMap.get("last_name")
+    );
+    userMap.put("display_name", displayName);
+
+    // Extract custom attributes from UserDto
+    extractUserAttributes(userMap, userData);
+
+    // Save via metamodel with SystemAuthentication
+    if (isNew) {
+      metamodelService.create("UserDirectory", userMap, new SystemAuthentication());
+      log.debug("User created: {} ({})", username, keycloakUserId);
+    } else {
+      // For updates, use version 0 (will be handled by metamodel)
+      metamodelService.update("UserDirectory", userMap.get("id").toString(), 0L, userMap,
+          new SystemAuthentication());
+      log.debug("User updated: {} ({})", username, keycloakUserId);
+    }
+  }
+
+  /**
+   * Handle user deletion
+   */
+  private void handleUserDelete(String keycloakUserId, String tenantKey) {
+    UUID tenantId = tenantService.getTenantIdFromKey(tenantKey);
+    Map<String, Object> user = findUserByKeycloakId(keycloakUserId, tenantId);
+
+    if (user != null) {
+      metamodelService.delete("UserDirectory", user.get("id").toString(), new SystemAuthentication());
+      log.debug("User deleted: {} from tenant {}", keycloakUserId, tenantKey);
+    }
+  }
+
+  /**
+   * Build display name from first and last name
+   */
+  private String buildDisplayName(String firstName, String lastName) {
+    if (firstName != null && lastName != null) {
+      return firstName + " " + lastName;
+    } else if (firstName != null) {
+      return firstName;
+    } else if (lastName != null) {
+      return lastName;
+    }
+    return "";
+  }
+
+  /**
+   * Extract custom attributes from UserDto
+   */
+  private void extractUserAttributes(Map<String, Object> userMap, cz.muriel.core.dto.UserDto userData) {
+    // Extract custom attributes if available
+    Map<String, String> customAttributes = userData.getCustomAttributes();
+    if (customAttributes != null) {
+      // Store all custom attributes
+      // Note: UserDto already has phone, department, etc. as direct fields
+      for (Map.Entry<String, String> entry : customAttributes.entrySet()) {
+        userMap.put(entry.getKey(), entry.getValue());
+      }
+    }
+    
+    // Also extract direct fields from UserDto
+    if (userData.getPhone() != null) {
+      userMap.put("phone", userData.getPhone());
+    }
+    if (userData.getDepartment() != null) {
+      userMap.put("department", userData.getDepartment());
+    }
+    if (userData.getPosition() != null) {
+      userMap.put("position", userData.getPosition());
+    }
+    if (userData.getManager() != null) {
+      userMap.put("manager", userData.getManager());
+    }
+    if (userData.getLocation() != null) {
+      userMap.put("location", userData.getLocation());
+    }
+  }
+
+  // =====================================================
+  // �🔗 USER-ROLE MAPPING SYNCHRONIZATION
   // =====================================================
 
   /**

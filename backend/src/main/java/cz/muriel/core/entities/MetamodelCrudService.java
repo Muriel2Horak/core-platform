@@ -143,7 +143,8 @@ public class MetamodelCrudService {
     // ✨ LIFECYCLE: Execute beforeCreate hooks
     lifecycleExecutor.executeBeforeCreate(schema, data);
 
-    // 🆔 AUTO-GENERATE UUID v7: If no ID provided, generate time-ordered globally unique UUID
+    // 🆔 AUTO-GENERATE UUID v7: If no ID provided, generate time-ordered globally
+    // unique UUID
     // This ensures:
     // - Never repeats (even across different databases/environments)
     // - Safe for parallel/distributed systems
