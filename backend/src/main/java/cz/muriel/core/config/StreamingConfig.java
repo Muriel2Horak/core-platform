@@ -1,8 +1,13 @@
 package cz.muriel.core.config;
 
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Properties;
 
 /**
  * 📊 Streaming & Kafka Configuration
@@ -20,6 +25,21 @@ public class StreamingConfig {
     private SecurityConfig security = new SecurityConfig();
     private String prometheusPort = "9090";
     private String grafanaPublicUrl;
+
+    @Bean
+    public AdminClient kafkaAdminClient() {
+        Properties props = new Properties();
+        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getServers());
+        props.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
+        props.put(AdminClientConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, 30000);
+        
+        if ("SASL_SSL".equals(security.getMode())) {
+            props.put("security.protocol", "SASL_SSL");
+            // Add SASL config if needed
+        }
+        
+        return AdminClient.create(props);
+    }
 
     // Getters and Setters
     public boolean isEnabled() {

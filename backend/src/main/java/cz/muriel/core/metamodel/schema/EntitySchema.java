@@ -30,4 +30,7 @@ public class EntitySchema {
 
   // ✨ NEW: Lifecycle hooks
   private LifecycleConfig lifecycle;
+
+  // 📊 NEW: Streaming configuration
+  private StreamingEntityConfig streaming;
 }
