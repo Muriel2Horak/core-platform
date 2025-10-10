@@ -1,6 +1,16 @@
 # 🚀 PRODUKČNÍ DOCKERFILE - ČISTÝ ESBUILD
 FROM node:18-alpine AS build
 WORKDIR /app
+
+# Build-time environment variables
+ARG STREAMING_ENABLED=false
+ARG GRAFANA_PUBLIC_URL=https://grafana.core-platform.local
+ARG API_BASE_URL=/api
+
+ENV STREAMING_ENABLED=${STREAMING_ENABLED}
+ENV GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL}
+ENV API_BASE_URL=${API_BASE_URL}
+
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ .

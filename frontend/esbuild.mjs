@@ -48,6 +48,9 @@ const buildOptions = {
   minify: isProduction,
   define: {
     'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+    'import.meta.env.VITE_STREAMING_ENABLED': JSON.stringify(process.env.STREAMING_ENABLED || 'false'),
+    'import.meta.env.VITE_GRAFANA_PUBLIC_URL': JSON.stringify(process.env.GRAFANA_PUBLIC_URL || 'https://grafana.core-platform.local'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || '/api'),
     global: 'globalThis'
   },
   jsx: 'automatic',

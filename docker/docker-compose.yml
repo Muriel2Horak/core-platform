@@ -109,6 +109,13 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
       # 🔒 SSL Configuration for HTTPS communication with Keycloak
       - JAVA_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=JKS
+      # 📊 Streaming & Kafka Configuration
+      - STREAMING_ENABLED=${STREAMING_ENABLED:-false}
+      - KAFKA_SERVERS=${KAFKA_SERVERS:-kafka:9092}
+      - STREAMING_TOPIC_PREFIX=${STREAMING_TOPIC_PREFIX:-core}
+      - STREAMING_SECURITY_MODE=${STREAMING_SECURITY_MODE:-PLAINTEXT}
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+      - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
     volumes:
       # 🔒 Updated to use new wildcard SSL certificates
       - ../ssl:/etc/ssl/backend:ro
@@ -126,6 +133,10 @@ services:
     build:
       context: ..
       dockerfile: docker/frontend/Dockerfile
+      args:
+        STREAMING_ENABLED: ${STREAMING_ENABLED:-false}
+        GRAFANA_PUBLIC_URL: ${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN:-core-platform.local}}
+        API_BASE_URL: /api
     container_name: core-frontend
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
