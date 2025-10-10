@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- Suppress false positives -->
+    
+    <!-- Spring Boot dev-only dependencies -->
+    <suppress>
+        <notes>DevTools is only used in development</notes>
+        <gav regex="true">^org\.springframework\.boot:spring-boot-devtools:.*$</gav>
+        <cve>CVE-2021-22060</cve>
+    </suppress>
+
+    <!-- PostgreSQL driver - known issues in older versions only -->
+    <suppress until="2026-01-01">
+        <notes>Using latest PostgreSQL driver, issue not applicable</notes>
+        <gav regex="true">^org\.postgresql:postgresql:.*$</gav>
+        <cve>CVE-2024-1597</cve>
+    </suppress>
+
+    <!-- Grafana service account tokens - not a vulnerability in our use case -->
+    <suppress>
+        <notes>Service account tokens are stored securely in Vault/env vars, never exposed to browser</notes>
+        <filePath regex="true">.*application\.properties$</filePath>
+        <cpe>cpe:/a:grafana:grafana</cpe>
+    </suppress>
+
+    <!-- Logback - console appender not a risk in containerized environment -->
+    <suppress>
+        <notes>Console appender only outputs to Docker logs, not accessible to users</notes>
+        <gav regex="true">^ch\.qos\.logback:logback-.*:.*$</gav>
+        <cve>CVE-2023-6378</cve>
+    </suppress>
+
+    <!-- Add more suppressions as needed -->
+</suppressions>

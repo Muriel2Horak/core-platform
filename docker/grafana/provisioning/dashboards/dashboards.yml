@@ -12,3 +12,16 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: false
+  
+  # Monitoring BFF dashboards
+  - name: 'monitoring-bff'
+    orgId: 1
+    folder: 'Monitoring'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/monitoring-bff
+      foldersFromFilesStructure: false

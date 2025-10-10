@@ -1,0 +1,118 @@
+# Alertmanager configuration for Monitoring BFF alerts
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'component', 'tenant']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 12h
+  
+  routes:
+    # Critical alerts → PagerDuty + Slack
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      continue: true
+    
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+    
+    # Warning alerts → Slack only
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+    
+    # Monitoring BFF specific routing
+    - match:
+        component: monitoring-bff
+      receiver: 'slack-monitoring-bff'
+      group_by: ['alertname', 'tenant']
+
+receivers:
+  - name: 'default'
+    slack_configs:
+      - api_url: '{{ env "SLACK_WEBHOOK_DEFAULT" }}'
+        channel: '#platform-alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '{{ env "PAGERDUTY_SERVICE_KEY" }}'
+        severity: '{{ .CommonLabels.severity }}'
+        description: '{{ .CommonAnnotations.summary }}'
+        details:
+          runbook: '{{ .CommonAnnotations.runbook_url }}'
+          dashboard: '{{ .CommonAnnotations.dashboard_url }}'
+          firing_alerts: '{{ len .Alerts.Firing }}'
+
+  - name: 'slack-critical'
+    slack_configs:
+      - api_url: '{{ env "SLACK_WEBHOOK_CRITICAL" }}'
+        channel: '#incidents'
+        color: 'danger'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+          *Dashboard:* {{ .CommonAnnotations.dashboard_url }}
+          *Firing Alerts:* {{ len .Alerts.Firing }}
+        actions:
+          - type: button
+            text: 'View Runbook'
+            url: '{{ .CommonAnnotations.runbook_url }}'
+          - type: button
+            text: 'View Dashboard'
+            url: '{{ .CommonAnnotations.dashboard_url }}'
+
+  - name: 'slack-warnings'
+    slack_configs:
+      - api_url: '{{ env "SLACK_WEBHOOK_DEFAULT" }}'
+        channel: '#platform-alerts'
+        color: 'warning'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+
+  - name: 'slack-monitoring-bff'
+    slack_configs:
+      - api_url: '{{ env "SLACK_WEBHOOK_MONITORING" }}'
+        channel: '#monitoring-bff-alerts'
+        title: '{{ if eq .CommonLabels.severity "critical" }}🚨{{ else }}⚠️{{ end }} BFF Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Tenant:* {{ .GroupLabels.tenant | default "N/A" }}
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Runbook:* {{ .CommonAnnotations.runbook_url }}
+        actions:
+          - type: button
+            text: 'View Runbook'
+            url: '{{ .CommonAnnotations.runbook_url }}'
+          - type: button
+            text: 'View Logs'
+            url: 'https://admin.core-platform.local/monitoring/explore?orgId=1&left=%5B%22now-1h%22,%22now%22,%22Loki%22,%7B%22expr%22:%22%7Bservice%3D%5C%22monitoring-bff%5C%22%7D%22%7D%5D'
+
+inhibit_rules:
+  # Don't alert on circuit breaker half-open if already open
+  - source_match:
+      alertname: 'BFFCircuitBreakerOpen'
+    target_match:
+      alertname: 'BFFCircuitBreakerHalfOpen'
+    equal: ['component']
+  
+  # Don't alert on slow queries if BFF is down
+  - source_match:
+      alertname: 'BFFDown'
+    target_match_re:
+      alertname: 'BFF.*'
+    equal: ['component']
+  
+  # Don't alert on rate limits if Grafana connection is failing
+  - source_match:
+      alertname: 'BFFGrafanaConnectionFailures'
+    target_match:
+      alertname: 'BFFRateLimitExceeded'
+    equal: ['component', 'tenant']

@@ -1,0 +1,211 @@
+groups:
+  - name: monitoring_bff
+    interval: 30s
+    rules:
+      # ==================== ERROR RATE ALERTS ====================
+      
+      - alert: BFFHighErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*",status=~"5.."}[5m])) 
+            / 
+            sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF error rate > 5%"
+          description: "Monitoring BFF is experiencing {{ $value | humanizePercentage }} error rate (threshold: 5%)"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#bff-high-error-rate"
+          dashboard_url: "https://admin.core-platform.local/monitoring/d/monitoring-bff"
+      
+      - alert: BFFModerateErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*",status=~"5.."}[5m])) 
+            / 
+            sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*"}[5m]))
+          ) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF error rate > 1%"
+          description: "Monitoring BFF error rate is elevated: {{ $value | humanizePercentage }}"
+
+      # ==================== LATENCY ALERTS ====================
+      
+      - alert: BFFSlowQueries
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{uri="/api/monitoring/ds/query"}[5m])) by (le)
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF P95 latency > 5s"
+          description: "Monitoring BFF query latency (P95) is {{ $value | humanizeDuration }}"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#bff-slow-queries"
+      
+      - alert: BFFVerySlowQueries
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{uri="/api/monitoring/ds/query"}[5m])) by (le)
+          ) > 10
+        for: 5m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF P95 latency > 10s"
+          description: "Monitoring BFF queries are extremely slow: {{ $value | humanizeDuration }}"
+
+      # ==================== RATE LIMITING ALERTS ====================
+      
+      - alert: BFFRateLimitExceeded
+        expr: |
+          sum(rate(monitoring_bff_rate_limit_exceeded_total[5m])) by (tenant) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF rate limit exceeded for tenant {{ $labels.tenant }}"
+          description: "Tenant {{ $labels.tenant }} is hitting rate limits {{ $value | humanize }} times/sec"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#rate-limit-exceeded"
+      
+      - alert: BFFHighRateLimitHits
+        expr: |
+          sum(rate(monitoring_bff_rate_limit_exceeded_total[5m])) by (tenant) > 1
+        for: 10m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "Very high rate limit hits for {{ $labels.tenant }}"
+          description: "Tenant {{ $labels.tenant }} is excessively hitting rate limits ({{ $value | humanize }}/s)"
+
+      # ==================== GRAFANA CONNECTIVITY ALERTS ====================
+      
+      - alert: BFFGrafanaConnectionFailures
+        expr: |
+          sum(rate(monitoring_bff_grafana_errors_total{error_type="connection_refused"}[5m])) > 0.1
+        for: 3m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF cannot connect to Grafana"
+          description: "Monitoring BFF is experiencing connection failures to Grafana: {{ $value | humanize }}/s"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#bff-grafana-connection-failures"
+      
+      - alert: BFFGrafana401Errors
+        expr: |
+          sum(rate(monitoring_bff_grafana_errors_total{error_type="unauthorized"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF Grafana authentication failing"
+          description: "Service account tokens may be expired/invalid: {{ $value | humanize }} 401 errors/s"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#sat-expired"
+
+      # ==================== CIRCUIT BREAKER ALERTS ====================
+      
+      - alert: BFFCircuitBreakerOpen
+        expr: |
+          resilience4j_circuitbreaker_state{name="grafana",state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF circuit breaker is OPEN"
+          description: "Circuit breaker for Grafana is open - blocking all requests"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#circuit-breaker-open"
+      
+      - alert: BFFCircuitBreakerHalfOpen
+        expr: |
+          resilience4j_circuitbreaker_state{name="grafana",state="half_open"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF circuit breaker is HALF_OPEN"
+          description: "Circuit breaker is testing Grafana availability"
+
+      # ==================== AVAILABILITY ALERTS ====================
+      
+      - alert: BFFDown
+        expr: |
+          up{job="backend",container="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "Monitoring BFF is DOWN"
+          description: "Backend service is not responding"
+          runbook_url: "https://docs.core-platform.local/runbooks/monitoring#bff-down"
+      
+      - alert: BFFNoTraffic
+        expr: |
+          sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*"}[5m])) < 0.01
+        for: 15m
+        labels:
+          severity: warning
+          component: monitoring-bff
+          team: platform
+        annotations:
+          summary: "BFF receiving no traffic"
+          description: "No requests to monitoring endpoints in 15 minutes (expected > 0.01/s)"
+
+      # ==================== RECORDING RULES ====================
+      
+      - record: monitoring:bff:request_rate:5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*"}[5m])) by (uri, method)
+      
+      - record: monitoring:bff:error_rate:5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*",status=~"5.."}[5m])) 
+          / 
+          sum(rate(http_server_requests_seconds_count{uri=~"/api/monitoring.*"}[5m]))
+      
+      - record: monitoring:bff:latency_p95:5m
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(http_server_requests_seconds_bucket{uri=~"/api/monitoring.*"}[5m])) by (le, uri)
+          )
+      
+      - record: monitoring:bff:latency_p99:5m
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(http_server_requests_seconds_bucket{uri=~"/api/monitoring.*"}[5m])) by (le, uri)
+          )
+      
+      - record: monitoring:bff:rate_limit_hits:5m
+        expr: |
+          sum(rate(monitoring_bff_rate_limit_exceeded_total[5m])) by (tenant)
+      
+      - record: monitoring:bff:circuit_breaker_state
+        expr: |
+          resilience4j_circuitbreaker_state{name="grafana"}

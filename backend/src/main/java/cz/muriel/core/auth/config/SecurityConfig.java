@@ -136,8 +136,17 @@ public class SecurityConfig {
     cfg.setAllowedHeaders(List.of("*"));
     cfg.setAllowCredentials(true);
 
+    // Strict CORS for monitoring endpoints (BFF proxy)
+    CorsConfiguration monitoringCfg = new CorsConfiguration();
+    monitoringCfg.setAllowedOriginPatterns(origins);
+    monitoringCfg.setAllowedMethods(List.of("GET", "POST")); // Block PUT/DELETE/PATCH
+    monitoringCfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+    monitoringCfg.setAllowCredentials(true);
+    monitoringCfg.setMaxAge(3600L); // Cache preflight for 1 hour
+
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", cfg);
+    source.registerCorsConfiguration("/api/monitoring/**", monitoringCfg);
     return source;
   }
 

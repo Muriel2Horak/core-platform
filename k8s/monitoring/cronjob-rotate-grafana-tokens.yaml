@@ -1,0 +1,167 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rotate-grafana-tokens
+  namespace: core-platform
+  labels:
+    app: grafana-token-rotator
+    component: monitoring
+spec:
+  schedule: "0 0 1 * *"  # 1st day of month at midnight
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: grafana-token-rotator
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: grafana-token-rotator
+          containers:
+          - name: rotator
+            image: ghcr.io/muriel2horak/core-platform-tools:latest
+            imagePullPolicy: Always
+            command:
+              - /bin/sh
+              - -c
+              - |
+                set -e
+                
+                echo "🔄 Starting Grafana token rotation..."
+                
+                # Load tenant config from ConfigMap
+                TENANTS=$(cat /config/tenants.json | jq -r '.tenants[] | @base64')
+                
+                for TENANT_B64 in $TENANTS; do
+                  TENANT=$(echo $TENANT_B64 | base64 -d)
+                  TENANT_ID=$(echo $TENANT | jq -r '.id')
+                  ORG_ID=$(echo $TENANT | jq -r '.orgId')
+                  SA_NAME="${TENANT_ID}-viewer"
+                  
+                  echo "🔧 Rotating token for tenant: $TENANT_ID (org: $ORG_ID)"
+                  
+                  # Rotate token using CLI
+                  NEW_TOKEN=$(npx tsx /tools/grafana-org-admin.ts rotate-sat \
+                    --org $ORG_ID \
+                    --name $SA_NAME | grep -oP 'glsa_\w+')
+                  
+                  if [ -z "$NEW_TOKEN" ]; then
+                    echo "❌ Failed to rotate token for $TENANT_ID"
+                    exit 1
+                  fi
+                  
+                  echo "✅ New token generated: ${NEW_TOKEN:0:10}..."
+                  
+                  # Update Kubernetes Secret
+                  kubectl create secret generic grafana-sat-$TENANT_ID \
+                    --from-literal=token=$NEW_TOKEN \
+                    --namespace=core-platform \
+                    --dry-run=client -o yaml | kubectl apply -f -
+                  
+                  # Send Slack notification
+                  curl -X POST $SLACK_WEBHOOK_URL \
+                    -H 'Content-Type: application/json' \
+                    -d "{
+                      \"text\": \":key: Grafana token rotated for tenant: *${TENANT_ID}* (org: ${ORG_ID})\",
+                      \"username\": \"Grafana Token Rotator\",
+                      \"icon_emoji\": \":lock:\"
+                    }"
+                done
+                
+                # Restart backend deployment to pick up new tokens
+                kubectl rollout restart deployment/backend -n core-platform
+                
+                echo "✅ Token rotation complete!"
+            
+            env:
+              - name: GRAFANA_BASE_URL
+                value: "http://grafana.core-platform.svc.cluster.local:3000"
+              - name: GRAFANA_ADMIN_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: grafana-admin-token
+                    key: token
+              - name: SLACK_WEBHOOK_URL
+                valueFrom:
+                  secretKeyRef:
+                    name: slack-webhooks
+                    key: platform-alerts
+            
+            volumeMounts:
+              - name: tenant-config
+                mountPath: /config
+                readOnly: true
+              - name: tools
+                mountPath: /tools
+                readOnly: true
+          
+          volumes:
+            - name: tenant-config
+              configMap:
+                name: grafana-tenants
+            - name: tools
+              configMap:
+                name: grafana-tools
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-token-rotator
+  namespace: core-platform
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: grafana-token-rotator
+  namespace: core-platform
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/rollout"]
+    verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-token-rotator
+  namespace: core-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: grafana-token-rotator
+subjects:
+  - kind: ServiceAccount
+    name: grafana-token-rotator
+    namespace: core-platform
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-tenants
+  namespace: core-platform
+data:
+  tenants.json: |
+    {
+      "tenants": [
+        {
+          "id": "core-platform",
+          "orgId": 1
+        },
+        {
+          "id": "test-tenant",
+          "orgId": 2
+        }
+      ]
+    }
