@@ -4,6 +4,7 @@ import cz.muriel.core.auth.CookieBearerTokenResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,7 +25,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.*;
 
-@Configuration @EnableWebSecurity @EnableMethodSecurity(prePostEnabled = true)
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+@Profile("!test")  // Not active in test profile - use TestSecurityConfig instead
 public class SecurityConfig {
 
   @Value("${cors.origins:http://localhost:3000}")
@@ -75,46 +79,51 @@ public class SecurityConfig {
 
   @Bean
   Converter<Jwt, Collection<GrantedAuthority>> jwtGrantedAuthoritiesConverter() {
-    return jwt -> {
-      // Extract roles from Keycloak JWT token
-      Collection<GrantedAuthority> authorities = new ArrayList<>();
+    // 🔧 FIX: Use anonymous class instead of lambda to avoid Kafka converter type
+    // inference issues
+    return new Converter<Jwt, Collection<GrantedAuthority>>() {
+      @Override
+      public Collection<GrantedAuthority> convert(Jwt jwt) {
+        // Extract roles from Keycloak JWT token
+        Collection<GrantedAuthority> authorities = new ArrayList<>();
 
-      // 1. Realm roles from realm_access claim
-      Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-      if (realmAccess != null) {
-        Object rolesObj = realmAccess.get("roles");
-        if (rolesObj instanceof List) {
-          @SuppressWarnings("unchecked")
-          List<String> roles = (List<String>) rolesObj;
-          roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
-        }
-      }
-
-      // 2. Resource access roles from resource_access claim
-      Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
-      if (resourceAccess != null) {
-        resourceAccess.forEach((clientId, clientAccess) -> {
-          if (clientAccess instanceof Map) {
+        // 1. Realm roles from realm_access claim
+        Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+        if (realmAccess != null) {
+          Object rolesObj = realmAccess.get("roles");
+          if (rolesObj instanceof List) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> clientAccessMap = (Map<String, Object>) clientAccess;
-            Object rolesObj = clientAccessMap.get("roles");
-            if (rolesObj instanceof List) {
-              @SuppressWarnings("unchecked")
-              List<String> roles = (List<String>) rolesObj;
-              roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
-            }
+            List<String> roles = (List<String>) rolesObj;
+            roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
           }
-        });
-      }
+        }
 
-      // 3. Scope authorities (standard OAuth2)
-      String scope = jwt.getClaimAsString("scope");
-      if (scope != null) {
-        Arrays.stream(scope.split(" ")).forEach(
-            scopeValue -> authorities.add(new SimpleGrantedAuthority("SCOPE_" + scopeValue)));
-      }
+        // 2. Resource access roles from resource_access claim
+        Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
+        if (resourceAccess != null) {
+          resourceAccess.forEach((clientId, clientAccess) -> {
+            if (clientAccess instanceof Map) {
+              @SuppressWarnings("unchecked")
+              Map<String, Object> clientAccessMap = (Map<String, Object>) clientAccess;
+              Object rolesObj = clientAccessMap.get("roles");
+              if (rolesObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) rolesObj;
+                roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
+              }
+            }
+          });
+        }
 
-      return authorities;
+        // 3. Scope authorities (standard OAuth2)
+        String scope = jwt.getClaimAsString("scope");
+        if (scope != null) {
+          Arrays.stream(scope.split(" ")).forEach(
+              scopeValue -> authorities.add(new SimpleGrantedAuthority("SCOPE_" + scopeValue)));
+        }
+
+        return authorities;
+      }
     };
   }
 
