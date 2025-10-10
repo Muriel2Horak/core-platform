@@ -106,6 +106,13 @@ export const defaultMenuItems: SidebarNavItem[] = [
     href: '/user-directory',
     description: 'Vyhledávání uživatelů',
   },
+  {
+    id: 'reports',
+    label: 'Reporting',
+    icon: <AssessmentIcon />,
+    href: '/reports',
+    description: 'Analytické reporty a metriky',
+  },
   
   // 👥 Administrace - parent položka s vnořeným menu
   {

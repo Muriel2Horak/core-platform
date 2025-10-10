@@ -16,6 +16,9 @@ import Layout from './components/Layout.jsx';
 import DataTablePage from './pages/Examples/DataTablePage.tsx';
 import KanbanPage from './pages/Examples/KanbanPage.tsx';
 
+// 📊 Reporting with Grafana Scenes
+import Reports from './pages/Reports.jsx';
+
 // 🆕 Admin sekce
 import {
   MonitoringPage,
@@ -445,6 +448,9 @@ const AppContent = () => {
         {/* Hlavní dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard user={user} />} />
+        
+        {/* 📊 Reports - Grafana Scenes with BFF */}
+        <Route path="/reports" element={<Reports />} />
         
         {/* User Directory - veřejně přístupný */}
         <Route path="/user-directory" element={<UserDirectory user={user} />} />
