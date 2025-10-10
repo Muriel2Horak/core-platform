@@ -54,3 +54,19 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus,env
+  
+  metrics:
+    tags:
+      application: core-platform
+      module: reporting
+    export:
+      prometheus:
+        enabled: true
+
+# Logging configuration for reporting module
+logging:
+  level:
+    cz.muriel.core.reporting: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [requestId=%X{requestId}] [tenantId=%X{tenantId}] [userId=%X{userId}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [requestId=%X{requestId}] [tenantId=%X{tenantId}] [userId=%X{userId}] - %msg%n"

@@ -1,5 +1,6 @@
 package cz.muriel.core.reporting.cube;
 
+import cz.muriel.core.reporting.support.ReportingMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class CubeClient {
 
     private final RestClient cubeRestClient;
+    private final ReportingMetrics metrics;
 
     /**
      * Execute query against Cube.js API.
@@ -63,14 +65,17 @@ public class CubeClient {
 
         } catch (HttpClientErrorException e) {
             log.error("Cube.js client error (4xx): {}", e.getMessage());
+            metrics.recordQueryError("client_error");
             throw new IllegalArgumentException("Invalid query: " + e.getResponseBodyAsString(), e);
             
         } catch (HttpServerErrorException e) {
             log.error("Cube.js server error (5xx): {}", e.getMessage());
+            metrics.recordQueryError("server_error");
             throw new RuntimeException("Cube.js server error - please retry later: " + e.getResponseBodyAsString(), e);
             
         } catch (Exception e) {
             log.error("Unexpected error during Cube.js query", e);
+            metrics.recordQueryError("unexpected_error");
             throw new RuntimeException("Query execution failed: " + e.getMessage(), e);
         }
     }

@@ -1,6 +1,7 @@
 package cz.muriel.core.reporting.security;
 
 import cz.muriel.core.reporting.cube.CubeSecurityContext;
+import cz.muriel.core.reporting.support.ReportingMetrics;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
@@ -29,6 +30,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final ProxyManager<String> buckets;
     private final CubeSecurityContext cubeSecurityContext;
+    private final ReportingMetrics metrics;
 
     private static final int CAPACITY = 120; // tokens per minute
     private static final Duration REFILL_DURATION = Duration.ofSeconds(60);
@@ -75,6 +77,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         } else {
             // Rate limit exceeded
             log.warn("Rate limit exceeded for tenant: {}", tenantId);
+            metrics.recordRateLimitExceeded(tenantId);
             
             response.setStatus(429); // Too Many Requests
             response.addHeader("X-RateLimit-Limit", String.valueOf(CAPACITY));

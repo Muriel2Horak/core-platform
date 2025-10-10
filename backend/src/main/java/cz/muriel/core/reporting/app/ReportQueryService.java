@@ -9,6 +9,9 @@ import cz.muriel.core.reporting.dsl.QueryResponse;
 import cz.muriel.core.reporting.support.QueryFingerprint;
 import cz.muriel.core.reporting.support.MetamodelSpecService;
 import cz.muriel.core.reporting.support.EntitySpec;
+import cz.muriel.core.reporting.support.ReportingMetrics;
+import cz.muriel.core.reporting.support.LoggingContextFilter;
+import cz.muriel.core.reporting.security.ReportingSecurityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
@@ -34,6 +37,8 @@ public class ReportQueryService {
     private final MetamodelSpecService metamodelSpecService;
     private final CacheManager cacheManager;
     private final QueryFingerprint queryFingerprint;
+    private final ReportingMetrics metrics;
+    private final ReportingSecurityService securityService;
 
     private static final String CACHE_NAME = "reportQueryCache";
     private static final String SPEC_VERSION = "1.0";
@@ -46,10 +51,33 @@ public class ReportQueryService {
      * @return Query response
      */
     public QueryResponse executeQuery(QueryRequest request, Authentication authentication) {
+        long startTime = System.currentTimeMillis();
+        metrics.recordQueryRequest();
+        
         String tenantId = cubeSecurityContext.extractTenantId(authentication);
         if (tenantId == null) {
             throw new IllegalStateException("Tenant ID not found in authentication");
         }
+
+        // Add to MDC for structured logging
+        LoggingContextFilter.setTenantId(tenantId);
+        String userId = cubeSecurityContext.extractUserId(authentication);
+        if (userId != null) {
+            LoggingContextFilter.setUserId(userId);
+        }
+
+        // Security validation
+        securityService.validateEntityAccess(request.getEntity(), authentication);
+        securityService.validateFieldAccess(request.getDimensions(), 
+            request.getMeasures() != null ? request.getMeasures().stream().map(QueryRequest.Measure::getField).toList() : null, 
+            authentication);
+        securityService.validateRowLevelSecurity(tenantId, authentication);
+        
+        // Query complexity validation
+        int dimensionCount = request.getDimensions() != null ? request.getDimensions().size() : 0;
+        int measureCount = request.getMeasures() != null ? request.getMeasures().size() : 0;
+        int filterCount = request.getFilters() != null ? request.getFilters().size() : 0;
+        securityService.validateQueryComplexity(dimensionCount, measureCount, filterCount);
 
         // Generate cache key
         String fingerprint = queryFingerprint.generate(tenantId, request, SPEC_VERSION);
@@ -60,18 +88,25 @@ public class ReportQueryService {
             QueryResponse cached = cache.get(fingerprint, QueryResponse.class);
             if (cached != null) {
                 log.debug("Cache HIT for fingerprint: {}", fingerprint);
+                metrics.recordCacheHit();
+                long duration = System.currentTimeMillis() - startTime;
+                metrics.recordQueryExecution(duration, request.getEntity(), true);
                 cached.setCacheHit(true);
                 return cached;
             }
         }
 
         log.debug("Cache MISS for fingerprint: {}", fingerprint);
+        metrics.recordCacheMiss();
 
         // Execute query
-        long startTime = System.currentTimeMillis();
+        long cubeStartTime = System.currentTimeMillis();
         
         CubeQueryRequest cubeQuery = cubeMapper.toCubeQuery(request, tenantId);
         List<Map<String, Object>> data = cubeClient.executeQuery(cubeQuery);
+        
+        long cubeExecutionTime = System.currentTimeMillis() - cubeStartTime;
+        metrics.recordCubeApiCall(cubeExecutionTime, true);
         
         long executionTime = System.currentTimeMillis() - startTime;
 
@@ -90,6 +125,8 @@ public class ReportQueryService {
         if (cache != null) {
             cache.put(fingerprint, response);
         }
+
+        metrics.recordQueryExecution(executionTime, request.getEntity(), false);
 
         return response;
     }

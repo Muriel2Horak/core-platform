@@ -22,6 +22,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
@@ -33,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Configuration
 @EnableCaching
+@EnableScheduling
 @EnableConfigurationProperties(ReportingProperties.class)
 @ConditionalOnProperty(name = "reporting.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
