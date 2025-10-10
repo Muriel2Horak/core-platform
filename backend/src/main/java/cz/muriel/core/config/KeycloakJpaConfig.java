@@ -22,10 +22,7 @@ import java.util.Map;
  * Vytváří samostatný EntityManager pro čtení z change_events tabulky v Keycloak
  * DB
  */
-@Configuration 
-@EnableTransactionManagement 
-@EnableJpaRepositories(basePackages = "cz.muriel.core.repository.keycloak", entityManagerFactoryRef = "keycloakEntityManagerFactory", transactionManagerRef = "keycloakTransactionManager")
-@ConditionalOnProperty(name = "keycloak.datasource.enabled", havingValue = "true", matchIfMissing = true)
+@Configuration @EnableTransactionManagement @EnableJpaRepositories(basePackages = "cz.muriel.core.repository.keycloak", entityManagerFactoryRef = "keycloakEntityManagerFactory", transactionManagerRef = "keycloakTransactionManager") @ConditionalOnProperty(name = "keycloak.datasource.enabled", havingValue = "true", matchIfMissing = true)
 public class KeycloakJpaConfig {
 
   @Bean(name = "keycloakEntityManagerFactory")

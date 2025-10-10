@@ -24,10 +24,7 @@ import java.util.function.Supplier;
 /**
  * Rate limiting filter using Bucket4j.
  */
-@Slf4j 
-@Component 
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.rate-limit.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Component @RequiredArgsConstructor @ConditionalOnProperty(name = "app.rate-limit.enabled", havingValue = "true", matchIfMissing = false)
 public class RateLimitFilter extends OncePerRequestFilter {
 
   private final ProxyManager<String> buckets;

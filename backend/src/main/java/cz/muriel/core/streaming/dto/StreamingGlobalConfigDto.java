@@ -7,10 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class StreamingGlobalConfigDto {
     private Boolean enabled;
     private String bootstrapServers;

@@ -25,15 +25,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Integration tests for MonitoringProxyService with WireMock.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
-@ExtendWith(WireMockExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) @ActiveProfiles("test") @ExtendWith(WireMockExtension.class)
 class MonitoringProxyServiceTest {
 
   @Autowired
   private MonitoringProxyService proxyService;
-  
+
   @Autowired
   private TenantOrgService tenantOrgService;
 
@@ -42,25 +39,18 @@ class MonitoringProxyServiceTest {
     claims.put("tenant", tenantId);
     claims.put("preferred_username", "test-user");
     claims.put("realm_access", Map.of("roles", List.of("ROLE_USER")));
-    
+
     Map<String, Object> headers = new HashMap<>();
     headers.put("alg", "RS256");
-    
-    return new Jwt("mock-token", 
-        Instant.now(), 
-        Instant.now().plusSeconds(3600),
-        headers, 
-        claims);
+
+    return new Jwt("mock-token", Instant.now(), Instant.now().plusSeconds(3600), headers, claims);
   }
 
   @Test
   void forwardQuery_shouldAddAuthorizationAndOrgIdHeaders(WireMockServer wireMock) {
     // Setup mock Grafana
-    wireMock.stubFor(WireMock.post("/api/ds/query")
-        .willReturn(WireMock.aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody("{\"results\":{}}")));
+    wireMock.stubFor(WireMock.post("/api/ds/query").willReturn(WireMock.aResponse().withStatus(200)
+        .withHeader("Content-Type", "application/json").withBody("{\"results\":{}}")));
 
     Map<String, Object> requestBody = Map.of("queries", List.of(Map.of("refId", "A")));
     Jwt jwt = createMockJwt("TENANT_A");
@@ -74,7 +64,7 @@ class MonitoringProxyServiceTest {
 
     // Verify headers were sent to Grafana
     var binding = tenantOrgService.resolve(jwt);
-    
+
     wireMock.verify(WireMock.postRequestedFor(WireMock.urlEqualTo("/api/ds/query"))
         .withHeader("Authorization", WireMock.equalTo("Bearer " + binding.serviceAccountToken()))
         .withHeader("X-Grafana-Org-Id", WireMock.equalTo(String.valueOf(binding.orgId())))
@@ -84,10 +74,8 @@ class MonitoringProxyServiceTest {
   @Test
   void forwardGet_shouldProxyDatasourcesRequest(WireMockServer wireMock) {
     // Setup mock
-    wireMock.stubFor(WireMock.get("/api/datasources")
-        .willReturn(WireMock.aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
+    wireMock.stubFor(WireMock.get("/api/datasources").willReturn(
+        WireMock.aResponse().withStatus(200).withHeader("Content-Type", "application/json")
             .withBody("[{\"id\":1,\"name\":\"Prometheus\"}]")));
 
     Jwt jwt = createMockJwt("TENANT_A");
@@ -101,7 +89,7 @@ class MonitoringProxyServiceTest {
 
     // Verify headers
     var binding = tenantOrgService.resolve(jwt);
-    
+
     wireMock.verify(WireMock.getRequestedFor(WireMock.urlEqualTo("/api/datasources"))
         .withHeader("Authorization", WireMock.equalTo("Bearer " + binding.serviceAccountToken()))
         .withHeader("X-Grafana-Org-Id", WireMock.equalTo(String.valueOf(binding.orgId()))));
@@ -110,10 +98,8 @@ class MonitoringProxyServiceTest {
   @Test
   void forwardQuery_shouldHandleGrafanaError(WireMockServer wireMock) {
     // Setup error response
-    wireMock.stubFor(WireMock.post("/api/ds/query")
-        .willReturn(WireMock.aResponse()
-            .withStatus(500)
-            .withBody("{\"error\":\"Internal Server Error\"}")));
+    wireMock.stubFor(WireMock.post("/api/ds/query").willReturn(
+        WireMock.aResponse().withStatus(500).withBody("{\"error\":\"Internal Server Error\"}")));
 
     Map<String, Object> requestBody = Map.of("queries", List.of(Map.of("refId", "A")));
     Jwt jwt = createMockJwt("TENANT_A");
@@ -123,5 +109,3 @@ class MonitoringProxyServiceTest {
         .hasMessageContaining("500");
   }
 }
-
-
