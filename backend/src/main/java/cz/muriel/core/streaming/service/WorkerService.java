@@ -33,6 +33,7 @@ public class WorkerService {
     private final WorkStateRepository workStateRepository;
     private final OutboxFinalRepository outboxFinalRepository;
     private final MetamodelLoader metamodelLoader;
+    private final InflightPublisher inflightPublisher;
     
     private final String workerId;
     private GlobalMetamodelConfig globalConfig;
@@ -41,11 +42,13 @@ public class WorkerService {
             CommandQueueRepository commandQueueRepository,
             WorkStateRepository workStateRepository,
             OutboxFinalRepository outboxFinalRepository,
-            MetamodelLoader metamodelLoader) {
+            MetamodelLoader metamodelLoader,
+            InflightPublisher inflightPublisher) {
         this.commandQueueRepository = commandQueueRepository;
         this.workStateRepository = workStateRepository;
         this.outboxFinalRepository = outboxFinalRepository;
         this.metamodelLoader = metamodelLoader;
+        this.inflightPublisher = inflightPublisher;
         this.workerId = "worker-" + UUID.randomUUID().toString().substring(0, 8);
         
         // Load global config
@@ -89,6 +92,14 @@ public class WorkerService {
      */
     private void processCommand(CommandQueue command) {
         try {
+            // 0. Publish inflight "updating" event
+            inflightPublisher.publishUpdating(
+                command.getEntity(), 
+                command.getEntityId(), 
+                command.getCorrelationId(), 
+                command.getOperation()
+            );
+
             // 1. Check/acquire work_state lock
             WorkState workState = acquireLock(command);
             if (workState == null) {
@@ -114,9 +125,26 @@ public class WorkerService {
             // 6. Release lock
             releaseLock(workState);
 
+            // 7. Publish inflight "completed" event
+            inflightPublisher.publishCompleted(
+                command.getEntity(), 
+                command.getEntityId(), 
+                command.getCorrelationId(), 
+                command.getOperation()
+            );
+
             log.info("✅ Command {} processed successfully", command.getId());
 
         } catch (Exception e) {
+            // Publish inflight "failed" event
+            inflightPublisher.publishFailed(
+                command.getEntity(), 
+                command.getEntityId(), 
+                command.getCorrelationId(), 
+                command.getOperation(),
+                e.getMessage()
+            );
+            
             handleCommandError(command, e);
         }
     }
