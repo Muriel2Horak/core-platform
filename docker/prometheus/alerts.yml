@@ -1,0 +1,110 @@
+groups:
+  - name: streaming_alerts
+    interval: 30s
+    rules:
+      # Queue depth threshold
+      - alert: StreamingQueueDepthHigh
+        expr: core_stream_cmd_queue_depth > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High command queue depth for {{ $labels.priority }} priority"
+          description: "Command queue depth is {{ $value }} for priority {{ $labels.priority }} (threshold: 1000)"
+
+      - alert: StreamingQueueDepthCritical
+        expr: core_stream_cmd_queue_depth > 5000
+        for: 2m
+        labels:
+          severity: critical
+          component: streaming
+        annotations:
+          summary: "Critical command queue depth for {{ $labels.priority }} priority"
+          description: "Command queue depth is {{ $value }} for priority {{ $labels.priority }} (threshold: 5000)"
+
+      # Outbox unsent messages
+      - alert: StreamingOutboxUnsentGrowing
+        expr: rate(core_stream_outbox_unsent_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "Outbox unsent messages growing"
+          description: "Outbox has {{ $value }} unsent messages and growing for 10 minutes"
+
+      # Worker/Dispatcher errors
+      - alert: StreamingWorkerErrorRateHigh
+        expr: rate(core_stream_worker_error_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High worker error rate for {{ $labels.entity }}"
+          description: "Worker error rate is {{ $value }} errors/sec for entity {{ $labels.entity }}"
+
+      - alert: StreamingDispatcherErrorRateHigh
+        expr: rate(core_stream_dispatch_error_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High dispatcher error rate for {{ $labels.entity }}"
+          description: "Dispatcher error rate is {{ $value }} errors/sec for entity {{ $labels.entity }}"
+
+      # DLQ messages
+      - alert: StreamingDLQMessagesDetected
+        expr: increase(core_stream_dlq_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "DLQ messages detected for {{ $labels.entity }}"
+          description: "{{ $value }} messages moved to DLQ in last 5 minutes for entity {{ $labels.entity }}"
+
+      # Latency SLO
+      - alert: StreamingLatencyP95High
+        expr: histogram_quantile(0.95, rate(core_stream_latency_accepted_applied_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High P95 latency for {{ $labels.entity }}"
+          description: "P95 latency is {{ $value }}s for entity {{ $labels.entity }} (SLO: 30s)"
+
+      - alert: StreamingLatencyP95Critical
+        expr: histogram_quantile(0.95, rate(core_stream_latency_accepted_applied_seconds_bucket[5m])) > 60
+        for: 2m
+        labels:
+          severity: critical
+          component: streaming
+        annotations:
+          summary: "Critical P95 latency for {{ $labels.entity }}"
+          description: "P95 latency is {{ $value }}s for entity {{ $labels.entity }} (threshold: 60s)"
+
+      # Lock expiry
+      - alert: StreamingLocksExpiring
+        expr: increase(core_stream_locks_expiring_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High number of expired locks"
+          description: "{{ $value }} locks expired in last 5 minutes, indicating slow workers or deadlocks"
+
+      # Work state stuck
+      - alert: StreamingWorkStateStuck
+        expr: core_stream_workstate_updating > 100
+        for: 15m
+        labels:
+          severity: warning
+          component: streaming
+        annotations:
+          summary: "High number of entities stuck in updating state"
+          description: "{{ $value }} entities have been in 'updating' state for 15+ minutes"

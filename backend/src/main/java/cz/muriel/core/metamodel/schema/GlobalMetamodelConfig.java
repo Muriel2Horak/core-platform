@@ -7,5 +7,5 @@ import lombok.Data;
  */
 @Data
 public class GlobalMetamodelConfig {
-    private StreamingGlobalConfig streaming = new StreamingGlobalConfig();
+  private StreamingGlobalConfig streaming = new StreamingGlobalConfig();
 }

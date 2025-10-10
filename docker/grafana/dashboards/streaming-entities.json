@@ -1,0 +1,132 @@
+{
+  "dashboard": {
+    "title": "Core Streaming - Entities",
+    "uid": "streaming-entities",
+    "tags": ["streaming", "entities"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "entity",
+          "type": "query",
+          "query": "label_values(core_stream_worker_success_total, entity)",
+          "multi": false,
+          "includeAll": false
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Queue Depth - $entity",
+        "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(core_stream_cmd_queue_depth{entity=\"$entity\"})",
+            "legendFormat": "Depth"
+          }
+        ],
+        "options": {
+          "graphMode": "area",
+          "colorMode": "value"
+        }
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Success Rate (5m) - $entity",
+        "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(core_stream_worker_success_total{entity=\"$entity\"}[5m])) / (sum(rate(core_stream_worker_success_total{entity=\"$entity\"}[5m])) + sum(rate(core_stream_worker_error_total{entity=\"$entity\"}[5m]))) * 100",
+            "legendFormat": "Success %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "P95 Latency - $entity",
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(core_stream_latency_accepted_applied_seconds_bucket{entity=\"$entity\"}[5m]))",
+            "legendFormat": "P95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "timeseries",
+        "title": "Worker Operations - $entity",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(core_stream_worker_success_total{entity=\"$entity\"}[1m]))",
+            "legendFormat": "Success"
+          },
+          {
+            "expr": "sum(rate(core_stream_worker_error_total{entity=\"$entity\"}[1m]))",
+            "legendFormat": "Error"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "Dispatcher Operations - $entity",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(core_stream_dispatch_success_total{entity=\"$entity\"}[1m]))",
+            "legendFormat": "Success"
+          },
+          {
+            "expr": "sum(rate(core_stream_dispatch_error_total{entity=\"$entity\"}[1m]))",
+            "legendFormat": "Error"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "type": "table",
+        "title": "Error Breakdown by Type - $entity",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "sum by (error_type) (increase(core_stream_worker_error_total{entity=\"$entity\"}[1h]))",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "renameByName": {"error_type": "Error Type", "Value": "Count (1h)"}
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

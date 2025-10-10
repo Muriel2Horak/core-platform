@@ -37,7 +37,7 @@ public class MetamodelLoader {
 
       try (InputStream is = resource.getInputStream()) {
         GlobalMetamodelConfig config = yamlMapper.readValue(is, GlobalMetamodelConfig.class);
-        log.info("Loaded global metamodel config: streaming.enabled={}", 
+        log.info("Loaded global metamodel config: streaming.enabled={}",
             config.getStreaming().isEnabled());
         return config;
       }
