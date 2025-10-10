@@ -301,8 +301,8 @@ public class KeycloakSyncService {
     } else {
       // For updates, use current version from existing record for optimistic locking
       // userMap already contains the version from existingUser
-      Long currentVersion = userMap.get("version") != null 
-          ? ((Number) userMap.get("version")).longValue() 
+      Long currentVersion = userMap.get("version") != null
+          ? ((Number) userMap.get("version")).longValue()
           : 0L;
       metamodelService.update("User", userMap.get("id").toString(), currentVersion, userMap,
           new SystemAuthentication());

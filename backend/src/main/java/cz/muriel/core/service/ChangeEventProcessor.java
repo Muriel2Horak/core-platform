@@ -24,13 +24,10 @@ import java.util.*;
  * dependency ❌ ODSTRANĚNO: ChangeEventEnrichmentService (nepotřebné - CDC má
  * všechna data)
  * 
- * ⚠️ DEPRECATED: Používejte ChangeEventPollingService místo této třídy
- * Tato služba je zakázána ve výchozím nastavení - použijte ChangeEventPollingService
+ * ⚠️ DEPRECATED: Používejte ChangeEventPollingService místo této třídy Tato
+ * služba je zakázána ve výchozím nastavení - použijte ChangeEventPollingService
  */
-@Service 
-@RequiredArgsConstructor 
-@Slf4j
-@ConditionalOnProperty(name = "app.change-events.legacy-processor-enabled", havingValue = "true", matchIfMissing = false)
+@Service @RequiredArgsConstructor @Slf4j @ConditionalOnProperty(name = "app.change-events.legacy-processor-enabled", havingValue = "true", matchIfMissing = false)
 public class ChangeEventProcessor {
 
   @Qualifier("keycloakDataSource")

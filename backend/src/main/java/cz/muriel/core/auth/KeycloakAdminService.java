@@ -719,7 +719,8 @@ public class KeycloakAdminService {
 
   /**
    * Přiřadí client role uživateli (používá se pro realm-management admin role)
-   * POZOR: Pro service account uživatele a realm-management role používá MASTER realm!
+   * POZOR: Pro service account uživatele a realm-management role používá MASTER
+   * realm!
    */
   public void assignClientRoleToUser(String userId, String clientId, String roleName) {
     try {
@@ -727,7 +728,8 @@ public class KeycloakAdminService {
 
       String adminToken = getSecureAdminToken();
 
-      // 🔧 FIX: Pro realm-management klienta používáme adminRealm (master), ne targetRealm
+      // 🔧 FIX: Pro realm-management klienta používáme adminRealm (master), ne
+      // targetRealm
       // realm-management je specifický klient v master realmu pro správu všech realmů
       String realmToUse = "realm-management".equals(clientId) ? adminRealm : targetRealm;
       log.debug("Using realm {} for client {} role assignment", realmToUse, clientId);
@@ -775,8 +777,7 @@ public class KeycloakAdminService {
    */
   private String getClientUuidByClientId(String clientId, String realmName, String adminToken) {
     try {
-      String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients?clientId="
-          + clientId;
+      String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients?clientId=" + clientId;
 
       HttpHeaders headers = new HttpHeaders();
       headers.setBearerAuth(adminToken);
@@ -801,7 +802,8 @@ public class KeycloakAdminService {
   /**
    * Najdi client role podle názvu v zadaném realmu
    */
-  private JsonNode getClientRole(String clientUuid, String roleName, String realmName, String adminToken) {
+  private JsonNode getClientRole(String clientUuid, String roleName, String realmName,
+      String adminToken) {
     try {
       String url = keycloakBaseUrl + "/admin/realms/" + realmName + "/clients/" + clientUuid
           + "/roles/" + roleName;
@@ -815,7 +817,8 @@ public class KeycloakAdminService {
       return objectMapper.readTree(response.getBody());
 
     } catch (Exception ex) {
-      log.error("Failed to get client role {} for client {} in realm {}", roleName, clientUuid, realmName, ex);
+      log.error("Failed to get client role {} for client {} in realm {}", roleName, clientUuid,
+          realmName, ex);
       return null;
     }
   }

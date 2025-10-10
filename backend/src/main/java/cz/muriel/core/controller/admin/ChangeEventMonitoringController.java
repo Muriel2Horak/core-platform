@@ -19,15 +19,11 @@ import java.util.Map;
  * systému. Provides detailed insights into event processing, health, and
  * performance metrics.
  * 
- * ⚠️ DEPRECATED: Tento controller je aktivní pouze když je povolen legacy ChangeEventProcessor
- * Pro nový ChangeEventPollingService použijte jiné monitoring endpointy
+ * ⚠️ DEPRECATED: Tento controller je aktivní pouze když je povolen legacy
+ * ChangeEventProcessor Pro nový ChangeEventPollingService použijte jiné
+ * monitoring endpointy
  */
-@RestController 
-@RequestMapping("/api/admin/change-events") 
-@RequiredArgsConstructor 
-@Slf4j 
-@PreAuthorize("hasRole('ADMIN')")
-@ConditionalOnBean(ChangeEventProcessor.class)
+@RestController @RequestMapping("/api/admin/change-events") @RequiredArgsConstructor @Slf4j @PreAuthorize("hasRole('ADMIN')") @ConditionalOnBean(ChangeEventProcessor.class)
 public class ChangeEventMonitoringController {
 
   private final ChangeEventProcessor processor;
