@@ -3,6 +3,7 @@ package cz.muriel.core.monitoring.bff;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -29,7 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * (request count, errors, etc.) - Sensitive data is NOT logged - Logs are
  * structured and queryable
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureMockMvc @ActiveProfiles("test") @ExtendWith(WireMockExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
+@ExtendWith(WireMockExtension.class)
 class MonitoringMetricsAndLogsIT {
 
   @Autowired

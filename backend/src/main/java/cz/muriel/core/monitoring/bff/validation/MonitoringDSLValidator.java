@@ -24,29 +24,32 @@ public class MonitoringDSLValidator {
     
     // SQL injection patterns
     private static final Pattern[] SQL_INJECTION_PATTERNS = {
-        Pattern.compile("(?i)\\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE)\\s+(TABLE|DATABASE|INDEX)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)--;", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)/\\*.*\\*/", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)\\bUNION\\s+SELECT\\b", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)\\bEXEC(UTE)?\\s*\\(", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("\\b(DROP|ALTER|CREATE|TRUNCATE)\\s+(TABLE|DATABASE|INDEX)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(DELETE)\\s+FROM\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(UPDATE)\\s+\\w+\\s+SET\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(INSERT)\\s+INTO\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("--;"),
+        Pattern.compile("/\\*.*\\*/"),
+        Pattern.compile("\\bUNION\\s+SELECT\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bEXEC(UTE)?\\s*\\(", Pattern.CASE_INSENSITIVE)
     };
     
     // Command injection patterns
     private static final Pattern[] COMMAND_INJECTION_PATTERNS = {
-        Pattern.compile("(?i)\\b(rm|cat|curl|wget|bash|sh|eval|exec)\\s", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)[;&|`$]\\s*(rm|cat|ls|pwd|whoami|id)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\$\\([^)]+\\)", Pattern.CASE_INSENSITIVE), // $(command)
-        Pattern.compile("`[^`]+`", Pattern.CASE_INSENSITIVE) // `command`
+        Pattern.compile("\\b(rm|cat|curl|wget|bash|sh|eval|exec)\\s", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("[;&|`$]\\s*(rm|cat|ls|pwd|whoami|id)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\$\\([^)]+\\)"), // $(command)
+        Pattern.compile("`[^`]+`") // `command`
     };
     
     // XSS patterns
     private static final Pattern[] XSS_PATTERNS = {
-        Pattern.compile("(?i)<script[^>]*>", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)</script>", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)<iframe[^>]*>", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)javascript:", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)onerror\\s*=", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("(?i)onload\\s*=", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("<script[^>]*>", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("</script>", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("<iframe[^>]*>", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("javascript:", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("onerror\\s*=", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("onload\\s*=", Pattern.CASE_INSENSITIVE)
     };
 
     /**

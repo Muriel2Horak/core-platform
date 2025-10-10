@@ -2,6 +2,7 @@ package cz.muriel.core.config;
 
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +22,10 @@ import java.util.Map;
  * Vytváří samostatný EntityManager pro čtení z change_events tabulky v Keycloak
  * DB
  */
-@Configuration @EnableTransactionManagement @EnableJpaRepositories(basePackages = "cz.muriel.core.repository.keycloak", entityManagerFactoryRef = "keycloakEntityManagerFactory", transactionManagerRef = "keycloakTransactionManager")
+@Configuration 
+@EnableTransactionManagement 
+@EnableJpaRepositories(basePackages = "cz.muriel.core.repository.keycloak", entityManagerFactoryRef = "keycloakEntityManagerFactory", transactionManagerRef = "keycloakTransactionManager")
+@ConditionalOnProperty(name = "keycloak.datasource.enabled", havingValue = "true", matchIfMissing = true)
 public class KeycloakJpaConfig {
 
   @Bean(name = "keycloakEntityManagerFactory")
