@@ -2,7 +2,6 @@ entity: Group
 table: groups
 idField: id
 tenantField: tenant_id
-versionField: version
 
 # Deterministické UUID generation
 idGeneration:
@@ -36,11 +35,6 @@ fields:
   - name: tenant_id
     type: uuid
     required: true
-  
-  - name: version
-    type: long
-    required: true
-    defaultValue: 0
   
   - name: keycloak_group_id
     type: string
