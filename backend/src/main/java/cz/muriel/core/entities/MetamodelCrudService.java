@@ -300,8 +300,11 @@ public class MetamodelCrudService {
   }
 
   private Object findEntityById(EntitySchema schema, String id) {
-    // ✅ Explicitly specify column order to match schema fields
-    List<String> columns = schema.getFields().stream().map(FieldSchema::getName)
+    // ✅ Filter out relationship fields (manyToOne, oneToMany, manyToMany) 
+    // as they are not actual database columns
+    List<String> columns = schema.getFields().stream()
+        .filter(f -> !isRelationshipField(f))
+        .map(FieldSchema::getName)
         .collect(Collectors.toList());
 
     String columnList = String.join(", ", columns);
@@ -314,6 +317,14 @@ public class MetamodelCrudService {
     } catch (Exception e) {
       return null;
     }
+  }
+
+  /**
+   * Check if field represents a JPA relationship (not a database column)
+   */
+  private boolean isRelationshipField(FieldSchema field) {
+    String type = field.getType();
+    return "manyToOne".equals(type) || "oneToMany".equals(type) || "manyToMany".equals(type);
   }
 
   private Long extractVersion(Object entity, EntitySchema schema) {

@@ -26,7 +26,8 @@ import java.util.Map;
  */
 @Configuration @EnableTransactionManagement @EnableJpaRepositories(basePackages = {
     "cz.muriel.core.repository",
-    "cz.muriel.core.locks" }, excludeFilters = @org.springframework.context.annotation.ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "cz\\.muriel\\.core\\.repository\\.keycloak\\..*"), entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
+    "cz.muriel.core.locks",
+    "cz.muriel.core.reporting.repo" }, excludeFilters = @org.springframework.context.annotation.ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "cz\\.muriel\\.core\\.repository\\.keycloak\\..*"), entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class PrimaryJpaConfig {
 
   @Primary @Bean(name = "dataSourceProperties") @ConfigurationProperties("spring.datasource")
@@ -49,7 +50,7 @@ public class PrimaryJpaConfig {
     properties.put("hibernate.show_sql", false);
     properties.put("hibernate.format_sql", true);
 
-    return builder.dataSource(dataSource).packages("cz.muriel.core.entity", "cz.muriel.core.locks")
+    return builder.dataSource(dataSource).packages("cz.muriel.core.entity", "cz.muriel.core.locks", "cz.muriel.core.reporting.model")
         .persistenceUnit("default").properties(properties).build();
   }
 
