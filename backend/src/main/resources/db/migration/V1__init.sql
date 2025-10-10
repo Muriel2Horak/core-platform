@@ -643,6 +643,98 @@ COMMENT ON TABLE document_index IS 'Fulltext search index for documents (Phase 2
 COMMENT ON TABLE presence_activity IS 'Presence activity log for analytics (Phase 2.1)';
 
 -- =====================================================
+-- PHASE 3: REPORTING & ANALYTICS
+-- =====================================================
+
+-- Saved report views
+CREATE TABLE report_view (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    entity VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    scope VARCHAR(20) NOT NULL CHECK (scope IN ('private', 'group', 'tenant', 'global')),
+    owner_id UUID REFERENCES users_directory(id) ON DELETE SET NULL,
+    group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+    definition JSONB NOT NULL,
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT report_view_scope_check CHECK (
+        (scope = 'private' AND owner_id IS NOT NULL) OR
+        (scope = 'group' AND group_id IS NOT NULL) OR
+        (scope IN ('tenant', 'global'))
+    )
+);
+
+CREATE INDEX idx_report_view_tenant ON report_view(tenant_id);
+CREATE INDEX idx_report_view_owner ON report_view(owner_id) WHERE owner_id IS NOT NULL;
+CREATE INDEX idx_report_view_entity ON report_view(entity);
+CREATE INDEX idx_report_view_scope ON report_view(scope);
+
+-- Bulk update jobs
+CREATE TABLE reporting_job (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID NOT NULL REFERENCES users_directory(id),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    entity VARCHAR(255) NOT NULL,
+    where_json JSONB NOT NULL,
+    patch_json JSONB NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'RUNNING', 'SUCCESS', 'FAILED', 'CANCELLED')),
+    dry_run BOOLEAN NOT NULL DEFAULT false,
+    total_rows INTEGER,
+    affected_rows INTEGER,
+    message TEXT,
+    idempotency_key VARCHAR(255),
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    version INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_reporting_job_tenant ON reporting_job(tenant_id);
+CREATE INDEX idx_reporting_job_status ON reporting_job(status);
+CREATE INDEX idx_reporting_job_created_by ON reporting_job(created_by);
+CREATE INDEX idx_reporting_job_idempotency ON reporting_job(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX idx_reporting_job_created_at ON reporting_job(created_at DESC);
+
+-- Job execution events
+CREATE TABLE reporting_job_event (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID NOT NULL REFERENCES reporting_job(id) ON DELETE CASCADE,
+    ts TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    level VARCHAR(10) NOT NULL CHECK (level IN ('INFO', 'WARN', 'ERROR')),
+    message TEXT NOT NULL
+);
+
+CREATE INDEX idx_reporting_job_event_job ON reporting_job_event(job_id, ts);
+
+-- Audit change log
+CREATE TABLE audit_change (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ts TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    actor UUID NOT NULL REFERENCES users_directory(id),
+    entity VARCHAR(255) NOT NULL,
+    entity_id UUID NOT NULL,
+    op VARCHAR(10) NOT NULL CHECK (op IN ('INSERT', 'UPDATE', 'DELETE')),
+    before JSONB,
+    after JSONB,
+    job_id UUID REFERENCES reporting_job(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_audit_change_tenant ON audit_change(tenant_id);
+CREATE INDEX idx_audit_change_entity ON audit_change(entity, entity_id);
+CREATE INDEX idx_audit_change_actor ON audit_change(actor);
+CREATE INDEX idx_audit_change_job ON audit_change(job_id) WHERE job_id IS NOT NULL;
+CREATE INDEX idx_audit_change_ts ON audit_change(ts DESC);
+
+COMMENT ON TABLE report_view IS 'Saved report views with scope-based sharing (Phase 3.4)';
+COMMENT ON TABLE reporting_job IS 'Bulk update jobs with idempotency (Phase 3.5)';
+COMMENT ON TABLE reporting_job_event IS 'Job execution events (Phase 3.5)';
+COMMENT ON TABLE audit_change IS 'Audit log for all entity changes (Phase 3.5)';
+
+-- =====================================================
 -- VERIFICATION
 -- =====================================================
 

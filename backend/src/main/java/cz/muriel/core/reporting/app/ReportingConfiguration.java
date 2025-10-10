@@ -1,6 +1,10 @@
 package cz.muriel.core.reporting.app;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
+import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,6 +18,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -99,4 +104,27 @@ public class ReportingConfiguration {
 
         return builder.build();
     }
+
+    /**
+     * ProxyManager for Bucket4j rate limiting with Redis backend.
+     */
+    @Bean
+    @ConditionalOnProperty(name = "reporting.cache.provider", havingValue = "redis", matchIfMissing = true)
+    public ProxyManager<String> redisProxyManager(RedisConnectionFactory connectionFactory) {
+        log.info("Configuring Redis-based ProxyManager for Bucket4j");
+
+        if (connectionFactory instanceof LettuceConnectionFactory lettuceFactory) {
+            RedisClient redisClient = RedisClient.create(lettuceFactory.getStandaloneConfiguration().getHostName());
+            StatefulRedisConnection<String, byte[]> connection = redisClient.connect(io.lettuce.core.codec.RedisCodec.of(
+                io.lettuce.core.codec.StringCodec.UTF8, 
+                io.lettuce.core.codec.ByteArrayCodec.INSTANCE
+            ));
+            
+            return LettuceBasedProxyManager.builderFor(connection)
+                .build();
+        }
+
+        throw new IllegalStateException("LettuceConnectionFactory required for Redis-based rate limiting");
+    }
 }
+
