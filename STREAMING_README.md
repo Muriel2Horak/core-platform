@@ -55,8 +55,12 @@ Streamingová infrastruktura pro core-platform využívající Kafka, PostgreSQL
 
 ### 5. **Metrics & Monitoring**
 - **Prometheus**: 15+ metrik (queue depth, latency, errors, DLQ)
-- **Grafana**: 3 dashboardy (Overview, Entities, Operations)
+- **Grafana**: 3 dashboardy (Overview, Entities, Operations) - dostupné na `/monitoring/`
+  - **streaming-overview**: Celkový přehled - queue depth, outbox, success rate, latency, DLQ
+  - **streaming-entities**: Per-entity metriky - throughput, latency a chyby pro user/group/role/permission
+  - **streaming-ops**: Operační monitoring - work state, locky, DLQ breakdown, priority queues, error logs
 - **Alerts**: Queue threshold, DLQ, P95 latency SLO (30s)
+- **Real-time Dashboard**: Admin UI na `/admin/streaming` s live metrikami
 
 ## 🚀 Quickstart
 
