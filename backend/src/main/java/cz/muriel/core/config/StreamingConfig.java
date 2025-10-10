@@ -2,11 +2,19 @@ package cz.muriel.core.config;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -15,6 +23,7 @@ import java.util.Properties;
  * Enabled only when streaming.enabled=true
  */
 @Configuration
+@EnableScheduling
 @ConditionalOnProperty(name = "streaming.enabled", havingValue = "true", matchIfMissing = false)
 @ConfigurationProperties(prefix = "streaming")
 public class StreamingConfig {
@@ -39,6 +48,32 @@ public class StreamingConfig {
         }
         
         return AdminClient.create(props);
+    }
+
+    @Bean
+    public ProducerFactory<String, String> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getServers());
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        
+        // Idempotence & reliability settings
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all");
+        configProps.put(ProducerConfig.RETRIES_CONFIG, 10);
+        configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+        
+        // Performance settings
+        configProps.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "lz4");
+        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 10);
+        configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 65536);
+        
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, String> kafkaTemplate() {
+        return new KafkaTemplate<>(producerFactory());
     }
 
     // Getters and Setters
