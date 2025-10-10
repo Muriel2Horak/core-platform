@@ -299,6 +299,21 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!-- Surefire plugin - configure for integration tests with Testcontainers -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Disable forking to avoid timeout issues with Testcontainers -->
+					<forkCount>0</forkCount>
+					<reuseForks>false</reuseForks>
+					<!-- Increase timeout for integration tests -->
+					<forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+					<!-- Enable parallel execution -->
+					<parallel>methods</parallel>
+					<threadCount>2</threadCount>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
