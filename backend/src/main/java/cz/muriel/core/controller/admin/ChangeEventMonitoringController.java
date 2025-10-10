@@ -3,6 +3,7 @@ package cz.muriel.core.controller.admin;
 import cz.muriel.core.service.ChangeEventProcessor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,8 +18,16 @@ import java.util.Map;
  * Admin endpoints pro monitoring a správu PostgreSQL trigger synchronization
  * systému. Provides detailed insights into event processing, health, and
  * performance metrics.
+ * 
+ * ⚠️ DEPRECATED: Tento controller je aktivní pouze když je povolen legacy ChangeEventProcessor
+ * Pro nový ChangeEventPollingService použijte jiné monitoring endpointy
  */
-@RestController @RequestMapping("/api/admin/change-events") @RequiredArgsConstructor @Slf4j @PreAuthorize("hasRole('ADMIN')")
+@RestController 
+@RequestMapping("/api/admin/change-events") 
+@RequiredArgsConstructor 
+@Slf4j 
+@PreAuthorize("hasRole('ADMIN')")
+@ConditionalOnBean(ChangeEventProcessor.class)
 public class ChangeEventMonitoringController {
 
   private final ChangeEventProcessor processor;
