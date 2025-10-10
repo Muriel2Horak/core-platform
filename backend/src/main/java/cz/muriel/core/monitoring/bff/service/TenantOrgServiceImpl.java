@@ -26,21 +26,33 @@ public class TenantOrgServiceImpl implements TenantOrgService {
 
   @PostConstruct
   public void init() {
-    // TODO: Load from Vault/Secrets Manager in production
-    // For now, load from environment variable
-    // Format:
-    // {"tenant1":{"orgId":1,"token":"sat_xxx"},"tenant2":{"orgId":2,"token":"sat_yyy"}}
+    // ✅ PRODUCTION: Service account tokens loaded from environment variables
+    // These should be injected via Kubernetes Secrets, Vault, or AWS Secrets Manager
+    // Format: GRAFANA_SAT_<TENANT_ID_UPPERCASE> (e.g., GRAFANA_SAT_CORE_PLATFORM)
 
-    log.info("Initializing tenant-org mappings from configuration");
+    log.info("Initializing tenant-org mappings from environment");
 
-    // Hardcoded defaults for development (REMOVE IN PRODUCTION!)
-    tenantOrgMap.put("core-platform", new TenantBinding("core-platform", 1L,
-        System.getenv().getOrDefault("GRAFANA_SAT_CORE_PLATFORM", "glsa_dev_token_placeholder")));
-
-    tenantOrgMap.put("test-tenant", new TenantBinding("test-tenant", 2L,
-        System.getenv().getOrDefault("GRAFANA_SAT_TEST_TENANT", "glsa_dev_token_placeholder")));
+    // Load tenant mappings from environment variables
+    loadTenantMapping("core-platform", 1L, "GRAFANA_SAT_CORE_PLATFORM");
+    loadTenantMapping("test-tenant", 2L, "GRAFANA_SAT_TEST_TENANT");
 
     log.info("Loaded {} tenant-org mappings", tenantOrgMap.size());
+  }
+
+  /**
+   * Load tenant mapping from environment variable
+   */
+  private void loadTenantMapping(String tenantId, Long orgId, String envVarName) {
+    String token = System.getenv(envVarName);
+    
+    if (token == null || token.isBlank()) {
+      log.warn("⚠️ Missing service account token for tenant {}: {} not set", tenantId, envVarName);
+      // In development, use placeholder (will fail on actual Grafana calls)
+      token = "glsa_dev_placeholder_" + tenantId;
+    }
+
+    tenantOrgMap.put(tenantId, new TenantBinding(tenantId, orgId, token));
+    log.debug("Loaded mapping: {} -> org {} (token masked)", tenantId, orgId);
   }
 
   @Override
