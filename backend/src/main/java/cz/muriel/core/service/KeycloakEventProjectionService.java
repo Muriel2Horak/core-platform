@@ -3,6 +3,7 @@ package cz.muriel.core.service;
 import cz.muriel.core.cdc.ChangeEvent;
 import cz.muriel.core.dto.UserDto;
 import cz.muriel.core.entity.Tenant;
+import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.KeycloakEventLogRepository;
 import cz.muriel.core.entity.KeycloakEventLog;
@@ -163,10 +164,15 @@ public class KeycloakEventProjectionService {
 
       if (isNew) {
         user = new HashMap<>();
+        
+        // ✅ Generate deterministic UUID from keycloak_user_id + tenant_id
+        UUID userId_uuid = UserDirectoryEntity.generateUuidFromKeycloakId(userId, tenant.getId());
+        user.put("id", userId_uuid);
+        
         user.put("tenant_id", tenant.getId());
         user.put("created_at", LocalDateTime.now());
         user.put("is_federated", false); // Default: local user, not federated
-        log.debug("Creating new user: {}", username);
+        log.debug("Creating new user: {} with id: {}", username, userId_uuid);
       } else {
         user = new HashMap<>(existingUsers.get(0));
         log.debug("Updating existing user: {}", username);

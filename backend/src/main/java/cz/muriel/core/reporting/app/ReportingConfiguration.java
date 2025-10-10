@@ -101,13 +101,13 @@ public class ReportingConfiguration {
       var config = lettuceFactory.getStandaloneConfiguration();
       String host = config.getHostName();
       int port = config.getPort();
-      
+
       log.info("Creating Redis client for Bucket4j: {}:{}", host, port);
-      
+
       // Create Redis URI properly
       String redisUri = String.format("redis://%s:%d", host, port);
       RedisClient redisClient = RedisClient.create(redisUri);
-      
+
       StatefulRedisConnection<String, byte[]> connection = redisClient
           .connect(io.lettuce.core.codec.RedisCodec.of(io.lettuce.core.codec.StringCodec.UTF8,
               io.lettuce.core.codec.ByteArrayCodec.INSTANCE));

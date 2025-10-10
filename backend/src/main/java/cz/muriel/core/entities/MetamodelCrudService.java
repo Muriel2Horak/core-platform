@@ -300,12 +300,10 @@ public class MetamodelCrudService {
   }
 
   private Object findEntityById(EntitySchema schema, String id) {
-    // ✅ Filter out relationship fields (manyToOne, oneToMany, manyToMany) 
+    // ✅ Filter out relationship fields (manyToOne, oneToMany, manyToMany)
     // as they are not actual database columns
-    List<String> columns = schema.getFields().stream()
-        .filter(f -> !isRelationshipField(f))
-        .map(FieldSchema::getName)
-        .collect(Collectors.toList());
+    List<String> columns = schema.getFields().stream().filter(f -> !isRelationshipField(f))
+        .map(FieldSchema::getName).collect(Collectors.toList());
 
     String columnList = String.join(", ", columns);
     String sql = String.format("SELECT %s FROM %s WHERE %s = :id", columnList, schema.getTable(),
