@@ -406,21 +406,29 @@ public class KeycloakBulkSyncService {
     if (isNew) {
       UUID userId = UserDirectoryEntity.generateUuidFromKeycloakId(user.getId(), tenantId);
       userMap.put("id", userId);
+      userMap.put("tenant_id", tenantId);
+      userMap.put("created_at", LocalDateTime.now());
+      userMap.put("is_federated", false); // Default: local user, not federated
       log.debug("Creating new user: {} with id: {}", user.getUsername(), userId);
     }
 
-    // Set fields
+    // Set fields from Keycloak
     userMap.put("keycloak_user_id", user.getId());
-    userMap.put("tenant_id", tenantId);
     userMap.put("username", user.getUsername());
     userMap.put("email", user.getEmail());
     userMap.put("first_name", user.getFirstName());
     userMap.put("last_name", user.getLastName());
+    userMap.put("active", user.isEnabled()); // ✅ CRITICAL: Set active status
+    userMap.put("updated_at", LocalDateTime.now());
 
-    // Set is_federated for new users
-    if (isNew) {
-      userMap.put("is_federated", false); // Default: local user, not federated
+    // Clear soft delete if re-enabling
+    if (Boolean.TRUE.equals(userMap.get("active"))) {
+      userMap.put("deleted_at", null);
     }
+
+    // Build display name
+    String displayName = buildDisplayName(user.getFirstName(), user.getLastName());
+    userMap.put("display_name", displayName);
 
     // Save via metamodel with SystemAuthentication
     if (isNew) {
@@ -431,6 +439,20 @@ public class KeycloakBulkSyncService {
     }
 
     log.debug("✅ User synced: {} ({})", user.getUsername(), user.getId());
+  }
+
+  /**
+   * Build display name from first and last name
+   */
+  private String buildDisplayName(String firstName, String lastName) {
+    if (firstName != null && lastName != null) {
+      return firstName + " " + lastName;
+    } else if (firstName != null) {
+      return firstName;
+    } else if (lastName != null) {
+      return lastName;
+    }
+    return null;
   }
 
   /**
