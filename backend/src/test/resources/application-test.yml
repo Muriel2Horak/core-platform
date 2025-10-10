@@ -54,6 +54,13 @@ spring:
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=30s
 
+# Application configuration for tests
+app:
+  redis:
+    enabled: false  # Disable Redis in tests - use Caffeine instead
+  change-events:
+    listener-enabled: false  # Disable ChangeEventPollingService in tests
+
 # Monitoring/Reporting configuration for tests
 reporting:
   enabled: true
@@ -113,8 +120,3 @@ keycloak:
     client-secret: test-secret
     username: test-admin
     password: test-password
-
-# Change events (disabled in tests - no Keycloak DB)
-app:
-  change-events:
-    listener-enabled: false  # Disable ChangeEventPollingService in tests

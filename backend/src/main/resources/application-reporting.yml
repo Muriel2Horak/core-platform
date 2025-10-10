@@ -24,6 +24,10 @@ reporting:
     timeout-seconds: 300
 
 # Redis configuration (if not already present)
+app:
+  redis:
+    enabled: true  # Enable Redis in production
+
 spring:
   data:
     redis:

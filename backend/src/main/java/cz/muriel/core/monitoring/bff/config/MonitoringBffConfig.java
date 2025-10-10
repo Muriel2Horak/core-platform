@@ -17,6 +17,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
@@ -104,18 +105,19 @@ public class MonitoringBffConfig {
   }
 
   /**
-   * Caffeine cache manager for query result caching
+   * 🔹 Shared Caffeine CacheManager (fallback when Redis unavailable)
    * 
-   * Fallback cache implementation when Redis is not available (test profile). -
-   * TTL: 30 seconds (short for real-time monitoring data) - Max size: 1000
-   * entries per cache - Stats enabled for monitoring
+   * This is the PRIMARY CacheManager when Redis is not available. It dynamically
+   * creates caches for: - Monitoring: grafana-queries, grafana-dashboards -
+   * Reporting: reportQueryCache - Any other @Cacheable annotated methods
    * 
-   * Only created if no other CacheManager bean exists (i.e., Redis is disabled).
+   * TTL: 30 seconds (short for real-time monitoring data) Max size: 1000 entries
+   * per cache Stats enabled for monitoring
    */
-  @Bean @ConditionalOnMissingBean(CacheManager.class)
+  @Bean @ConditionalOnMissingBean(CacheManager.class) @Primary
   public CacheManager cacheManager() {
     CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
-        "grafana-dashboards");
+        "grafana-dashboards", "reportQueryCache");
     cacheManager.setCaffeine(caffeineConfig());
     return cacheManager;
   }
