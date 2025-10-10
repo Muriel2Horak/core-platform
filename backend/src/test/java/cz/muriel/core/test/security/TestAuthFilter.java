@@ -28,16 +28,12 @@ import java.util.stream.Collectors;
  * 
  * Header format: tenant=TENANT_A;roles=ROLE_USER,ROLE_REPORT,ROLE_ADMIN
  * 
- * Example:
- * X-Test-Auth: tenant=test-tenant;roles=ROLE_USER,ROLE_REPORT
+ * Example: X-Test-Auth: tenant=test-tenant;roles=ROLE_USER,ROLE_REPORT
  * 
  * This eliminates the need for Keycloak in tests while maintaining the same
  * authentication mechanism.
  */
-@Slf4j
-@Component
-@Profile("test")
-@Order(1)  // Execute before Spring Security filter chain
+@Slf4j @Component @Profile("test") @Order(1) // Execute before Spring Security filter chain
 public class TestAuthFilter extends OncePerRequestFilter {
 
   private static final String TEST_AUTH_HEADER = "X-Test-Auth";
@@ -53,15 +49,13 @@ public class TestAuthFilter extends OncePerRequestFilter {
     if (testAuth != null && !testAuth.isEmpty()) {
       try {
         Map<String, String> authParams = parseAuthHeader(testAuth);
-        
+
         String tenant = authParams.getOrDefault("tenant", DEFAULT_TENANT);
         String rolesStr = authParams.getOrDefault("roles", "ROLE_USER");
         String subject = authParams.getOrDefault("subject", DEFAULT_SUBJECT);
-        
-        List<GrantedAuthority> authorities = Arrays.stream(rolesStr.split(","))
-            .map(String::trim)
-            .filter(role -> !role.isEmpty())
-            .map(SimpleGrantedAuthority::new)
+
+        List<GrantedAuthority> authorities = Arrays.stream(rolesStr.split(",")).map(String::trim)
+            .filter(role -> !role.isEmpty()).map(SimpleGrantedAuthority::new)
             .collect(Collectors.toList());
 
         // Create JWT claims
@@ -70,27 +64,21 @@ public class TestAuthFilter extends OncePerRequestFilter {
         claims.put("tenant", tenant);
         claims.put("tenant_id", tenant);
         claims.put("preferred_username", subject);
-        claims.put("realm_access", Map.of("roles", authorities.stream()
-            .map(GrantedAuthority::getAuthority)
-            .collect(Collectors.toList())));
+        claims.put("realm_access", Map.of("roles",
+            authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList())));
 
         // Create mock JWT
-        Jwt jwt = new Jwt(
-            "test-token",
-            Instant.now(),
-            Instant.now().plusSeconds(3600),
-            Map.of("alg", "none", "typ", "JWT"),
-            claims
-        );
+        Jwt jwt = new Jwt("test-token", Instant.now(), Instant.now().plusSeconds(3600),
+            Map.of("alg", "none", "typ", "JWT"), claims);
 
         // Create authentication token
         JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt, authorities);
-        
+
         // Set in SecurityContext
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        log.debug("Test authentication set: tenant={}, roles={}, subject={}", 
-            tenant, rolesStr, subject);
+
+        log.debug("Test authentication set: tenant={}, roles={}, subject={}", tenant, rolesStr,
+            subject);
 
       } catch (Exception e) {
         log.error("Failed to parse test auth header: {}", testAuth, e);
@@ -105,7 +93,7 @@ public class TestAuthFilter extends OncePerRequestFilter {
    */
   private Map<String, String> parseAuthHeader(String header) {
     Map<String, String> params = new HashMap<>();
-    
+
     String[] pairs = header.split(";");
     for (String pair : pairs) {
       String[] keyValue = pair.split("=", 2);
@@ -113,7 +101,7 @@ public class TestAuthFilter extends OncePerRequestFilter {
         params.put(keyValue[0].trim(), keyValue[1].trim());
       }
     }
-    
+
     return params;
   }
 }

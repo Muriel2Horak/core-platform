@@ -14,9 +14,7 @@ import org.junit.jupiter.api.extension.*;
  * Usage:
  * 
  * <pre>
- * &#64;SpringBootTest(webEnvironment = RANDOM_PORT)
- * &#64;ActiveProfiles("test")
- * &#64;ExtendWith(WireMockExtension.class)
+ * &#64;SpringBootTest(webEnvironment = RANDOM_PORT) &#64;ActiveProfiles("test") &#64;ExtendWith(WireMockExtension.class)
  * class MyIntegrationTest {
  * 
  *   &#64;Autowired
@@ -31,18 +29,17 @@ import org.junit.jupiter.api.extension.*;
  * </pre>
  */
 @Slf4j
-public class WireMockExtension implements BeforeAllCallback, AfterAllCallback,
-    ParameterResolver {
+public class WireMockExtension implements BeforeAllCallback, AfterAllCallback, ParameterResolver {
 
-  private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(WireMockExtension.class);
+  private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
+      .create(WireMockExtension.class);
   private static final String WIREMOCK_SERVER_KEY = "wireMockServer";
 
   @Override
   public void beforeAll(ExtensionContext context) {
-    WireMockServer wireMockServer = new WireMockServer(
-        WireMockConfiguration.options()
-            .dynamicPort()  // Random port
-            .disableRequestJournal()  // Better performance in tests
+    WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort() // Random
+                                                                                                     // port
+        .disableRequestJournal() // Better performance in tests
     );
 
     wireMockServer.start();
@@ -59,8 +56,9 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback,
 
   @Override
   public void afterAll(ExtensionContext context) {
-    WireMockServer wireMockServer = context.getStore(NAMESPACE).get(WIREMOCK_SERVER_KEY, WireMockServer.class);
-    
+    WireMockServer wireMockServer = context.getStore(NAMESPACE).get(WIREMOCK_SERVER_KEY,
+        WireMockServer.class);
+
     if (wireMockServer != null) {
       wireMockServer.stop();
       System.clearProperty("WIREMOCK_PORT");
@@ -69,12 +67,14 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback,
   }
 
   @Override
-  public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
+  public boolean supportsParameter(ParameterContext parameterContext,
+      ExtensionContext extensionContext) {
     return parameterContext.getParameter().getType().equals(WireMockServer.class);
   }
 
   @Override
-  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
+  public Object resolveParameter(ParameterContext parameterContext,
+      ExtensionContext extensionContext) {
     return extensionContext.getStore(NAMESPACE).get(WIREMOCK_SERVER_KEY, WireMockServer.class);
   }
 }
