@@ -7,11 +7,8 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class StreamingConfigResponse {
-    private StreamingGlobalConfigDto global;
-    private List<StreamingEntityConfigDto> entities;
+  private StreamingGlobalConfigDto global;
+  private List<StreamingEntityConfigDto> entities;
 }

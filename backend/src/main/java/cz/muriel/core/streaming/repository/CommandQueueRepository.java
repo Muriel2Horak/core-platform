@@ -67,15 +67,19 @@ public interface CommandQueueRepository extends JpaRepository<CommandQueue, UUID
   /**
    * Find DLQ messages with pagination
    */
-  org.springframework.data.domain.Page<CommandQueue> findByStatus(String status, org.springframework.data.domain.Pageable pageable);
+  org.springframework.data.domain.Page<CommandQueue> findByStatus(String status,
+      org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find DLQ messages by entity
    */
-  org.springframework.data.domain.Page<CommandQueue> findByStatusAndEntity(String status, String entity, org.springframework.data.domain.Pageable pageable);
+  org.springframework.data.domain.Page<CommandQueue> findByStatusAndEntity(String status,
+      String entity, org.springframework.data.domain.Pageable pageable);
 
   /**
    * Find DLQ messages by entity and error type
    */
-  org.springframework.data.domain.Page<CommandQueue> findByStatusAndEntityAndErrorType(String status, String entity, String errorType, org.springframework.data.domain.Pageable pageable);
+  org.springframework.data.domain.Page<CommandQueue> findByStatusAndEntityAndErrorType(
+      String status, String entity, String errorType,
+      org.springframework.data.domain.Pageable pageable);
 }
