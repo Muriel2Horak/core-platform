@@ -30,7 +30,7 @@ interface Organization {
   name: string;
 }
 
-interface ServiceAccount {
+export interface ServiceAccount {
   id: number;
   name: string;
   orgId: number;
@@ -220,7 +220,7 @@ program
   .command('create-org')
   .description('Create a new Grafana organization for a tenant')
   .requiredOption('--name <name>', 'Organization name (tenant ID)')
-  .action(async (options) => {
+  .action(async (options: { name: string }) => {
     const config = getGrafanaConfig();
     const admin = new GrafanaOrgAdmin(config);
     
@@ -240,7 +240,7 @@ program
   .description('Create service account and token for an organization')
   .requiredOption('--org <orgId>', 'Organization ID', parseInt)
   .requiredOption('--name <name>', 'Service account name')
-  .action(async (options) => {
+  .action(async (options: { org: number; name: string }) => {
     const config = getGrafanaConfig();
     const admin = new GrafanaOrgAdmin(config);
     
@@ -262,7 +262,7 @@ program
   .description('Generate datasource provisioning YAML for organization')
   .requiredOption('--org <orgId>', 'Organization ID', parseInt)
   .requiredOption('--tenant <tenantId>', 'Tenant ID for X-Scope-OrgID header')
-  .action(async (options) => {
+  .action(async (options: { org: number; tenant: string }) => {
     const config = getGrafanaConfig();
     const admin = new GrafanaOrgAdmin(config);
     
@@ -298,7 +298,7 @@ program
   .description('Rotate service account token (creates new, deletes old)')
   .requiredOption('--org <orgId>', 'Organization ID', parseInt)
   .requiredOption('--name <saName>', 'Service account name')
-  .action(async (options) => {
+  .action(async (options: { org: number; name: string }) => {
     const config = getGrafanaConfig();
     const admin = new GrafanaOrgAdmin(config);
     
