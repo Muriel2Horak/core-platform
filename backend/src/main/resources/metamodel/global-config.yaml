@@ -1,20 +1,22 @@
 # Global metamodel configuration
 streaming:
   enabled: false
-  partitions: 3  # Fixed: was defaultPartitions
-  replicationFactor: 1  # Fixed: was defaultReplicationFactor
-  retentionHours: 168  # 7 days for events (fixed: was defaultRetentionHours)
-  inflightRetentionMinutes: 30  # Fixed: was defaultInflightRetentionMinutes
-  commandRetentionHours: 24  # Fixed: was defaultCommandRetentionHours
-  eventPayloadMode: diff  # full|diff|minimal (fixed: was defaultEventPayloadMode)
-  includeSnapshot: false  # Fixed: was defaultIncludeSnapshot
-  strictReads: false  # Fixed: was defaultStrictReads
-  workerBatchSize: 100  # Fixed: was defaultWorkerBatchSize
-  maxRetries: 3  # Fixed: was defaultMaxRetries
-  backoffMultiplier: 2.0  # Fixed: was defaultBackoffMultiplier
-  initialBackoffMs: 100  # Fixed: was defaultInitialBackoffMs
-  maxBackoffMs: 30000  # Fixed: was defaultMaxBackoffMs
-  workerConcurrency: 2  # Fixed: was defaultWorkerConcurrency
+  # Default values for entity streaming config (with "default" prefix!)
+  defaultPartitions: 3
+  defaultReplicationFactor: 1
+  defaultRetentionHours: 168  # 7 days for events
+  defaultInflightRetentionMinutes: 30
+  defaultCommandRetentionHours: 24
+  defaultEventPayloadMode: diff  # full|diff|minimal
+  defaultIncludeSnapshot: false
+  defaultStrictReads: false
+  defaultWorkerBatchSize: 100
+  defaultMaxRetries: 3
+  defaultBackoffMultiplier: 2.0
+  defaultInitialBackoffMs: 100
+  defaultMaxBackoffMs: 30000
+  defaultWorkerConcurrency: 2
+  # Global streaming settings (without "default" prefix)
   dlqTopic: dlq.events
   outboxDlqTopic: dlq.outbox
   dispatcherPollIntervalMs: 100

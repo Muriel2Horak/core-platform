@@ -58,6 +58,12 @@ public class MetamodelLoader {
       log.info("Found {} metamodel files", resources.length);
 
       for (Resource resource : resources) {
+        // Skip global-config.yaml as it's loaded separately by loadGlobalConfig()
+        if (resource.getFilename() != null && resource.getFilename().equals("global-config.yaml")) {
+          log.debug("Skipping global-config.yaml in schema loading");
+          continue;
+        }
+
         try (InputStream is = resource.getInputStream()) {
           EntitySchema schema = yamlMapper.readValue(is, EntitySchema.class);
 

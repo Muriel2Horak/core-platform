@@ -5,6 +5,7 @@ import cz.muriel.core.metamodel.schema.MetamodelSchemaGenerator;
 import cz.muriel.core.metamodel.schema.SchemaDiff;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,11 +13,14 @@ import java.util.*;
 
 /**
  * Admin API for Metamodel hot reload and schema management
+ * 
+ * Disabled in test profile since MetamodelSchemaGenerator is conditional
  */
 @RestController
 @RequestMapping("/api/admin/metamodel")
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "metamodel.schema.auto-generate", havingValue = "true", matchIfMissing = false)
 public class MetamodelAdminController {
 
   private final MetamodelRegistry registry;

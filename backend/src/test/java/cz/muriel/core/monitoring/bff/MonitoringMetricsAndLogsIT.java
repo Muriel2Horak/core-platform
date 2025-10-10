@@ -29,9 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * (request count, errors, etc.) - Sensitive data is NOT logged - Logs are
  * structured and queryable
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
-@ExtendWith(WireMockExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureMockMvc @ExtendWith(WireMockExtension.class)
 class MonitoringMetricsAndLogsIT extends AbstractIntegrationTest {
 
   @Autowired

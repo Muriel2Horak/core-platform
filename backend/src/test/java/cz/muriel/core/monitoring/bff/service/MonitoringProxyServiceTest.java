@@ -24,8 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Integration tests for MonitoringProxyService with WireMock.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ExtendWith(WireMockExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ExtendWith(WireMockExtension.class)
 class MonitoringProxyServiceTest extends AbstractIntegrationTest {
 
   @Autowired

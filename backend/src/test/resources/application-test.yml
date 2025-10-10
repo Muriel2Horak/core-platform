@@ -113,3 +113,8 @@ keycloak:
     client-secret: test-secret
     username: test-admin
     password: test-password
+
+# Change events (disabled in tests - no Keycloak DB)
+app:
+  change-events:
+    listener-enabled: false  # Disable ChangeEventPollingService in tests
