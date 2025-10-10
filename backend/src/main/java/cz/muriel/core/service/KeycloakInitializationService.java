@@ -161,8 +161,16 @@ public class KeycloakInitializationService implements ApplicationRunner {
 
   /**
    * Automaticky přiřadí admin role backend service accountu
+   * 
+   * 🔧 POZNÁMKA: Tento krok je ZAKÁZÁN, protože realm import (realm-core-platform.json)
+   * již obsahuje všechna potřebná nastavení service accountu včetně rolí.
+   * Pokud by bylo potřeba role přiřazovat manuálně, je nutné použít správný realm
+   * a ověřit, že realm-management klient existuje v daném realmu.
    */
   private void ensureServiceAccountRoles() {
+    log.info("⏭️  Skipping service account role assignment - roles are configured via realm import");
+    
+    /* ZAKÁZÁNO - Role jsou již v realm importu
     try {
       log.info("Ensuring backend service account has proper admin roles...");
 
@@ -210,6 +218,7 @@ public class KeycloakInitializationService implements ApplicationRunner {
       log.error("Failed to ensure service account roles", e);
       // Don't fail application startup
     }
+    */
   }
 
   /**
