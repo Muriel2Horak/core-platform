@@ -1,5 +1,5 @@
-# Test profile configuration - NO Docker, DB, Redis, Grafana, or Keycloak required
-# This profile enables fast testing with mocks and in-memory alternatives
+# Test profile configuration - Uses Testcontainers PostgreSQL
+# AbstractIntegrationTest provides PostgreSQL container via @Testcontainers
 
 server:
   port: 0  # Random port for parallel test execution
@@ -12,6 +12,8 @@ logging:
     cz.muriel.core.streaming: DEBUG
     org.springframework.web: INFO
     org.springframework.security: INFO
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN
 
 # Security - Mock JWT authentication (no Keycloak needed)
 spring:
@@ -21,27 +23,30 @@ spring:
         jwt:
           jwk-set-uri: http://invalid  # Will be overridden by TestAuthFilter
 
-  # H2 in-memory database (PostgreSQL compatibility mode)
-  # Only for features that absolutely need DB (e.g., saved views)
-  # Most tests should work without DB
+  # PostgreSQL via Testcontainers - configured by AbstractIntegrationTest @DynamicPropertySource
+  # DO NOT set driver-class-name here - let Spring Boot auto-detect from JDBC URL
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    # These will be overridden by Testcontainers DynamicPropertySource
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
   
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate  # Flyway handles schema
     show-sql: false
     properties:
       hibernate:
         format_sql: false
-        # Map JSONB to TEXT for H2 compatibility
         jdbc:
           lob:
             non_contextual_creation: true
+
+  # Flyway for schema management in tests
+  flyway:
+    enabled: true
+    clean-disabled: false
 
   # Caffeine cache (Redis disabled in tests)
   cache:
@@ -96,3 +101,15 @@ management:
   metrics:
     tags:
       environment: test
+
+# Keycloak configuration (mocked in tests)
+keycloak:
+  datasource:
+    enabled: false  # Disable Keycloak database in tests
+  admin:
+    base-url: http://localhost:8080
+    realm: test-realm
+    client-id: test-client
+    client-secret: test-secret
+    username: test-admin
+    password: test-password

@@ -3,15 +3,14 @@ package cz.muriel.core.monitoring.bff.service;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.test.context.ActiveProfiles;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 
+import cz.muriel.core.test.AbstractIntegrationTest;
 import cz.muriel.core.test.wiremock.WireMockExtension;
 
 import java.time.Instant;
@@ -25,8 +24,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Integration tests for MonitoringProxyService with WireMock.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) @ActiveProfiles("test") @ExtendWith(WireMockExtension.class)
-class MonitoringProxyServiceTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(WireMockExtension.class)
+class MonitoringProxyServiceTest extends AbstractIntegrationTest {
 
   @Autowired
   private MonitoringProxyService proxyService;

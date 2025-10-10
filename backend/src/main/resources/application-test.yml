@@ -1,18 +1,20 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    # Will be overridden by Testcontainers DynamicPropertySource
+    # But keep PostgreSQL driver for compatibility
+    driver-class-name: org.postgresql.Driver
   
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate  # Flyway handles schema
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
 
-# Keycloak test datasource configuration (disabled in tests)
+# Keycloak datasource disabled in tests (using @ConditionalOnProperty)
 keycloak:
   datasource:
     enabled: false
@@ -31,3 +33,5 @@ monitoring:
 logging:
   level:
     cz.muriel.core: DEBUG
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN

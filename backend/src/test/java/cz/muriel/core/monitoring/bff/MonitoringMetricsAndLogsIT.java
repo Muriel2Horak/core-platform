@@ -3,19 +3,18 @@ package cz.muriel.core.monitoring.bff;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 
+import cz.muriel.core.test.AbstractIntegrationTest;
 import cz.muriel.core.test.wiremock.WireMockExtension;
 import cz.muriel.core.test.logging.LogCapture;
 
@@ -30,8 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * (request count, errors, etc.) - Sensitive data is NOT logged - Logs are
  * structured and queryable
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureMockMvc @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) @ActiveProfiles("test") @ExtendWith(WireMockExtension.class)
-class MonitoringMetricsAndLogsIT {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@ExtendWith(WireMockExtension.class)
+class MonitoringMetricsAndLogsIT extends AbstractIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;
