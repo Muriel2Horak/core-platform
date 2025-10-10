@@ -3,6 +3,7 @@ package cz.muriel.core.metamodel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import cz.muriel.core.metamodel.schema.EntitySchema;
+import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
@@ -18,9 +19,33 @@ import java.util.*;
 public class MetamodelLoader {
 
   private static final String METAMODEL_LOCATION = "classpath:metamodel/*.yaml";
+  private static final String GLOBAL_CONFIG_LOCATION = "classpath:metamodel/global-config.yaml";
 
   private final PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
   private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+
+  /**
+   * Load global metamodel configuration
+   */
+  public GlobalMetamodelConfig loadGlobalConfig() {
+    try {
+      Resource resource = resolver.getResource(GLOBAL_CONFIG_LOCATION);
+      if (!resource.exists()) {
+        log.warn("Global config not found, using defaults");
+        return new GlobalMetamodelConfig();
+      }
+
+      try (InputStream is = resource.getInputStream()) {
+        GlobalMetamodelConfig config = yamlMapper.readValue(is, GlobalMetamodelConfig.class);
+        log.info("Loaded global metamodel config: streaming.enabled={}",
+            config.getStreaming().isEnabled());
+        return config;
+      }
+    } catch (Exception e) {
+      log.error("Failed to load global config, using defaults", e);
+      return new GlobalMetamodelConfig();
+    }
+  }
 
   /**
    * Load all metamodel schemas from classpath
@@ -33,6 +58,12 @@ public class MetamodelLoader {
       log.info("Found {} metamodel files", resources.length);
 
       for (Resource resource : resources) {
+        // Skip global-config.yaml as it's loaded separately by loadGlobalConfig()
+        if (resource.getFilename() != null && resource.getFilename().equals("global-config.yaml")) {
+          log.debug("Skipping global-config.yaml in schema loading");
+          continue;
+        }
+
         try (InputStream is = resource.getInputStream()) {
           EntitySchema schema = yamlMapper.readValue(is, EntitySchema.class);
 

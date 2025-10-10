@@ -1,7 +1,6 @@
 entity: UserProfile
 table: user_profile
 idField: id
-versionField: version
 tenantField: tenant_id
 
 fields:

@@ -735,6 +735,110 @@ COMMENT ON TABLE reporting_job_event IS 'Job execution events (Phase 3.5)';
 COMMENT ON TABLE audit_change IS 'Audit log for all entity changes (Phase 3.5)';
 
 -- =====================================================
+-- SECTION 7: STREAMING INFRASTRUCTURE
+-- Command Queue + Outbox Pattern + Work State Locking
+-- =====================================================
+
+-- 7.1) COMMAND_QUEUE - Asynchronous command queue with priority and retry logic
+CREATE TABLE IF NOT EXISTS command_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    entity VARCHAR(100) NOT NULL,
+    entity_id UUID NOT NULL,
+    operation VARCHAR(20) NOT NULL CHECK (operation IN ('CREATE', 'UPDATE', 'DELETE', 'BULK_UPDATE')),
+    payload JSONB NOT NULL,
+    priority VARCHAR(20) NOT NULL DEFAULT 'normal' CHECK (priority IN ('critical', 'high', 'normal', 'bulk')),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'dlq')),
+    available_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    operation_id UUID,
+    correlation_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retries INTEGER NOT NULL DEFAULT 3,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_command_queue_status_priority_available 
+    ON command_queue(status, priority, available_at) 
+    WHERE status = 'pending';
+
+CREATE INDEX idx_command_queue_entity_entity_id 
+    ON command_queue(entity, entity_id);
+
+CREATE INDEX idx_command_queue_operation_id 
+    ON command_queue(operation_id) 
+    WHERE operation_id IS NOT NULL;
+
+CREATE INDEX idx_command_queue_correlation_id 
+    ON command_queue(correlation_id);
+
+CREATE INDEX idx_command_queue_tenant_id 
+    ON command_queue(tenant_id);
+
+COMMENT ON TABLE command_queue IS 'Async command queue with priority-based processing and retry logic';
+COMMENT ON COLUMN command_queue.priority IS 'critical > high > normal > bulk';
+COMMENT ON COLUMN command_queue.status IS 'pending → processing → completed/failed/dlq';
+COMMENT ON COLUMN command_queue.available_at IS 'When command becomes available for processing (retry backoff)';
+COMMENT ON COLUMN command_queue.operation_id IS 'Groups related commands (e.g., bulk operation)';
+COMMENT ON COLUMN command_queue.correlation_id IS 'Traces command across system';
+
+-- 7.2) WORK_STATE - Pessimistic locking for single-writer semantics
+CREATE TABLE IF NOT EXISTS work_state (
+    entity VARCHAR(100) NOT NULL,
+    entity_id UUID NOT NULL,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    state VARCHAR(20) NOT NULL DEFAULT 'idle' CHECK (state IN ('idle', 'updating')),
+    locked_at TIMESTAMPTZ,
+    locked_by VARCHAR(255),
+    PRIMARY KEY (entity, entity_id, tenant_id)
+);
+
+CREATE INDEX idx_work_state_locked_at 
+    ON work_state(locked_at) 
+    WHERE state = 'updating';
+
+CREATE INDEX idx_work_state_tenant_id 
+    ON work_state(tenant_id);
+
+COMMENT ON TABLE work_state IS 'Entity-level locking with TTL-based expiry (5min default)';
+COMMENT ON COLUMN work_state.state IS 'idle ↔ updating (single writer semantics)';
+COMMENT ON COLUMN work_state.locked_at IS 'Lock acquisition timestamp for TTL expiry';
+COMMENT ON COLUMN work_state.locked_by IS 'Worker ID that acquired lock';
+
+-- 7.3) OUTBOX_FINAL - Transactional outbox for Kafka publishing
+CREATE TABLE IF NOT EXISTS outbox_final (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    entity VARCHAR(100) NOT NULL,
+    entity_id UUID NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    payload JSONB NOT NULL,
+    partition_key VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    sent_at TIMESTAMPTZ,
+    correlation_id UUID
+);
+
+CREATE INDEX idx_outbox_final_sent_at 
+    ON outbox_final(sent_at) 
+    WHERE sent_at IS NULL;
+
+CREATE INDEX idx_outbox_final_entity 
+    ON outbox_final(entity, entity_id);
+
+CREATE INDEX idx_outbox_final_tenant_id 
+    ON outbox_final(tenant_id);
+
+CREATE INDEX idx_outbox_final_correlation_id 
+    ON outbox_final(correlation_id) 
+    WHERE correlation_id IS NOT NULL;
+
+COMMENT ON TABLE outbox_final IS 'Transactional outbox pattern for at-least-once Kafka delivery';
+COMMENT ON COLUMN outbox_final.partition_key IS 'Kafka partition key: {entity}#{entityId} for ordering';
+COMMENT ON COLUMN outbox_final.sent_at IS 'NULL = pending, NOT NULL = published to Kafka';
+
+-- =====================================================
 -- VERIFICATION
 -- =====================================================
 
@@ -746,6 +850,7 @@ BEGIN
     RAISE NOTICE '📊 Workflow tables: entity_state, state_transition, entity_state_log';
     RAISE NOTICE '📊 Document tables: document, document_index';
     RAISE NOTICE '📊 Analytics tables: presence_activity';
-    RAISE NOTICE '🔐 RLS policies enabled for tenant isolation';
+    RAISE NOTICE '� Streaming tables: command_queue, work_state, outbox_final';
+    RAISE NOTICE '�🔐 RLS policies enabled for tenant isolation';
     RAISE NOTICE '⚙️ Triggers: version increment, updated_at auto-update';
 END $$;

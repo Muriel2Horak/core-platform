@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.config.WebSocketProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -18,9 +19,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 👥 WebSocket Handler for Presence & Editing Indicators
+ * 👥 WebSocket Handler for Presence & Editing Indicators Only active when Redis
+ * is enabled
  */
-@Component @RequiredArgsConstructor @Slf4j
+@Component @RequiredArgsConstructor @Slf4j @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class PresenceWebSocketHandler extends TextWebSocketHandler {
 
   private final RedisTemplate<String, Object> redisTemplate;

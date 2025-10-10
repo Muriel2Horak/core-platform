@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    # Will be overridden by Testcontainers DynamicPropertySource
+    # But keep PostgreSQL driver for compatibility
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Flyway handles schema
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+# Keycloak datasource disabled in tests (using @ConditionalOnProperty)
+keycloak:
+  datasource:
+    enabled: false
+
+# Disable rate limiting in tests
+app:
+  rate-limit:
+    enabled: false
+
+# Monitoring BFF test config  
+monitoring:
+  grafana:
+    base-url: http://localhost:3000
+    service-account-token: test-token
+
+logging:
+  level:
+    cz.muriel.core: DEBUG
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN

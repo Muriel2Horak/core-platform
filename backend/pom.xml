@@ -56,6 +56,37 @@
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
+		<!-- Kafka for streaming -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-clients</artifactId>
+		</dependency>
+		<!-- WebFlux for reactive HTTP client (Grafana BFF) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+		<!-- SpringDoc OpenAPI for API documentation -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.7.0</version>
+		</dependency>
+		<!-- Resilience4j for circuit breaker -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-reactor</artifactId>
+			<version>2.2.0</version>
+		</dependency>
 		<!-- Security & OAuth2 Resource Server (JWT) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -99,6 +130,19 @@
 		<dependency>
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- WireMock for API mocking in tests -->
+		<dependency>
+			<groupId>org.wiremock</groupId>
+			<artifactId>wiremock-standalone</artifactId>
+			<version>3.3.1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- H2 in-memory database for tests -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<!-- Flyway pro databázové migrace -->
@@ -238,6 +282,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<version>1.18.36</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
@@ -252,6 +297,21 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<!-- Surefire plugin - configure for integration tests with Testcontainers -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Use forking for better isolation -->
+					<forkCount>1</forkCount>
+					<reuseForks>false</reuseForks>
+					<!-- Increase timeout for integration tests with Testcontainers -->
+					<forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
+					<!-- Parallel execution -->
+					<parallel>methods</parallel>
+					<threadCount>2</threadCount>
 				</configuration>
 			</plugin>
 		</plugins>

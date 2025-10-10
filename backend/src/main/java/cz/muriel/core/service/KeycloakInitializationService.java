@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -18,7 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Slf4j @Service @RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor @Profile("!test") // Don't run in test profile - tests use
+                                                           // TestAuthFilter instead
 public class KeycloakInitializationService implements ApplicationRunner {
 
   private final KeycloakAdminService keycloakAdminService;
@@ -327,6 +329,7 @@ public class KeycloakInitializationService implements ApplicationRunner {
    * backup řešení pro případy, kdy import realmu nevytvoří service account
    * automaticky
    */
+  @SuppressWarnings("unused")
   private UserDto createServiceAccountUser(String serviceAccountUsername) {
     try {
       log.info("Creating service account user: {}", serviceAccountUsername);
@@ -353,6 +356,7 @@ public class KeycloakInitializationService implements ApplicationRunner {
   /**
    * Přiřadí client role service accountu (rozšíření pro realm-management role)
    */
+  @SuppressWarnings("unused")
   private void assignClientRoleToServiceAccount(String userId, String clientId, String roleName) {
     try {
       keycloakAdminService.assignClientRoleToUser(userId, clientId, roleName);

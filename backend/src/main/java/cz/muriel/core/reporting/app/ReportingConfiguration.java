@@ -1,6 +1,5 @@
 package cz.muriel.core.reporting.app;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.lettuce.core.RedisClient;
@@ -11,7 +10,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -26,7 +24,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Configuration for Reporting module.
@@ -37,12 +34,20 @@ public class ReportingConfiguration {
   private final ReportingProperties properties;
 
   /**
-   * Redis-based cache manager (primary if Redis is available).
+   * 🔴 Shared Redis CacheManager (PRIMARY when Redis available)
+   * 
+   * This is the PRIMARY CacheManager for the entire application when Redis is
+   * enabled. It creates caches dynamically for: - Reporting: reportQueryCache -
+   * Monitoring: grafana-queries, grafana-dashboards - Any other @Cacheable
+   * annotated methods
+   * 
+   * Falls back to Caffeine CacheManager (from MonitoringBffConfig) when Redis
+   * unavailable.
    */
-  @Bean @Primary @ConditionalOnProperty(name = "reporting.cache.provider", havingValue = "redis", matchIfMissing = true)
+  @Bean @Primary @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
   public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
-    log.info("Configuring Redis cache manager for reporting with TTL: {}s",
-        properties.getDefaultTtlSeconds());
+    log.info("🔴 Configuring SHARED Redis cache manager (TTL: {}s, prefix: '{}')",
+        properties.getDefaultTtlSeconds(), properties.getCache().getKeyPrefix());
 
     RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
         .entryTtl(Duration.ofSeconds(properties.getDefaultTtlSeconds()))
@@ -57,19 +62,8 @@ public class ReportingConfiguration {
         .build();
   }
 
-  /**
-   * Caffeine-based cache manager (fallback).
-   */
-  @Bean @ConditionalOnProperty(name = "reporting.cache.provider", havingValue = "caffeine")
-  public CacheManager caffeineCacheManager() {
-    log.info("Configuring Caffeine cache manager for reporting with TTL: {}s",
-        properties.getDefaultTtlSeconds());
-
-    CaffeineCacheManager cacheManager = new CaffeineCacheManager();
-    cacheManager.setCaffeine(Caffeine.newBuilder().maximumSize(10000)
-        .expireAfterWrite(properties.getDefaultTtlSeconds(), TimeUnit.SECONDS).recordStats());
-    return cacheManager;
-  }
+  // ℹ️ Caffeine CacheManager removed - using shared one from MonitoringBffConfig
+  // It creates caches dynamically including "reportQueryCache"
 
   /**
    * RestClient for Cube.js API.

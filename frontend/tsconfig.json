@@ -20,7 +20,10 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    
+    /* Types */
+    "types": ["node"]
   },
-  "include": ["src/**/*", "esbuild.mjs", "eslint.config.js"]
+  "include": ["src/**/*", "esbuild.mjs", "eslint.config.js", "playwright.config.ts"]
 }

@@ -3,6 +3,7 @@ package cz.muriel.core.websocket;
 import cz.muriel.core.config.WebSocketProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -20,9 +21,10 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import java.util.Map;
 
 /**
- * 🌐 WebSocket Configuration for Presence & Editing Indicators
+ * 🌐 WebSocket Configuration for Presence & Editing Indicators Only active when
+ * Redis is enabled (presence requires Redis)
  */
-@Configuration @EnableWebSocket @RequiredArgsConstructor @Slf4j
+@Configuration @EnableWebSocket @RequiredArgsConstructor @Slf4j @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class WebSocketConfig implements WebSocketConfigurer {
 
   private final WebSocketProperties webSocketProperties;

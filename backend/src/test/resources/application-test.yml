@@ -1,0 +1,122 @@
+# Test profile configuration - Uses Testcontainers PostgreSQL
+# AbstractIntegrationTest provides PostgreSQL container via @Testcontainers
+
+server:
+  port: 0  # Random port for parallel test execution
+
+logging:
+  level:
+    root: WARN
+    cz.muriel.core: DEBUG
+    cz.muriel.core.monitoring: DEBUG
+    cz.muriel.core.streaming: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN
+
+# Security - Mock JWT authentication (no Keycloak needed)
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://invalid  # Will be overridden by TestAuthFilter
+
+  # PostgreSQL via Testcontainers - configured by AbstractIntegrationTest @DynamicPropertySource
+  # DO NOT set driver-class-name here - let Spring Boot auto-detect from JDBC URL
+  datasource:
+    # These will be overridden by Testcontainers DynamicPropertySource
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
+  
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate  # Flyway handles schema
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+  # Flyway for schema management in tests
+  flyway:
+    enabled: true
+    clean-disabled: false
+
+  # Caffeine cache (Redis disabled in tests)
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=30s
+
+# Application configuration for tests
+app:
+  redis:
+    enabled: false  # Disable Redis in tests - use Caffeine instead
+  change-events:
+    listener-enabled: false  # Disable ChangeEventPollingService in tests
+
+# Monitoring/Reporting configuration for tests
+reporting:
+  enabled: true
+  max-rows: 1000  # Lower limit for tests
+  max-interval-days: 30
+  default-ttl-seconds: 30
+  
+  cache:
+    provider: caffeine  # Use Caffeine instead of Redis
+    key-prefix: "test-rpt:"
+  
+  rate-limit:
+    per-tenant-per-min: 9999  # Very high limit for tests (effectively disabled)
+  
+  cube:
+    base-url: http://localhost:${WIREMOCK_PORT:0}  # Will be set by WireMock in tests
+    api-token: test-token
+    connect-timeout-ms: 1000
+    read-timeout-ms: 5000
+  
+  bulk:
+    chunk-size: 100  # Smaller chunks for tests
+    max-affect-rows: 1000
+    queue-concurrency: 1
+    timeout-seconds: 10
+
+# Monitoring BFF Grafana configuration
+monitoring:
+  grafana:
+    base-url: http://localhost:${WIREMOCK_PORT:0}  # Will be set by WireMock in tests
+    connect-timeout-ms: 1000
+    read-timeout-ms: 5000
+    max-response-size-mb: 10
+
+# Streaming configuration (disabled in tests by default)
+streaming:
+  enabled: false  # Disable Kafka/streaming in tests
+
+# Actuator for metrics verification in tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info
+  metrics:
+    tags:
+      environment: test
+
+# Keycloak configuration (mocked in tests)
+keycloak:
+  datasource:
+    enabled: false  # Disable Keycloak database in tests
+  admin:
+    base-url: http://localhost:8080
+    realm: test-realm
+    client-id: test-client
+    client-secret: test-secret
+    username: test-admin
+    password: test-password

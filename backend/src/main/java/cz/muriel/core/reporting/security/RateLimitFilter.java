@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,7 @@ import java.util.function.Supplier;
 /**
  * Rate limiting filter using Bucket4j.
  */
-@Slf4j @Component @RequiredArgsConstructor
+@Slf4j @Component @RequiredArgsConstructor @ConditionalOnProperty(name = "app.rate-limit.enabled", havingValue = "true", matchIfMissing = false)
 public class RateLimitFilter extends OncePerRequestFilter {
 
   private final ProxyManager<String> buckets;

@@ -109,6 +109,13 @@ services:
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
       # 🔒 SSL Configuration for HTTPS communication with Keycloak
       - JAVA_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=JKS
+      # 📊 Streaming & Kafka Configuration
+      - STREAMING_ENABLED=${STREAMING_ENABLED:-false}
+      - KAFKA_SERVERS=${KAFKA_SERVERS:-kafka:9092}
+      - STREAMING_TOPIC_PREFIX=${STREAMING_TOPIC_PREFIX:-core}
+      - STREAMING_SECURITY_MODE=${STREAMING_SECURITY_MODE:-PLAINTEXT}
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+      - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
     volumes:
       # 🔒 Updated to use new wildcard SSL certificates
       - ../ssl:/etc/ssl/backend:ro
@@ -126,6 +133,10 @@ services:
     build:
       context: ..
       dockerfile: docker/frontend/Dockerfile
+      args:
+        STREAMING_ENABLED: ${STREAMING_ENABLED:-false}
+        GRAFANA_PUBLIC_URL: ${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN:-core-platform.local}}
+        API_BASE_URL: /api
     container_name: core-frontend
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
@@ -408,7 +419,69 @@ services:
       timeout: 3s
       retries: 5
 
-  # 📦 MinIO for document storage (Phase 2)
+  # � Kafka (KRaft mode - no Zookeeper needed)
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: core-kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      # KRaft mode configuration
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Performance & Storage settings
+      KAFKA_HEAP_OPTS: "-Xmx768m -Xms768m"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      # Topic auto-creation disabled - we use TopicEnsurer
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      # Metrics for Prometheus
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: kafka
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - core-net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    profiles:
+      - streaming
+
+  # 🎛️ Kafka UI for management and monitoring
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: core-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: core-platform
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_METRICS_PORT: 9999
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - core-net
+    profiles:
+      - streaming
+
+  # �📦 MinIO for document storage (Phase 2)
   minio:
     image: minio/minio:latest
     container_name: core-minio
@@ -438,6 +511,7 @@ volumes:
   keycloak_data:
   redis_data:
   minio_data:
+  kafka_data:
 
 
 networks:
