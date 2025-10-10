@@ -19,113 +19,96 @@ import java.util.Map;
 /**
  * Global exception handler for Reporting module.
  */
-@Slf4j
-@RestControllerAdvice(basePackages = "cz.muriel.core.reporting.api")
+@Slf4j @RestControllerAdvice(basePackages = "cz.muriel.core.reporting.api")
 public class ReportingExceptionHandler {
 
-    /**
-     * Handle validation errors from @Valid.
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidationException(MethodArgumentNotValidException ex) {
-        log.warn("Validation error: {}", ex.getMessage());
+  /**
+   * Handle validation errors from @Valid.
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ProblemDetail handleValidationException(MethodArgumentNotValidException ex) {
+    log.warn("Validation error: {}", ex.getMessage());
 
-        Map<String, String> errors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.put(error.getField(), error.getDefaultMessage());
-        }
-
-        ProblemDetail detail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            "Validation failed"
-        );
-        detail.setProperty("errors", errors);
-        return detail;
+    Map<String, String> errors = new HashMap<>();
+    for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+      errors.put(error.getField(), error.getDefaultMessage());
     }
 
-    /**
-     * Handle constraint violations.
-     */
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
-        log.warn("Constraint violation: {}", ex.getMessage());
+    ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+        "Validation failed");
+    detail.setProperty("errors", errors);
+    return detail;
+  }
 
-        Map<String, String> errors = new HashMap<>();
-        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
-            String path = violation.getPropertyPath().toString();
-            errors.put(path, violation.getMessage());
-        }
+  /**
+   * Handle constraint violations.
+   */
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
+    log.warn("Constraint violation: {}", ex.getMessage());
 
-        ProblemDetail detail = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            "Validation failed"
-        );
-        detail.setProperty("errors", errors);
-        return detail;
+    Map<String, String> errors = new HashMap<>();
+    for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+      String path = violation.getPropertyPath().toString();
+      errors.put(path, violation.getMessage());
     }
 
-    /**
-     * Handle illegal arguments (e.g., invalid query).
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Illegal argument: {}", ex.getMessage());
+    ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+        "Validation failed");
+    detail.setProperty("errors", errors);
+    return detail;
+  }
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            ex.getMessage()
-        );
-    }
+  /**
+   * Handle illegal arguments (e.g., invalid query).
+   */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
+    log.warn("Illegal argument: {}", ex.getMessage());
 
-    /**
-     * Handle access denied.
-     */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
+    return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+  }
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.FORBIDDEN,
-            "Access denied"
-        );
-    }
+  /**
+   * Handle access denied.
+   */
+  @ExceptionHandler(AccessDeniedException.class)
+  public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+    log.warn("Access denied: {}", ex.getMessage());
 
-    /**
-     * Handle Cube.js client errors (4xx).
-     */
-    @ExceptionHandler(HttpClientErrorException.class)
-    public ProblemDetail handleCubeClientError(HttpClientErrorException ex) {
-        log.error("Cube.js client error: {}", ex.getMessage());
+    return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied");
+  }
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            "Query execution failed: " + ex.getResponseBodyAsString()
-        );
-    }
+  /**
+   * Handle Cube.js client errors (4xx).
+   */
+  @ExceptionHandler(HttpClientErrorException.class)
+  public ProblemDetail handleCubeClientError(HttpClientErrorException ex) {
+    log.error("Cube.js client error: {}", ex.getMessage());
 
-    /**
-     * Handle Cube.js server errors (5xx).
-     */
-    @ExceptionHandler(HttpServerErrorException.class)
-    public ProblemDetail handleCubeServerError(HttpServerErrorException ex) {
-        log.error("Cube.js server error: {}", ex.getMessage());
+    return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+        "Query execution failed: " + ex.getResponseBodyAsString());
+  }
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_GATEWAY,
-            "Upstream service error - please retry later"
-        );
-    }
+  /**
+   * Handle Cube.js server errors (5xx).
+   */
+  @ExceptionHandler(HttpServerErrorException.class)
+  public ProblemDetail handleCubeServerError(HttpServerErrorException ex) {
+    log.error("Cube.js server error: {}", ex.getMessage());
 
-    /**
-     * Handle generic exceptions.
-     */
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleGenericError(Exception ex) {
-        log.error("Unexpected error", ex);
+    return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
+        "Upstream service error - please retry later");
+  }
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "An unexpected error occurred"
-        );
-    }
+  /**
+   * Handle generic exceptions.
+   */
+  @ExceptionHandler(Exception.class)
+  public ProblemDetail handleGenericError(Exception ex) {
+    log.error("Unexpected error", ex);
+
+    return ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
+        "An unexpected error occurred");
+  }
 }

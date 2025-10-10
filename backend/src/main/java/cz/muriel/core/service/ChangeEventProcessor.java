@@ -118,7 +118,8 @@ public class ChangeEventProcessor {
     // ✅ Process directly - data fetched from Keycloak API (no payload in DB)
     eventProjectionService.processCdcEvent(eventType, entityId, realmId, tenantKey, null);
 
-    // Note: Grafana user sync removed in Phase 3.9 - use Cube.js Reporting API instead
+    // Note: Grafana user sync removed in Phase 3.9 - use Cube.js Reporting API
+    // instead
   }
 
   /**

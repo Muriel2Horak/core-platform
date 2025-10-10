@@ -14,70 +14,60 @@ import java.util.Map;
  * 
  * Represents the JSON structure expected by Cube.js API.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Data @Builder @NoArgsConstructor @AllArgsConstructor @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CubeQueryRequest {
 
-    /**
-     * List of measures (aggregations).
-     */
-    private List<String> measures;
+  /**
+   * List of measures (aggregations).
+   */
+  private List<String> measures;
 
-    /**
-     * List of dimensions (groupBy fields).
-     */
-    private List<String> dimensions;
+  /**
+   * List of dimensions (groupBy fields).
+   */
+  private List<String> dimensions;
 
-    /**
-     * Time dimensions with date ranges.
-     */
-    private List<TimeDimension> timeDimensions;
+  /**
+   * Time dimensions with date ranges.
+   */
+  private List<TimeDimension> timeDimensions;
 
-    /**
-     * Filters.
-     */
-    private List<Filter> filters;
+  /**
+   * Filters.
+   */
+  private List<Filter> filters;
 
-    /**
-     * Ordering.
-     */
-    private List<List<String>> order;
+  /**
+   * Ordering.
+   */
+  private List<List<String>> order;
 
-    /**
-     * Limit.
-     */
-    private Integer limit;
+  /**
+   * Limit.
+   */
+  private Integer limit;
 
-    /**
-     * Offset.
-     */
-    private Integer offset;
+  /**
+   * Offset.
+   */
+  private Integer offset;
 
-    /**
-     * Security context (tenant, roles).
-     */
-    private Map<String, Object> securityContext;
+  /**
+   * Security context (tenant, roles).
+   */
+  private Map<String, Object> securityContext;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class TimeDimension {
-        private String dimension;
-        private List<String> dateRange;
-        private String granularity;
-    }
+  @Data @Builder @NoArgsConstructor @AllArgsConstructor
+  public static class TimeDimension {
+    private String dimension;
+    private List<String> dateRange;
+    private String granularity;
+  }
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Filter {
-        private String member;
-        private String operator;
-        private List<Object> values;
-    }
+  @Data @Builder @NoArgsConstructor @AllArgsConstructor
+  public static class Filter {
+    private String member;
+    private String operator;
+    private List<Object> values;
+  }
 }

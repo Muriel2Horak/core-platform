@@ -8,12 +8,12 @@ import java.lang.annotation.*;
 /**
  * Annotation for validating QueryRequest.
  */
-@Target({ElementType.TYPE, ElementType.PARAMETER})
-@Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = QueryRequestValidator.class)
-@Documented
+@Target({ ElementType.TYPE,
+    ElementType.PARAMETER }) @Retention(RetentionPolicy.RUNTIME) @Constraint(validatedBy = QueryRequestValidator.class) @Documented
 public @interface ValidQuery {
-    String message() default "Invalid query request";
-    Class<?>[] groups() default {};
-    Class<? extends Payload>[] payload() default {};
+  String message() default "Invalid query request";
+
+  Class<?>[] groups() default {};
+
+  Class<? extends Payload>[] payload() default {};
 }

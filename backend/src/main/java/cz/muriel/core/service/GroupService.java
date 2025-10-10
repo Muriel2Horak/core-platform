@@ -157,10 +157,10 @@ public class GroupService {
   @Transactional(readOnly = true)
   public List<UserDirectoryEntity> getGroupMembers(UUID groupId) {
     log.debug("Getting members for group: {}", groupId);
-    
+
     GroupEntity group = groupRepository.findById(groupId)
         .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
-    
+
     // Load users collection from the many-to-many relationship
     return new java.util.ArrayList<>(group.getUsers());
   }
@@ -171,13 +171,13 @@ public class GroupService {
   @Transactional(readOnly = true)
   public List<UserDirectoryEntity> getGroupMembersByName(String groupName) {
     log.debug("Getting members for group: {}", groupName);
-    
+
     Optional<GroupEntity> groupOpt = getGroupByName(groupName);
     if (groupOpt.isEmpty()) {
       log.warn("Group not found: {}", groupName);
       return List.of();
     }
-    
+
     return new java.util.ArrayList<>(groupOpt.get().getUsers());
   }
 }

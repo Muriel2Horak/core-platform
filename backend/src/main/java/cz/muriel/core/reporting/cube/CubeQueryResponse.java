@@ -12,35 +12,31 @@ import java.util.Map;
 /**
  * Cube.js API response.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@Data @Builder @NoArgsConstructor @AllArgsConstructor @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CubeQueryResponse {
 
-    /**
-     * Query results.
-     */
-    private List<Map<String, Object>> data;
+  /**
+   * Query results.
+   */
+  private List<Map<String, Object>> data;
 
-    /**
-     * Query metadata.
-     */
-    private Map<String, Object> query;
+  /**
+   * Query metadata.
+   */
+  private Map<String, Object> query;
 
-    /**
-     * Last refresh time.
-     */
-    private String lastRefreshTime;
+  /**
+   * Last refresh time.
+   */
+  private String lastRefreshTime;
 
-    /**
-     * Annotation (for errors).
-     */
-    private Map<String, Object> annotation;
+  /**
+   * Annotation (for errors).
+   */
+  private Map<String, Object> annotation;
 
-    /**
-     * Slow query flag.
-     */
-    private Boolean slowQuery;
+  /**
+   * Slow query flag.
+   */
+  private Boolean slowQuery;
 }

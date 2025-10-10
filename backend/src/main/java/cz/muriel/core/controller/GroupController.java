@@ -63,7 +63,7 @@ public class GroupController {
   @GetMapping("/{groupName}/members") @PreAuthorize("hasAnyAuthority('CORE_ROLE_TENANT_ADMIN', 'CORE_ROLE_ADMIN')")
   public ResponseEntity<List<UserDirectoryEntity>> getGroupMembers(@PathVariable String groupName) {
     log.info("Getting members for group: {}", groupName);
-    
+
     List<UserDirectoryEntity> members = groupService.getGroupMembersByName(groupName);
     return ResponseEntity.ok(members);
   }
@@ -87,7 +87,8 @@ public class GroupController {
         GroupEntity parentGroup = groupService.getGroupById(parentId)
             .orElseThrow(() -> new IllegalArgumentException("Parent group not found: " + parentId));
         group.setParentGroup(parentGroup);
-        log.debug("Setting parent group: {} for new group: {}", parentGroup.getName(), group.getName());
+        log.debug("Setting parent group: {} for new group: {}", parentGroup.getName(),
+            group.getName());
       } catch (IllegalArgumentException e) {
         log.error("Invalid parent group ID: {}", groupDto.getParentGroupId(), e);
         throw new IllegalArgumentException("Invalid parent group ID format");

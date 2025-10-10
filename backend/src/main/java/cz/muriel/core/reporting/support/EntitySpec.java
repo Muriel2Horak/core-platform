@@ -13,67 +13,61 @@ import java.util.Set;
  * 
  * Defines allowed dimensions, measures, filters for reporting.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class EntitySpec {
 
-    /**
-     * Entity name.
-     */
-    private String entityName;
+  /**
+   * Entity name.
+   */
+  private String entityName;
 
-    /**
-     * Metamodel version.
-     */
-    private String specVersion;
+  /**
+   * Metamodel version.
+   */
+  private String specVersion;
 
-    /**
-     * Allowed dimension fields.
-     */
-    private Set<String> allowedDimensions;
+  /**
+   * Allowed dimension fields.
+   */
+  private Set<String> allowedDimensions;
 
-    /**
-     * Allowed measure fields.
-     */
-    private Set<String> allowedMeasures;
+  /**
+   * Allowed measure fields.
+   */
+  private Set<String> allowedMeasures;
 
-    /**
-     * Allowed filter fields.
-     */
-    private Set<String> allowedFilters;
+  /**
+   * Allowed filter fields.
+   */
+  private Set<String> allowedFilters;
 
-    /**
-     * Allowed aggregation functions.
-     */
-    private Set<String> allowedAggregations;
+  /**
+   * Allowed aggregation functions.
+   */
+  private Set<String> allowedAggregations;
 
-    /**
-     * Field definitions.
-     */
-    private List<FieldSpec> fields;
+  /**
+   * Field definitions.
+   */
+  private List<FieldSpec> fields;
 
-    /**
-     * Whether time range is required.
-     */
-    private boolean requiresTimeRange;
+  /**
+   * Whether time range is required.
+   */
+  private boolean requiresTimeRange;
 
-    /**
-     * Default time dimension field.
-     */
-    private String defaultTimeDimension;
+  /**
+   * Default time dimension field.
+   */
+  private String defaultTimeDimension;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class FieldSpec {
-        private String name;
-        private String type;
-        private boolean editable;
-        private boolean filterable;
-        private boolean sortable;
-        private List<String> allowedOperators;
-    }
+  @Data @Builder @NoArgsConstructor @AllArgsConstructor
+  public static class FieldSpec {
+    private String name;
+    private String type;
+    private boolean editable;
+    private boolean filterable;
+    private boolean sortable;
+    private List<String> allowedOperators;
+  }
 }
