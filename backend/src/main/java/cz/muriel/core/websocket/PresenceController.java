@@ -2,6 +2,7 @@ package cz.muriel.core.websocket;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -10,9 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 /**
- * 👥 REST API for Presence (Fallback)
+ * 👥 REST API for Presence (Fallback) Only active when Redis is enabled
  */
-@RestController @RequestMapping("/api/presence") @RequiredArgsConstructor @Slf4j
+@RestController @RequestMapping("/api/presence") @RequiredArgsConstructor @Slf4j @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class PresenceController {
 
   private final RedisTemplate<String, Object> redisTemplate;
