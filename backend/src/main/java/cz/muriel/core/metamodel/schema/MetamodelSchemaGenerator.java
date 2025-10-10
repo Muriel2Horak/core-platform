@@ -146,10 +146,9 @@ public class MetamodelSchemaGenerator {
       info.setForeignKeyColumn(rs.getString("foreign_column_name"));
       return info;
     }, tableName, tableName, tableName).stream()
-        .collect(java.util.stream.Collectors.toMap(
-            col -> col.getColumnName().toLowerCase(), // Case-insensitive lookup
-            info -> info
-        ));
+        .collect(java.util.stream.Collectors.toMap(col -> col.getColumnName().toLowerCase(), // Case-insensitive
+                                                                                             // lookup
+            info -> info));
   }
 
   private SchemaDiff.ColumnChange createAddColumnChange(FieldSchema field, EntitySchema schema) {
@@ -200,11 +199,11 @@ public class MetamodelSchemaGenerator {
     if (expectedNullable != dbColumn.isNullable()) {
       // SKIP: Cannot change nullable on primary key columns
       if (dbColumn.isPrimaryKey()) {
-        log.debug("⏭️ Skipping nullable change on PRIMARY KEY column: {}.{}", 
-            schema.getTable(), field.getName());
+        log.debug("⏭️ Skipping nullable change on PRIMARY KEY column: {}.{}", schema.getTable(),
+            field.getName());
         return;
       }
-      
+
       SchemaDiff.ColumnChange change = new SchemaDiff.ColumnChange();
       change.setType(SchemaDiff.ColumnChange.ChangeType.ALTER_NULLABLE);
       change.setColumnName(field.getName());
@@ -284,7 +283,7 @@ public class MetamodelSchemaGenerator {
     for (FieldSchema field : schema.getFields()) {
       if ("manyToMany".equals(field.getType())) {
         String junctionTable = field.getJoinTable();
-        
+
         if (junctionTable == null || junctionTable.isBlank()) {
           log.warn("⚠️ M:N field '{}' missing joinTable, skipping", field.getName());
           continue;
@@ -295,9 +294,11 @@ public class MetamodelSchemaGenerator {
           continue;
         }
 
-        String sourceColumn = field.getJoinColumn() != null ? field.getJoinColumn() : schema.getIdField();
-        String targetColumn = field.getInverseJoinColumn() != null ? field.getInverseJoinColumn() : "target_id";
-        
+        String sourceColumn = field.getJoinColumn() != null ? field.getJoinColumn()
+            : schema.getIdField();
+        String targetColumn = field.getInverseJoinColumn() != null ? field.getInverseJoinColumn()
+            : "target_id";
+
         String sql = String.format("""
             CREATE TABLE IF NOT EXISTS %s (
               %s UUID NOT NULL,
@@ -489,7 +490,7 @@ public class MetamodelSchemaGenerator {
    */
   private void createUniqueConstraints(EntitySchema schema) {
     log.debug("🔒 Creating UNIQUE constraints for: {}", schema.getTable());
-    
+
     for (FieldSchema field : schema.getFields()) {
       if (Boolean.TRUE.equals(field.getUnique())) {
         createUniqueConstraint(schema.getTable(), field.getName());
@@ -499,28 +500,29 @@ public class MetamodelSchemaGenerator {
 
   private void createUniqueConstraint(String tableName, String columnName) {
     String constraintName = "uk_" + tableName + "_" + columnName;
-    
+
     // Check if constraint already exists
     String checkSql = """
         SELECT EXISTS (
           SELECT 1 FROM information_schema.table_constraints
-          WHERE table_schema = 'public' 
-          AND table_name = ? 
+          WHERE table_schema = 'public'
+          AND table_name = ?
           AND constraint_name = ?
           AND constraint_type = 'UNIQUE'
         )
         """;
-    
-    Boolean exists = jdbcTemplate.queryForObject(checkSql, Boolean.class, tableName, constraintName);
-    
+
+    Boolean exists = jdbcTemplate.queryForObject(checkSql, Boolean.class, tableName,
+        constraintName);
+
     if (Boolean.TRUE.equals(exists)) {
       log.debug("✅ UNIQUE constraint already exists: {}", constraintName);
       return;
     }
-    
-    String sql = String.format("ALTER TABLE %s ADD CONSTRAINT %s UNIQUE (%s)", 
-        tableName, constraintName, columnName);
-    
+
+    String sql = String.format("ALTER TABLE %s ADD CONSTRAINT %s UNIQUE (%s)", tableName,
+        constraintName, columnName);
+
     try {
       jdbcTemplate.execute(sql);
       log.debug("✅ UNIQUE constraint created: {}", constraintName);

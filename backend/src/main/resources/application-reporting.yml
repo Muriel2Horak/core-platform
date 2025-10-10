@@ -1,0 +1,72 @@
+reporting:
+  enabled: true
+  max-rows: 50000
+  max-interval-days: 92
+  default-ttl-seconds: 60
+  
+  cache:
+    provider: redis # fallback: caffeine
+    key-prefix: "rpt:"
+  
+  rate-limit:
+    per-tenant-per-min: 120
+  
+  cube:
+    base-url: ${CUBE_BASE_URL:http://cube:4000}
+    api-token: ${CUBE_API_TOKEN:}
+    connect-timeout-ms: 5000
+    read-timeout-ms: 30000
+  
+  bulk:
+    chunk-size: 1000
+    max-affect-rows: 500000
+    queue-concurrency: 2
+    timeout-seconds: 300
+
+# Redis configuration (if not already present)
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000ms
+      cache-null-values: false
+      key-prefix: "cache:"
+      use-key-prefix: true
+
+# Caffeine fallback configuration
+caffeine:
+  spec: maximumSize=10000,expireAfterWrite=60s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env
+  
+  metrics:
+    tags:
+      application: core-platform
+      module: reporting
+    export:
+      prometheus:
+        enabled: true
+
+# Logging configuration for reporting module
+logging:
+  level:
+    cz.muriel.core.reporting: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [requestId=%X{requestId}] [tenantId=%X{tenantId}] [userId=%X{userId}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [requestId=%X{requestId}] [tenantId=%X{tenantId}] [userId=%X{userId}] - %msg%n"

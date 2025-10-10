@@ -200,9 +200,8 @@ public class LifecycleHookExecutor {
     if (value instanceof String str && params.containsKey("minLength")) {
       int minLength = (int) params.get("minLength");
       if (str.length() < minLength) {
-        throw new IllegalArgumentException(
-            String.format("Field '%s' must be at least %d characters, got %d", 
-                field, minLength, str.length()));
+        throw new IllegalArgumentException(String.format(
+            "Field '%s' must be at least %d characters, got %d", field, minLength, str.length()));
       }
     }
 
@@ -210,9 +209,8 @@ public class LifecycleHookExecutor {
     if (value instanceof String str && params.containsKey("maxLength")) {
       int maxLength = (int) params.get("maxLength");
       if (str.length() > maxLength) {
-        throw new IllegalArgumentException(
-            String.format("Field '%s' must be at most %d characters, got %d", 
-                field, maxLength, str.length()));
+        throw new IllegalArgumentException(String.format(
+            "Field '%s' must be at most %d characters, got %d", field, maxLength, str.length()));
       }
     }
 

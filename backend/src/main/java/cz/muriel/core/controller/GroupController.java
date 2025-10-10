@@ -2,6 +2,7 @@ package cz.muriel.core.controller;
 
 import cz.muriel.core.dto.GroupDto;
 import cz.muriel.core.entity.GroupEntity;
+import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.service.GroupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,15 +59,13 @@ public class GroupController {
 
   /**
    * 👥 GET /api/groups/{groupName}/members - Členové skupiny
-   * 
-   * TODO: Implementovat načítání členů skupiny z UserDirectoryEntity
    */
   @GetMapping("/{groupName}/members") @PreAuthorize("hasAnyAuthority('CORE_ROLE_TENANT_ADMIN', 'CORE_ROLE_ADMIN')")
-  public ResponseEntity<List<?>> getGroupMembers(@PathVariable String groupName) {
+  public ResponseEntity<List<UserDirectoryEntity>> getGroupMembers(@PathVariable String groupName) {
     log.info("Getting members for group: {}", groupName);
-    // TODO: Implementovat načítání members z UserDirectoryEntity
-    // Prozatím vrátíme prázdný seznam
-    return ResponseEntity.ok(List.of());
+
+    List<UserDirectoryEntity> members = groupService.getGroupMembersByName(groupName);
+    return ResponseEntity.ok(members);
   }
 
   /**
@@ -81,7 +80,20 @@ public class GroupController {
     group.setPath(groupDto.getPath());
     group.setKeycloakGroupId(groupDto.getKeycloakGroupId());
 
-    // TODO: Handle parentGroupId if provided
+    // Handle parentGroupId if provided
+    if (groupDto.getParentGroupId() != null && !groupDto.getParentGroupId().isEmpty()) {
+      try {
+        UUID parentId = UUID.fromString(groupDto.getParentGroupId());
+        GroupEntity parentGroup = groupService.getGroupById(parentId)
+            .orElseThrow(() -> new IllegalArgumentException("Parent group not found: " + parentId));
+        group.setParentGroup(parentGroup);
+        log.debug("Setting parent group: {} for new group: {}", parentGroup.getName(),
+            group.getName());
+      } catch (IllegalArgumentException e) {
+        log.error("Invalid parent group ID: {}", groupDto.getParentGroupId(), e);
+        throw new IllegalArgumentException("Invalid parent group ID format");
+      }
+    }
 
     GroupEntity createdGroup = groupService.createGroup(group);
     return ResponseEntity.status(HttpStatus.CREATED).body(createdGroup);

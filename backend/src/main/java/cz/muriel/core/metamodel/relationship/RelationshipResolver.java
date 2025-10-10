@@ -105,29 +105,26 @@ public class RelationshipResolver {
     // Lookup target table name from registry
     Optional<EntitySchema> targetSchemaOpt = registry.getSchema(targetEntityType);
     if (targetSchemaOpt.isEmpty()) {
-      log.warn("1:N field '{}': target entity '{}' not found in registry", field.getName(), targetEntityType);
+      log.warn("1:N field '{}': target entity '{}' not found in registry", field.getName(),
+          targetEntityType);
       entity.put(field.getName(), Collections.emptyList());
       return;
     }
 
     EntitySchema targetSchema = targetSchemaOpt.get();
     String targetTable = targetSchema.getTable();
-    
+
     // Query target table for related entities
-    String sql = String.format(
-        "SELECT * FROM %s WHERE %s = ?", 
-        targetTable, 
-        refField
-    );
-    
+    String sql = String.format("SELECT * FROM %s WHERE %s = ?", targetTable, refField);
+
     try {
       @SuppressWarnings("unchecked")
       List<Map<String, Object>> relatedEntities = entityManager.createNativeQuery(sql)
-          .setParameter(1, entityId)
-          .getResultList();
-      
+          .setParameter(1, entityId).getResultList();
+
       entity.put(field.getName(), relatedEntities);
-      log.debug("1:N relationship '{}' loaded {} entities", field.getName(), relatedEntities.size());
+      log.debug("1:N relationship '{}' loaded {} entities", field.getName(),
+          relatedEntities.size());
     } catch (Exception e) {
       log.error("Failed to load 1:N relationship '{}': {}", field.getName(), e.getMessage());
       entity.put(field.getName(), Collections.emptyList());

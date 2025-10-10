@@ -32,9 +32,6 @@ public class ChangeEventProcessor {
   // ✅ Direct processing - no enrichment needed, CDC has full data
   private final KeycloakEventProjectionService eventProjectionService;
 
-  // 🔄 Grafana user sync service
-  private final GrafanaUserSyncService grafanaUserSyncService;
-
   @Value("${app.change-events.polling-interval-ms:10000}")
   private long pollingIntervalMs;
 
@@ -121,14 +118,8 @@ public class ChangeEventProcessor {
     // ✅ Process directly - data fetched from Keycloak API (no payload in DB)
     eventProjectionService.processCdcEvent(eventType, entityId, realmId, tenantKey, null);
 
-    // 🔄 Grafana user sync for role changes
-    if ("USER_ROLE_ASSIGNED".equals(eventType) || "USER_ROLE_REMOVED".equals(eventType)) {
-      try {
-        grafanaUserSyncService.handleUserRoleChange(event);
-      } catch (Exception e) {
-        log.error("❌ Failed to sync Grafana user: {}", e.getMessage(), e);
-      }
-    }
+    // Note: Grafana user sync removed in Phase 3.9 - use Cube.js Reporting API
+    // instead
   }
 
   /**
