@@ -4,6 +4,7 @@ import cz.muriel.core.config.StreamingConfig;
 import cz.muriel.core.metamodel.MetamodelLoader;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.streaming.entity.OutboxFinal;
+import cz.muriel.core.streaming.metrics.StreamingMetrics;
 import cz.muriel.core.streaming.repository.OutboxFinalRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -34,6 +35,7 @@ public class DispatcherService {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final StreamingConfig streamingConfig;
     private final MetamodelLoader metamodelLoader;
+    private final StreamingMetrics metrics;
     
     private GlobalMetamodelConfig globalConfig;
 
@@ -41,11 +43,13 @@ public class DispatcherService {
             OutboxFinalRepository outboxFinalRepository,
             KafkaTemplate<String, String> kafkaTemplate,
             StreamingConfig streamingConfig,
-            MetamodelLoader metamodelLoader) {
+            MetamodelLoader metamodelLoader,
+            StreamingMetrics metrics) {
         this.outboxFinalRepository = outboxFinalRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.streamingConfig = streamingConfig;
         this.metamodelLoader = metamodelLoader;
+        this.metrics = metrics;
         
         // Load global config
         this.globalConfig = metamodelLoader.loadGlobalConfig();
@@ -104,8 +108,10 @@ public class DispatcherService {
                 if (ex == null) {
                     // Success - mark as sent
                     markAsSent(message, result.getRecordMetadata());
+                    metrics.recordDispatchSuccess(message.getEntity());
                 } else {
                     // Failure - handle error
+                    metrics.recordDispatchError(message.getEntity(), ex.getClass().getSimpleName());
                     handlePublishError(message, ex);
                 }
             });
@@ -169,6 +175,7 @@ public class DispatcherService {
         int maxRetries = 3; // TODO: Make configurable
         if (message.getRetryCount() >= maxRetries) {
             // Move to DLQ
+            metrics.recordDLQ(message.getEntity(), "dispatcher");
             publishToDLQ(message);
         }
 

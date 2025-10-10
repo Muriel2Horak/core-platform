@@ -5,6 +5,7 @@ import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.streaming.entity.CommandQueue;
 import cz.muriel.core.streaming.entity.OutboxFinal;
 import cz.muriel.core.streaming.entity.WorkState;
+import cz.muriel.core.streaming.metrics.StreamingMetrics;
 import cz.muriel.core.streaming.repository.CommandQueueRepository;
 import cz.muriel.core.streaming.repository.OutboxFinalRepository;
 import cz.muriel.core.streaming.repository.WorkStateRepository;
@@ -34,6 +35,7 @@ public class WorkerService {
     private final OutboxFinalRepository outboxFinalRepository;
     private final MetamodelLoader metamodelLoader;
     private final InflightPublisher inflightPublisher;
+    private final StreamingMetrics metrics;
     
     private final String workerId;
     private GlobalMetamodelConfig globalConfig;
@@ -43,12 +45,14 @@ public class WorkerService {
             WorkStateRepository workStateRepository,
             OutboxFinalRepository outboxFinalRepository,
             MetamodelLoader metamodelLoader,
-            InflightPublisher inflightPublisher) {
+            InflightPublisher inflightPublisher,
+            StreamingMetrics metrics) {
         this.commandQueueRepository = commandQueueRepository;
         this.workStateRepository = workStateRepository;
         this.outboxFinalRepository = outboxFinalRepository;
         this.metamodelLoader = metamodelLoader;
         this.inflightPublisher = inflightPublisher;
+        this.metrics = metrics;
         this.workerId = "worker-" + UUID.randomUUID().toString().substring(0, 8);
         
         // Load global config
@@ -91,6 +95,8 @@ public class WorkerService {
      * Process a single command
      */
     private void processCommand(CommandQueue command) {
+        long startTime = System.currentTimeMillis();
+        
         try {
             // 0. Publish inflight "updating" event
             inflightPublisher.publishUpdating(
@@ -133,7 +139,12 @@ public class WorkerService {
                 command.getOperation()
             );
 
-            log.info("✅ Command {} processed successfully", command.getId());
+            // 8. Record metrics
+            long latency = System.currentTimeMillis() - startTime;
+            metrics.recordWorkerSuccess(command.getEntity(), command.getPriority());
+            metrics.recordLatency(command.getEntity(), latency);
+
+            log.info("✅ Command {} processed successfully in {}ms", command.getId(), latency);
 
         } catch (Exception e) {
             // Publish inflight "failed" event
@@ -144,6 +155,10 @@ public class WorkerService {
                 command.getOperation(),
                 e.getMessage()
             );
+            
+            // Record error metric
+            metrics.recordWorkerError(command.getEntity(), command.getPriority(), 
+                e.getClass().getSimpleName());
             
             handleCommandError(command, e);
         }
@@ -245,6 +260,7 @@ public class WorkerService {
         if (command.getRetryCount() >= command.getMaxRetries()) {
             // Move to DLQ
             command.setStatus("dlq");
+            metrics.recordDLQ(command.getEntity(), "worker");
             log.warn("Command {} moved to DLQ after {} retries", command.getId(), command.getRetryCount());
         } else {
             // Schedule retry with backoff
