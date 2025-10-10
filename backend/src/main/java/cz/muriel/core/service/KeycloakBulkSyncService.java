@@ -2,7 +2,6 @@ package cz.muriel.core.service;
 
 import cz.muriel.core.entity.SyncExecution;
 import cz.muriel.core.entity.Tenant;
-import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.SyncExecutionRepository;
 import cz.muriel.core.repository.TenantRepository;
@@ -402,14 +401,12 @@ public class KeycloakBulkSyncService {
     Map<String, Object> userMap = existing.isEmpty() ? new HashMap<>() : existing.get(0);
     boolean isNew = existing.isEmpty();
 
-    // ✅ Generate deterministic UUID for new users
+    // 🆔 No need to generate UUID manually - MetamodelCrudService will auto-generate UUID v7
     if (isNew) {
-      UUID userId = UserDirectoryEntity.generateUuidFromKeycloakId(user.getId(), tenantId);
-      userMap.put("id", userId);
       userMap.put("tenant_id", tenantId);
       userMap.put("created_at", LocalDateTime.now());
       userMap.put("is_federated", false); // Default: local user, not federated
-      log.debug("Creating new user: {} with id: {}", user.getUsername(), userId);
+      log.debug("Creating new user: {}", user.getUsername());
     }
 
     // Set fields from Keycloak

@@ -6,6 +6,7 @@ import cz.muriel.core.metamodel.relationship.RelationshipResolver;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.FieldSchema;
 import cz.muriel.core.security.policy.PolicyEngine;
+import cz.muriel.core.util.UUIDv7Generator;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -141,6 +142,18 @@ public class MetamodelCrudService {
 
     // ✨ LIFECYCLE: Execute beforeCreate hooks
     lifecycleExecutor.executeBeforeCreate(schema, data);
+
+    // 🆔 AUTO-GENERATE UUID v7: If no ID provided, generate time-ordered globally unique UUID
+    // This ensures:
+    // - Never repeats (even across different databases/environments)
+    // - Safe for parallel/distributed systems
+    // - Sortable by creation time
+    // - No need for manual UUID generation in sync services
+    if (schema.getIdField() != null && !data.containsKey(schema.getIdField())) {
+      UUID generatedId = UUIDv7Generator.generate();
+      data.put(schema.getIdField(), generatedId);
+      log.debug("Generated UUID v7 for {}: {}", entityType, generatedId);
+    }
 
     // Add tenant_id from JWT (only if not already set - important for
     // SystemAuthentication)
