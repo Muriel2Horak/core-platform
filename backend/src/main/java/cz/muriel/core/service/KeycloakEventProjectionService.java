@@ -164,11 +164,11 @@ public class KeycloakEventProjectionService {
 
       if (isNew) {
         user = new HashMap<>();
-        
+
         // ✅ Generate deterministic UUID from keycloak_user_id + tenant_id
         UUID userId_uuid = UserDirectoryEntity.generateUuidFromKeycloakId(userId, tenant.getId());
         user.put("id", userId_uuid);
-        
+
         user.put("tenant_id", tenant.getId());
         user.put("created_at", LocalDateTime.now());
         user.put("is_federated", false); // Default: local user, not federated

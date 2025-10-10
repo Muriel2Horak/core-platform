@@ -2,6 +2,7 @@ package cz.muriel.core.service;
 
 import cz.muriel.core.entity.SyncExecution;
 import cz.muriel.core.entity.Tenant;
+import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.entities.MetamodelCrudService;
 import cz.muriel.core.repository.SyncExecutionRepository;
 import cz.muriel.core.repository.TenantRepository;
@@ -399,6 +400,14 @@ public class KeycloakBulkSyncService {
     List<Map<String, Object>> existing = jdbcTemplate.queryForList(sql, tenantId, user.getId());
 
     Map<String, Object> userMap = existing.isEmpty() ? new HashMap<>() : existing.get(0);
+    boolean isNew = existing.isEmpty();
+
+    // ✅ Generate deterministic UUID for new users
+    if (isNew) {
+      UUID userId = UserDirectoryEntity.generateUuidFromKeycloakId(user.getId(), tenantId);
+      userMap.put("id", userId);
+      log.debug("Creating new user: {} with id: {}", user.getUsername(), userId);
+    }
 
     // Set fields
     userMap.put("keycloak_user_id", user.getId());
@@ -409,12 +418,12 @@ public class KeycloakBulkSyncService {
     userMap.put("last_name", user.getLastName());
 
     // Set is_federated for new users
-    if (existing.isEmpty()) {
+    if (isNew) {
       userMap.put("is_federated", false); // Default: local user, not federated
     }
 
     // Save via metamodel with SystemAuthentication
-    if (existing.isEmpty()) {
+    if (isNew) {
       metamodelService.create("User", userMap, new SystemAuthentication());
     } else {
       metamodelService.update("User", userMap.get("id").toString(), 0L, userMap,
