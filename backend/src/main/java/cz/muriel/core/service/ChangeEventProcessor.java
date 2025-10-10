@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,8 +23,14 @@ import java.util.*;
  * ✅ CLEAN: Používá čistě CDC data z databáze ❌ ODSTRANĚNO: Webhook SPI
  * dependency ❌ ODSTRANĚNO: ChangeEventEnrichmentService (nepotřebné - CDC má
  * všechna data)
+ * 
+ * ⚠️ DEPRECATED: Používejte ChangeEventPollingService místo této třídy
+ * Tato služba je zakázána ve výchozím nastavení - použijte ChangeEventPollingService
  */
-@Service @RequiredArgsConstructor @Slf4j
+@Service 
+@RequiredArgsConstructor 
+@Slf4j
+@ConditionalOnProperty(name = "app.change-events.legacy-processor-enabled", havingValue = "true", matchIfMissing = false)
 public class ChangeEventProcessor {
 
   @Qualifier("keycloakDataSource")

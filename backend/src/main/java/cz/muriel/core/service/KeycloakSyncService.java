@@ -299,10 +299,14 @@ public class KeycloakSyncService {
       metamodelService.create("User", userMap, new SystemAuthentication());
       log.debug("User created: {} ({})", username, keycloakUserId);
     } else {
-      // For updates, use version 0 (will be handled by metamodel)
-      metamodelService.update("User", userMap.get("id").toString(), 0L, userMap,
+      // For updates, use current version from existing record for optimistic locking
+      // userMap already contains the version from existingUser
+      Long currentVersion = userMap.get("version") != null 
+          ? ((Number) userMap.get("version")).longValue() 
+          : 0L;
+      metamodelService.update("User", userMap.get("id").toString(), currentVersion, userMap,
           new SystemAuthentication());
-      log.debug("User updated: {} ({})", username, keycloakUserId);
+      log.debug("User updated: {} ({}) with version {}", username, keycloakUserId, currentVersion);
     }
   }
 
