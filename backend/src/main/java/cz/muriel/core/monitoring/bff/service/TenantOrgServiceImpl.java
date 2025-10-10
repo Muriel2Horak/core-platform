@@ -27,7 +27,8 @@ public class TenantOrgServiceImpl implements TenantOrgService {
   @PostConstruct
   public void init() {
     // ✅ PRODUCTION: Service account tokens loaded from environment variables
-    // These should be injected via Kubernetes Secrets, Vault, or AWS Secrets Manager
+    // These should be injected via Kubernetes Secrets, Vault, or AWS Secrets
+    // Manager
     // Format: GRAFANA_SAT_<TENANT_ID_UPPERCASE> (e.g., GRAFANA_SAT_CORE_PLATFORM)
 
     log.info("Initializing tenant-org mappings from environment");
@@ -44,7 +45,7 @@ public class TenantOrgServiceImpl implements TenantOrgService {
    */
   private void loadTenantMapping(String tenantId, Long orgId, String envVarName) {
     String token = System.getenv(envVarName);
-    
+
     if (token == null || token.isBlank()) {
       log.warn("⚠️ Missing service account token for tenant {}: {} not set", tenantId, envVarName);
       // In development, use placeholder (will fail on actual Grafana calls)

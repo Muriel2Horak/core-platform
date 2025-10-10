@@ -10,6 +10,7 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -103,11 +104,17 @@ public class MonitoringBffConfig {
   }
 
   /**
-   * Caffeine cache manager for query result caching - TTL: 30 seconds (short for
-   * real-time monitoring data) - Max size: 1000 entries per cache - Stats enabled
-   * for monitoring
+   * Caffeine cache manager for query result caching
+   * 
+   * Fallback cache implementation when Redis is not available (test profile).
+   * - TTL: 30 seconds (short for real-time monitoring data)
+   * - Max size: 1000 entries per cache
+   * - Stats enabled for monitoring
+   * 
+   * Only created if no other CacheManager bean exists (i.e., Redis is disabled).
    */
   @Bean
+  @ConditionalOnMissingBean(CacheManager.class)
   public CacheManager cacheManager() {
     CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
         "grafana-dashboards");

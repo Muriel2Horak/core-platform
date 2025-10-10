@@ -1,0 +1,98 @@
+# Test profile configuration - NO Docker, DB, Redis, Grafana, or Keycloak required
+# This profile enables fast testing with mocks and in-memory alternatives
+
+server:
+  port: 0  # Random port for parallel test execution
+
+logging:
+  level:
+    root: WARN
+    cz.muriel.core: DEBUG
+    cz.muriel.core.monitoring: DEBUG
+    cz.muriel.core.streaming: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+
+# Security - Mock JWT authentication (no Keycloak needed)
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://invalid  # Will be overridden by TestAuthFilter
+
+  # H2 in-memory database (PostgreSQL compatibility mode)
+  # Only for features that absolutely need DB (e.g., saved views)
+  # Most tests should work without DB
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        # Map JSONB to TEXT for H2 compatibility
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+  # Caffeine cache (Redis disabled in tests)
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=30s
+
+# Monitoring/Reporting configuration for tests
+reporting:
+  enabled: true
+  max-rows: 1000  # Lower limit for tests
+  max-interval-days: 30
+  default-ttl-seconds: 30
+  
+  cache:
+    provider: caffeine  # Use Caffeine instead of Redis
+    key-prefix: "test-rpt:"
+  
+  rate-limit:
+    per-tenant-per-min: 9999  # Very high limit for tests (effectively disabled)
+  
+  cube:
+    base-url: http://localhost:${WIREMOCK_PORT:0}  # Will be set by WireMock in tests
+    api-token: test-token
+    connect-timeout-ms: 1000
+    read-timeout-ms: 5000
+  
+  bulk:
+    chunk-size: 100  # Smaller chunks for tests
+    max-affect-rows: 1000
+    queue-concurrency: 1
+    timeout-seconds: 10
+
+# Monitoring BFF Grafana configuration
+monitoring:
+  grafana:
+    base-url: http://localhost:${WIREMOCK_PORT:0}  # Will be set by WireMock in tests
+    connect-timeout-ms: 1000
+    read-timeout-ms: 5000
+    max-response-size-mb: 10
+
+# Streaming configuration (disabled in tests by default)
+streaming:
+  enabled: false  # Disable Kafka/streaming in tests
+
+# Actuator for metrics verification in tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info
+  metrics:
+    tags:
+      environment: test

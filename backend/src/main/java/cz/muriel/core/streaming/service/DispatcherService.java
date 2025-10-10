@@ -69,7 +69,8 @@ public class DispatcherService {
   /**
    * Main dispatcher loop - polls and publishes messages
    * 
-   * ✅ Configurable batch size via streaming.dispatcher.batch-size property (default: 100)
+   * ✅ Configurable batch size via streaming.dispatcher.batch-size property
+   * (default: 100)
    */
   @Scheduled(fixedDelayString = "${streaming.dispatcher.poll-interval-ms:100}") @Transactional
   public void dispatchMessages() {
@@ -111,13 +112,13 @@ public class DispatcherService {
       if (message.getHeadersJson() != null && !message.getHeadersJson().isEmpty()) {
         try {
           JsonNode headersNode = objectMapper.readTree(message.getHeadersJson());
-          
+
           // Iterate over all fields in JSON and add as headers
           headersNode.fieldNames().forEachRemaining(headerKey -> {
             String headerValue = headersNode.get(headerKey).asText();
             record.headers().add(headerKey, headerValue.getBytes(StandardCharsets.UTF_8));
           });
-          
+
         } catch (Exception e) {
           log.warn("Failed to parse headers for message {}: {}", message.getId(), e.getMessage());
         }
@@ -162,40 +163,41 @@ public class DispatcherService {
   /**
    * Build message payload
    * 
-   * ✅ Builds proper JSON payload with event metadata and diff/snapshot based on config
+   * ✅ Builds proper JSON payload with event metadata and diff/snapshot based on
+   * config
    */
   private String buildPayload(OutboxFinal message) {
     try {
       ObjectNode payload = objectMapper.createObjectNode();
-      
+
       // Add event metadata
       payload.put("eventId", message.getId().toString());
       payload.put("entityType", message.getEntity());
       payload.put("entityId", message.getEntityId().toString());
       payload.put("operation", message.getOperation());
       payload.put("timestamp", message.getCreatedAt().toString());
-      
+
       if (message.getTenantId() != null) {
         payload.put("tenantId", message.getTenantId().toString());
       }
-      
+
       if (message.getCorrelationId() != null) {
         payload.put("correlationId", message.getCorrelationId().toString());
       }
-      
+
       // Add diff or snapshot based on message content
       if (message.getDiffJson() != null && !message.getDiffJson().isEmpty()) {
         JsonNode diffNode = objectMapper.readTree(message.getDiffJson());
         payload.set("diff", diffNode);
       }
-      
+
       if (message.getSnapshotJson() != null && !message.getSnapshotJson().isEmpty()) {
         JsonNode snapshotNode = objectMapper.readTree(message.getSnapshotJson());
         payload.set("snapshot", snapshotNode);
       }
-      
+
       return objectMapper.writeValueAsString(payload);
-      
+
     } catch (Exception e) {
       log.error("Failed to build payload for message {}: {}", message.getId(), e.getMessage());
       // Fallback to diff_json
@@ -223,7 +225,8 @@ public class DispatcherService {
   /**
    * Handle publish error with retry logic
    * 
-   * ✅ Configurable max retries via streaming.dispatcher.max-retries property (default: 3)
+   * ✅ Configurable max retries via streaming.dispatcher.max-retries property
+   * (default: 3)
    */
   private void handlePublishError(OutboxFinal message, Throwable error) {
     log.error("Failed to publish message {}: {}", message.getId(), error.getMessage(), error);

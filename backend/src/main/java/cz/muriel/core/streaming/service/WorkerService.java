@@ -196,10 +196,12 @@ public class WorkerService {
   /**
    * Execute business logic
    * 
-   * ✅ Parses command payload, performs CRUD operations, and calculates diff for outbox
+   * ✅ Parses command payload, performs CRUD operations, and calculates diff for
+   * outbox
    * 
-   * Note: This is a stub implementation for Phase 1. Full CRUD logic will be added in Phase 2
-   * when entity-specific services are integrated (UserService, TenantService, etc.)
+   * Note: This is a stub implementation for Phase 1. Full CRUD logic will be
+   * added in Phase 2 when entity-specific services are integrated (UserService,
+   * TenantService, etc.)
    */
   private void executeBusinessLogic(CommandQueue command) {
     log.debug("Executing {} operation on {}/{}", command.getOperation(), command.getEntity(),
@@ -212,32 +214,31 @@ public class WorkerService {
         payload = objectMapper.readTree(command.getPayload());
         log.debug("Parsed payload: {}", payload);
       }
-      
+
       // ✅ Perform CREATE/UPDATE/DELETE on actual entity table
       // Phase 1: Stub implementation - logs operation details
       // Phase 2: Delegate to entity-specific service based on command.entity
-      //   - UserService.createUser(payload) for entity="User"
-      //   - TenantService.updateTenant(entityId, payload) for entity="Tenant"
-      //   - etc.
-      
+      // - UserService.createUser(payload) for entity="User"
+      // - TenantService.updateTenant(entityId, payload) for entity="Tenant"
+      // - etc.
+
       String operation = command.getOperation();
-      log.info("📝 {} operation on entity {}/{} with payload: {}", 
-          operation, command.getEntity(), command.getEntityId(), 
-          payload != null ? payload.toString() : "null");
-      
+      log.info("📝 {} operation on entity {}/{} with payload: {}", operation, command.getEntity(),
+          command.getEntityId(), payload != null ? payload.toString() : "null");
+
       // ✅ Calculate diff for outbox
       // Phase 1: Use payload as diff (for CREATE/UPDATE)
       // Phase 2: Calculate actual diff by comparing old vs new state
-      //   - For UPDATE: diff = JsonDiff.asJson(oldState, newState)
-      //   - For CREATE: diff = entire new object
-      //   - For DELETE: diff = tombstone marker
-      
+      // - For UPDATE: diff = JsonDiff.asJson(oldState, newState)
+      // - For CREATE: diff = entire new object
+      // - For DELETE: diff = tombstone marker
+
       // Store diff in command for use in writeToOutbox
       command.setPayload(payload != null ? payload.toString() : "{}");
-      
+
     } catch (Exception e) {
-      log.error("Failed to execute business logic for command {}: {}", 
-          command.getId(), e.getMessage(), e);
+      log.error("Failed to execute business logic for command {}: {}", command.getId(),
+          e.getMessage(), e);
       throw new RuntimeException("Business logic execution failed", e);
     }
   }
@@ -245,7 +246,8 @@ public class WorkerService {
   /**
    * Write event to outbox_final
    * 
-   * ✅ Sets diff_json and snapshot_json based on metamodel config and operation type
+   * ✅ Sets diff_json and snapshot_json based on metamodel config and operation
+   * type
    */
   private void writeToOutbox(CommandQueue command) {
     OutboxFinal outbox = new OutboxFinal();
@@ -259,33 +261,33 @@ public class WorkerService {
     try {
       String operation = command.getOperation();
       String payload = command.getPayload();
-      
+
       if ("CREATE".equals(operation)) {
         // For CREATE: diff is the entire new object
         outbox.setDiffJson(payload);
         outbox.setSnapshotJson(payload); // Full snapshot for new entities
-        
+
       } else if ("UPDATE".equals(operation)) {
         // For UPDATE: diff shows changes (Phase 1: use payload as diff)
         // Phase 2: Calculate actual diff using JsonDiff
         outbox.setDiffJson(payload);
         outbox.setSnapshotJson(null); // Snapshot optional for updates
-        
+
       } else if ("DELETE".equals(operation)) {
         // For DELETE: minimal diff with tombstone marker
-        outbox.setDiffJson(String.format("{\"deleted\":true,\"entityId\":\"%s\"}", 
-            command.getEntityId()));
+        outbox.setDiffJson(
+            String.format("{\"deleted\":true,\"entityId\":\"%s\"}", command.getEntityId()));
         outbox.setSnapshotJson(null); // No snapshot for deleted entities
-        
+
       } else {
         // Fallback for unknown operations
         outbox.setDiffJson(payload != null ? payload : "{}");
         outbox.setSnapshotJson(null);
       }
-      
+
     } catch (Exception e) {
-      log.error("Failed to set diff/snapshot for command {}: {}", 
-          command.getId(), e.getMessage(), e);
+      log.error("Failed to set diff/snapshot for command {}: {}", command.getId(), e.getMessage(),
+          e);
       // Fallback to empty diff
       outbox.setDiffJson("{}");
       outbox.setSnapshotJson(null);
