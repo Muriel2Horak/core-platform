@@ -1,11 +1,26 @@
 import { build, context } from 'esbuild';
 import { copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 const isDev = process.argv.includes('--watch');
 const isProduction = !isDev;
 
 console.log(`🔧 Building in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+
+// Plugin to resolve .gen files without extension  
+const grafanaSchemaResolverPlugin = {
+  name: 'grafana-schema-resolver',
+  setup(build) {
+    build.onResolve({ filter: /\.gen$/ }, args => {
+      // Resolve relative to node_modules
+      const resolvedPath = resolve(join('node_modules', args.path + '.js'));
+      return {
+        path: resolvedPath,
+        external: false
+      };
+    });
+  }
+};
 
 // Ensure dist directory exists
 if (!existsSync('dist')) {
@@ -64,10 +79,15 @@ const buildOptions = {
     '.png': 'file',
     '.jpg': 'file',
     '.jpeg': 'file',
-    '.svg': 'dataurl'
+    '.svg': 'dataurl',
+    '.ttf': 'file',
+    '.woff': 'file',
+    '.woff2': 'file'
   },
+  resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.gen.js', '.gen.ts'],
   external: [],
-  logLevel: 'info'
+  logLevel: 'info',
+  plugins: [grafanaSchemaResolverPlugin]
 };
 
 if (isDev) {
