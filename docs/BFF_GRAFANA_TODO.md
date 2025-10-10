@@ -437,69 +437,32 @@ test.describe('Reports Page (Grafana Scenes)', () => {
 
 ### 7. Documentation Updates (Priority: Medium)
 
-- [ ] **API documentation (OpenAPI/Swagger)**
-  ```java
-  @RestController
-  @RequestMapping("/api/monitoring")
-  @Tag(name = "Monitoring BFF", description = "Backend-for-Frontend proxy for Grafana")
-  public class MonitoringProxyController {
-      
-      @Operation(
-          summary = "Query datasource",
-          description = "Proxies datasource queries to Grafana with tenant isolation"
-      )
-      @ApiResponses({
-          @ApiResponse(responseCode = "200", description = "Query successful"),
-          @ApiResponse(responseCode = "401", description = "Unauthorized (invalid JWT)"),
-          @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
-      })
-      @PostMapping("/ds/query")
-      public ResponseEntity<String> queryDatasource(...) {
-          // ...
-      }
-  }
-  ```
-  **Effort**: 3 hours
+- [x] **API documentation (OpenAPI/Swagger)** ✅ COMPLETED
+  - Added springdoc-openapi-starter-webmvc-ui:2.7.0 dependency
+  - OpenApiConfig: Full API definition with security scheme, servers, contact info
+  - MonitoringProxyController: @Tag, @Operation, @ApiResponse annotations for all endpoints
+  - Swagger UI: https://app.core-platform.local/swagger-ui.html
+  - **Effort**: 3 hours
 
-- [ ] **Frontend Scenes usage guide**
-  ```markdown
-  # docs/frontend/GRAFANA_SCENES_GUIDE.md
-  
-  ## Adding a New Panel
-  
-  ```javascript
-  import { SceneQueryRunner, VizPanel } from '@grafana/scenes';
-  
-  const newPanel = new VizPanel({
-    title: 'CPU Usage',
-    pluginId: 'timeseries',
-    $data: new SceneQueryRunner({
-      datasource: new GrafanaSceneDataSource(),
-      queries: [
-        {
-          refId: 'A',
-          expr: 'rate(process_cpu_seconds_total[5m])',
-          legendFormat: '{{instance}}'
-        }
-      ]
-    })
-  });
-  ```
-  **Effort**: 2 hours
+- [x] **Frontend Scenes usage guide** ✅ COMPLETED
+  - docs/frontend/GRAFANA_SCENES_GUIDE.md
+  - Complete guide with examples: simple panels, variables, tabs, logs, error handling
+  - Common patterns: multiple queries, template variables, time range controls
+  - Advanced example: full dashboard with tabs and variables
+  - Troubleshooting section for rate limits, circuit breaker, JWT issues
+  - **Effort**: 2 hours
 
-- [ ] **Tenant onboarding guide**
-  ```markdown
-  # docs/TENANT_ONBOARDING.md
-  
-  ## Step-by-Step: Add New Tenant to Monitoring
-  
-  1. Create Grafana org:
-     ```bash
-     npx tsx tools/grafana-org-admin.ts create-org --name new-tenant
-     # Output: orgId=4
-     ```
-  
-  2. Create service account:
+- [x] **Tenant onboarding guide** ✅ COMPLETED
+  - docs/TENANT_ONBOARDING.md
+  - Step-by-step guide: create org, service account, token, provision datasources
+  - Storage options: env vars (dev), k8s Secrets, Vault (prod)
+  - Automated token rotation setup
+  - Monitoring & alerts configuration
+  - Offboarding process
+  - CLI reference and best practices
+  - **Effort**: 2 hours
+
+**Total completed**: 7 hours
      ```bash
      npx tsx tools/grafana-org-admin.ts create-sa --org 4 --name new-tenant-viewer
      # Save token to Vault
