@@ -2,6 +2,7 @@ package cz.muriel.core.service;
 
 import cz.muriel.core.entity.GroupEntity;
 import cz.muriel.core.entity.Tenant;
+import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.repository.GroupRepository;
 import cz.muriel.core.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -148,5 +149,35 @@ public class GroupService {
   public void deleteGroup(UUID id) {
     log.info("Deleting group: {}", id);
     groupRepository.deleteById(id);
+  }
+
+  /**
+   * Get group members (users in this group)
+   */
+  @Transactional(readOnly = true)
+  public List<UserDirectoryEntity> getGroupMembers(UUID groupId) {
+    log.debug("Getting members for group: {}", groupId);
+    
+    GroupEntity group = groupRepository.findById(groupId)
+        .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupId));
+    
+    // Load users collection from the many-to-many relationship
+    return new java.util.ArrayList<>(group.getUsers());
+  }
+
+  /**
+   * Get group members by group name
+   */
+  @Transactional(readOnly = true)
+  public List<UserDirectoryEntity> getGroupMembersByName(String groupName) {
+    log.debug("Getting members for group: {}", groupName);
+    
+    Optional<GroupEntity> groupOpt = getGroupByName(groupName);
+    if (groupOpt.isEmpty()) {
+      log.warn("Group not found: {}", groupName);
+      return List.of();
+    }
+    
+    return new java.util.ArrayList<>(groupOpt.get().getUsers());
   }
 }
