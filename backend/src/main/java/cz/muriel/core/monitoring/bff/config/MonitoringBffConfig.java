@@ -1,5 +1,6 @@
 package cz.muriel.core.monitoring.bff.config;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -10,6 +11,9 @@ import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -24,6 +28,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@EnableCaching
 @Slf4j
 public class MonitoringBffConfig {
 
@@ -64,10 +69,13 @@ public class MonitoringBffConfig {
 
   @Bean
   public WebClient grafanaWebClient(GrafanaProperties props, CircuitBreaker circuitBreaker) {
-    // Connection pool configuration
-    ConnectionProvider provider = ConnectionProvider.builder("grafana").maxConnections(100)
-        .maxIdleTime(Duration.ofSeconds(20)).maxLifeTime(Duration.ofSeconds(60))
-        .pendingAcquireTimeout(Duration.ofSeconds(10)).evictInBackground(Duration.ofSeconds(120))
+    // Connection pool configuration (production-ready)
+    ConnectionProvider provider = ConnectionProvider.builder("grafana-pool")
+        .maxConnections(100)                          // Max 100 concurrent connections
+        .maxIdleTime(Duration.ofSeconds(20))          // Close idle connections after 20s
+        .maxLifeTime(Duration.ofMinutes(5))           // Max connection lifetime: 5 minutes
+        .pendingAcquireTimeout(Duration.ofSeconds(5)) // Wait max 5s for available connection
+        .evictInBackground(Duration.ofSeconds(30))    // Background eviction every 30s
         .build();
 
     // HttpClient with timeouts and connection pool
@@ -96,6 +104,27 @@ public class MonitoringBffConfig {
         .exchangeStrategies(strategies)
         .filter(circuitBreakerFilter)
         .build();
+  }
+
+  /**
+   * Caffeine cache manager for query result caching
+   * - TTL: 30 seconds (short for real-time monitoring data)
+   * - Max size: 1000 entries per cache
+   * - Stats enabled for monitoring
+   */
+  @Bean
+  public CacheManager cacheManager() {
+    CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries", "grafana-dashboards");
+    cacheManager.setCaffeine(caffeineConfig());
+    return cacheManager;
+  }
+
+  @Bean
+  public Caffeine<Object, Object> caffeineConfig() {
+    return Caffeine.newBuilder()
+        .expireAfterWrite(30, TimeUnit.SECONDS)  // Short TTL for real-time data
+        .maximumSize(1000)                       // Max 1000 entries
+        .recordStats();                          // Enable stats for monitoring
   }
 
   @Data

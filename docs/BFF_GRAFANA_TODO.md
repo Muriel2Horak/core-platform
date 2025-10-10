@@ -409,60 +409,29 @@ test.describe('Reports Page (Grafana Scenes)', () => {
 
 ### 6. Performance Optimizations (Priority: Low)
 
-- [ ] **Connection pooling tuning**
-  ```java
-  // MonitoringBffConfig.java
-  @Bean
-  public WebClient grafanaClient() {
-      ConnectionProvider provider = ConnectionProvider.builder("grafana-pool")
-          .maxConnections(100)
-          .maxIdleTime(Duration.ofSeconds(20))
-          .maxLifeTime(Duration.ofMinutes(5))
-          .pendingAcquireTimeout(Duration.ofSeconds(5))
-          .evictInBackground(Duration.ofSeconds(30))
-          .build();
-      
-      return WebClient.builder()
-          .clientConnector(new ReactorClientHttpConnector(
-              HttpClient.create(provider)
-          ))
-          .build();
-  }
-  ```
-  **Effort**: 2 hours
+- [x] **Connection pooling tuning** ✅ COMPLETED
+  - MonitoringBffConfig: Optimized ConnectionProvider with production-ready parameters
+  - maxConnections: 100 (concurrent connections)
+  - maxIdleTime: 20s (close idle connections)
+  - maxLifeTime: 5 minutes (max connection lifetime)
+  - pendingAcquireTimeout: 5s (wait for available connection)
+  - evictInBackground: 30s (background eviction)
+  - **Effort**: 2 hours
 
-- [ ] **Query result caching**
-  ```java
-  @Cacheable(
-      value = "grafana-queries", 
-      key = "#jwt.subject + ':' + #body.hashCode()",
-      unless = "#result == null"
-  )
-  public ResponseEntity<String> forwardQuery(Jwt jwt, Map<String, Object> body) {
-      // ...
-  }
-  
-  // Cache config
-  @Bean
-  public CacheManager cacheManager() {
-      return new CaffeineCacheManager("grafana-queries");
-  }
-  
-  @Bean
-  public Caffeine<Object, Object> caffeineConfig() {
-      return Caffeine.newBuilder()
-          .expireAfterWrite(30, TimeUnit.SECONDS)  // Short TTL for real-time data
-          .maximumSize(1000);
-  }
-  ```
-  **Effort**: 3 hours
+- [x] **Query result caching** ✅ COMPLETED
+  - Caffeine cache with 30s TTL for real-time data
+  - Max 1000 entries, stats recording enabled
+  - @Cacheable on forwardQuery() and forwardGet() methods
+  - Cache key: user:{subject}:query:{bodyHashCode}
+  - Cache invalidation: only cache 200 OK responses
+  - **Effort**: 3 hours
 
 - [x] **Prometheus recording rules** ✅ COMPLETED
   - docker/prometheus/rules/monitoring-bff.yml
   - 6 recording rules: request_rate:5m, error_rate:5m, latency_p95:5m, latency_p99:5m, rate_limit_hits:5m, circuit_breaker_state
   - **Effort**: 2 hours
 
-**Total effort remaining**: 5 hours
+**Total completed**: 7 hours
 
 ---
 
