@@ -35,3 +35,10 @@ scrape_configs:
     static_configs:
       - targets: ['backend:8080']
     scrape_interval: 10s
+
+  # Kafka JMX metrics (když je streaming enabled)
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9999']
+    scrape_interval: 15s
+
