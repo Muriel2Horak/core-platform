@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -18,7 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Slf4j @Service @RequiredArgsConstructor
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Profile("!test")  // Don't run in test profile - tests use TestAuthFilter instead
 public class KeycloakInitializationService implements ApplicationRunner {
 
   private final KeycloakAdminService keycloakAdminService;

@@ -304,12 +304,12 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<!-- Disable forking to avoid timeout issues with Testcontainers -->
-					<forkCount>0</forkCount>
+					<!-- Use forking for better isolation -->
+					<forkCount>1</forkCount>
 					<reuseForks>false</reuseForks>
-					<!-- Increase timeout for integration tests -->
+					<!-- Increase timeout for integration tests with Testcontainers -->
 					<forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
-					<!-- Enable parallel execution -->
+					<!-- Parallel execution -->
 					<parallel>methods</parallel>
 					<threadCount>2</threadCount>
 				</configuration>
