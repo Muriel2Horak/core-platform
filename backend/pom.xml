@@ -132,6 +132,19 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- WireMock for API mocking in tests -->
+		<dependency>
+			<groupId>org.wiremock</groupId>
+			<artifactId>wiremock-standalone</artifactId>
+			<version>3.3.1</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- H2 in-memory database for tests -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<!-- Flyway pro databázové migrace -->
 		<dependency>
 			<groupId>org.flywaydb</groupId>
