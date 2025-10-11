@@ -20,6 +20,7 @@ public class CubeQueryService {
 
     private final WebClient cubeWebClient;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final QueryDeduplicator queryDeduplicator;
 
     /**
      * Executes a Cube.js query with Circuit Breaker protection.
@@ -31,20 +32,23 @@ public class CubeQueryService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> executeQuery(Map<String, Object> query, String tenantId) {
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(
-            "cubeQueryCircuitBreaker-" + tenantId
-        );
+        // Use query deduplication to prevent duplicate concurrent queries
+        return queryDeduplicator.executeWithDeduplication(query, tenantId, () -> {
+            CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(
+                "cubeQueryCircuitBreaker-" + tenantId
+            );
 
-        return circuitBreaker.executeSupplier(() -> {
-            log.debug("Executing Cube.js query for tenant {}: {}", tenantId, query);
-            
-            return cubeWebClient.post()
-                .uri("/cubejs-api/v1/load")
-                .header("Authorization", "Bearer " + tenantId) // Cube.js uses tenant as JWT
-                .bodyValue(Map.of("query", query))
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+            return circuitBreaker.executeSupplier(() -> {
+                log.debug("Executing Cube.js query for tenant {}: {}", tenantId, query);
+                
+                return cubeWebClient.post()
+                    .uri("/cubejs-api/v1/load")
+                    .header("Authorization", "Bearer " + tenantId) // Cube.js uses tenant as JWT
+                    .bodyValue(Map.of("query", query))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+            });
         });
     }
 
