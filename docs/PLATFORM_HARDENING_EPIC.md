@@ -15,23 +15,54 @@ Deliver unified naming conventions, real-time presence with Kafka integration, e
 
 ## 📋 Phases & PRs
 
-### S1: Naming - Rules + Auto-Fix Refactoring + CI Lints ⏳
-**Status**: 🟡 In Progress  
-**Estimate**: 8h  
-**PR**: TBD  
-**Branch**: `feature/s1-naming-guide`
+### S1: Naming Conventions & Linting (8h) - 🟢 75% Complete
 
-**Scope**:
-- [ ] Create `docs/NAMING_GUIDE.md` with all naming conventions
-- [ ] Implement `tools/naming-lint/` (Node/TS) with validators
-- [ ] Refactor existing codebase to comply
-- [ ] Add migration aliases & deprecations
-- [ ] CI integration (fail on violations)
+**Goal**: Establish unified naming conventions and automated validation.
 
-**DoD**:
-- ✅ Lints run in CI and fail on violations
-- ✅ Repo consistent per NAMING_GUIDE.md
-- ✅ Alias maps & deprecations documented in CHANGELOG
+**Deliverables**:
+1. ✅ **docs/NAMING_GUIDE.md** (530+ lines)
+   - Entity: PascalCase singular (User, UserDirectory)
+   - DB: snake_case tables (plural), columns (singular), tenant_id mandatory
+   - REST: kebab-case plural (/api/users, /api/user-directories)
+   - JSON: camelCase (firstName, userId)
+   - Cube: PascalCase plural cubes (Users), camelCase dimensions
+   - Kafka: product.context.entity.event (kebab-case)
+   - Prometheus: snake_case with suffixes (_seconds, _total)
+   - Migration/compatibility guide, anti-patterns, feature checklist
+
+2. ✅ **tools/naming-lint/** - Automated linters (Node.js 20+)
+   - `lint-metamodel.js`: Metamodel JSON validation (PascalCase, camelCase, required fields)
+   - `lint-api.js`: Spring controllers (kebab-case plural paths)
+   - `lint-kafka.js`: Kafka topics (product.context.entity.event pattern)
+   - `lint-db.js`: Flyway migrations (V{YYYYMMDDHHMM}__, tenant_id checks)
+   - Utilities: casing.js (case detection, conversion, pluralization)
+   - Reporter: Colorized output with error/warning counts
+   - **Accuracy**: 0 errors, 7 warnings (legacy patterns), exit code 0 ✅
+
+3. ✅ **CI Integration**: `.github/workflows/naming-lint.yml`
+   - Runs on PR to main/develop/feature branches
+   - 4 lint steps (metamodel, API, Kafka, DB)
+   - Fails build on errors (not warnings)
+   - 5-minute timeout
+
+4. ⏳ **Refactoring + Aliases** (pending - 2h remaining)
+   - Refactor REST paths → kebab-case plural
+   - Update JSON DTOs → camelCase
+   - Standardize Cube schemas → PascalCase cubes, camelCase fields
+   - Add @Deprecated aliases for backward compatibility
+   - Nginx 301 redirects for legacy endpoints
+
+**DoD Checklist**:
+- [x] Naming guide created (docs/NAMING_GUIDE.md)
+- [x] Linting tools implemented (tools/naming-lint/)
+- [x] CI integration added (.github/workflows/naming-lint.yml)
+- [ ] Refactored existing code to match conventions
+- [ ] Migration aliases added (@Deprecated, nginx redirects)
+
+**Time Spent**: 6h / 8h  
+**Next Steps**: Complete refactoring + aliases (2h)
+
+---
 
 ---
 
