@@ -387,10 +387,8 @@ public class MetamodelSpecService {
   /**
    * Convert CamelCase or PascalCase to snake_case.
    * 
-   * Examples:
-   * - "User" -> "users"
-   * - "UserDirectory" -> "user_directory"
-   * - "TenantRegistry" -> "tenants_registry"
+   * Examples: - "User" -> "users" - "UserDirectory" -> "user_directory" -
+   * "TenantRegistry" -> "tenants_registry"
    */
   private String toSnakeCase(String input) {
     if (input == null || input.isEmpty()) {
@@ -401,7 +399,8 @@ public class MetamodelSpecService {
     String snakeCase = input.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
 
     // Pluralize if needed (simple heuristic: add 's' if not already plural)
-    // This is a simplification - production code might use a proper pluralization library
+    // This is a simplification - production code might use a proper pluralization
+    // library
     if (!snakeCase.endsWith("s")) {
       snakeCase = snakeCase + "s";
     }

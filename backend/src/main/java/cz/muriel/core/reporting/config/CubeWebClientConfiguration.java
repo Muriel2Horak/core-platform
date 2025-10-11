@@ -11,14 +11,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class CubeWebClientConfiguration {
 
-    @Value("${cube.api.url:http://localhost:4000}")
-    private String cubeApiUrl;
+  @Value("${cube.api.url:http://localhost:4000}")
+  private String cubeApiUrl;
 
-    @Bean
-    public WebClient cubeWebClient() {
-        return WebClient.builder()
-            .baseUrl(cubeApiUrl)
-            .defaultHeader("Content-Type", "application/json")
-            .build();
-    }
+  @Bean
+  public WebClient cubeWebClient() {
+    return WebClient.builder().baseUrl(cubeApiUrl).defaultHeader("Content-Type", "application/json")
+        .build();
+  }
 }

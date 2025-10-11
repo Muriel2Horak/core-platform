@@ -74,9 +74,8 @@ class MetamodelSpecServiceTest {
     tenantIdField.setType("uuid");
     tenantIdField.setRefEntity("Tenant");
 
-    schema.setFields(Arrays.asList(
-        idField, emailField, statusField, versionField, createdAtField, tenantIdField
-    ));
+    schema.setFields(Arrays.asList(idField, emailField, statusField, versionField, createdAtField,
+        tenantIdField));
 
     when(metamodelRegistry.getSchemaOrThrow(eq("User"))).thenReturn(schema);
 
@@ -89,17 +88,14 @@ class MetamodelSpecServiceTest {
     assertThat(spec.getSpecVersion()).isNotNull().isNotEmpty();
 
     // Dimensions: id, email, status, tenant_id (UUIDs and strings)
-    assertThat(spec.getAllowedDimensions())
-        .contains("id", "email", "status", "tenant_id");
+    assertThat(spec.getAllowedDimensions()).contains("id", "email", "status", "tenant_id");
 
     // Measures: version (long)
-    assertThat(spec.getAllowedMeasures())
-        .contains("version");
+    assertThat(spec.getAllowedMeasures()).contains("version");
 
     // Editable fields: NOT id (pk), NOT version (read-only), BUT email, status
-    assertThat(spec.getEditableFields())
-        .contains("email", "status")
-        .doesNotContain("id", "version");
+    assertThat(spec.getEditableFields()).contains("email", "status").doesNotContain("id",
+        "version");
 
     // Validations: email is required with maxLength
     assertThat(spec.getValidations()).containsKey("email");
@@ -192,10 +188,7 @@ class MetamodelSpecServiceTest {
     // Then: Labels are formatted
     assertThat(spec.getFields())
         .extracting(EntitySpec.FieldSpec::getName, EntitySpec.FieldSpec::getLabel)
-        .contains(
-            tuple("user_id", "User Id"),
-            tuple("firstName", "First Name")
-        );
+        .contains(tuple("user_id", "User Id"), tuple("firstName", "First Name"));
   }
 
   @Test
@@ -250,21 +243,17 @@ class MetamodelSpecServiceTest {
 
     // Then: Operators match field types
     EntitySpec.FieldSpec nameSpec = spec.getFields().stream()
-        .filter(f -> f.getName().equals("name"))
-        .findFirst().orElseThrow();
-    assertThat(nameSpec.getAllowedOperators())
-        .contains("eq", "ne", "contains", "startsWith", "endsWith");
+        .filter(f -> f.getName().equals("name")).findFirst().orElseThrow();
+    assertThat(nameSpec.getAllowedOperators()).contains("eq", "ne", "contains", "startsWith",
+        "endsWith");
 
     EntitySpec.FieldSpec countSpec = spec.getFields().stream()
-        .filter(f -> f.getName().equals("count"))
-        .findFirst().orElseThrow();
-    assertThat(countSpec.getAllowedOperators())
-        .contains("eq", "ne", "gt", "gte", "lt", "lte", "between");
+        .filter(f -> f.getName().equals("count")).findFirst().orElseThrow();
+    assertThat(countSpec.getAllowedOperators()).contains("eq", "ne", "gt", "gte", "lt", "lte",
+        "between");
 
     EntitySpec.FieldSpec activeSpec = spec.getFields().stream()
-        .filter(f -> f.getName().equals("active"))
-        .findFirst().orElseThrow();
-    assertThat(activeSpec.getAllowedOperators())
-        .containsExactly("eq", "ne");
+        .filter(f -> f.getName().equals("active")).findFirst().orElseThrow();
+    assertThat(activeSpec.getAllowedOperators()).containsExactly("eq", "ne");
   }
 }
