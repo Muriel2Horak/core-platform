@@ -21,20 +21,27 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@RestController @RequestMapping("/api/users-directory") // OPRAVENO: Vlastný mapping pre Directory
-                                                        // API
-@RequiredArgsConstructor @Slf4j
+@RestController 
+@RequestMapping({ 
+    "/api/user-directories",           // NEW: Plural kebab-case (S1 naming standard)
+    "/api/users-directory"              // DEPRECATED: Keep for backward compatibility (remove in v2.3.0)
+}) 
+@RequiredArgsConstructor 
+@Slf4j
 public class UserDirectoryController {
 
   private final UserDirectoryService userDirectoryService;
   private final TenantService tenantService;
 
   /**
-   * 🔍 GET /api/users-directory - Hlavní endpoint pro User Directory Zabezpečený
-   * endpoint s role-based access
+   * 🔍 GET /api/user-directories - Hlavní endpoint pro User Directory
+   * Zabezpečený endpoint s role-based access.
+   * 
+   * Note: Legacy path /api/users-directory is still supported but will be removed in v2.3.0.
+   * Please use /api/user-directories instead.
    */
-  @GetMapping @PreAuthorize("isAuthenticated()") // Všichni přihlášení uživatelé mohou číst
-                                                 // directory
+  @GetMapping 
+  @PreAuthorize("isAuthenticated()") // Všichni přihlášení uživatelé mohou číst directory
   public ResponseEntity<Map<String, Object>> getUsersDirectory(
       @RequestParam(required = false) String q, @RequestParam(required = false) String tenantKey,
       @RequestParam(required = false) String source, @RequestParam(defaultValue = "0") int page,

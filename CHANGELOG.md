@@ -46,8 +46,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [x] Exit codes: 0 (pass), 1 (fail)
 
 **Next Steps (S1 Completion)**:
-- [ ] Refactor existing code to match conventions (REST paths, JSON keys, Cube schemas, Kafka topics)
-- [ ] Add migration aliases (@Deprecated, nginx redirects, Cube name mapping)
+- [x] Refactor UserDirectoryController: /api/users-directory → /api/user-directories
+  - Added deprecated alias for backward compatibility (removal: v2.3.0)
+  - @Deprecated annotation added with forRemoval=true
+- [ ] Refactor existing code to match conventions (JSON keys, Cube schemas, Kafka topics)
+- [ ] Add migration aliases (nginx redirects, Cube name mapping)
+- [ ] Update integration tests for new paths
+- [ ] Update OpenAPI/Swagger documentation
+
+### Changed
+
+#### REST API Path Refactoring (2025-10-11)
+- **BREAKING:** UserDirectoryController path changed
+  - OLD: `/api/users-directory` ❌
+  - NEW: `/api/user-directories` ✅ (kebab-case plural, per NAMING_GUIDE.md)
+  - Old path remains as deprecated alias (will be removed in v2.3.0)
+  - Frontend already uses correct path (no changes needed)
+
+### Deprecated
+
+- **UserDirectoryController** old path `/api/users-directory`
+  - Use `/api/user-directories` instead
+  - Removal planned: v2.3.0 (2 minor versions)
+  - Both paths currently supported via `@RequestMapping` array
+
+### Migration Guide
+
+#### Frontend API Calls
+```typescript
+// No changes needed - frontend already uses correct path
+const response = await fetch('/api/user-directories');
+```
+
+#### Backend Integration Tests
+```java
+// Update test URLs if using old path
+mockMvc.perform(get("/api/user-directories"))  // ✅ NEW
+// mockMvc.perform(get("/api/users-directory")) // ❌ DEPRECATED
+```
 - [ ] Update CHANGELOG with refactoring details
 
 ### Added - Reporting Module (Audit Closure)
