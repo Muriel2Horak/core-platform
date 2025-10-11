@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Build System (2025-10-11)
+
+#### Maven Dependency Convergence Resolution
+- **Fixed build failures** due to Maven Enforcer dependency convergence errors
+- **Added `<dependencyManagement>`** to pin conflicting transitive dependencies:
+  - `commons-compress`: 1.24.0 (was conflicting 1.21 vs 1.24.0)
+  - `apache-mime4j-core/dom`: 0.8.11 (was conflicting 0.8.9 vs 0.8.11)
+  - `commons-io`: 2.14.0 (was conflicting 2.7/2.11.0/2.14.0)
+  - `bcprov-jdk18on`: 1.76 (was conflicting 1.72 vs 1.76)
+  - `error_prone_annotations`: 2.40.0 (was conflicting 2.21.1 vs 2.40.0)
+  - `checker-qual`: 3.49.3 (was conflicting 3.37.0 vs 3.49.3)
+  - `asm`: 9.7.1 (was conflicting 9.6 vs 9.7.1)
+- **Added exclusions** to `keycloak-admin-client` and `spring-boot-starter-webflux` for commons-logging conflicts
+- **Enhanced enforcer configuration** to ignore safe duplicate classes in logging bridges
+- **Re-enabled `dependencyConvergence` rule** with property control (`enforcer.skip`)
+- **Verified**: Build now passes with `-Denforcer.skip=false`
+- **Documentation**: See `docs/BUILD_DEPS_CONVERGENCE_FIX.md` for details
+
 ### Added - Platform Hardening Epic (S2: Real-Time Presence + Kafka Lifecycle)
 
 #### Real-Time Presence Tracking System (2025-10-11)

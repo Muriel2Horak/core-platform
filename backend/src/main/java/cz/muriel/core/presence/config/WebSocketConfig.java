@@ -2,6 +2,8 @@ package cz.muriel.core.presence.config;
 
 import cz.muriel.core.presence.handler.PresenceWebSocketHandler;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -19,7 +21,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
  * Client → Server: {"type":"LOCK", "field":"totalAmount"} - Server → Client:
  * {"type":"LOCK_ACK", "field":"totalAmount", "success":true}
  */
-@Configuration @EnableWebSocket @RequiredArgsConstructor @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Configuration @EnableWebSocket @RequiredArgsConstructor @Slf4j @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false) @ConditionalOnMissingBean(name = "webSocketConfig")
 public class WebSocketConfig implements WebSocketConfigurer {
 
   private final PresenceWebSocketHandler presenceWebSocketHandler;
@@ -32,5 +34,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
                                                                                           // properly
                                                                                           // for
                                                                                           // production
+
+    log.info("Presence WebSocket registered at /ws/presence");
   }
 }

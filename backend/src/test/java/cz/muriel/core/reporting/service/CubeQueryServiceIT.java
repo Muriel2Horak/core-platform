@@ -1,11 +1,15 @@
 package cz.muriel.core.reporting.service;
 
+import cz.muriel.core.test.config.TestQueryConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -21,6 +25,9 @@ import static org.mockito.Mockito.*;
  * Integration tests for CubeQueryService with Circuit Breaker behavior. Tests
  * resilience patterns: open/closed state transitions, fallback handling.
  */
+@SpringBootTest
+@ActiveProfiles("test")
+@Import(TestQueryConfig.class)
 class CubeQueryServiceIT {
 
   @Mock
@@ -30,13 +37,13 @@ class CubeQueryServiceIT {
   private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
   @Mock
-  private WebClient.RequestHeadersSpec requestHeadersSpec;
+  private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
 
   @Mock
   private WebClient.ResponseSpec responseSpec;
 
   @Mock
-  private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+  private QueryDeduplicator queryDeduplicator;
 
   private CircuitBreakerRegistry circuitBreakerRegistry;
   private CubeQueryService cubeQueryService;
@@ -54,12 +61,19 @@ class CubeQueryServiceIT {
         .permittedNumberOfCallsInHalfOpenState(5).build();
 
     circuitBreakerRegistry = CircuitBreakerRegistry.of(config);
-    cubeQueryService = new CubeQueryService(cubeWebClient, circuitBreakerRegistry);
+    cubeQueryService = new CubeQueryService(cubeWebClient, circuitBreakerRegistry, queryDeduplicator);
     circuitBreaker = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
     circuitBreaker.reset();
+    
+    // Setup QueryDeduplicator mock to pass through
+    when(queryDeduplicator.executeWithDeduplication(any(), anyString(), any()))
+        .thenAnswer(invocation -> {
+          java.util.function.Supplier<Map<String, Object>> supplier = invocation.getArgument(2);
+          return supplier.get();
+        });
   }
 
-  @SuppressWarnings("unchecked") @Test
+  @Test
   void shouldExecuteQueryInClosedState() {
     // Arrange
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
@@ -68,7 +82,7 @@ class CubeQueryServiceIT {
     when(cubeWebClient.post()).thenReturn(requestBodyUriSpec);
     when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
     when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+    when(requestBodyUriSpec.bodyValue(any())).thenAnswer(inv -> requestHeadersSpec);
     when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
     when(responseSpec.bodyToMono(Map.class)).thenReturn(Mono.just(expectedResponse));
 
@@ -81,7 +95,7 @@ class CubeQueryServiceIT {
     assertEquals(CircuitBreaker.State.CLOSED, circuitBreaker.getState());
   }
 
-  @SuppressWarnings("unchecked") @Test
+  @Test
   void shouldTransitionToOpenStateAfterFailureThreshold() {
     // Arrange
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
@@ -89,7 +103,7 @@ class CubeQueryServiceIT {
     when(cubeWebClient.post()).thenReturn(requestBodyUriSpec);
     when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
     when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+    when(requestBodyUriSpec.bodyValue(any())).thenAnswer(inv -> requestHeadersSpec);
     when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
     when(responseSpec.bodyToMono(Map.class))
         .thenReturn(Mono.error(new RuntimeException("Cube.js timeout")));
@@ -108,7 +122,7 @@ class CubeQueryServiceIT {
     assertEquals(CircuitBreaker.State.OPEN, circuitBreaker.getState());
   }
 
-  @SuppressWarnings("unchecked") @Test
+  @Test
   void shouldTransitionToHalfOpenAndClose() {
     // Arrange
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
@@ -116,7 +130,7 @@ class CubeQueryServiceIT {
     when(cubeWebClient.post()).thenReturn(requestBodyUriSpec);
     when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
     when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+    when(requestBodyUriSpec.bodyValue(any())).thenAnswer(inv -> requestHeadersSpec);
     when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
     when(responseSpec.bodyToMono(Map.class)).thenReturn(Mono.just(Map.of("data", List.of())));
 

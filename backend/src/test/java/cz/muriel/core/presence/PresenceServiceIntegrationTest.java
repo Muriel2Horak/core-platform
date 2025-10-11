@@ -1,5 +1,6 @@
 package cz.muriel.core.presence;
 
+import cz.muriel.core.test.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,9 +11,9 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,8 +24,8 @@ import static org.awaitility.Awaitility.await;
  * 
  * Uses Testcontainers to spin up Redis instance
  */
-@SpringBootTest @Testcontainers
-class PresenceServiceIntegrationTest {
+@SpringBootTest
+class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   @Container
   static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))

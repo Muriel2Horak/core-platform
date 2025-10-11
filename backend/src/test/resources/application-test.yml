@@ -17,6 +17,15 @@ logging:
 
 # Security - Mock JWT authentication (no Keycloak needed)
 spring:
+  main:
+    allow-bean-definition-overriding: true
+  
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.kafka.annotation.KafkaBootstrapConfiguration
+  
   security:
     oauth2:
       resourceserver:
@@ -53,13 +62,27 @@ spring:
     type: caffeine
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=30s
+  
+  # Kafka disabled in tests
+  kafka:
+    bootstrap-servers: 127.0.0.1:0
 
 # Application configuration for tests
 app:
   redis:
     enabled: false  # Disable Redis in tests - use Caffeine instead
+  websocket:
+    enabled: false  # Disable WebSocket in tests
   change-events:
     listener-enabled: false  # Disable ChangeEventPollingService in tests
+  presence:
+    lockTtlMs: 30000
+    heartbeatIntervalMs: 10000
+
+# Keycloak datasource - DISABLED in tests
+keycloak:
+  datasource:
+    enabled: false  # Don't connect to Keycloak DB in integration tests
 
 # Monitoring/Reporting configuration for tests
 reporting:
@@ -98,6 +121,10 @@ monitoring:
 # Streaming configuration (disabled in tests by default)
 streaming:
   enabled: false  # Disable Kafka/streaming in tests
+
+# Kafka configuration (disabled in tests)
+kafka:
+  enabled: false
 
 # Actuator for metrics verification in tests
 management:
