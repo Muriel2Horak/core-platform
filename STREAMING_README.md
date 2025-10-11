@@ -331,6 +331,132 @@ public ResponseEntity<Order> create(@RequestBody OrderRequest req) {
 }
 ```
 
+## 🧪 Testing & CI
+
+### Pre-Deploy Testing Stack
+
+Kompletní testovací infrastruktura zajišťuje kvalitu před nasazením do produkce.
+
+#### Backend Tests
+
+**1. Static Analysis** (Maven profiles)
+```bash
+# Maven Enforcer - duplicate classes, dependency convergence
+cd backend && ./mvnw validate -P enforce-rules
+
+# OWASP Dependency-Check - CVE scan (fail on CVSS >= 7)
+./mvnw verify -P security -DskipTests
+
+# JaCoCo Coverage - 70% minimum line coverage
+./mvnw test jacoco:check -P unit-tests
+```
+
+**2. Unit Tests** (Surefire)
+```bash
+cd backend && ./mvnw test -P unit-tests
+```
+
+**3. Integration Tests** (Failsafe + Testcontainers)
+```bash
+cd backend && ./mvnw verify -P integration-tests
+
+# Test suites:
+# - PostgresStreamingIT: SKIP LOCKED batching, deduplication, TTL
+# - KafkaStreamingIT: topic config, entity keying, partition consistency
+# - PriorityAndPoliciesIT: priority lanes, strict reads, PII redaction
+# - OpenApiContractIT: API contract validation, exports openapi.json
+```
+
+#### Frontend Tests
+
+**1. Unit Tests** (Vitest + React Testing Library)
+```bash
+cd frontend
+
+# Verify React version (no duplicates)
+npm run verify:react
+
+# Run unit tests with coverage
+npm run test:unit
+```
+
+**2. E2E Tests** (Playwright)
+```bash
+# Start compose stack
+./scripts/e2e-setup.sh
+
+# Run E2E tests
+cd frontend && npm run test:e2e
+
+# Teardown
+./scripts/e2e-teardown.sh
+```
+
+#### Infrastructure Tests
+
+**Compose Stack Smoke Tests**
+```bash
+# Start streaming profile
+docker compose --profile streaming up -d
+
+# Run smoke tests
+./scripts/infra-smoke-test.sh
+
+# Tests:
+# - /actuator/health, /actuator/prometheus
+# - Kafka topics via kafka-topics.sh
+# - Topic policies: cleanup.policy=compact, retention.ms
+# - Grafana provisioning: /api/search?query=Streaming
+# - Prometheus targets health
+# - Mini flow: POST command → status==APPLIED
+```
+
+**Alert Validation**
+```bash
+# Validate Prometheus alert rules
+./scripts/validate-alerts.sh
+
+# Checks:
+# - YAML syntax (yamllint)
+# - PromQL syntax via Prometheus API
+# - Expected alert names (9 rules)
+# - Dry-run evaluation against metrics
+# - Annotations (severity, summary, description)
+```
+
+### CI Pipeline (GitHub Actions)
+
+Workflow: `.github/workflows/streaming-tests.yml`
+
+**Jobs:**
+1. **backend-static**: Maven Enforcer + OWASP
+2. **backend-unit**: Unit tests + JaCoCo 70%
+3. **backend-it**: Testcontainers IT + OpenAPI export
+4. **frontend-unit**: Vitest + React dedupe check
+5. **compose-smoke**: Docker Compose + infra-smoke-test.sh
+6. **frontend-e2e**: Playwright with Chromium
+7. **image-scan**: Trivy CRITICAL/HIGH vulnerabilities
+
+**Artifacts:**
+- OWASP reports (HTML/JSON)
+- JaCoCo coverage reports
+- OpenAPI spec (`openapi.json`)
+- Playwright HTML report
+- Docker logs (on failure)
+
+**Branch Protection:**
+- All jobs must pass
+- 70% code coverage minimum
+- No CRITICAL/HIGH CVEs
+
+### Test Reports
+
+**After CI run:**
+- Coverage: `backend/target/site/jacoco/index.html`
+- OWASP: `backend/target/dependency-check-report.html`
+- Playwright: `frontend/playwright-report/index.html`
+- OpenAPI spec: `backend/target/openapi/openapi.json`
+
 ## 🔐 Security
 
 - Admin UI: Role `PlatformAdmin` nebo `Ops`

@@ -347,6 +347,123 @@ docker exec kafka kafka-topics.sh --bootstrap-server localhost:9092 \
   --alter --topic user-events --partitions 6
 ```
 
+## 🧪 Testing & Troubleshooting
+
+### Reading Test Reports
+
+**Playwright E2E Report** (po CI běhu nebo lokálním `npm run test:e2e`)
+```bash
+cd frontend/playwright-report
+npx playwright show-report
+
+# Sections:
+# - Test results: PASSED/FAILED/SKIPPED
+# - Traces: Network requests, screenshots, console logs
+# - Videos: Test playback (if configured)
+```
+
+**Key Playwright Troubleshooting:**
+1. **Test timeout**: Zvýšit `timeout: 60000` v test suite
+2. **Iframe not loading**: Check Grafana CORS headers, network tab
+3. **Metrics counter = 0**: Run mini flow first, wait 5s for Kafka propagation
+4. **DLQ replay 404**: Verify backend admin API authentication
+
+**JaCoCo Coverage Report**
+```bash
+open backend/target/site/jacoco/index.html
+
+# Red lines: Not covered (need unit/IT tests)
+# Yellow lines: Partially covered (branches)
+# Green lines: Fully covered
+
+# Coverage breakdown:
+# - Instructions: Bytecode coverage
+# - Branches: if/else, switch
+# - Lines: Source line coverage (70% minimum)
+```
+
+**OWASP Dependency-Check Report**
+```bash
+open backend/target/dependency-check-report.html
+
+# Sections:
+# - Summary: Total dependencies, vulnerabilities by severity
+# - Dependency list: CVE-xxxx links to NVD
+# - Suppressed: owasp-suppressions.xml entries
+
+# Resolve HIGH/CRITICAL:
+# 1. Upgrade dependency to patched version
+# 2. If no fix: Add suppression with justification
+# 3. Re-run: ./mvnw verify -P security
+```
+
+### Smoke Test Failures
+
+**infra-smoke-test.sh** error patterns:
+
+```bash
+# Error: "Backend health endpoint not UP"
+# Fix: Check backend logs for startup errors
+docker compose --profile streaming logs backend | tail -100
+
+# Error: "Kafka topic 'streaming.entity.events' not found"
+# Fix: Restart Kafka, topics auto-created on first produce
+docker compose restart kafka
+sleep 30 && ./scripts/infra-smoke-test.sh
+
+# Error: "Grafana dashboards not provisioned (expected 3)"
+# Fix: Check Grafana provisioning logs
+docker compose logs grafana | grep -i provision
+
+# Error: "Mini flow: Command still PENDING"
+# Fix: Check worker logs, Kafka consumer lag
+docker compose logs backend | grep WorkerService
+```
+
+### Alert Validation Failures
+
+**validate-alerts.sh** error patterns:
+
+```bash
+# Error: "YAML syntax errors"
+# Fix: Run yamllint manually to see line numbers
+yamllint docker/prometheus/alerts.yml
+
+# Error: "PromQL syntax errors detected"
+# Fix: Check Prometheus UI -> Status -> Rules
+# Copy failing expression to Prometheus query page for testing
+
+# Error: "Missing alert: StreamingXYZ"
+# Fix: Ensure alert name matches exactly (case-sensitive)
+grep "alert:" docker/prometheus/alerts.yml
+
+# Error: "Alert XYZ missing 'severity' label"
+# Fix: Add under labels: section
+#   labels:
+#     severity: warning  # or critical
+#     component: streaming
+```
+
+### Consumer Lag Troubleshooting
+
+```bash
+# Check consumer lag
+docker exec kafka kafka-consumer-groups.sh \
+  --bootstrap-server localhost:9092 \
+  --describe \
+  --group core-platform-events
+
+# Output columns:
+# - CURRENT-OFFSET: Last consumed offset
+# - LOG-END-OFFSET: Latest message offset
+# - LAG: Difference (should be < 100 under normal load)
+
+# If LAG > 1000:
+# 1. Scale backend instances: docker compose up -d --scale backend=3
+# 2. Increase workerConcurrency in metamodel
+# 3. Check for slow queries in WorkerService logs
+```
+
 ## 🔐 Security Checklist
 
 - [ ] Kafka SASL/SCRAM authentication enabled (production)

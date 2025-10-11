@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <!-- 
+        OWASP Dependency-Check Suppressions
+        Add suppressions for false positives or accepted risks here
+        Format: https://jeremylong.github.io/DependencyCheck/general/suppression.html
+    -->
+
+  <!-- Example: Suppress known false positive -->
+  <!-- 
+    <suppress>
+        <notes><![CDATA[
+        False positive - this CVE doesn't apply to our usage
+        ]]></notes>
+<gav regex="true">^org\.example:.*$</gav>
+<cve>CVE-2023-12345</cve>
+</suppress>
+    -->
+</suppressions>
