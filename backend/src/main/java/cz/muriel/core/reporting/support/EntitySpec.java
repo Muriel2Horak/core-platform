@@ -12,8 +12,8 @@ import java.util.Set;
 /**
  * Specification for an entity from metamodel perspective.
  * 
- * Defines allowed dimensions, measures, filters for reporting.
- * Extended for full UI spec generation (PHASE 2).
+ * Defines allowed dimensions, measures, filters for reporting. Extended for
+ * full UI spec generation (PHASE 2).
  */
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class EntitySpec {
@@ -22,6 +22,11 @@ public class EntitySpec {
    * Entity name.
    */
   private String entityName;
+
+  /**
+   * Table name in database (e.g., "users_directory").
+   */
+  private String tableName;
 
   /**
    * Metamodel version checksum.
@@ -141,4 +146,3 @@ public class EntitySpec {
     private Map<String, String> fieldMapping; // source field -> target field
   }
 }
-

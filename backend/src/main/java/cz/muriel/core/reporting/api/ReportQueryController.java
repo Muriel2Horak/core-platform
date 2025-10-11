@@ -106,14 +106,9 @@ public class ReportQueryController {
   /**
    * Get full entity specification for UI rendering (PHASE 2).
    * 
-   * Returns complete metadata including:
-   * - Dimensions, measures, filters
-   * - Editable fields
-   * - Relations (for drill-down)
-   * - Validations
-   * - Enums
-   * - Default view configuration
-   * - Drilldown definitions
+   * Returns complete metadata including: - Dimensions, measures, filters -
+   * Editable fields - Relations (for drill-down) - Validations - Enums - Default
+   * view configuration - Drilldown definitions
    * 
    * GET /api/reports/metadata/{entity}/spec
    * 
@@ -122,8 +117,7 @@ public class ReportQueryController {
    * @return Full EntitySpec with checksum versioning
    */
   @GetMapping("/metadata/{entity}/spec")
-  public ResponseEntity<EntitySpec> getFullEntitySpec(
-      @PathVariable String entity,
+  public ResponseEntity<EntitySpec> getFullEntitySpec(@PathVariable String entity,
       Authentication authentication) {
 
     log.debug("Fetching full spec for entity: {}", entity);

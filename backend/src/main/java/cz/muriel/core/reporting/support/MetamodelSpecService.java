@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
  * Provides allowed fields, aggregations, and restrictions for reporting
  * queries.
  * 
- * PHASE 2: Extended with full UI spec generation (relations, validations, enums, etc.)
+ * PHASE 2: Extended with full UI spec generation (relations, validations,
+ * enums, etc.)
  */
 @Slf4j @Service @RequiredArgsConstructor
 public class MetamodelSpecService {
@@ -30,14 +31,8 @@ public class MetamodelSpecService {
   /**
    * Get full entity specification for UI rendering (PHASE 2).
    * 
-   * Includes:
-   * - Dimensions, measures, filters
-   * - Editable fields
-   * - Relations (for drill-down)
-   * - Validations
-   * - Enums
-   * - Default view config
-   * - Drilldowns
+   * Includes: - Dimensions, measures, filters - Editable fields - Relations (for
+   * drill-down) - Validations - Enums - Default view config - Drilldowns
    * 
    * @param entityName Entity name
    * @return Complete EntitySpec with checksum versioning
@@ -79,16 +74,11 @@ public class MetamodelSpecService {
       }
 
       // Build field spec
-      EntitySpec.FieldSpec fieldSpec = EntitySpec.FieldSpec.builder()
-          .name(fieldName)
-          .type(field.getType())
-          .editable(isEditableField(field))
-          .filterable(isFilterableField(field))
-          .sortable(isSortableField(field))
-          .allowedOperators(getAllowedOperators(field))
-          .label(formatLabel(fieldName))
-          .required(Boolean.TRUE.equals(field.getRequired()))
-          .sensitive(isSensitiveField(field))
+      EntitySpec.FieldSpec fieldSpec = EntitySpec.FieldSpec.builder().name(fieldName)
+          .type(field.getType()).editable(isEditableField(field))
+          .filterable(isFilterableField(field)).sortable(isSortableField(field))
+          .allowedOperators(getAllowedOperators(field)).label(formatLabel(fieldName))
+          .required(Boolean.TRUE.equals(field.getRequired())).sensitive(isSensitiveField(field))
           .adminOnly(false) // TODO: Add adminOnly metadata to FieldSchema
           .build();
 
@@ -97,10 +87,8 @@ public class MetamodelSpecService {
       // Extract validations
       if (Boolean.TRUE.equals(field.getRequired()) || field.getMaxLength() != null) {
         EntitySpec.ValidationSpec validation = EntitySpec.ValidationSpec.builder()
-            .required(Boolean.TRUE.equals(field.getRequired()))
-            .maxLength(field.getMaxLength())
-            .errorMessage(buildValidationMessage(field))
-            .build();
+            .required(Boolean.TRUE.equals(field.getRequired())).maxLength(field.getMaxLength())
+            .errorMessage(buildValidationMessage(field)).build();
         validations.put(fieldName, validation);
       }
     }
@@ -109,19 +97,13 @@ public class MetamodelSpecService {
     for (FieldSchema field : entitySchema.getFields()) {
       if (field.getType().equals("ref") || field.getType().equals("manyToOne")) {
         EntitySpec.RelationSpec relationSpec = EntitySpec.RelationSpec.builder()
-            .name(field.getName())
-            .targetEntity(field.getRefEntity())
-            .relationType("manyToOne")
-            .foreignKey(field.getName())
-            .build();
+            .name(field.getName()).targetEntity(field.getRefEntity()).relationType("manyToOne")
+            .foreignKey(field.getName()).build();
         relations.add(relationSpec);
       } else if (field.getType().equals("oneToMany") || field.getType().equals("manyToMany")) {
         EntitySpec.RelationSpec relationSpec = EntitySpec.RelationSpec.builder()
-            .name(field.getName())
-            .targetEntity(field.getTargetEntity())
-            .relationType(field.getType())
-            .foreignKey(field.getJoinColumn())
-            .build();
+            .name(field.getName()).targetEntity(field.getTargetEntity())
+            .relationType(field.getType()).foreignKey(field.getJoinColumn()).build();
         relations.add(relationSpec);
       }
     }
@@ -138,23 +120,15 @@ public class MetamodelSpecService {
     String timeDimension = findTimeDimension(entitySchema);
     boolean requiresTimeRange = timeDimension != null;
 
-    return EntitySpec.builder()
-        .entityName(entityName)
-        .specVersion(specVersion)
-        .allowedDimensions(allowedDimensions)
-        .allowedMeasures(allowedMeasures)
-        .allowedFilters(allowedFilters)
-        .allowedAggregations(getAllowedAggregations())
-        .fields(fieldSpecs)
-        .requiresTimeRange(requiresTimeRange)
-        .defaultTimeDimension(timeDimension)
-        .editableFields(editableFields)
-        .relations(relations)
-        .validations(validations)
-        .enums(enums)
-        .defaultView(defaultView)
-        .drilldowns(drilldowns)
-        .build();
+    // Derive table name from entity name (convert to snake_case)
+    String tableName = toSnakeCase(entityName);
+
+    return EntitySpec.builder().entityName(entityName).tableName(tableName).specVersion(specVersion)
+        .allowedDimensions(allowedDimensions).allowedMeasures(allowedMeasures)
+        .allowedFilters(allowedFilters).allowedAggregations(getAllowedAggregations())
+        .fields(fieldSpecs).requiresTimeRange(requiresTimeRange).defaultTimeDimension(timeDimension)
+        .editableFields(editableFields).relations(relations).validations(validations).enums(enums)
+        .defaultView(defaultView).drilldowns(drilldowns).build();
   }
 
   /**
@@ -291,24 +265,23 @@ public class MetamodelSpecService {
   }
 
   /**
-   * Format field name as human-readable label.
-   * Examples: "user_id" -> "User ID", "firstName" -> "First Name"
+   * Format field name as human-readable label. Examples: "user_id" -> "User ID",
+   * "firstName" -> "First Name"
    */
   private String formatLabel(String fieldName) {
     // Replace underscores with spaces
     String label = fieldName.replace("_", " ");
-    
+
     // Split camelCase
     label = label.replaceAll("([a-z])([A-Z])", "$1 $2");
-    
+
     // Capitalize first letter of each word
     String[] words = label.split(" ");
     StringBuilder result = new StringBuilder();
     for (String word : words) {
       if (!word.isEmpty()) {
-        result.append(Character.toUpperCase(word.charAt(0)))
-              .append(word.substring(1).toLowerCase())
-              .append(" ");
+        result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1).toLowerCase())
+            .append(" ");
       }
     }
     return result.toString().trim();
@@ -319,8 +292,8 @@ public class MetamodelSpecService {
    */
   private boolean isSensitiveField(FieldSchema field) {
     String name = field.getName().toLowerCase();
-    return name.contains("password") || name.contains("secret") || 
-           name.contains("token") || name.contains("credential");
+    return name.contains("password") || name.contains("secret") || name.contains("token")
+        || name.contains("credential");
   }
 
   /**
@@ -331,8 +304,8 @@ public class MetamodelSpecService {
       return formatLabel(field.getName()) + " is required";
     }
     if (field.getMaxLength() != null) {
-      return formatLabel(field.getName()) + " must be less than " + 
-             field.getMaxLength() + " characters";
+      return formatLabel(field.getName()) + " must be less than " + field.getMaxLength()
+          + " characters";
     }
     return null;
   }
@@ -340,58 +313,46 @@ public class MetamodelSpecService {
   /**
    * Build default view configuration.
    */
-  private EntitySpec.DefaultViewSpec buildDefaultView(
-      EntitySchema entitySchema, 
+  private EntitySpec.DefaultViewSpec buildDefaultView(EntitySchema entitySchema,
       List<EntitySpec.FieldSpec> fieldSpecs) {
-    
+
     // Default columns: first 5 non-sensitive, non-technical fields
-    List<String> defaultColumns = fieldSpecs.stream()
-        .filter(f -> !f.isSensitive())
-        .filter(f -> !f.getName().endsWith("_id"))
-        .filter(f -> !f.getName().equals("version"))
-        .limit(5)
-        .map(EntitySpec.FieldSpec::getName)
-        .collect(Collectors.toList());
-    
+    List<String> defaultColumns = fieldSpecs.stream().filter(f -> !f.isSensitive())
+        .filter(f -> !f.getName().endsWith("_id")).filter(f -> !f.getName().equals("version"))
+        .limit(5).map(EntitySpec.FieldSpec::getName).collect(Collectors.toList());
+
     // Default sort by created_at desc
     String sortBy = findTimeDimension(entitySchema);
     if (sortBy == null) {
       sortBy = "id";
     }
-    
-    return EntitySpec.DefaultViewSpec.builder()
-        .columns(defaultColumns)
-        .sortBy(sortBy)
-        .sortOrder("desc")
-        .defaultFilters(new HashMap<>())
-        .build();
+
+    return EntitySpec.DefaultViewSpec.builder().columns(defaultColumns).sortBy(sortBy)
+        .sortOrder("desc").defaultFilters(new HashMap<>()).build();
   }
 
   /**
    * Build drilldown definitions based on relations.
    */
-  private List<EntitySpec.DrilldownSpec> buildDrilldowns(
-      EntitySchema entitySchema,
+  private List<EntitySpec.DrilldownSpec> buildDrilldowns(EntitySchema entitySchema,
       List<EntitySpec.RelationSpec> relations) {
-    
+
     List<EntitySpec.DrilldownSpec> drilldowns = new ArrayList<>();
-    
+
     // Create drilldown for each manyToOne relation
     for (EntitySpec.RelationSpec relation : relations) {
       if ("manyToOne".equals(relation.getRelationType())) {
         Map<String, String> fieldMapping = new HashMap<>();
         fieldMapping.put(relation.getForeignKey(), "id");
-        
+
         EntitySpec.DrilldownSpec drilldown = EntitySpec.DrilldownSpec.builder()
             .name("View " + formatLabel(relation.getTargetEntity()))
-            .targetEntity(relation.getTargetEntity())
-            .fieldMapping(fieldMapping)
-            .build();
-        
+            .targetEntity(relation.getTargetEntity()).fieldMapping(fieldMapping).build();
+
         drilldowns.add(drilldown);
       }
     }
-    
+
     return drilldowns;
   }
 
@@ -402,11 +363,11 @@ public class MetamodelSpecService {
     try {
       // Serialize schema to JSON string
       String json = objectMapper.writeValueAsString(entitySchema);
-      
+
       // Compute SHA-256 hash
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       byte[] hash = digest.digest(json.getBytes(StandardCharsets.UTF_8));
-      
+
       // Convert to hex string (first 16 chars)
       StringBuilder hexString = new StringBuilder();
       for (int i = 0; i < Math.min(hash.length, 8); i++) {
@@ -421,5 +382,30 @@ public class MetamodelSpecService {
       log.warn("Failed to compute schema checksum: {}", e.getMessage());
       return "v1.0"; // Fallback
     }
+  }
+
+  /**
+   * Convert CamelCase or PascalCase to snake_case.
+   * 
+   * Examples:
+   * - "User" -> "users"
+   * - "UserDirectory" -> "user_directory"
+   * - "TenantRegistry" -> "tenants_registry"
+   */
+  private String toSnakeCase(String input) {
+    if (input == null || input.isEmpty()) {
+      return input;
+    }
+
+    // Insert underscore before uppercase letters (except first)
+    String snakeCase = input.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+
+    // Pluralize if needed (simple heuristic: add 's' if not already plural)
+    // This is a simplification - production code might use a proper pluralization library
+    if (!snakeCase.endsWith("s")) {
+      snakeCase = snakeCase + "s";
+    }
+
+    return snakeCase;
   }
 }
