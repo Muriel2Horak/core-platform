@@ -502,6 +502,42 @@ services:
       timeout: 20s
       retries: 3
 
+  # 📊 Cube.js - Semantic Layer for Reporting
+  cube:
+    image: cubejs/cube:latest
+    container_name: core-cube
+    ports:
+      - "${CUBE_PORT:-4000}:4000"
+    environment:
+      - CUBEJS_DB_TYPE=postgres
+      - CUBEJS_DB_HOST=db
+      - CUBEJS_DB_PORT=5432
+      - CUBEJS_DB_NAME=${DB_INTERNAL_NAME:-core}
+      - CUBEJS_DB_USER=${DB_INTERNAL_USERNAME:-core}
+      - CUBEJS_DB_PASS=${DB_INTERNAL_PASSWORD:-core}
+      - CUBEJS_API_SECRET=${CUBE_API_SECRET:-dev_secret_change_in_production}
+      - CUBEJS_DEV_MODE=${CUBE_DEV_MODE:-true}
+      - CUBEJS_WEB_SOCKETS=true
+      - CUBEJS_REDIS_URL=redis://redis:6379
+      - CUBEJS_CACHE_AND_QUEUE_DRIVER=redis
+      - NODE_ENV=${ENVIRONMENT:-development}
+    volumes:
+      - ./cube/schema:/cube/conf/schema:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - core-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/cubejs-api/v1/meta"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    restart: unless-stopped
+
 volumes:
   core_db_data:
   grafana_data:
