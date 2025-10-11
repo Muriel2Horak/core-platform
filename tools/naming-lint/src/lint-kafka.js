@@ -26,13 +26,13 @@ function extractTopics(content) {
   const topics = new Set();
 
   // Java: @KafkaListener(topics = "core.user.created")
-  const javaMatches = content.matchAll(/@KafkaListener\s*\([^)]*topics\s*=\s*["']([^"']+)["']/g);
+  const javaMatches = content.matchAll(/@KafkaListener\s*\([^)]*topics\s*=\s*["']([^"'#]+)["']/g);
   for (const match of javaMatches) {
     topics.add(match[1]);
   }
 
   // Java: kafkaTemplate.send("core.user.created", ...)
-  const sendMatches = content.matchAll(/\.send\s*\(\s*["']([^"']+)["']/g);
+  const sendMatches = content.matchAll(/\.send\s*\(\s*["']([^"'#]+)["']/g);
   for (const match of sendMatches) {
     if (match[1].includes('.')) topics.add(match[1]);
   }
@@ -40,13 +40,13 @@ function extractTopics(content) {
   // YAML: topic: core.user.created
   const yamlMatches = content.matchAll(/topic:\s*["']?([a-z][a-z0-9.-]+)["']?/g);
   for (const match of yamlMatches) {
-    if (match[1].includes('.')) topics.add(match[1]);
+    if (match[1].includes('.') && !match[1].includes('$')) topics.add(match[1]);
   }
 
   // Properties: kafka.topic.user-created=core.user.created
   const propsMatches = content.matchAll(/kafka\.topic\.[^=]+=\s*([a-z][a-z0-9.-]+)/g);
   for (const match of propsMatches) {
-    if (match[1].includes('.')) topics.add(match[1]);
+    if (match[1].includes('.') && !match[1].includes('$')) topics.add(match[1]);
   }
 
   return Array.from(topics);
