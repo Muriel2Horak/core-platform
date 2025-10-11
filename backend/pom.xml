@@ -197,6 +197,20 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- OpenAPI4J for contract testing -->
+		<dependency>
+			<groupId>org.openapi4j</groupId>
+			<artifactId>openapi-operation-validator</artifactId>
+			<version>1.0.7</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.openapi4j</groupId>
+			<artifactId>openapi-parser</artifactId>
+			<version>1.0.7</version>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- SnakeYAML pro metamodel loading -->
 		<dependency>
 			<groupId>org.yaml</groupId>
