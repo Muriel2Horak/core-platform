@@ -1,7 +1,7 @@
 # 🚀 Reporting Module - Implementation Progress & Next Steps
 
-> **Status:** FÁZE 1-2 HOTOVÉ (40% dokončeno)  
-> **Poslední aktualizace:** 11. října 2025  
+> **Status:** FÁZE 1-3 HOTOVÉ (69% dokončeno)  
+> **Poslední aktualizace:** 11. ledna 2025  
 > **Větev:** `feature/reporting-audit-closure`
 
 ---
@@ -60,81 +60,233 @@ curl http://localhost:8080/api/reports/metadata/User/spec
 
 ---
 
+### FÁZE 3: Frontend Reporting UI (29h z 32h) ✅ 90% HOTOVO
+**Commit:** (pending) - "feat(reporting): Phase 3 - Frontend reporting UI with ExplorerGrid, ChartPanel, E2E tests"
+
+**Hotovo:**
+- ✅ **ExplorerGrid.jsx** (395 řádků) - Server-side grid s AG Grid Community
+  - Auto-fetch entity spec
+  - Inline editing s If-Match optimistic locking
+  - Bulk selection + Activate/Deactivate actions
+  - CSV export
+  - 409 Conflict handling
+- ✅ **ChartPanel.jsx** (220 řádků) - ECharts integration
+  - Bar/Line/Pie charts
+  - Chart type selector
+  - Click-to-drill-down handlers
+  - ChartGrid pro dashboard layout
+- ✅ **ReportingPage.tsx** (220 řádků) - Main reporting interface
+  - MUI Tabs (Table/Charts/Pivot)
+  - Entity selector
+  - Breadcrumb navigation
+- ✅ **Dependencies:** ag-grid v31.3.2, echarts v5.5.0
+- ✅ **Storybook:** ExplorerGrid.stories.tsx (5 stories)
+- ✅ **E2E Tests:** reporting-explorer.spec.ts (12 Playwright testů)
+
+**Odloženo:**
+- ⏸️ PivotViewer.jsx (čeká na @finos/perspective instalaci)
+
+**Zbývá pro FÁZE 3:**
+- [ ] `npm install` pro nové dependencies
+- [ ] Přidat routing pro `/reporting` cestu
+- [ ] Commit changes
+
+**Testování:**
+```bash
+# Install dependencies
+cd frontend && npm install
+
+# Run Storybook
+npm run storybook
+
+# Run E2E tests (vyžaduje běžící backend + Cube)
+npm run test:e2e
+```
+
+---
+
 ## 🔄 ZBÝVÁ DOKONČIT
 
-### FÁZE 3: Frontend Reporting UI (32h) - **PRIORITA P0**
+### FÁZE 3: Frontend Reporting UI (32h) - **✅ 90% HOTOVO** (29h dokončeno)
 
 **Technologie (OSS only):**
-- AG Grid Community (tabulky s inline edit, pagination, sort, filter)
-- FINOS Perspective (pivot tabulky, agregace, export CSV/XLSX)
-- Apache ECharts (grafy s drill-down)
+- ✅ AG Grid Community v31.3.2 (tabulky s inline edit, pagination, sort, filter)
+- ⏸️ FINOS Perspective (pivot tabulky - odloženo na later)
+- ✅ Apache ECharts v5.5.0 (grafy s drill-down)
 
-**Komponenty k vytvoření:**
+**Vytvořené komponenty:**
 
-#### 1. ExplorerGrid.tsx (12h)
-```typescript
-// frontend/src/components/reporting/ExplorerGrid.tsx
-import { AgGridReact } from 'ag-grid-react';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-material.css';
+#### 1. ExplorerGrid.jsx - ✅ **HOTOVO** (12h)
+**Soubor:** `frontend/src/components/Reporting/ExplorerGrid.jsx` (395 řádků)
 
-interface ExplorerGridProps {
-  entity: string;
-  filters?: Record<string, any>;
-  onRowClick?: (row: any) => void;
-}
-
-export function ExplorerGrid({ entity, filters, onRowClick }: ExplorerGridProps) {
-  // Server-side data source s pagination
-  // Inline edit s optimistic locking (If-Match)
-  // Bulk selection toolbar
-  // Column auto-sizing z spec
+```jsx
+export function ExplorerGrid({ entity, initialFilters, onRowClick, onDrillDown }) {
+  // ✅ Auto-fetch entity spec: GET /api/reports/metadata/{entity}/spec
+  // ✅ Server-side pagination via POST /api/reports/query
+  // ✅ Dynamic column generation from spec.fields
+  // ✅ Inline cell editing with optimistic locking (If-Match header)
+  // ✅ Bulk selection + Activate/Deactivate actions
+  // ✅ CSV export functionality
+  // ✅ Error handling: 409 Conflict detection + user notifications
+  // ✅ MUI Toolbar integration
+  // ✅ AG Grid Material theme
 }
 ```
 
-**Funkce:**
-- Načítání dat přes `/api/reports/query`
-- Načítání spec přes `/api/reports/metadata/{entity}/spec`
-- Server-side pagination/sort/filter
-- Inline edit s PATCH `/api/entities/{entity}/{id}` (verze v If-Match header)
-- Optimistic UI updates
-- Bulk selection s akcemi (Activate/Deactivate)
-- Error handling (409 Conflict → reload)
+**Klíčové funkce:**
+- **Server-side operace:** Pagination (10/25/50/100 rows), sorting, filtering
+- **Inline editing:** Double-click cell → edit → auto-save s PATCH + If-Match version header
+- **Bulk operations:** Multi-select rows → Activate/Deactivate buttons
+- **Export:** CSV download s filtered data
+- **Concurrency control:** 409 response → alert user + reload data
+- **Snackbar notifications:** Success/error feedback
 
-#### 2. PivotViewer.tsx (8h)
-```typescript
-// frontend/src/components/reporting/PivotViewer.tsx
-import perspective from '@finos/perspective';
-import '@finos/perspective-viewer';
+#### 2. PivotViewer.jsx - ⏸️ **ODLOŽENO** (0h z 8h)
+**Poznámka:** FINOS Perspective není v package.json. Tab "Pivot Table" v UI je disabled.
+Tato komponenta bude implementována později po instalaci:
+```bash
+npm install --save @finos/perspective@^2.9.0 \
+  @finos/perspective-viewer@^2.9.0 \
+  @finos/perspective-viewer-datagrid@^2.9.0
+```
 
-export function PivotViewer({ entity, data }: PivotViewerProps) {
-  // Perspective worker + table
-  // Default config (group_by, aggregates)
-  // Export CSV/XLSX
+#### 3. ChartPanel.jsx - ✅ **HOTOVO** (8h)
+**Soubor:** `frontend/src/components/Reporting/ChartPanel.jsx` (220 řádků)
+
+```jsx
+export function ChartPanel({ entity, type, xField, yField, onDrillDown }) {
+  // ✅ ReactECharts integration (echarts-for-react v3.0.2)
+  // ✅ Chart types: bar, line, pie
+  // ✅ Dynamic data loading from POST /api/reports/query
+  // ✅ Click-to-drill-down handler (onChartClick → onDrillDown callback)
+  // ✅ Chart type selector (MUI Select)
+  // ✅ Responsive layout (400px height)
+}
+
+export function ChartGrid({ entity, charts }) {
+  // ✅ MUI Grid layout for multiple charts (dashboard view)
+  // ✅ 2-column responsive layout (xs=12, md=6)
 }
 ```
 
-#### 3. ChartPanel.tsx (8h)
-```typescript
-// frontend/src/components/reporting/ChartPanel.tsx
-import * as echarts from 'echarts';
+**Podporované typy grafů:**
+- **Bar Chart:** Kategorie na X-ose, hodnoty na Y-ose
+- **Line Chart:** S smooth křivkami a area fill
+- **Pie Chart:** S procenty a legendou
 
-export function ChartPanel({ type, data, xField, yField, onDrillDown }: ChartPanelProps) {
-  // ECharts init
-  // Bar/Line/Pie charts
-  // Click handler → onDrillDown callback
-}
-```
+#### 4. ReportingPage.tsx - ✅ **HOTOVO** (2h)
+**Soubor:** `frontend/src/components/Reporting/ReportingPage.tsx` (220 řádků)
 
-#### 4. ReportingPage.tsx (2h)
 ```typescript
-// frontend/src/pages/Reporting.tsx
 export function ReportingPage() {
-  const [view, setView] = useState<'table' | 'pivot' | 'chart'>('table');
-  
-  return (
-    <Tabs value={view} onChange={(e, v) => setView(v)}>
-      <Tab value="table" label="Table" />
+  // ✅ MUI Tabs: Table View / Charts / Pivot Table (disabled)
+  // ✅ Entity selector: users_directory, tenants_registry, keycloak_groups
+  // ✅ Breadcrumb navigation for drill-down history
+  // ✅ Filter state management across views
+  // ✅ Full integration: ExplorerGrid + ChartGrid
+}
+```
+
+**Klíčové funkce:**
+- **Tab navigation:** 3 pohledy (Table/Charts/Pivot)
+- **Entity selector:** Dropdown s dostupnými entitami
+- **Drill-down breadcrumbs:** Navigace zpět v historii filtrů
+- **State management:** Filters + breadcrumbs preserved across tab switches
+
+#### 5. Dependencies - ✅ **HOTOVO**
+**Soubor:** `frontend/package.json` (přidané dependencies)
+
+```json
+{
+  "dependencies": {
+    "ag-grid-community": "^31.3.2",
+    "ag-grid-react": "^31.3.2",
+    "echarts": "^5.5.0",
+    "echarts-for-react": "^3.0.2"
+  }
+}
+```
+
+⚠️ **TODO:** Spustit `cd frontend && npm install` pro instalaci nových závislostí
+
+#### 6. Storybook Stories - ✅ **HOTOVO** (1h)
+**Soubor:** `frontend/src/components/Reporting/ExplorerGrid.stories.tsx`
+
+```typescript
+export default {
+  title: 'Reporting/ExplorerGrid',
+  component: ExplorerGrid,
+  tags: ['autodocs'],
+  parameters: { layout: 'fullscreen' }
+};
+
+export const Default: Story = { args: { entity: 'users_directory' } };
+export const FilteredByStatus: Story = { 
+  args: { entity: 'users_directory', initialFilters: { status: 'ACTIVE' } } 
+};
+export const TenantsView: Story = { args: { entity: 'tenants_registry' } };
+export const GroupsView: Story = { args: { entity: 'keycloak_groups' } };
+export const WithDrillDown: Story = { 
+  args: { onDrillDown: (data) => console.log('Drill down:', data) } 
+};
+```
+
+**Stories vytvořené:**
+- Default view (users_directory)
+- Filtered view (status=ACTIVE)
+- Alternative entities (tenants, groups)
+- With drill-down handler
+
+#### 7. E2E Tests - ✅ **HOTOVO** (6h)
+**Soubor:** `frontend/tests/reporting-explorer.spec.ts` (230 řádků)
+
+```typescript
+test.describe('Reporting Explorer', () => {
+  test('should load reporting page with default entity');
+  test('should display data grid with users');
+  test('should switch between table and chart views');
+  test('should change entity in selector');
+  test('should paginate through data');
+  test('should sort by column');
+  test('should select multiple rows for bulk action');
+  test('should export data to CSV');
+  test('should handle inline cell editing');
+  test('should show error on concurrent edit conflict (409)');
+});
+
+test.describe('Chart Panel', () => {
+  test('should render chart with data');
+  test('should switch between chart types');
+});
+```
+
+**Test coverage:**
+- ✅ Page load & UI rendering
+- ✅ Entity switching
+- ✅ Pagination & sorting
+- ✅ Bulk selection & actions
+- ✅ CSV export
+- ✅ Inline editing workflow
+- ✅ Concurrency conflict handling (409)
+- ✅ Chart rendering & type switching
+
+**Počet testů:** 12 E2E testů (Playwright)
+
+**DoD FÁZE 3:**
+- [x] ExplorerGrid: server-side data, inline edit, bulk actions, CSV export
+- [x] ChartPanel: bar/line/pie charts, drill-down navigace
+- [x] ChartGrid: dashboard layout pro multiple charts
+- [x] ReportingPage: tabs, entity selector, breadcrumb navigation
+- [x] Dependencies přidány do package.json
+- [x] Storybook stories (5 stories)
+- [x] E2E testy (12 testů)
+- [ ] **npm install** - instalace nových závislostí
+- [ ] **Routing** - přidat /reporting cestu do App.tsx
+- [ ] PivotViewer (odloženo na later - čeká na Perspective)
+
+---
+
+### FÁZE 4: Inline Edit & Bulk Operations API (16h) - **PRIORITA P0** ⏳ NEXT
       <Tab value="pivot" label="Pivot" />
       <Tab value="chart" label="Chart" />
     </Tabs>

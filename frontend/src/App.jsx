@@ -19,6 +19,9 @@ import KanbanPage from './pages/Examples/KanbanPage.tsx';
 // 📊 Reporting with Grafana Scenes
 import Reports from './pages/Reports.jsx';
 
+// 📊 Reporting Explorer (Phase 3)
+import { ReportingPage } from './components/Reporting';
+
 // 🆕 Admin sekce
 import {
   MonitoringPage,
@@ -451,6 +454,9 @@ const AppContent = () => {
         
         {/* 📊 Reports - Grafana Scenes with BFF */}
         <Route path="/reports" element={<Reports />} />
+        
+        {/* 📊 Reporting Explorer - Advanced data grid & charts (Phase 3) */}
+        <Route path="/reporting" element={<ReportingPage />} />
         
         {/* User Directory - veřejně přístupný */}
         <Route path="/user-directory" element={<UserDirectory user={user} />} />
