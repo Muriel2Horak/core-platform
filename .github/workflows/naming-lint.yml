@@ -1,0 +1,65 @@
+name: Naming Lint
+
+on:
+  pull_request:
+    branches: [main, develop, feature/**]
+    paths:
+      - 'backend/src/main/java/**/*.java'
+      - 'backend/src/main/resources/**/*.{yml,yaml,properties,sql,json}'
+      - 'frontend/src/**/*.{ts,tsx}'
+      - 'tools/naming-lint/**'
+      - '.github/workflows/naming-lint.yml'
+
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/src/main/java/**/*.java'
+      - 'backend/src/main/resources/**/*.{yml,yaml,properties,sql,json}'
+      - 'frontend/src/**/*.{ts,tsx}'
+      - 'tools/naming-lint/**'
+
+jobs:
+  naming-lint:
+    name: Naming Convention Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: tools/naming-lint/package-lock.json
+
+      - name: Install dependencies
+        working-directory: tools/naming-lint
+        run: npm ci
+
+      - name: Run Metamodel Lint
+        working-directory: tools/naming-lint
+        run: npm run lint:metamodel
+
+      - name: Run REST API Lint
+        working-directory: tools/naming-lint
+        run: npm run lint:api
+
+      - name: Run Kafka Topic Lint
+        working-directory: tools/naming-lint
+        run: npm run lint:kafka
+
+      - name: Run Database Migration Lint
+        working-directory: tools/naming-lint
+        run: npm run lint:db
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Naming Lint Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All naming convention checks completed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See [NAMING_GUIDE.md](docs/NAMING_GUIDE.md) for details." >> $GITHUB_STEP_SUMMARY

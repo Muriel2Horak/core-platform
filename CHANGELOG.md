@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Platform Hardening Epic (S1: Naming Conventions)
+
+#### Naming Guide & Linting Infrastructure (2025-10-11)
+- **docs/NAMING_GUIDE.md** (530+ lines): Comprehensive naming conventions guide
+  - Entity & Domain Model: PascalCase singular (User, UserDirectory)
+  - Database: snake_case tables (plural), columns (singular), mandatory tenant_id
+  - REST API: kebab-case plural URLs (/api/users, /api/user-directories)
+  - JSON: camelCase keys (firstName, userId)
+  - Cube.js: PascalCase plural cubes (Users), camelCase measures/dimensions
+  - Kafka: product.context.entity.event in kebab-case + -retry/-dlq suffixes
+  - Prometheus: snake_case with _seconds/_total/_bytes suffixes
+  - Full-stack examples for User and UserDirectory entities
+  - Migration/compatibility guide with deprecation strategy
+  - Anti-patterns and checklist for new features
+
+- **tools/naming-lint/**: Automated naming convention linters (Node.js/ESM)
+  - `lint-metamodel.js`: Validates metamodel JSON (PascalCase entities, camelCase fields, required fields)
+  - `lint-api.js`: Validates Spring controllers (kebab-case plural paths, controller naming)
+  - `lint-kafka.js`: Validates Kafka topics (product.context.entity.event pattern)
+  - `lint-db.js`: Validates Flyway migrations (V{YYYYMMDDHHMM}__ pattern, tenant_id presence)
+  - Utilities: casing.js (isPascalCase, isCamelCase, isSnakeCase, isKebabCase, pluralize)
+  - Reporter: Colorized terminal output with error/warning counts
+
+- **CI Integration**: `.github/workflows/naming-lint.yml`
+  - Runs on PR to main/develop/feature branches
+  - Node.js 20 with npm cache
+  - 4 lint steps: metamodel, API, Kafka, DB
+  - Fails build on naming violations
+  - 5-minute timeout
+
+**DoD Checklist**:
+- [x] docs/NAMING_GUIDE.md created (530+ lines, all layers covered)
+- [x] tools/naming-lint/ implemented (4 linters + utilities)
+- [x] CI workflow .github/workflows/naming-lint.yml added
+- [x] README.md in tools/naming-lint/ with usage examples
+- [x] Linters executable with npm scripts (lint:all, lint:metamodel, etc.)
+- [x] Exit codes: 0 (pass), 1 (fail)
+
+**Next Steps (S1 Completion)**:
+- [ ] Refactor existing code to match conventions (REST paths, JSON keys, Cube schemas, Kafka topics)
+- [ ] Add migration aliases (@Deprecated, nginx redirects, Cube name mapping)
+- [ ] Update CHANGELOG with refactoring details
+
 ### Added - Reporting Module (Audit Closure)
 
 #### PHASE 2: Metamodel UI Spec Generator + Endpoint (2025-10-11)

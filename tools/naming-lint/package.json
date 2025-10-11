@@ -1,0 +1,25 @@
+{
+  "name": "@core-platform/naming-lint",
+  "version": "1.0.0",
+  "description": "Naming convention linters for core-platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:metamodel": "node src/lint-metamodel.js",
+    "lint:api": "node src/lint-api.js",
+    "lint:kafka": "node src/lint-kafka.js",
+    "lint:db": "node src/lint-db.js",
+    "lint:all": "npm run lint:metamodel && npm run lint:api && npm run lint:kafka && npm run lint:db",
+    "test": "node --test src/__tests__/*.test.js"
+  },
+  "dependencies": {
+    "glob": "^10.3.10",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
