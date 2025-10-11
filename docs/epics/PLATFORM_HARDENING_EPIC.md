@@ -25,30 +25,35 @@ Doručit jednotnou platformu s:
 
 ### S1: Naming - Pravidla + Refaktoring + Linty v CI
 
-**Status:** 🚧 In Progress  
+**Status:** ✅ Complete  
 **PR:** [#TBD - S1: Naming Standards & Linting](link)  
 **Estimate:** 8h  
+**Actual:** 4h  
 **Assignee:** @muriel
 
 **Deliverables:**
 - [x] `docs/NAMING_GUIDE.md` - kompletní pravidla (existuje ✅)
 - [x] `tools/naming-lint/` - auto-validační nástroje (existuje ✅)
 - [x] `.github/workflows/naming-lint.yml` - CI integrace (existuje ✅)
-- [ ] Refaktor REST API paths na kebab-case plurál
-- [ ] Refaktor JSON DTOs na camelCase
-- [ ] Alias mapy pro zpětnou kompatibilitu
-- [ ] CHANGELOG entry
+- [x] Refaktor REST API paths na kebab-case plurál
+- [x] Swagger/OpenAPI anotace (@Tag, @Operation, @Parameter, @ApiResponses)
+- [x] JSON DTOs verified (camelCase) ✅
+- [x] Alias mapy pro zpětnou kompatibilitu
+- [x] CHANGELOG entry
 
 **DoD:**
-- [ ] Linty v CI běží a failují při porušení pravidel
-- [ ] Repo konzistentní dle NAMING_GUIDE.md
-- [ ] Všechny controllery mají kebab-case plurál paths
-- [ ] DTOs používají camelCase
-- [ ] Alias/deprecation mapy dokumentované
+- [x] Linty v CI běží a failují při porušení pravidel
+- [x] Repo konzistentní dle NAMING_GUIDE.md
+- [x] Všechny controllery mají kebab-case plurál paths
+- [x] DTOs používají camelCase
+- [x] Alias/deprecation mapy dokumentované
+- [x] Build úspěšný (clean compile jar:jar)
+- [x] Swagger dokumentace aktuální
 
-**Issues Found:**
-1. `/api/users-directory` → `/api/user-directories` (plurál)
-2. Některé controllery warnings (ale paths jsou OK)
+**Issues Resolved:**
+1. ✅ `/api/users-directory` → `/api/user-directories` (plurál)
+2. ✅ Swagger anotace přidány pro lepší API dokumentaci
+3. ✅ Všechny controller warnings vyřešeny nebo zdokumentovány jako OK
 
 ---
 
@@ -254,9 +259,9 @@ Doručit jednotnou platformu s:
 
 ## 📊 Progress Overview
 
-| Fáze | Status | PR | Estimate | Actual | Coverage |
-|------|--------|-----|----------|--------|----------|
-| S1 | 🚧 In Progress | #TBD | 8h | - | - |
+| Fáze | Status | PR | Estimate | Actual | Efficiency |
+|------|--------|-----|----------|--------|------------|
+| S1 | ✅ Complete | #TBD | 8h | 4h | 50% |
 | S2 | 📅 Planned | #TBD | 16h | - | - |
 | S3 | 📅 Planned | #TBD | 12h | - | - |
 | S4 | 📅 Planned | #TBD | 6h | - | - |
@@ -264,7 +269,7 @@ Doručit jednotnou platformu s:
 | S6 | 📅 Planned | #TBD | 20h | - | - |
 | S7 | 📅 Planned | #TBD | 8h | - | - |
 | S8 | 📅 Planned | #TBD | 24h | - | - |
-| **TOTAL** | | | **104h** | **0h** | **0%** |
+| **TOTAL** | | | **104h** | **4h** | **12.5%** |
 
 ---
 
