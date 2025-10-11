@@ -120,8 +120,8 @@
 - [x] TenantEditPage.tsx with full presence integration
 - [x] RoleEditPage.tsx with full presence integration
 - [x] Routing for both pages
-- [x] Manual testing (2 browsers, 3 users)
-- [x] Integration guide documentation
+- [ ] Manual testing (2 browsers, 3 users) - PENDING
+- [ ] Integration guide documentation - PENDING
 - [x] 0 TypeScript errors in new code
 
 ---
@@ -130,13 +130,13 @@
 
 | Task | Estimate | Actual | Notes |
 |------|----------|--------|-------|
-| TenantEditPage | 1.5h | TBD | Form + presence + routing |
-| RoleEditPage | 1.5h | TBD | Form + presence + routing |
+| TenantEditPage | 1.5h | 0.5h | Form + presence + routing |
+| RoleEditPage | 1.5h | 0.3h | Form + presence + routing |
 | Manual Testing | 30min | TBD | 2 browsers, 3 users |
 | Documentation | 15min | TBD | Integration guide |
-| **Total** | **3h** | **TBD** | |
+| **Total** | **3h** | **0.8h** | |
 
 ---
 
-**Progress:** 0% (Ready to start)  
-**Next:** Create TenantEditPage.tsx
+**Progress:** 50% (Code complete, testing pending)  
+**Next:** Manual testing with 2 browsers
