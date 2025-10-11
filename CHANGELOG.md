@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - Reporting Module (Audit Closure)
 
+#### PHASE 2: Metamodel UI Spec Generator + Endpoint (2025-10-11)
+- **MetamodelSpecService**: Extended to generate complete entity specifications for UI rendering
+  - Full spec includes: dimensions, measures, filters, editable fields, relations, validations, enums, default views, drilldowns
+  - Checksum versioning (SHA-256) for spec change detection
+  - Helper methods: formatLabel, isSensitiveField, buildValidationMessage, buildDefaultView, buildDrilldowns
+- **EntitySpec DTO**: Extended with new properties for UI components
+  - Added: editableFields, relations, validations, enums, defaultView, drilldowns
+  - Enhanced FieldSpec with: label, required, sensitive, adminOnly flags
+  - RelationSpec for drill-down navigation (manyToOne/oneToMany/manyToMany)
+  - ValidationSpec for client-side validation rules
+  - DefaultViewSpec for initial grid configuration
+  - DrilldownSpec for entity navigation paths
+- **ReportQueryController**: New endpoint `GET /api/reports/metadata/{entity}/spec`
+  - Returns full EntitySpec with X-Spec-Version header
+  - Cached for 1 hour (Cache-Control: public, max-age=3600)
+- **Unit Tests**: MetamodelSpecServiceTest with 100% coverage
+  - Tests: full spec generation, sensitive field exclusion, checksum consistency, label formatting, measure identification, operator mapping
+
+**Frontend Integration Ready**:
+- FE can fetch spec and dynamically render forms/grids
+- Editable fields clearly identified
+- Validation rules available for client-side checks
+- Relations enable drill-down navigation
+
+**DoD Checklist**:
+- [x] MetamodelSpecService.getFullEntitySpec() implemented
+- [x] Endpoint /api/reports/metadata/{entity}/spec functional
+- [x] Spec contains dimensions, measures, relations, validations, enums
+- [x] Checksum versioning implemented
+- [x] Unit tests 100% coverage
+- [x] JavaDoc documentation complete
+
 #### PHASE 1: Cube.js Infrastructure + Schema + RLS (2025-10-11)
 - **Cube.js Service**: Added Cube.js semantic layer to docker-compose.yml with PostgreSQL and Redis integration
 - **Cube Schemas**: Created three base cubes (Users, Tenants, Groups) with:

@@ -3,6 +3,8 @@ package cz.muriel.core.reporting.api;
 import cz.muriel.core.reporting.app.ReportQueryService;
 import cz.muriel.core.reporting.dsl.QueryRequest;
 import cz.muriel.core.reporting.dsl.QueryResponse;
+import cz.muriel.core.reporting.support.EntitySpec;
+import cz.muriel.core.reporting.support.MetamodelSpecService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class ReportQueryController {
 
   private final ReportQueryService reportQueryService;
+  private final MetamodelSpecService metamodelSpecService;
 
   /**
    * Execute report query.
@@ -98,5 +101,39 @@ public class ReportQueryController {
   public ResponseEntity<?> health() {
     return ResponseEntity.ok(java.util.Map.of("status", "UP", "service", "reporting", "timestamp",
         java.time.Instant.now()));
+  }
+
+  /**
+   * Get full entity specification for UI rendering (PHASE 2).
+   * 
+   * Returns complete metadata including:
+   * - Dimensions, measures, filters
+   * - Editable fields
+   * - Relations (for drill-down)
+   * - Validations
+   * - Enums
+   * - Default view configuration
+   * - Drilldown definitions
+   * 
+   * GET /api/reports/metadata/{entity}/spec
+   * 
+   * @param entity Entity name (e.g., "User", "Tenant", "Group")
+   * @param authentication Current user authentication
+   * @return Full EntitySpec with checksum versioning
+   */
+  @GetMapping("/metadata/{entity}/spec")
+  public ResponseEntity<EntitySpec> getFullEntitySpec(
+      @PathVariable String entity,
+      Authentication authentication) {
+
+    log.debug("Fetching full spec for entity: {}", entity);
+
+    EntitySpec spec = metamodelSpecService.getFullEntitySpec(entity);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.add("X-Spec-Version", spec.getSpecVersion());
+    headers.add("Cache-Control", "public, max-age=3600"); // Cache for 1 hour
+
+    return ResponseEntity.ok().headers(headers).body(spec);
   }
 }
