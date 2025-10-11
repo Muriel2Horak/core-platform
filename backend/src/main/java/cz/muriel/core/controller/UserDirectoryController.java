@@ -28,68 +28,51 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-@RestController 
-@RequestMapping({ 
-    "/api/user-directories",           // NEW: Plural kebab-case (S1 naming standard)
-    "/api/users-directory"              // DEPRECATED: Keep for backward compatibility (remove in v2.3.0)
-}) 
-@RequiredArgsConstructor 
-@Slf4j
-@Tag(name = "User Directory", description = "User directory API with multi-tenant support and role-based access control")
+@RestController @RequestMapping({ "/api/user-directories", // NEW: Plural kebab-case (S1 naming
+                                                           // standard)
+    "/api/users-directory" // DEPRECATED: Keep for backward compatibility (remove in v2.3.0)
+}) @RequiredArgsConstructor @Slf4j @Tag(name = "User Directory", description = "User directory API with multi-tenant support and role-based access control")
 public class UserDirectoryController {
 
   private final UserDirectoryService userDirectoryService;
   private final TenantService tenantService;
 
   /**
-   * 🔍 GET /api/user-directories - Hlavní endpoint pro User Directory
-   * Zabezpečený endpoint s role-based access.
+   * 🔍 GET /api/user-directories - Hlavní endpoint pro User Directory Zabezpečený
+   * endpoint s role-based access.
    * 
    * Note: Legacy path /api/users-directory is still supported but will be removed
    * in v2.3.0. Please use /api/user-directories instead.
    */
-  @Operation(
-      summary = "Get user directory",
-      description = """
-          Retrieves paginated user directory with optional filtering and tenant scoping.
-          
-          **Authentication:** Required (all authenticated users can access)
-          
-          **Tenant Scoping:**
-          - Regular users: See only their own tenant's users
-          - CORE_ROLE_ADMIN: Can query any tenant or all tenants
-          
-          **Deprecated Path:** `/api/users-directory` is still supported but will be removed in v2.3.0.
-          Use `/api/user-directories` instead.
-          """
-  )
-  @ApiResponses({
+  @Operation(summary = "Get user directory", description = """
+      Retrieves paginated user directory with optional filtering and tenant scoping.
+
+      **Authentication:** Required (all authenticated users can access)
+
+      **Tenant Scoping:**
+      - Regular users: See only their own tenant's users
+      - CORE_ROLE_ADMIN: Can query any tenant or all tenants
+
+      **Deprecated Path:** `/api/users-directory` is still supported but will be removed in v2.3.0.
+      Use `/api/user-directories` instead.
+      """) @ApiResponses({
       @ApiResponse(responseCode = "200", description = "User directory retrieved successfully"),
       @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
       @ApiResponse(responseCode = "401", description = "Unauthorized - JWT token required"),
-      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions")
-  })
-  @GetMapping 
-  @PreAuthorize("isAuthenticated()")
+      @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions") }) @GetMapping @PreAuthorize("isAuthenticated()")
   public ResponseEntity<Map<String, Object>> getUsersDirectory(
-      @Parameter(description = "Search query (username, email, firstName, lastName)", example = "john")
-      @RequestParam(required = false) String q,
-      
-      @Parameter(description = "Tenant key filter (CORE_ROLE_ADMIN only)", example = "acme-corp")
-      @RequestParam(required = false) String tenantKey,
-      
-      @Parameter(description = "User source filter (local, keycloak, ldap)", example = "keycloak")
-      @RequestParam(required = false) String source,
-      
-      @Parameter(description = "Page number (0-based)", example = "0")
-      @RequestParam(defaultValue = "0") int page,
-      
-      @Parameter(description = "Page size (1-100)", example = "20")
-      @RequestParam(defaultValue = "20") int size,
-      
-      @Parameter(description = "Sort field", example = "username")
-      @RequestParam(defaultValue = "username") String sort,
-      
+      @Parameter(description = "Search query (username, email, firstName, lastName)", example = "john") @RequestParam(required = false) String q,
+
+      @Parameter(description = "Tenant key filter (CORE_ROLE_ADMIN only)", example = "acme-corp") @RequestParam(required = false) String tenantKey,
+
+      @Parameter(description = "User source filter (local, keycloak, ldap)", example = "keycloak") @RequestParam(required = false) String source,
+
+      @Parameter(description = "Page number (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
+
+      @Parameter(description = "Page size (1-100)", example = "20") @RequestParam(defaultValue = "20") int size,
+
+      @Parameter(description = "Sort field", example = "username") @RequestParam(defaultValue = "username") String sort,
+
       @AuthenticationPrincipal Jwt jwt) {
 
     log.info(

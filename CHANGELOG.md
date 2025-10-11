@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Platform Hardening Epic (S2: Real-Time Presence + Kafka Lifecycle)
+
+#### Real-Time Presence Tracking System (2025-10-11)
+- **Backend Infrastructure**:
+  - `PresenceService`: Redis-backed presence tracking with field-level locks
+    - WebSocket presence tracking with auto-expiry (60s TTL)
+    - Atomic field locks with `SET NX PX` (120s TTL)
+    - Stale flag management for concurrent edit prevention
+    - Version tracking per entity
+  - `WebSocketConfig` + `PresenceWebSocketHandler`: WebSocket endpoint `/ws/presence`
+    - Protocol: SUB/UNSUB/HB/LOCK/UNLOCK messages
+    - Auto-heartbeat every 30s
+    - Session cleanup on disconnect
+  - `EntityLifecycleProducer` + `EntityLifecycleConsumer`: Kafka lifecycle events
+    - Topics: `core.entities.lifecycle.mutating`, `core.entities.lifecycle.mutated`
+    - Retry strategy: 3× exponential backoff (1s/3s/9s) + DLQ
+    - Stale flag synchronization with Redis
+  - `PresenceController`: REST API for debugging/monitoring
+    - GET `/api/presence/{tenantId}/{entity}/{id}` - Get presence state
+    - POST `/api/presence/.../subscribe` - Manual subscribe
+    - POST `/api/presence/.../lock/{field}` - Acquire field lock
+
+- **Frontend Infrastructure**:
+  - `PresenceClient`: TypeScript WebSocket client
+    - Auto-reconnect with exponential backoff (max 5 attempts)
+    - Heartbeat management (30s interval)
+    - Lock acquisition/release
+  - `usePresence()` hook: React hook for presence tracking
+    - Returns: users, stale, busyBy, version, connected
+    - Methods: acquireLock(field), releaseLock(field)
+  - `PresenceIndicator` component: UI for active users + stale badge
+  - `FieldLockIndicator` component: Visual lock indicators for fields
+
+- **Documentation**:
+  - `docs/PRESENCE_SYSTEM_README.md`: Complete architecture guide
+    - Backend/frontend components overview
+    - Usage examples and integration guide
+    - Redis key schema documentation
+    - Testing strategies and monitoring
+    - Troubleshooting guide
+
+**Dependencies**: Leverages existing Redis + Kafka infrastructure (no new dependencies needed)
+
 ### Added - Platform Hardening Epic (S1: Naming Conventions)
 
 #### Naming Guide & Linting Infrastructure (2025-10-11)
