@@ -1,9 +1,6 @@
-import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, Pencil, Users } from 'lucide-react';
-import { PresenceState } from '@/lib/presence/usePresence';
+import { Box, Avatar, Chip, Tooltip, Typography } from '@mui/material';
+import { Visibility, Edit, People } from '@mui/icons-material';
+import type { PresenceState } from '../../lib/presence/usePresence';
 
 export interface PresenceIndicatorProps {
   presence: PresenceState;
@@ -31,106 +28,118 @@ export function PresenceIndicator({
 
   if (!connected) {
     return (
-      <div className="flex items-center gap-2 text-muted-foreground text-sm">
-        <div className="h-2 w-2 rounded-full bg-gray-400" />
-        <span>Offline</span>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', fontSize: '0.875rem' }}>
+        <Box sx={{ height: 8, width: 8, borderRadius: '50%', bgcolor: 'grey.400' }} />
+        <Typography variant="body2" color="text.secondary">Offline</Typography>
+      </Box>
     );
   }
 
-  const viewingUsers = users.filter((u) => typeof u === 'string') as string[];
+  const viewingUsers = users.filter((u): u is string => typeof u === 'string');
   const otherUsers = viewingUsers.filter((u) => u !== currentUserId);
 
   return (
-    <div className="flex items-center gap-3">
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
       {/* Connection Status */}
-      <div className="flex items-center gap-1.5">
-        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-        <span className="text-xs text-muted-foreground">Live</span>
-      </div>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box
+          sx={{
+            height: 8,
+            width: 8,
+            borderRadius: '50%',
+            bgcolor: 'success.main',
+            animation: 'pulse 2s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0.5 },
+            },
+          }}
+        />
+        <Typography variant="caption" color="text.secondary">Live</Typography>
+      </Box>
 
       {/* Stale Badge */}
       {stale && busyBy && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="destructive" className="flex items-center gap-1">
-                <Pencil className="h-3 w-3" />
-                Editing
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{getUserDisplayName(busyBy)} is modifying this record</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip title={`${getUserDisplayName(busyBy)} is modifying this record`}>
+          <Chip
+            icon={<Edit sx={{ fontSize: 16 }} />}
+            label="Editing"
+            color="error"
+            size="small"
+          />
+        </Tooltip>
       )}
 
       {/* User Avatars */}
       {viewingUsers.length > 0 && (
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{viewingUsers.length}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="space-y-1">
-                  {viewingUsers.map((userId) => (
-                    <div key={userId} className="flex items-center gap-2">
-                      <Eye className="h-3 w-3" />
-                      <span>{getUserDisplayName(userId)}</span>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Tooltip
+            title={
+              <Box>
+                {viewingUsers.map((userId) => (
+                  <Box key={userId} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <Visibility sx={{ fontSize: 12 }} />
+                    <Typography variant="caption">
+                      {getUserDisplayName(userId)}
                       {userId === currentUserId && ' (you)'}
                       {userId === busyBy && ' (editing)'}
-                    </div>
-                  ))}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            }
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <People fontSize="small" color="action" />
+              <Typography variant="body2" fontWeight="medium">{viewingUsers.length}</Typography>
+            </Box>
+          </Tooltip>
 
           {/* Avatar Stack */}
-          <div className="flex -space-x-2">
-            {otherUsers.slice(0, 3).map((userId) => (
-              <TooltipProvider key={userId}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Avatar className="h-7 w-7 border-2 border-background">
-                      <AvatarImage src={getUserAvatar?.(userId)} alt={getUserDisplayName(userId)} />
-                      <AvatarFallback className="text-xs">
-                        {getUserDisplayName(userId)
-                          .split(' ')
-                          .map((n) => n[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{getUserDisplayName(userId)}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+          <Box sx={{ display: 'flex', ml: 1 }}>
+            {otherUsers.slice(0, 3).map((userId, idx) => (
+              <Tooltip key={userId} title={getUserDisplayName(userId)}>
+                <Avatar
+                  src={getUserAvatar?.(userId)}
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    ml: idx > 0 ? -1 : 0,
+                    border: '2px solid white',
+                    fontSize: '0.75rem',
+                    bgcolor: userId === busyBy ? 'warning.main' : 'primary.main',
+                  }}
+                >
+                  {getUserDisplayName(userId).slice(0, 2).toUpperCase()}
+                </Avatar>
+              </Tooltip>
             ))}
             {otherUsers.length > 3 && (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium">
-                +{otherUsers.length - 3}
-              </div>
+              <Tooltip title={`+${otherUsers.length - 3} more users`}>
+                <Avatar
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    ml: -1,
+                    border: '2px solid white',
+                    fontSize: '0.75rem',
+                    bgcolor: 'grey.400',
+                  }}
+                >
+                  +{otherUsers.length - 3}
+                </Avatar>
+              </Tooltip>
             )}
-          </div>
-        </div>
+          </Box>
+        </Box>
       )}
 
       {/* Version Badge */}
-      {version !== null && (
-        <Badge variant="outline" className="text-xs">
-          v{version}
-        </Badge>
+      {version !== undefined && (
+        <Tooltip title="Entity version">
+          <Chip label={`v${version}`} size="small" variant="outlined" />
+        </Tooltip>
       )}
-    </div>
+    </Box>
   );
 }

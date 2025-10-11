@@ -35,6 +35,9 @@ import {
   StreamingDashboardPage,
 } from './pages/Admin';
 
+// 🆕 S2: Presence System - User Edit Page
+import UserEditPage from './pages/Admin/UserEditPage.tsx';
+
 // 🆕 Tenant Admin sekce
 import {
   TenantDashboard,
@@ -467,6 +470,7 @@ const AppContent = () => {
           <Route index element={<Navigate to="/core-admin/monitoring" replace />} />
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="users" element={<AdminUsersPage user={user} />} />
+          <Route path="users/:userId/edit" element={<UserEditPage />} />
           <Route path="roles" element={<AdminRolesPage />} />
           <Route path="groups" element={<Groups user={user} />} />
           <Route path="tenants" element={<AdminTenantsPage user={user} />} />

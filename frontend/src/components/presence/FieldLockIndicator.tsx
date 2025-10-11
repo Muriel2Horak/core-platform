@@ -1,82 +1,58 @@
-import React from 'react';
-import { Lock, LockOpen } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Box, Tooltip } from '@mui/material';
+import { Lock } from '@mui/icons-material';
 
 export interface FieldLockIndicatorProps {
-  locked: boolean;
+  fieldName: string;
+  isLocked: boolean;
   lockedBy?: string;
-  onAcquireLock?: () => void;
-  onReleaseLock?: () => void;
+  currentUserId: string;
   getUserDisplayName?: (userId: string) => string;
 }
 
 /**
- * Visual indicator for field-level locks
+ * Field-level lock indicator
  * 
- * Shows lock icon when field is locked
- * - Red lock: Locked by another user
- * - Green lock: Locked by you
- * - Click to acquire/release lock
+ * Shows a lock icon when:
+ * - This user has the lock (green)
+ * - Another user has the lock (red)
  */
 export function FieldLockIndicator({
-  locked,
+  fieldName,
+  isLocked,
   lockedBy,
-  onAcquireLock,
-  onReleaseLock,
+  currentUserId,
   getUserDisplayName = (userId) => userId,
 }: FieldLockIndicatorProps) {
-  const handleClick = () => {
-    if (locked && onReleaseLock) {
-      onReleaseLock();
-    } else if (!locked && onAcquireLock) {
-      onAcquireLock();
-    }
-  };
-
-  if (!locked) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={handleClick}
-              className="inline-flex items-center justify-center rounded p-1 hover:bg-muted"
-            >
-              <LockOpen className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Click to lock this field</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+  if (!isLocked || !lockedBy) {
+    return null;
   }
 
-  const isMyLock = lockedBy === undefined; // If we don't know who locked it, assume it's us
+  const isOwnLock = lockedBy === currentUserId;
+  const displayName = getUserDisplayName(lockedBy);
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={isMyLock ? handleClick : undefined}
-            className="inline-flex items-center justify-center rounded p-1 hover:bg-muted"
-            disabled={!isMyLock}
-          >
-            <Lock className={`h-4 w-4 ${isMyLock ? 'text-green-600' : 'text-red-600'}`} />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>
-            {isMyLock
-              ? 'Locked by you (click to unlock)'
-              : `Locked by ${lockedBy ? getUserDisplayName(lockedBy) : 'another user'}`}
-          </p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip
+      title={
+        isOwnLock
+          ? `You are editing ${fieldName}`
+          : `${displayName} is editing ${fieldName}`
+      }
+    >
+      <Box
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 20,
+          height: 20,
+        }}
+      >
+        {isOwnLock ? (
+          <Lock sx={{ fontSize: 16, color: 'success.main' }} />
+        ) : (
+          <Lock sx={{ fontSize: 16, color: 'error.main' }} />
+        )}
+      </Box>
+    </Tooltip>
   );
 }
