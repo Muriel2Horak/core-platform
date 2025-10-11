@@ -7,3 +7,4 @@ export type { FieldLockIndicatorProps } from './FieldLockIndicator';
 
 export { PresenceErrorBoundary } from './PresenceErrorBoundary';
 export { PresenceLoadingSkeleton, FormLoadingSkeleton } from './PresenceLoadingSkeleton';
+export { WithPresenceFeedback } from './WithPresenceFeedback';
