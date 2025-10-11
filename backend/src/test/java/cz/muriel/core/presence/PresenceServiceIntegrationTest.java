@@ -23,8 +23,7 @@ import static org.awaitility.Awaitility.await;
  * 
  * Uses Testcontainers to spin up Redis instance
  */
-@SpringBootTest
-@Testcontainers
+@SpringBootTest @Testcontainers
 class PresenceServiceIntegrationTest {
 
   @Container
@@ -107,11 +106,10 @@ class PresenceServiceIntegrationTest {
     presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
 
     // Wait for TTL expiration (60s + 1s buffer)
-    await().atMost(java.time.Duration.ofSeconds(62))
-        .untilAsserted(() -> {
-          Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
-          assertThat(users).isEmpty();
-        });
+    await().atMost(java.time.Duration.ofSeconds(62)).untilAsserted(() -> {
+      Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+      assertThat(users).isEmpty();
+    });
   }
 
   @Test
@@ -120,8 +118,7 @@ class PresenceServiceIntegrationTest {
     presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
 
     // Wait 40s and send heartbeat
-    await().pollDelay(java.time.Duration.ofSeconds(40))
-        .atMost(java.time.Duration.ofSeconds(41))
+    await().pollDelay(java.time.Duration.ofSeconds(40)).atMost(java.time.Duration.ofSeconds(41))
         .untilAsserted(() -> {
           presenceService.heartbeat(USER_1, TENANT_ID, ENTITY, ID);
           Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
@@ -129,8 +126,7 @@ class PresenceServiceIntegrationTest {
         });
 
     // Wait another 40s (80s total, would expire without heartbeat)
-    await().pollDelay(java.time.Duration.ofSeconds(40))
-        .atMost(java.time.Duration.ofSeconds(41))
+    await().pollDelay(java.time.Duration.ofSeconds(40)).atMost(java.time.Duration.ofSeconds(41))
         .untilAsserted(() -> {
           Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
           assertThat(users).contains(USER_1); // Still present due to heartbeat
@@ -180,11 +176,10 @@ class PresenceServiceIntegrationTest {
     presenceService.acquireLock(USER_1, TENANT_ID, ENTITY, ID, field);
 
     // Wait for TTL expiration (120s + 1s buffer)
-    await().atMost(java.time.Duration.ofSeconds(122))
-        .untilAsserted(() -> {
-          String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
-          assertThat(owner).isNull();
-        });
+    await().atMost(java.time.Duration.ofSeconds(122)).untilAsserted(() -> {
+      String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
+      assertThat(owner).isNull();
+    });
   }
 
   @Test
@@ -195,8 +190,7 @@ class PresenceServiceIntegrationTest {
     presenceService.acquireLock(USER_1, TENANT_ID, ENTITY, ID, field);
 
     // Wait 80s and refresh
-    await().pollDelay(java.time.Duration.ofSeconds(80))
-        .atMost(java.time.Duration.ofSeconds(81))
+    await().pollDelay(java.time.Duration.ofSeconds(80)).atMost(java.time.Duration.ofSeconds(81))
         .untilAsserted(() -> {
           presenceService.refreshLock(USER_1, TENANT_ID, ENTITY, ID, field);
           String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);

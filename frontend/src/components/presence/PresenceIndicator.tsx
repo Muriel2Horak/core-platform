@@ -1,6 +1,7 @@
 import { Box, Avatar, Chip, Tooltip, Typography } from '@mui/material';
-import { Visibility, Edit, People } from '@mui/icons-material';
+import { Visibility, Edit, People, Refresh } from '@mui/icons-material';
 import type { PresenceState } from '../../lib/presence/usePresence';
+import { PresenceLoadingSkeleton } from './PresenceLoadingSkeleton';
 
 export interface PresenceIndicatorProps {
   presence: PresenceState;
@@ -24,8 +25,28 @@ export function PresenceIndicator({
   getUserDisplayName = (userId) => userId,
   getUserAvatar,
 }: PresenceIndicatorProps) {
-  const { users, stale, busyBy, version, connected } = presence;
+  const { users, stale, busyBy, version, connected, loading, reconnecting, reconnectAttempt } = presence;
 
+  // Show loading skeleton while initial connection
+  if (loading) {
+    return <PresenceLoadingSkeleton />;
+  }
+
+  // Show reconnecting state
+  if (reconnecting) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Chip
+          icon={<Refresh sx={{ fontSize: 16, animation: 'spin 1s linear infinite', '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } } }} />}
+          label={`Reconnecting (${reconnectAttempt}/5)...`}
+          color="warning"
+          size="small"
+        />
+      </Box>
+    );
+  }
+
+  // Show offline state
   if (!connected) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', fontSize: '0.875rem' }}>

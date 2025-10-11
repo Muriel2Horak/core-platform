@@ -14,24 +14,23 @@ import java.util.concurrent.TimeUnit;
 /**
  * Service for managing real-time presence tracking and field-level locks
  * 
- * Redis Keys Schema:
- * - presence:{tenant}:{entity}:{id}:users → SET of userId (TTL 60s per heartbeat)
- * - presence:{tenant}:{entity}:{id}:lock:{field} → STRING userId (TTL 120s, NX)
- * - presence:{tenant}:{entity}:{id}:stale → BOOLEAN (set by Kafka consumer)
- * - presence:{tenant}:{entity}:{id}:version → INT (incremented on MUTATED)
- * - presence:{tenant}:{entity}:{id}:busyBy → STRING userId (during MUTATING)
+ * Redis Keys Schema: - presence:{tenant}:{entity}:{id}:users → SET of userId
+ * (TTL 60s per heartbeat) - presence:{tenant}:{entity}:{id}:lock:{field} →
+ * STRING userId (TTL 120s, NX) - presence:{tenant}:{entity}:{id}:stale →
+ * BOOLEAN (set by Kafka consumer) - presence:{tenant}:{entity}:{id}:version →
+ * INT (incremented on MUTATED) - presence:{tenant}:{entity}:{id}:busyBy →
+ * STRING userId (during MUTATING)
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Service @RequiredArgsConstructor @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class PresenceService {
 
   private final RedisTemplate<String, Object> redisTemplate;
   private final StringRedisTemplate stringRedisTemplate;
 
-  private static final long USER_TTL_SECONDS = 60; // User presence expires after 60s without heartbeat
-  private static final long LOCK_TTL_SECONDS = 120; // Field lock expires after 120s without heartbeat
+  private static final long USER_TTL_SECONDS = 60; // User presence expires after 60s without
+                                                   // heartbeat
+  private static final long LOCK_TTL_SECONDS = 120; // Field lock expires after 120s without
+                                                    // heartbeat
 
   /**
    * Subscribe user to entity presence
@@ -43,11 +42,11 @@ public class PresenceService {
    */
   public void subscribe(String userId, String tenantId, String entity, String id) {
     String key = buildUsersKey(tenantId, entity, id);
-    
+
     // Add user to set with TTL
     redisTemplate.opsForSet().add(key, userId);
     redisTemplate.expire(key, Duration.ofSeconds(USER_TTL_SECONDS));
-    
+
     log.debug("User {} subscribed to {}:{} (tenant: {})", userId, entity, id, tenantId);
   }
 
@@ -57,7 +56,7 @@ public class PresenceService {
   public void unsubscribe(String userId, String tenantId, String entity, String id) {
     String key = buildUsersKey(tenantId, entity, id);
     redisTemplate.opsForSet().remove(key, userId);
-    
+
     log.debug("User {} unsubscribed from {}:{} (tenant: {})", userId, entity, id, tenantId);
   }
 
@@ -66,7 +65,7 @@ public class PresenceService {
    */
   public void heartbeat(String userId, String tenantId, String entity, String id) {
     String key = buildUsersKey(tenantId, entity, id);
-    
+
     // Check if user is in set
     Boolean isMember = redisTemplate.opsForSet().isMember(key, userId);
     if (Boolean.TRUE.equals(isMember)) {
@@ -92,13 +91,14 @@ public class PresenceService {
    * 
    * @return true if lock acquired, false if already locked by someone else
    */
-  public boolean acquireLock(String userId, String tenantId, String entity, String id, String field) {
+  public boolean acquireLock(String userId, String tenantId, String entity, String id,
+      String field) {
     String key = buildLockKey(tenantId, entity, id, field);
-    
+
     // SET NX PX - atomic operation
-    Boolean acquired = stringRedisTemplate.opsForValue()
-        .setIfAbsent(key, userId, Duration.ofSeconds(LOCK_TTL_SECONDS));
-    
+    Boolean acquired = stringRedisTemplate.opsForValue().setIfAbsent(key, userId,
+        Duration.ofSeconds(LOCK_TTL_SECONDS));
+
     if (Boolean.TRUE.equals(acquired)) {
       log.info("Lock acquired: user={}, field={}, entity={}:{}", userId, field, entity, id);
       return true;
@@ -117,12 +117,12 @@ public class PresenceService {
   public void releaseLock(String userId, String tenantId, String entity, String id, String field) {
     String key = buildLockKey(tenantId, entity, id, field);
     String owner = stringRedisTemplate.opsForValue().get(key);
-    
+
     if (owner == null) {
       log.debug("Lock release: no lock exists for field={}", field);
       return;
     }
-    
+
     if (owner.equals(userId)) {
       stringRedisTemplate.delete(key);
       log.info("Lock released: user={}, field={}, entity={}:{}", userId, field, entity, id);
@@ -145,7 +145,7 @@ public class PresenceService {
   public void refreshLock(String userId, String tenantId, String entity, String id, String field) {
     String key = buildLockKey(tenantId, entity, id, field);
     String owner = stringRedisTemplate.opsForValue().get(key);
-    
+
     if (userId.equals(owner)) {
       stringRedisTemplate.expire(key, LOCK_TTL_SECONDS, TimeUnit.SECONDS);
       log.trace("Lock refreshed: user={}, field={}", userId, field);
@@ -167,7 +167,7 @@ public class PresenceService {
   public void setStale(String tenantId, String entity, String id, boolean stale, String busyBy) {
     String staleKey = buildStaleKey(tenantId, entity, id);
     String busyByKey = buildBusyByKey(tenantId, entity, id);
-    
+
     if (stale) {
       stringRedisTemplate.opsForValue().set(staleKey, "true", Duration.ofMinutes(5));
       if (busyBy != null) {

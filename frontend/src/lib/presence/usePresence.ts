@@ -7,6 +7,9 @@ export interface PresenceState {
   busyBy: string | null;
   version: number | null;
   connected: boolean;
+  loading: boolean; // Initial connection loading
+  reconnecting: boolean; // Currently reconnecting after disconnect
+  reconnectAttempt: number; // Current reconnection attempt (1-5)
 }
 
 export interface UsePresenceOptions {
@@ -55,6 +58,9 @@ export function usePresence(
     busyBy: null,
     version: null,
     connected: false,
+    loading: true, // Start in loading state
+    reconnecting: false,
+    reconnectAttempt: 0,
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -80,16 +86,23 @@ export function usePresence(
           stale,
           busyBy,
           version,
-          connected: true,
         }));
         setError(null);
+      },
+      onConnectionChange: (connected, loading, reconnecting, reconnectAttempt) => {
+        setPresence((prev) => ({
+          ...prev,
+          connected,
+          loading,
+          reconnecting,
+          reconnectAttempt,
+        }));
       },
       onLockResult: (field, success) => {
         setLockResults((prev) => new Map(prev).set(field, success));
       },
       onError: (err) => {
         setError(err);
-        setPresence((prev) => ({ ...prev, connected: false }));
       },
     };
 

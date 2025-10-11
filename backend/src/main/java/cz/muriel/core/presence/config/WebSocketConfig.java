@@ -13,25 +13,24 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
  * 
  * Endpoint: ws://{host}/ws/presence
  * 
- * Protocol:
- * - Client → Server: {"type":"SUB", "entity":"Order", "id":"123", "tenantId":"t1"}
- * - Server → Client: {"type":"PRESENCE", "users":["user1","user2"]}
- * - Client → Server: {"type":"HB"} every 30s
- * - Client → Server: {"type":"LOCK", "field":"totalAmount"}
- * - Server → Client: {"type":"LOCK_ACK", "field":"totalAmount", "success":true}
+ * Protocol: - Client → Server: {"type":"SUB", "entity":"Order", "id":"123",
+ * "tenantId":"t1"} - Server → Client: {"type":"PRESENCE",
+ * "users":["user1","user2"]} - Client → Server: {"type":"HB"} every 30s -
+ * Client → Server: {"type":"LOCK", "field":"totalAmount"} - Server → Client:
+ * {"type":"LOCK_ACK", "field":"totalAmount", "success":true}
  */
-@Configuration
-@EnableWebSocket
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Configuration @EnableWebSocket @RequiredArgsConstructor @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class WebSocketConfig implements WebSocketConfigurer {
 
   private final PresenceWebSocketHandler presenceWebSocketHandler;
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry
-        .addHandler(presenceWebSocketHandler, "/ws/presence")
-        .setAllowedOrigins("*"); // TODO: Configure CORS properly for production
+    registry.addHandler(presenceWebSocketHandler, "/ws/presence").setAllowedOrigins("*"); // TODO:
+                                                                                          // Configure
+                                                                                          // CORS
+                                                                                          // properly
+                                                                                          // for
+                                                                                          // production
   }
 }

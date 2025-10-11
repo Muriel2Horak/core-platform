@@ -21,17 +21,13 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * WebSocket handler for real-time presence tracking
  * 
- * Session Management:
- * - Each WebSocketSession is mapped to a PresenceContext (entity, id, tenantId, userId)
- * - On SUB: store context, add user to Redis, broadcast PRESENCE update
- * - On UNSUB: remove from Redis, cleanup context
- * - On HB: refresh Redis TTL, refresh lock TTL if holding locks
- * - On disconnect: cleanup all locks and presence
+ * Session Management: - Each WebSocketSession is mapped to a PresenceContext
+ * (entity, id, tenantId, userId) - On SUB: store context, add user to Redis,
+ * broadcast PRESENCE update - On UNSUB: remove from Redis, cleanup context - On
+ * HB: refresh Redis TTL, refresh lock TTL if holding locks - On disconnect:
+ * cleanup all locks and presence
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Component @RequiredArgsConstructor @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class PresenceWebSocketHandler extends TextWebSocketHandler {
 
   private final PresenceService presenceService;
@@ -55,15 +51,15 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
       String type = node.get("type").asText();
 
       switch (type) {
-        case "SUB" -> handleSubscribe(session, node);
-        case "UNSUB" -> handleUnsubscribe(session, node);
-        case "HB" -> handleHeartbeat(session);
-        case "LOCK" -> handleLock(session, node);
-        case "UNLOCK" -> handleUnlock(session, node);
-        default -> {
-          log.warn("Unknown message type: {}", type);
-          sendError(session, "Unknown message type: " + type);
-        }
+      case "SUB" -> handleSubscribe(session, node);
+      case "UNSUB" -> handleUnsubscribe(session, node);
+      case "HB" -> handleHeartbeat(session);
+      case "LOCK" -> handleLock(session, node);
+      case "UNLOCK" -> handleUnlock(session, node);
+      default -> {
+        log.warn("Unknown message type: {}", type);
+        sendError(session, "Unknown message type: " + type);
+      }
       }
     } catch (Exception e) {
       log.error("Error handling WebSocket message", e);
@@ -104,13 +100,8 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     String busyBy = presenceService.getBusyBy(tenantId, entity, id);
     Long version = presenceService.getVersion(tenantId, entity, id);
 
-    PresenceMessage response = PresenceMessage.builder()
-        .type("PRESENCE")
-        .users(users)
-        .stale(isStale)
-        .busyBy(busyBy)
-        .version(version)
-        .build();
+    PresenceMessage response = PresenceMessage.builder().type("PRESENCE").users(users)
+        .stale(isStale).busyBy(busyBy).version(version).build();
 
     sendMessage(session, response);
     log.info("User {} subscribed to {}:{} (tenant: {})", userId, entity, id, tenantId);
@@ -141,9 +132,8 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     presenceService.heartbeat(context.userId, context.tenantId, context.entity, context.id);
 
     // Refresh all locks held by this user
-    context.locks.forEach(field -> 
-        presenceService.refreshLock(context.userId, context.tenantId, context.entity, context.id, field)
-    );
+    context.locks.forEach(field -> presenceService.refreshLock(context.userId, context.tenantId,
+        context.entity, context.id, field));
 
     sendMessage(session, PresenceMessage.builder().type("HB_ACK").build());
   }
@@ -156,19 +146,15 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     }
 
     String field = node.get("field").asText();
-    boolean success = presenceService.acquireLock(
-        context.userId, context.tenantId, context.entity, context.id, field
-    );
+    boolean success = presenceService.acquireLock(context.userId, context.tenantId, context.entity,
+        context.id, field);
 
     if (success) {
       context.locks.add(field);
     }
 
-    PresenceMessage response = PresenceMessage.builder()
-        .type("LOCK_ACK")
-        .field(field)
-        .success(success)
-        .build();
+    PresenceMessage response = PresenceMessage.builder().type("LOCK_ACK").field(field)
+        .success(success).build();
 
     sendMessage(session, response);
   }
@@ -181,13 +167,11 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     }
 
     String field = node.get("field").asText();
-    presenceService.releaseLock(context.userId, context.tenantId, context.entity, context.id, field);
+    presenceService.releaseLock(context.userId, context.tenantId, context.entity, context.id,
+        field);
     context.locks.remove(field);
 
-    PresenceMessage response = PresenceMessage.builder()
-        .type("UNLOCK_ACK")
-        .field(field)
-        .build();
+    PresenceMessage response = PresenceMessage.builder().type("UNLOCK_ACK").field(field).build();
 
     sendMessage(session, response);
   }
@@ -201,15 +185,14 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     }
 
     // Release all locks
-    context.locks.forEach(field -> 
-        presenceService.releaseLock(context.userId, context.tenantId, context.entity, context.id, field)
-    );
+    context.locks.forEach(field -> presenceService.releaseLock(context.userId, context.tenantId,
+        context.entity, context.id, field));
 
     // Unsubscribe
     presenceService.unsubscribe(context.userId, context.tenantId, context.entity, context.id);
 
-    log.info("Session cleaned up: userId={}, entity={}:{}", 
-        context.userId, context.entity, context.id);
+    log.info("Session cleaned up: userId={}, entity={}:{}", context.userId, context.entity,
+        context.id);
   }
 
   // ========== Utilities ==========
@@ -220,10 +203,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
   }
 
   private void sendError(WebSocketSession session, String error) throws IOException {
-    PresenceMessage message = PresenceMessage.builder()
-        .type("ERROR")
-        .error(error)
-        .build();
+    PresenceMessage message = PresenceMessage.builder().type("ERROR").error(error).build();
     sendMessage(session, message);
   }
 

@@ -41,6 +41,7 @@ export interface PresenceConfig {
   onPresenceUpdate?: (users: string[], stale: boolean, busyBy: string | null, version: number | null) => void;
   onLockResult?: (field: string, success: boolean) => void;
   onError?: (error: string) => void;
+  onConnectionChange?: (connected: boolean, loading: boolean, reconnecting: boolean, reconnectAttempt: number) => void; // NEW
 }
 
 export class PresenceClient {
@@ -70,6 +71,7 @@ export class PresenceClient {
       this.ws.onopen = () => {
         console.log('[PresenceClient] Connected');
         this.reconnectAttempts = 0;
+        this.config.onConnectionChange?.(true, false, false, 0); // connected, not loading, not reconnecting
         this.subscribe();
         this.startHeartbeat();
       };
@@ -86,6 +88,7 @@ export class PresenceClient {
       this.ws.onclose = () => {
         console.log('[PresenceClient] Disconnected');
         this.stopHeartbeat();
+        this.config.onConnectionChange?.(false, false, false, 0); // disconnected
         
         if (!this.isIntentionallyClosed) {
           this.scheduleReconnect();
@@ -170,11 +173,15 @@ export class PresenceClient {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('[PresenceClient] Max reconnect attempts reached');
       this.config.onError?.('Failed to reconnect after multiple attempts');
+      this.config.onConnectionChange?.(false, false, false, this.reconnectAttempts); // failed
       return;
     }
 
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     console.log(`[PresenceClient] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
+    
+    // Notify that we're reconnecting
+    this.config.onConnectionChange?.(false, false, true, this.reconnectAttempts + 1); // reconnecting
 
     this.reconnectTimeout = window.setTimeout(() => {
       this.reconnectAttempts++;

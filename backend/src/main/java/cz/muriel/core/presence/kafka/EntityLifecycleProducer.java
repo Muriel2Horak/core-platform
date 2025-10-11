@@ -12,25 +12,15 @@ import java.util.Map;
 /**
  * Producer for entity lifecycle events
  * 
- * Topics:
- * - core.entities.lifecycle.mutating → Entity is about to be modified (WRITE pipeline started)
- * - core.entities.lifecycle.mutated → Entity modification completed (WRITE pipeline finished)
+ * Topics: - core.entities.lifecycle.mutating → Entity is about to be modified
+ * (WRITE pipeline started) - core.entities.lifecycle.mutated → Entity
+ * modification completed (WRITE pipeline finished)
  * 
- * Event Schema:
- * {
- *   "eventType": "MUTATING" | "MUTATED",
- *   "tenantId": "t1",
- *   "entity": "Order",
- *   "id": "123",
- *   "userId": "user-456",
- *   "timestamp": 1697123456789,
- *   "version": 5  // only for MUTATED
- * }
+ * Event Schema: { "eventType": "MUTATING" | "MUTATED", "tenantId": "t1",
+ * "entity": "Order", "id": "123", "userId": "user-456", "timestamp":
+ * 1697123456789, "version": 5 // only for MUTATED }
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.kafka.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Component @RequiredArgsConstructor @ConditionalOnProperty(name = "app.kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class EntityLifecycleProducer {
 
   private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -63,7 +53,8 @@ public class EntityLifecycleProducer {
    * 
    * This should be called AFTER write pipeline completes successfully
    */
-  public void publishMutated(String tenantId, String entity, String id, String userId, long version) {
+  public void publishMutated(String tenantId, String entity, String id, String userId,
+      long version) {
     Map<String, Object> event = new HashMap<>();
     event.put("eventType", "MUTATED");
     event.put("tenantId", tenantId);
