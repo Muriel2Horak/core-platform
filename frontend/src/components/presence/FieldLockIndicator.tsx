@@ -46,11 +46,17 @@ export function FieldLockIndicator({
           width: 20,
           height: 20,
         }}
+        role="img"
+        aria-label={
+          isOwnLock
+            ? `You have edit lock on ${fieldName}`
+            : `${displayName} has edit lock on ${fieldName}`
+        }
       >
         {isOwnLock ? (
-          <Lock sx={{ fontSize: 16, color: 'success.main' }} />
+          <Lock sx={{ fontSize: 16, color: 'success.main' }} aria-hidden="true" />
         ) : (
-          <Lock sx={{ fontSize: 16, color: 'error.main' }} />
+          <Lock sx={{ fontSize: 16, color: 'error.main' }} aria-hidden="true" />
         )}
       </Box>
     </Tooltip>

@@ -60,9 +60,17 @@ export function PresenceIndicator({
   const otherUsers = viewingUsers.filter((u) => u !== currentUserId);
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <Box 
+      sx={{ display: 'flex', alignItems: 'center', gap: 2 }}
+      role="status"
+      aria-label="Real-time presence tracking"
+      data-testid="presence-indicator"
+    >
       {/* Connection Status */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Box 
+        sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        aria-label={connected ? 'Connected to presence system' : 'Disconnected from presence system'}
+      >
         <Box
           sx={{
             height: 8,
@@ -87,13 +95,19 @@ export function PresenceIndicator({
             label="Editing"
             color="error"
             size="small"
+            role="alert"
+            aria-live="assertive"
+            aria-label={`Warning: ${getUserDisplayName(busyBy)} is currently editing this record`}
           />
         </Tooltip>
       )}
 
       {/* User Avatars */}
       {viewingUsers.length > 0 && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box 
+          sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}
+          aria-label={`${viewingUsers.length} user${viewingUsers.length > 1 ? 's' : ''} viewing this record`}
+        >
           <Tooltip
             title={
               <Box>
