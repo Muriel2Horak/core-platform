@@ -36,170 +36,150 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 🧪 OpenAPI Contract Tests
  * 
- * Validates API responses against OpenAPI specification:
- * - Fetches OpenAPI spec from /v3/api-docs
- * - Validates selected endpoint responses
- * - Exports openapi.json as CI artifact
+ * Validates API responses against OpenAPI specification: - Fetches OpenAPI spec
+ * from /v3/api-docs - Validates selected endpoint responses - Exports
+ * openapi.json as CI artifact
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class OpenApiContractIT {
 
-    @Autowired
-    private TestRestTemplate restTemplate;
+  @Autowired
+  private TestRestTemplate restTemplate;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-    private OpenApi3 openApiSpec;
-    private String openApiJson;
+  private OpenApi3 openApiSpec;
+  private String openApiJson;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        // Fetch OpenAPI spec
-        ResponseEntity<String> response = restTemplate.getForEntity(
-            "/v3/api-docs",
-            String.class
-        );
+  @BeforeEach
+  void setUp() throws Exception {
+    // Fetch OpenAPI spec
+    ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs", String.class);
 
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        openApiJson = response.getBody();
-        assertThat(openApiJson).isNotNull();
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    openApiJson = response.getBody();
+    assertThat(openApiJson).isNotNull();
 
-        // Parse OpenAPI spec
-        File tempFile = File.createTempFile("openapi", ".json");
-        try (FileWriter writer = new FileWriter(tempFile)) {
-            writer.write(openApiJson);
-        }
-
-        openApiSpec = new OpenApi3Parser().parse(tempFile, false);
-        tempFile.delete();
+    // Parse OpenAPI spec
+    File tempFile = File.createTempFile("openapi", ".json");
+    try (FileWriter writer = new FileWriter(tempFile)) {
+      writer.write(openApiJson);
     }
 
-    @Test
-    void testOpenApiSpecGeneration() {
-        // Verify OpenAPI spec is valid
-        assertThat(openApiSpec).isNotNull();
-        assertThat(openApiSpec.getOpenapi()).startsWith("3.");
-        assertThat(openApiSpec.getPaths()).isNotEmpty();
+    openApiSpec = new OpenApi3Parser().parse(tempFile, false);
+    tempFile.delete();
+  }
 
-        System.out.println("📋 OpenAPI Info:");
-        System.out.println("  Version: " + openApiSpec.getOpenapi());
-        System.out.println("  Title: " + openApiSpec.getInfo().getTitle());
-        System.out.println("  Paths: " + openApiSpec.getPaths().size());
+  @Test
+  void testOpenApiSpecGeneration() {
+    // Verify OpenAPI spec is valid
+    assertThat(openApiSpec).isNotNull();
+    assertThat(openApiSpec.getOpenapi()).startsWith("3.");
+    assertThat(openApiSpec.getPaths()).isNotEmpty();
+
+    System.out.println("📋 OpenAPI Info:");
+    System.out.println("  Version: " + openApiSpec.getOpenapi());
+    System.out.println("  Title: " + openApiSpec.getInfo().getTitle());
+    System.out.println("  Paths: " + openApiSpec.getPaths().size());
+  }
+
+  @Test
+  void testHealthEndpointContract() throws ValidationException, ResolutionException {
+    // When: Call health endpoint
+    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
+
+    // Then: Validate against OpenAPI spec (if defined)
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(response.getBody()).contains("status");
+  }
+
+  @Test
+  void testStreamingConfigEndpointContract() throws Exception {
+    // Given: OpenAPI path for streaming config
+    String path = "/api/admin/streaming/config";
+    Path pathItem = openApiSpec.getPath(path);
+
+    if (pathItem != null && pathItem.hasOperation("get")) {
+      Operation operation = pathItem.getGet();
+      OperationValidator validator = new OperationValidator(openApiSpec, operation);
+
+      // When: Call endpoint
+      ResponseEntity<String> response = restTemplate.getForEntity(path, String.class);
+
+      // Then: Validate response against schema
+      if (response.getStatusCode().is2xxSuccessful()) {
+        Response validationResponse = buildResponse(response);
+        validator.validateResponse(validationResponse);
+
+        System.out.println("✅ /api/admin/streaming/config contract validated");
+      }
+    } else {
+      System.out.println("⚠️ Path not defined in OpenAPI: " + path);
+    }
+  }
+
+  @Test
+  void testMetricsEndpointExists() {
+    // When: Call Prometheus metrics endpoint
+    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/prometheus",
+        String.class);
+
+    // Then: Should return metrics
+    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(response.getBody()).contains("# HELP");
+  }
+
+  @Test
+  void exportOpenApiSpec() throws IOException {
+    // Export OpenAPI spec to target directory for CI artifacts
+    String targetDir = "target/openapi";
+    Files.createDirectories(Paths.get(targetDir));
+
+    String outputPath = targetDir + "/openapi.json";
+    Files.writeString(Paths.get(outputPath), openApiJson);
+
+    System.out.println("📤 OpenAPI spec exported to: " + outputPath);
+    assertThat(new File(outputPath)).exists();
+  }
+
+  @Test
+  void testResponseSchemas() throws Exception {
+    // Test common response patterns
+    ResponseEntity<String> healthResponse = restTemplate.getForEntity("/actuator/health",
+        String.class);
+
+    JsonNode healthJson = objectMapper.readTree(healthResponse.getBody());
+    assertThat(healthJson.has("status")).isTrue();
+    assertThat(healthJson.get("status").asText()).isIn("UP", "DOWN", "OUT_OF_SERVICE", "UNKNOWN");
+
+    System.out.println("✅ Response schemas validated");
+  }
+
+  // Helper method to build OpenAPI4J Response object
+  private Response buildResponse(ResponseEntity<String> response) {
+    DefaultResponse.Builder builder = new DefaultResponse.Builder(response.getStatusCode().value());
+
+    if (response.getBody() != null) {
+      builder.body(response.getBody());
     }
 
-    @Test
-    void testHealthEndpointContract() throws ValidationException, ResolutionException {
-        // When: Call health endpoint
-        ResponseEntity<String> response = restTemplate.getForEntity(
-            "/actuator/health",
-            String.class
-        );
+    HttpHeaders headers = response.getHeaders();
+    Map<String, String> headerMap = new HashMap<>();
+    headers.forEach((key, values) -> {
+      if (!values.isEmpty()) {
+        headerMap.put(key, values.get(0));
+      }
+    });
 
-        // Then: Validate against OpenAPI spec (if defined)
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getBody()).contains("status");
-    }
+    return builder.headers(headerMap).build();
+  }
 
-    @Test
-    void testStreamingConfigEndpointContract() throws Exception {
-        // Given: OpenAPI path for streaming config
-        String path = "/api/admin/streaming/config";
-        Path pathItem = openApiSpec.getPath(path);
-
-        if (pathItem != null && pathItem.hasOperation("get")) {
-            Operation operation = pathItem.getGet();
-            OperationValidator validator = new OperationValidator(openApiSpec, operation);
-
-            // When: Call endpoint
-            ResponseEntity<String> response = restTemplate.getForEntity(
-                path,
-                String.class
-            );
-
-            // Then: Validate response against schema
-            if (response.getStatusCode().is2xxSuccessful()) {
-                Response validationResponse = buildResponse(response);
-                validator.validateResponse(validationResponse);
-
-                System.out.println("✅ /api/admin/streaming/config contract validated");
-            }
-        } else {
-            System.out.println("⚠️ Path not defined in OpenAPI: " + path);
-        }
-    }
-
-    @Test
-    void testMetricsEndpointExists() {
-        // When: Call Prometheus metrics endpoint
-        ResponseEntity<String> response = restTemplate.getForEntity(
-            "/actuator/prometheus",
-            String.class
-        );
-
-        // Then: Should return metrics
-        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(response.getBody()).contains("# HELP");
-    }
-
-    @Test
-    void exportOpenApiSpec() throws IOException {
-        // Export OpenAPI spec to target directory for CI artifacts
-        String targetDir = "target/openapi";
-        Files.createDirectories(Paths.get(targetDir));
-
-        String outputPath = targetDir + "/openapi.json";
-        Files.writeString(Paths.get(outputPath), openApiJson);
-
-        System.out.println("📤 OpenAPI spec exported to: " + outputPath);
-        assertThat(new File(outputPath)).exists();
-    }
-
-    @Test
-    void testResponseSchemas() throws Exception {
-        // Test common response patterns
-        ResponseEntity<String> healthResponse = restTemplate.getForEntity(
-            "/actuator/health",
-            String.class
-        );
-
-        JsonNode healthJson = objectMapper.readTree(healthResponse.getBody());
-        assertThat(healthJson.has("status")).isTrue();
-        assertThat(healthJson.get("status").asText())
-            .isIn("UP", "DOWN", "OUT_OF_SERVICE", "UNKNOWN");
-
-        System.out.println("✅ Response schemas validated");
-    }
-
-    // Helper method to build OpenAPI4J Response object
-    private Response buildResponse(ResponseEntity<String> response) {
-        DefaultResponse.Builder builder = new DefaultResponse.Builder(
-            response.getStatusCode().value()
-        );
-
-        if (response.getBody() != null) {
-            builder.body(response.getBody());
-        }
-
-        HttpHeaders headers = response.getHeaders();
-        Map<String, String> headerMap = new HashMap<>();
-        headers.forEach((key, values) -> {
-            if (!values.isEmpty()) {
-                headerMap.put(key, values.get(0));
-            }
-        });
-        
-        return builder.headers(headerMap).build();
-    }
-
-    // Helper method to build OpenAPI4J Request object
-    @SuppressWarnings("unused")
-    private Request buildRequest(String path, HttpMethod method) {
-        DefaultRequest.Builder builder = new DefaultRequest.Builder(
-            "http://localhost",
-            method.name()
-        );
-        builder.path(path);
-        return builder.build();
-    }
+  // Helper method to build OpenAPI4J Request object
+  @SuppressWarnings("unused")
+  private Request buildRequest(String path, HttpMethod method) {
+    DefaultRequest.Builder builder = new DefaultRequest.Builder("http://localhost", method.name());
+    builder.path(path);
+    return builder.build();
+  }
 }
