@@ -1,0 +1,45 @@
+# Lefthook Git Hooks Configuration
+# Install: brew install lefthook (or npm i -g @evilmartians/lefthook)
+# Setup: lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    naming-lint:
+      glob: "{backend/src/main/java/**/*.java,backend/src/main/resources/**/*.{sql,yml,yaml},frontend/src/**/*.{ts,tsx}}"
+      run: cd tools/naming-lint && npm run lint:all
+      fail_text: "❌ Naming convention violations detected. See docs/NAMING_GUIDE.md"
+      
+    frontend-lint:
+      glob: "frontend/src/**/*.{ts,tsx,js,jsx}"
+      run: cd frontend && npm run lint --quiet
+      fail_text: "❌ Frontend linting failed"
+      
+    backend-format-check:
+      glob: "backend/src/**/*.java"
+      run: cd backend && ./mvnw spotless:check -q
+      fail_text: "❌ Backend code formatting issues. Run: cd backend && ./mvnw spotless:apply"
+
+pre-push:
+  commands:
+    backend-tests:
+      run: cd backend && ./mvnw test -Dtest=CubeQueryServiceIT,PresenceNrtIT -q
+      fail_text: "❌ Critical tests failed. Fix before pushing!"
+      
+commit-msg:
+  commands:
+    conventional:
+      run: |
+        # Check for conventional commit format: type(scope?): message
+        if ! grep -qE "^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .+" {1}; then
+          echo "❌ Commit message must follow Conventional Commits:"
+          echo "   feat(scope): description"
+          echo "   fix(scope): description"
+          echo "   etc."
+          exit 1
+        fi
+      fail_text: "❌ Invalid commit message format"
+
+skip_output:
+  - meta
+  - success
