@@ -11,11 +11,14 @@ import {
   Redo as RedoIcon,
   Check as ValidateIcon,
   PlayCircleOutline as SimulateIcon,
+  Send as ProposalIcon,
+  List as ProposalListIcon,
+  History as VersionIcon,
 } from '@mui/icons-material';
 import { tokens } from '../../shared/theme/tokens';
 
 /**
- * W1-W2: WorkflowToolbar - Toolbar pro Workflow Designer
+ * W1-W3: WorkflowToolbar - Toolbar pro Workflow Designer
  * 
  * Akce:
  * - Add nodes (Start, Task, Decision, End)
@@ -23,6 +26,9 @@ import { tokens } from '../../shared/theme/tokens';
  * - Save/Load draft
  * - Validate (W2)
  * - Simulate (W2)
+ * - Create Proposal (W3)
+ * - View Proposals (W3)
+ * - Version History (W3)
  * - Undo/Redo (future)
  */
 export interface WorkflowToolbarProps {
@@ -32,6 +38,9 @@ export interface WorkflowToolbarProps {
   onLoad: () => void;
   onValidate?: () => void; // W2
   onSimulate?: () => void; // W2
+  onCreateProposal?: () => void; // W3
+  onViewProposals?: () => void; // W3
+  onVersionHistory?: () => void; // W3
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -45,6 +54,9 @@ export const WorkflowToolbar = ({
   onLoad,
   onValidate,
   onSimulate,
+  onCreateProposal,
+  onViewProposals,
+  onVersionHistory,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -196,6 +208,52 @@ export const WorkflowToolbar = ({
       </Box>
 
       <Box flexGrow={1} />
+
+      {/* W3: Proposal & Version Actions */}
+      {(onCreateProposal || onViewProposals || onVersionHistory) && (
+        <>
+          <Divider orientation="vertical" flexItem />
+          <Box display="flex" gap={1}>
+            {onCreateProposal && (
+              <Tooltip title="Vytvořit návrh změny">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<ProposalIcon />}
+                  onClick={onCreateProposal}
+                >
+                  Vytvořit návrh
+                </Button>
+              </Tooltip>
+            )}
+            {onViewProposals && (
+              <Tooltip title="Zobrazit návrhy">
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<ProposalListIcon />}
+                  onClick={onViewProposals}
+                >
+                  Návrhy
+                </Button>
+              </Tooltip>
+            )}
+            {onVersionHistory && (
+              <Tooltip title="Historie verzí">
+                <Button
+                  size="small"
+                  variant="text"
+                  startIcon={<VersionIcon />}
+                  onClick={onVersionHistory}
+                >
+                  Historie
+                </Button>
+              </Tooltip>
+            )}
+          </Box>
+        </>
+      )}
 
       {/* Undo/Redo Group (future) */}
       <Box display="flex" gap={1}>

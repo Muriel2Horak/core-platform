@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Container, Typography, Box, Drawer } from '@mui/material';
+import { Container, Typography, Box, Drawer, Tabs, Tab } from '@mui/material';
 import { AccountTree as WorkflowIcon } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
 import ReactFlow, { 
@@ -15,15 +15,25 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import axios from 'axios';
 
-import { WorkflowToolbar, ValidationPanel, SimulationPanel, nodeTypes } from '../../components/Workflow';
+import { 
+  WorkflowToolbar, 
+  ValidationPanel, 
+  SimulationPanel, 
+  ProposalDialog,
+  ProposalListPanel,
+  ProposalReviewDialog,
+  VersionHistoryPanel,
+  nodeTypes,
+} from '../../components/Workflow';
 import { useElkLayout } from '../../lib/layout/useElkLayout';
 import { useDagreLayout } from '../../lib/layout/useDagreLayout';
 
 /**
- * W2: Workflow Designer Page
+ * W3: Workflow Designer Page
  * 
  * Phase W1: Interactive canvas with custom nodes, toolbar, auto-layout
  * Phase W2: Validation + Simulation
+ * Phase W3: Proposals & Approvals + Version history
  */
 export const WorkflowDesignerPage = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -32,9 +42,25 @@ export const WorkflowDesignerPage = () => {
   const [simulationResult, setSimulationResult] = useState<any>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
+
+  // W3: Proposal state
+  const [showProposalDialog, setShowProposalDialog] = useState(false);
+  const [showProposalDrawer, setShowProposalDrawer] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<any>(null);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [proposalRefreshTrigger, setProposalRefreshTrigger] = useState(0);
+
+  // W3: Version history state
+  const [showVersionDrawer, setShowVersionDrawer] = useState(false);
+  const [versionRefreshTrigger, setVersionRefreshTrigger] = useState(0);
+
+  // W3: Right drawer tab state
+  const [rightDrawerTab, setRightDrawerTab] = useState<'validation' | 'simulation' | 'proposals' | 'versions'>('validation');
   
   const { getLayoutedElements: getElkLayout } = useElkLayout();
   const { getLayoutedElements: getDagreLayout } = useDagreLayout();
+
+  const entity = 'customer-onboarding'; // TODO: make dynamic
 
   // Add node handler
   const handleAddNode = useCallback((type: 'start' | 'task' | 'decision' | 'end') => {
@@ -125,6 +151,42 @@ export const WorkflowDesignerPage = () => {
     }
   }, [nodes, edges]);
 
+  // W3: Proposal handlers
+  const handleCreateProposal = useCallback(() => {
+    console.log('📝 Create proposal');
+    setShowProposalDialog(true);
+  }, []);
+
+  const handleProposalCreated = useCallback((proposalId: number) => {
+    console.log('✅ Proposal created:', proposalId);
+    setProposalRefreshTrigger(prev => prev + 1);
+    setVersionRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  const handleViewProposals = useCallback(() => {
+    console.log('📋 View proposals');
+    setShowProposalDrawer(true);
+    setRightDrawerTab('proposals');
+  }, []);
+
+  const handleVersionHistory = useCallback(() => {
+    console.log('📦 View version history');
+    setShowVersionDrawer(true);
+    setRightDrawerTab('versions');
+  }, []);
+
+  const handleProposalReviewed = useCallback(() => {
+    console.log('✅ Proposal reviewed');
+    setProposalRefreshTrigger(prev => prev + 1);
+    setVersionRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  const handleSelectProposal = useCallback((proposal: any) => {
+    console.log('📄 Selected proposal:', proposal);
+    setSelectedProposal(proposal);
+    setShowReviewDialog(true);
+  }, []);
+
   return (
     <Container maxWidth="xl" sx={{ py: 4, height: 'calc(100vh - 100px)' }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -146,6 +208,9 @@ export const WorkflowDesignerPage = () => {
           onLoad={handleLoad}
           onValidate={handleValidate}
           onSimulate={handleSimulate}
+          onCreateProposal={handleCreateProposal}
+          onViewProposals={handleViewProposals}
+          onVersionHistory={handleVersionHistory}
         />
 
         {/* Canvas */}
@@ -187,6 +252,52 @@ export const WorkflowDesignerPage = () => {
         sx={{ '& .MuiDrawer-paper': { width: 500 } }}
       >
         <SimulationPanel simulationResult={simulationResult} />
+      </Drawer>
+
+      {/* W3: Proposal Creation Dialog */}
+      <ProposalDialog
+        open={showProposalDialog}
+        onClose={() => setShowProposalDialog(false)}
+        entity={entity}
+        nodes={nodes}
+        edges={edges}
+        onProposalCreated={handleProposalCreated}
+      />
+
+      {/* W3: Proposal List Drawer */}
+      <Drawer
+        anchor="right"
+        open={showProposalDrawer && rightDrawerTab === 'proposals'}
+        onClose={() => setShowProposalDrawer(false)}
+        sx={{ '& .MuiDrawer-paper': { width: 500 } }}
+      >
+        <ProposalListPanel
+          entity={entity}
+          status="PENDING"
+          onSelectProposal={handleSelectProposal}
+          refreshTrigger={proposalRefreshTrigger}
+        />
+      </Drawer>
+
+      {/* W3: Proposal Review Dialog */}
+      <ProposalReviewDialog
+        open={showReviewDialog}
+        onClose={() => setShowReviewDialog(false)}
+        proposal={selectedProposal}
+        onReviewed={handleProposalReviewed}
+      />
+
+      {/* W3: Version History Drawer */}
+      <Drawer
+        anchor="right"
+        open={showVersionDrawer && rightDrawerTab === 'versions'}
+        onClose={() => setShowVersionDrawer(false)}
+        sx={{ '& .MuiDrawer-paper': { width: 500 } }}
+      >
+        <VersionHistoryPanel
+          entity={entity}
+          refreshTrigger={versionRefreshTrigger}
+        />
       </Drawer>
     </Container>
   );

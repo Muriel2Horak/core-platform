@@ -1,5 +1,5 @@
 /**
- * W1-W2: Workflow Components Export
+ * W1-W3: Workflow Components Export
  */
 
 export { WorkflowToolbar } from './WorkflowToolbar';
@@ -10,6 +10,11 @@ export type { ValidationPanelProps } from './ValidationPanel';
 
 export { SimulationPanel } from './SimulationPanel';
 export type { SimulationPanelProps } from './SimulationPanel';
+
+export { ProposalDialog } from './ProposalDialog';
+export { ProposalListPanel } from './ProposalListPanel';
+export { ProposalReviewDialog } from './ProposalReviewDialog';
+export { VersionHistoryPanel } from './VersionHistoryPanel';
 
 export {
   TaskNode,
