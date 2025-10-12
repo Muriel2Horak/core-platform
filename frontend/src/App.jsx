@@ -35,12 +35,10 @@ import {
   StreamingDashboardPage,
   WorkflowDesignerPage,
   MetamodelStudioPage,
-} from './pages/Admin';
-
-// 🆕 S2: Presence System - Edit Pages
-import { UserEditPage } from './pages/admin/UserEditPage';
-import { TenantEditPage } from './pages/admin/TenantEditPage';
-import { RoleEditPage } from './pages/admin/RoleEditPage';
+  UserEditPage,
+  TenantEditPage,
+  RoleEditPage,
+} from './pages/admin';
 
 // 🆕 Tenant Admin sekce
 import {
