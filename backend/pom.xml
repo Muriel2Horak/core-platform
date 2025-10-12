@@ -490,12 +490,12 @@
 				<configuration>
 					<!-- Fail build on HIGH (7.0+) or CRITICAL (9.0+) vulnerabilities -->
 					<failBuildOnCVSS>7</failBuildOnCVSS>
-					
+
 					<!-- Suppression file for false positives -->
 					<suppressionFiles>
 						<suppressionFile>owasp-suppressions.xml</suppressionFile>
 					</suppressionFiles>
-					
+
 					<!-- Output formats -->
 					<formats>
 						<format>HTML</format>
@@ -503,19 +503,19 @@
 						<format>JUNIT</format>
 					</formats>
 					<outputDirectory>${project.build.directory}/dependency-check</outputDirectory>
-					
+
 					<!-- NVD API configuration (faster updates) -->
 					<!-- Set NVD_API_KEY environment variable for rate limit increase -->
 					<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
-					
+
 					<!-- Skip analysis for test dependencies -->
 					<skipTestScope>false</skipTestScope>
-					
+
 					<!-- Analyzers configuration -->
 					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
 					<nuspecAnalyzerEnabled>false</nuspecAnalyzerEnabled>
 					<nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
-					
+
 					<!-- Vulnerability data retention -->
 					<cveValidForHours>4</cveValidForHours>
 				</configuration>
@@ -620,7 +620,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<!-- SpotBugs for static analysis (S8) -->
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
@@ -650,7 +650,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			
+
 			<!-- PMD for code quality analysis (S8) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -688,7 +688,7 @@
 					</dependency>
 				</dependencies>
 			</plugin>
-			
+
 			<!-- Checkstyle for code style enforcement (S8) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
