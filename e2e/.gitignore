@@ -1,0 +1,13 @@
+# Auth storage state (obsahuje session data)
+.auth/
+
+# Test results
+test-results/
+playwright-report/
+
+# Node modules (pokud by e2e mělo vlastní package.json v budoucnu)
+node_modules/
+
+# Playwright artifacts
+*.zip
+trace-*.json

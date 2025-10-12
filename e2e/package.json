@@ -1,0 +1,7 @@
+{
+  "name": "core-platform-e2e",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "E2E tests for Core Platform",
+  "private": true
+}
