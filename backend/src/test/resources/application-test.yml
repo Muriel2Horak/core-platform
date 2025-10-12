@@ -57,20 +57,16 @@ spring:
     enabled: true
     clean-disabled: false
 
-  # Caffeine cache (Redis disabled in tests)
-  cache:
-    type: caffeine
-    caffeine:
-      spec: maximumSize=1000,expireAfterWrite=30s
-  
+  # Redis via Testcontainers - configured dynamically, NOT Caffeine
+  # spring.data.redis.host and port set in AbstractIntegrationTest
+
   # Kafka disabled in tests
   kafka:
     bootstrap-servers: 127.0.0.1:0
 
 # Application configuration for tests
 app:
-  redis:
-    enabled: false  # Disable Redis in tests - use Caffeine instead
+  # Redis enabled via Testcontainers - host/port set dynamically in AbstractIntegrationTest
   websocket:
     enabled: false  # Disable WebSocket in tests
   change-events:
@@ -78,11 +74,6 @@ app:
   presence:
     lockTtlMs: 30000
     heartbeatIntervalMs: 10000
-
-# Keycloak datasource - DISABLED in tests
-keycloak:
-  datasource:
-    enabled: false  # Don't connect to Keycloak DB in integration tests
 
 # Monitoring/Reporting configuration for tests
 reporting:
@@ -139,7 +130,7 @@ management:
 # Keycloak configuration (mocked in tests)
 keycloak:
   datasource:
-    enabled: false  # Disable Keycloak database in tests
+    enabled: false  # Disable Keycloak database in tests (set via AbstractIntegrationTest)
   admin:
     base-url: http://localhost:8080
     realm: test-realm

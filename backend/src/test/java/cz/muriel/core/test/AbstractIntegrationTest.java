@@ -4,15 +4,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 /**
  * Base class for integration tests using Testcontainers.
  * 
- * Provides: - PostgreSQL container for main datasource - Automatic Spring Boot
- * context loading - Test profile activation - Dynamic property configuration
+ * Provides: - PostgreSQL container for main datasource - Redis container for
+ * caching/presence - Automatic Spring Boot context loading - Test profile activation -
+ * Dynamic property configuration
  * 
  * Usage:
  * 
@@ -34,12 +37,22 @@ public abstract class AbstractIntegrationTest {
       "postgres:16-alpine").withDatabaseName("testdb").withUsername("test").withPassword("test")
           .withReuse(true); // Reuse container across tests for speed
 
+  @Container
+  @SuppressWarnings("resource")
+  protected static final GenericContainer<?> redisContainer = new GenericContainer<>(
+      DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379).withReuse(true);
+
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
     // Main datasource
     registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
     registry.add("spring.datasource.username", postgresContainer::getUsername);
     registry.add("spring.datasource.password", postgresContainer::getPassword);
+
+    // Redis configuration
+    registry.add("spring.data.redis.host", redisContainer::getHost);
+    registry.add("spring.data.redis.port", redisContainer::getFirstMappedPort);
+    registry.add("app.redis.enabled", () -> "true"); // Enable Redis in tests
 
     // JPA/Hibernate configuration for tests - use validate with Flyway
     registry.add("spring.jpa.hibernate.ddl-auto", () -> "validate");

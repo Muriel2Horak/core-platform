@@ -1,5 +1,6 @@
 package cz.muriel.core.reporting.service;
 
+import cz.muriel.core.test.AbstractIntegrationTest;
 import cz.muriel.core.test.config.TestQueryConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -28,7 +29,7 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(TestQueryConfig.class)
-class CubeQueryServiceIT {
+class CubeQueryServiceIT extends AbstractIntegrationTest {
 
   @Mock
   private WebClient cubeWebClient;

@@ -10,7 +10,8 @@ import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -69,7 +70,7 @@ public class MonitoringBffConfig {
   }
 
   @Bean
-  public WebClient grafanaWebClient(GrafanaProperties props, CircuitBreaker circuitBreaker) {
+  public WebClient grafanaWebClient(GrafanaProperties props, @Qualifier("grafanaCircuitBreaker") CircuitBreaker circuitBreaker) {
     // Connection pool configuration (production-ready)
     ConnectionProvider provider = ConnectionProvider.builder("grafana-pool").maxConnections(100) // Max
                                                                                                  // 100
@@ -114,7 +115,9 @@ public class MonitoringBffConfig {
    * TTL: 30 seconds (short for real-time monitoring data) Max size: 1000 entries
    * per cache Stats enabled for monitoring
    */
-  @Bean @ConditionalOnMissingBean(CacheManager.class) @Primary
+  @Bean 
+  @Primary 
+  @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "false", matchIfMissing = true)
   public CacheManager cacheManager() {
     CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
         "grafana-dashboards", "reportQueryCache");

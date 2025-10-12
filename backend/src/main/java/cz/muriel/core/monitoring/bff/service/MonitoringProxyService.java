@@ -17,8 +17,7 @@ import java.util.Map;
  * Service for proxying requests to Grafana HTTP API. Adds service account token
  * and X-Grafana-Org-Id header. Never exposes tokens to the browser.
  */
-@Service
-@Slf4j
+@Service @Slf4j
 public class MonitoringProxyService {
 
   private final TenantOrgService tenantOrgService;
