@@ -9,6 +9,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.*;
@@ -62,7 +63,8 @@ class BulkUpdateControllerIT {
             .content(objectMapper.writeValueAsString(request)))
         .andReturn().getResponse().getContentAsString();
 
-    Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+    Map<String, Object> response = objectMapper.readValue(responseBody,
+        new TypeReference<Map<String, Object>>() {});
     String jobId = (String) response.get("jobId");
 
     // Act & Assert - get status
@@ -94,7 +96,8 @@ class BulkUpdateControllerIT {
             .content(objectMapper.writeValueAsString(request)))
         .andReturn().getResponse().getContentAsString();
 
-    Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+    Map<String, Object> response = objectMapper.readValue(responseBody,
+        new TypeReference<Map<String, Object>>() {});
     String jobId = (String) response.get("jobId");
 
     // Act - cancel job
@@ -153,7 +156,8 @@ class BulkUpdateControllerIT {
             .content(objectMapper.writeValueAsString(request)))
         .andReturn().getResponse().getContentAsString();
 
-    Map<String, Object> response = objectMapper.readValue(responseBody, Map.class);
+    Map<String, Object> response = objectMapper.readValue(responseBody,
+        new TypeReference<Map<String, Object>>() {});
     String jobId = (String) response.get("jobId");
 
     // Wait for job to complete (max 5 seconds)

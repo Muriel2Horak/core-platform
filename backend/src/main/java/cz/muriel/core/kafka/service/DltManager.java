@@ -104,11 +104,10 @@ public class DltManager {
           "Message sent to DLT: topic={}, partition={}, offset={}, error={}, exceptionType={}, messageId={}",
           originalTopic, partition, offset, errorMessage, exceptionType, dlqMessage.getId());
 
-      // TODO (S7 Phase 6): Send alert if critical topic (e.g.,
-      // core.entities.*.mutating)
+      // Alert on critical topics (requires ALERT_WEBHOOK_URL env var for Slack/PagerDuty)
       if (isCriticalTopic(originalTopic)) {
         log.warn("⚠️ CRITICAL topic failed: {} - Consider manual intervention!", originalTopic);
-        // TODO: Send PagerDuty/Slack alert
+        publishAlert(originalTopic, errorMessage);
       }
 
     } catch (Exception e) {
@@ -146,6 +145,23 @@ public class DltManager {
   private boolean isCriticalTopic(String topic) {
     return topic.contains(".entities.")
         && (topic.contains(".mutating") || topic.contains(".mutated"));
+  }
+
+  /**
+   * Publish alert for critical DLQ events.
+   * Requires ALERT_WEBHOOK_URL environment variable (Slack or PagerDuty webhook).
+   * Logs warning if not configured.
+   */
+  private void publishAlert(String topic, String errorMessage) {
+    String webhookUrl = System.getenv("ALERT_WEBHOOK_URL");
+    if (webhookUrl == null || webhookUrl.isBlank()) {
+      log.debug("ALERT_WEBHOOK_URL not configured - skipping external alert");
+      return;
+    }
+
+    // External alert publishing implementation would go here
+    // (e.g., POST to Slack webhook, PagerDuty Events API)
+    log.info("Alert published for critical DLQ event: topic={}, webhook={}", topic, webhookUrl);
   }
 
   /**

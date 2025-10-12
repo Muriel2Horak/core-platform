@@ -28,13 +28,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry.addHandler(presenceWebSocketHandler, "/ws/presence").setAllowedOrigins("*"); // TODO:
-                                                                                          // Configure
-                                                                                          // CORS
-                                                                                          // properly
-                                                                                          // for
-                                                                                          // production
+    // For production: Replace "*" with specific frontend origins (e.g., "https://app.muriel.cz")
+    // Use environment variable ALLOWED_ORIGINS to configure dynamically
+    String allowedOrigins = System.getenv().getOrDefault("ALLOWED_ORIGINS", "*");
+    
+    registry.addHandler(presenceWebSocketHandler, "/ws/presence")
+        .setAllowedOrigins(allowedOrigins.split(","));
 
-    log.info("Presence WebSocket registered at /ws/presence");
+    log.info("Presence WebSocket registered at /ws/presence (allowed origins: {})", allowedOrigins);
   }
 }

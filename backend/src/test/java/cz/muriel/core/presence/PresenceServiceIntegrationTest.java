@@ -53,7 +53,9 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @BeforeEach
   void setUp() {
     // Clean up Redis before each test
-    redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
+    try (var connection = redisTemplate.getConnectionFactory().getConnection()) {
+      connection.serverCommands().flushAll();
+    }
   }
 
   @AfterEach

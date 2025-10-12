@@ -79,7 +79,7 @@ public class MetamodelSpecService {
           .filterable(isFilterableField(field)).sortable(isSortableField(field))
           .allowedOperators(getAllowedOperators(field)).label(formatLabel(fieldName))
           .required(Boolean.TRUE.equals(field.getRequired())).sensitive(isSensitiveField(field))
-          .adminOnly(false) // TODO: Add adminOnly metadata to FieldSchema
+          .adminOnly(isAdminOnlyField(fieldName)) // Check if field requires admin privileges
           .build();
 
       fieldSpecs.add(fieldSpec);
@@ -382,6 +382,17 @@ public class MetamodelSpecService {
       log.warn("Failed to compute schema checksum: {}", e.getMessage());
       return "v1.0"; // Fallback
     }
+  }
+
+  /**
+   * Check if field should be restricted to admin users only.
+   * Fields like tenant_id, version, created_at, updated_at are typically admin-only.
+   */
+  private boolean isAdminOnlyField(String fieldName) {
+    String normalized = fieldName.toLowerCase();
+    return normalized.equals("tenant_id") || normalized.equals("version")
+        || normalized.equals("created_at") || normalized.equals("updated_at")
+        || normalized.equals("createdat") || normalized.equals("updatedat");
   }
 
   /**

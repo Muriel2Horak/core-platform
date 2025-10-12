@@ -8,7 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +37,6 @@ class EntityCrudControllerIT {
   @Autowired
   private ObjectMapper objectMapper;
 
-  private String testTenantId = "00000000-0000-0000-0000-000000000001";
   private UUID testUserId;
 
   @BeforeEach
