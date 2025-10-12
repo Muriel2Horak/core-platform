@@ -19,9 +19,13 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * 🔄 W6: WebSocket handler for real-time workflow collaboration
  * 
- * <p>Enables multiple users to edit workflows simultaneously with real-time updates.
+ * <p>
+ * Enables multiple users to edit workflows simultaneously with real-time
+ * updates.
  * 
- * <p><b>Protocol:</b>
+ * <p>
+ * <b>Protocol:</b>
+ * 
  * <pre>
  * Client → Server:
  * - {"type":"JOIN", "entity":"Order", "userId":"user1", "username":"John Doe"}
@@ -44,20 +48,20 @@ import java.util.concurrent.ConcurrentMap;
  * - {"type":"ERROR", "message":"..."}
  * </pre>
  * 
- * <p><b>Session Management:</b>
+ * <p>
+ * <b>Session Management:</b>
  * <ul>
- *   <li>Each WebSocketSession is mapped to a WorkflowSession (entity, userId, username)</li>
- *   <li>On JOIN: store session, broadcast USER_JOINED to all users in the same workflow</li>
- *   <li>On updates: broadcast to all users except sender</li>
- *   <li>On disconnect: cleanup and broadcast USER_LEFT</li>
+ * <li>Each WebSocketSession is mapped to a WorkflowSession (entity, userId,
+ * username)</li>
+ * <li>On JOIN: store session, broadcast USER_JOINED to all users in the same
+ * workflow</li>
+ * <li>On updates: broadcast to all users except sender</li>
+ * <li>On disconnect: cleanup and broadcast USER_LEFT</li>
  * </ul>
  * 
  * @since W6
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Component @RequiredArgsConstructor @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private final ObjectMapper objectMapper;
@@ -87,18 +91,18 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
       String type = node.get("type").asText();
 
       switch (type) {
-        case "JOIN" -> handleJoin(session, node);
-        case "LEAVE" -> handleLeave(session, node);
-        case "NODE_UPDATE" -> handleNodeUpdate(session, node);
-        case "EDGE_UPDATE" -> handleEdgeUpdate(session, node);
-        case "NODE_DELETE" -> handleNodeDelete(session, node);
-        case "EDGE_DELETE" -> handleEdgeDelete(session, node);
-        case "CURSOR" -> handleCursor(session, node);
-        case "HB" -> handleHeartbeat(session);
-        default -> {
-          log.warn("Unknown message type: {}", type);
-          sendError(session, "Unknown message type: " + type);
-        }
+      case "JOIN" -> handleJoin(session, node);
+      case "LEAVE" -> handleLeave(session, node);
+      case "NODE_UPDATE" -> handleNodeUpdate(session, node);
+      case "EDGE_UPDATE" -> handleEdgeUpdate(session, node);
+      case "NODE_DELETE" -> handleNodeDelete(session, node);
+      case "EDGE_DELETE" -> handleEdgeDelete(session, node);
+      case "CURSOR" -> handleCursor(session, node);
+      case "HB" -> handleHeartbeat(session);
+      default -> {
+        log.warn("Unknown message type: {}", type);
+        sendError(session, "Unknown message type: " + type);
+      }
       }
     } catch (Exception e) {
       log.error("Error handling workflow collaboration message", e);
@@ -108,7 +112,8 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   @Override
   public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-    log.info("Workflow collaboration connection closed: sessionId={}, status={}", session.getId(), status);
+    log.info("Workflow collaboration connection closed: sessionId={}, status={}", session.getId(),
+        status);
     activeSessions.remove(session.getId());
     cleanup(session);
   }
@@ -138,13 +143,8 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
     List<Map<String, String>> users = getCurrentUsers(entity);
 
     // Broadcast USER_JOINED
-    Map<String, Object> joinMsg = Map.of(
-      "type", "USER_JOINED",
-      "entity", entity,
-      "userId", userId,
-      "username", username,
-      "users", users
-    );
+    Map<String, Object> joinMsg = Map.of("type", "USER_JOINED", "entity", entity, "userId", userId,
+        "username", username, "users", users);
     broadcastToEntity(entity, joinMsg, session.getId());
 
     // Send current users to new joiner
@@ -173,12 +173,8 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
     // Broadcast USER_LEFT
     List<Map<String, String>> users = getCurrentUsers(entity);
-    Map<String, Object> leaveMsg = Map.of(
-      "type", "USER_LEFT",
-      "entity", entity,
-      "userId", wfSession.userId,
-      "users", users
-    );
+    Map<String, Object> leaveMsg = Map.of("type", "USER_LEFT", "entity", entity, "userId",
+        wfSession.userId, "users", users);
     broadcastToEntity(entity, leaveMsg, session.getId());
 
     this.sessions.remove(session.getId());
@@ -188,17 +184,14 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private void handleNodeUpdate(WebSocketSession session, JsonNode node) throws IOException {
     WorkflowSession wfSession = sessions.get(session.getId());
-    if (wfSession == null) return;
+    if (wfSession == null)
+      return;
 
     String entity = node.get("entity").asText();
     JsonNode nodeData = node.get("node");
 
-    Map<String, Object> updateMsg = Map.of(
-      "type", "NODE_UPDATED",
-      "entity", entity,
-      "node", objectMapper.convertValue(nodeData, Map.class),
-      "userId", wfSession.userId
-    );
+    Map<String, Object> updateMsg = Map.of("type", "NODE_UPDATED", "entity", entity, "node",
+        objectMapper.convertValue(nodeData, Map.class), "userId", wfSession.userId);
     broadcastToEntity(entity, updateMsg, session.getId());
 
     log.debug("Node updated: entity={}, userId={}", entity, wfSession.userId);
@@ -206,17 +199,14 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private void handleEdgeUpdate(WebSocketSession session, JsonNode node) throws IOException {
     WorkflowSession wfSession = sessions.get(session.getId());
-    if (wfSession == null) return;
+    if (wfSession == null)
+      return;
 
     String entity = node.get("entity").asText();
     JsonNode edgeData = node.get("edge");
 
-    Map<String, Object> updateMsg = Map.of(
-      "type", "EDGE_UPDATED",
-      "entity", entity,
-      "edge", objectMapper.convertValue(edgeData, Map.class),
-      "userId", wfSession.userId
-    );
+    Map<String, Object> updateMsg = Map.of("type", "EDGE_UPDATED", "entity", entity, "edge",
+        objectMapper.convertValue(edgeData, Map.class), "userId", wfSession.userId);
     broadcastToEntity(entity, updateMsg, session.getId());
 
     log.debug("Edge updated: entity={}, userId={}", entity, wfSession.userId);
@@ -224,17 +214,14 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private void handleNodeDelete(WebSocketSession session, JsonNode node) throws IOException {
     WorkflowSession wfSession = sessions.get(session.getId());
-    if (wfSession == null) return;
+    if (wfSession == null)
+      return;
 
     String entity = node.get("entity").asText();
     String nodeId = node.get("nodeId").asText();
 
-    Map<String, Object> deleteMsg = Map.of(
-      "type", "NODE_DELETED",
-      "entity", entity,
-      "nodeId", nodeId,
-      "userId", wfSession.userId
-    );
+    Map<String, Object> deleteMsg = Map.of("type", "NODE_DELETED", "entity", entity, "nodeId",
+        nodeId, "userId", wfSession.userId);
     broadcastToEntity(entity, deleteMsg, session.getId());
 
     log.debug("Node deleted: entity={}, nodeId={}, userId={}", entity, nodeId, wfSession.userId);
@@ -242,17 +229,14 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private void handleEdgeDelete(WebSocketSession session, JsonNode node) throws IOException {
     WorkflowSession wfSession = sessions.get(session.getId());
-    if (wfSession == null) return;
+    if (wfSession == null)
+      return;
 
     String entity = node.get("entity").asText();
     String edgeId = node.get("edgeId").asText();
 
-    Map<String, Object> deleteMsg = Map.of(
-      "type", "EDGE_DELETED",
-      "entity", entity,
-      "edgeId", edgeId,
-      "userId", wfSession.userId
-    );
+    Map<String, Object> deleteMsg = Map.of("type", "EDGE_DELETED", "entity", entity, "edgeId",
+        edgeId, "userId", wfSession.userId);
     broadcastToEntity(entity, deleteMsg, session.getId());
 
     log.debug("Edge deleted: entity={}, edgeId={}, userId={}", entity, edgeId, wfSession.userId);
@@ -260,20 +244,15 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private void handleCursor(WebSocketSession session, JsonNode node) throws IOException {
     WorkflowSession wfSession = sessions.get(session.getId());
-    if (wfSession == null) return;
+    if (wfSession == null)
+      return;
 
     String entity = node.get("entity").asText();
     double x = node.get("x").asDouble();
     double y = node.get("y").asDouble();
 
-    Map<String, Object> cursorMsg = Map.of(
-      "type", "CURSOR_MOVED",
-      "entity", entity,
-      "userId", wfSession.userId,
-      "username", wfSession.username,
-      "x", x,
-      "y", y
-    );
+    Map<String, Object> cursorMsg = Map.of("type", "CURSOR_MOVED", "entity", entity, "userId",
+        wfSession.userId, "username", wfSession.username, "x", x, "y", y);
     broadcastToEntity(entity, cursorMsg, session.getId());
   }
 
@@ -286,7 +265,8 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   private void cleanup(WebSocketSession session) throws IOException {
     WorkflowSession wfSession = sessions.remove(session.getId());
-    if (wfSession == null) return;
+    if (wfSession == null)
+      return;
 
     // Remove from entity sessions
     Set<String> entitySessionSet = entitySessions.get(wfSession.entity);
@@ -299,37 +279,35 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
     // Broadcast USER_LEFT
     List<Map<String, String>> users = getCurrentUsers(wfSession.entity);
-    Map<String, Object> leaveMsg = Map.of(
-      "type", "USER_LEFT",
-      "entity", wfSession.entity,
-      "userId", wfSession.userId,
-      "users", users
-    );
+    Map<String, Object> leaveMsg = Map.of("type", "USER_LEFT", "entity", wfSession.entity, "userId",
+        wfSession.userId, "users", users);
     broadcastToEntity(wfSession.entity, leaveMsg, session.getId());
 
-    log.info("Cleaned up workflow session: entity={}, userId={}", wfSession.entity, wfSession.userId);
+    log.info("Cleaned up workflow session: entity={}, userId={}", wfSession.entity,
+        wfSession.userId);
   }
 
   private List<Map<String, String>> getCurrentUsers(String entity) {
     Set<String> sessionIds = entitySessions.get(entity);
-    if (sessionIds == null) return List.of();
+    if (sessionIds == null)
+      return List.of();
 
-    return sessionIds.stream()
-      .map(sessions::get)
-      .filter(Objects::nonNull)
-      .map(wfs -> Map.of("userId", wfs.userId, "username", wfs.username))
-      .toList();
+    return sessionIds.stream().map(sessions::get).filter(Objects::nonNull)
+        .map(wfs -> Map.of("userId", wfs.userId, "username", wfs.username)).toList();
   }
 
-  private void broadcastToEntity(String entity, Map<String, Object> message, String excludeSessionId) throws IOException {
+  private void broadcastToEntity(String entity, Map<String, Object> message,
+      String excludeSessionId) throws IOException {
     Set<String> sessionIds = entitySessions.get(entity);
-    if (sessionIds == null) return;
+    if (sessionIds == null)
+      return;
 
     String json = objectMapper.writeValueAsString(message);
     TextMessage textMessage = new TextMessage(json);
 
     for (String sessionId : sessionIds) {
-      if (sessionId.equals(excludeSessionId)) continue;
+      if (sessionId.equals(excludeSessionId))
+        continue;
 
       WebSocketSession session = activeSessions.get(sessionId);
       if (session != null && session.isOpen()) {
@@ -353,5 +331,6 @@ public class WorkflowCollaborationHandler extends TextWebSocketHandler {
 
   // ========== Inner Classes ==========
 
-  private record WorkflowSession(String entity, String userId, String username) {}
+  private record WorkflowSession(String entity, String userId, String username) {
+  }
 }

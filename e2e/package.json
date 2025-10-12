@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "description": "E2E tests for Core Platform",
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^24.7.2"
+  }
 }

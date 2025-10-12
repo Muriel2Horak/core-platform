@@ -13,26 +13,32 @@ import java.util.*;
 /**
  * 🎯 W7: Workflow Execution Engine
  * 
- * <p>Executes workflows by traversing nodes and edges based on decision logic.
+ * <p>
+ * Executes workflows by traversing nodes and edges based on decision logic.
  * 
- * <p><b>Features:</b>
+ * <p>
+ * <b>Features:</b>
  * <ul>
- *   <li>Start from Start node, follow edges to End node</li>
- *   <li>Execute Task nodes (placeholder for future integrations)</li>
- *   <li>Evaluate Decision nodes (condition logic)</li>
- *   <li>Track execution history (steps, decisions, timing)</li>
- *   <li>Store execution results in workflow_executions table via metamodel</li>
+ * <li>Start from Start node, follow edges to End node</li>
+ * <li>Execute Task nodes (placeholder for future integrations)</li>
+ * <li>Evaluate Decision nodes (condition logic)</li>
+ * <li>Track execution history (steps, decisions, timing)</li>
+ * <li>Store execution results in workflow_executions table via metamodel</li>
  * </ul>
  * 
- * <p><b>Node Types:</b>
+ * <p>
+ * <b>Node Types:</b>
  * <ul>
- *   <li><b>start:</b> Entry point (single start node required)</li>
- *   <li><b>task:</b> Execute task (e.g., API call, data transformation) - currently no-op</li>
- *   <li><b>decision:</b> Conditional branching based on condition field</li>
- *   <li><b>end:</b> Terminal node (execution stops)</li>
+ * <li><b>start:</b> Entry point (single start node required)</li>
+ * <li><b>task:</b> Execute task (e.g., API call, data transformation) -
+ * currently no-op</li>
+ * <li><b>decision:</b> Conditional branching based on condition field</li>
+ * <li><b>end:</b> Terminal node (execution stops)</li>
  * </ul>
  * 
- * <p><b>Decision Logic:</b>
+ * <p>
+ * <b>Decision Logic:</b>
+ * 
  * <pre>
  * {
  *   "id": "d1",
@@ -50,9 +56,7 @@ import java.util.*;
  * 
  * @since W7
  */
-@Service
-@Slf4j
-@RequiredArgsConstructor
+@Service @Slf4j @RequiredArgsConstructor
 public class WorkflowExecutionService {
 
   private final MetamodelCrudService crudService;
@@ -66,7 +70,8 @@ public class WorkflowExecutionService {
    * @param auth Authentication
    * @return Execution result
    */
-  public ExecutionResult executeWorkflow(String entity, Map<String, Object> context, Authentication auth) {
+  public ExecutionResult executeWorkflow(String entity, Map<String, Object> context,
+      Authentication auth) {
     log.info("Executing workflow for entity: {}", entity);
 
     try {
@@ -112,44 +117,46 @@ public class WorkflowExecutionService {
         @SuppressWarnings("unchecked")
         Map<String, Object> nodeData = (Map<String, Object>) currentNode.get("data");
 
-        ExecutionStep step = new ExecutionStep(currentNodeId, nodeType, (String) nodeData.get("label"));
+        ExecutionStep step = new ExecutionStep(currentNodeId, nodeType,
+            (String) nodeData.get("label"));
         steps.add(step);
 
         log.debug("Executing node: id={}, type={}", currentNodeId, nodeType);
 
         switch (nodeType) {
-          case "start":
-            currentNodeId = findNextNode(edges, currentNodeId, null);
-            break;
+        case "start":
+          currentNodeId = findNextNode(edges, currentNodeId, null);
+          break;
 
-          case "task":
-            // TODO: Execute task (API call, data transformation, etc.)
-            log.info("Task node executed: {}", nodeData.get("label"));
-            step.setResult("Task completed");
-            currentNodeId = findNextNode(edges, currentNodeId, null);
-            break;
+        case "task":
+          // TODO: Execute task (API call, data transformation, etc.)
+          log.info("Task node executed: {}", nodeData.get("label"));
+          step.setResult("Task completed");
+          currentNodeId = findNextNode(edges, currentNodeId, null);
+          break;
 
-          case "decision":
-            String condition = (String) nodeData.get("condition");
-            boolean conditionResult = evaluateCondition(condition, context);
-            step.setDecision(condition, conditionResult);
-            log.info("Decision node evaluated: condition={}, result={}", condition, conditionResult);
-            currentNodeId = findNextNode(edges, currentNodeId, conditionResult ? "true" : "false");
-            break;
+        case "decision":
+          String condition = (String) nodeData.get("condition");
+          boolean conditionResult = evaluateCondition(condition, context);
+          step.setDecision(condition, conditionResult);
+          log.info("Decision node evaluated: condition={}, result={}", condition, conditionResult);
+          currentNodeId = findNextNode(edges, currentNodeId, conditionResult ? "true" : "false");
+          break;
 
-          case "end":
-            log.info("Workflow execution completed at end node");
-            currentNodeId = null; // Stop execution
-            break;
+        case "end":
+          log.info("Workflow execution completed at end node");
+          currentNodeId = null; // Stop execution
+          break;
 
-          default:
-            log.warn("Unknown node type: {}", nodeType);
-            return ExecutionResult.error("Unknown node type: " + nodeType);
+        default:
+          log.warn("Unknown node type: {}", nodeType);
+          return ExecutionResult.error("Unknown node type: " + nodeType);
         }
       }
 
       if (stepCount >= maxSteps) {
-        return ExecutionResult.error("Workflow execution exceeded maximum steps (possible infinite loop)");
+        return ExecutionResult
+            .error("Workflow execution exceeded maximum steps (possible infinite loop)");
       }
 
       Instant endTime = Instant.now();
@@ -171,11 +178,9 @@ public class WorkflowExecutionService {
 
   private Map<String, Object> loadActiveWorkflow(String entity, Authentication auth) {
     try {
-      Map<String, String> filter = Map.of(
-        "entity", entity,
-        "status", "ACTIVE"
-      );
-      List<Map<String, Object>> results = crudService.list("WorkflowVersion", filter, null, 0, 1, auth);
+      Map<String, String> filter = Map.of("entity", entity, "status", "ACTIVE");
+      List<Map<String, Object>> results = crudService.list("WorkflowVersion", filter, null, 0, 1,
+          auth);
       return results.isEmpty() ? null : results.get(0);
     } catch (Exception e) {
       log.error("Failed to load active workflow", e);
@@ -184,27 +189,18 @@ public class WorkflowExecutionService {
   }
 
   private String findStartNode(List<Map<String, Object>> nodes) {
-    return nodes.stream()
-      .filter(node -> "start".equals(node.get("type")))
-      .map(node -> (String) node.get("id"))
-      .findFirst()
-      .orElse(null);
+    return nodes.stream().filter(node -> "start".equals(node.get("type")))
+        .map(node -> (String) node.get("id")).findFirst().orElse(null);
   }
 
   private Map<String, Object> findNodeById(List<Map<String, Object>> nodes, String nodeId) {
-    return nodes.stream()
-      .filter(node -> nodeId.equals(node.get("id")))
-      .findFirst()
-      .orElse(null);
+    return nodes.stream().filter(node -> nodeId.equals(node.get("id"))).findFirst().orElse(null);
   }
 
   private String findNextNode(List<Map<String, Object>> edges, String currentNodeId, String label) {
-    return edges.stream()
-      .filter(edge -> currentNodeId.equals(edge.get("source")))
-      .filter(edge -> label == null || label.equals(edge.get("label")))
-      .map(edge -> (String) edge.get("target"))
-      .findFirst()
-      .orElse(null);
+    return edges.stream().filter(edge -> currentNodeId.equals(edge.get("source")))
+        .filter(edge -> label == null || label.equals(edge.get("label")))
+        .map(edge -> (String) edge.get("target")).findFirst().orElse(null);
   }
 
   /**
@@ -259,14 +255,9 @@ public class WorkflowExecutionService {
 
   private void storeExecutionResult(String entity, ExecutionResult result, Authentication auth) {
     try {
-      Map<String, Object> executionData = Map.of(
-        "entity", entity,
-        "status", result.status,
-        "steps", result.steps,
-        "durationMs", result.durationMs,
-        "error", result.error != null ? result.error : "",
-        "executedAt", Instant.now().toString()
-      );
+      Map<String, Object> executionData = Map.of("entity", entity, "status", result.status, "steps",
+          result.steps, "durationMs", result.durationMs, "error",
+          result.error != null ? result.error : "", "executedAt", Instant.now().toString());
 
       crudService.create("WorkflowExecution", executionData, auth);
       log.info("Execution result stored for entity: {}", entity);
@@ -277,12 +268,8 @@ public class WorkflowExecutionService {
 
   // ========== DTOs ==========
 
-  public record ExecutionResult(
-    String status,
-    List<ExecutionStep> steps,
-    long durationMs,
-    String error
-  ) {
+  public record ExecutionResult(String status, List<ExecutionStep> steps, long durationMs,
+      String error) {
     public static ExecutionResult success(List<ExecutionStep> steps, long durationMs) {
       return new ExecutionResult("SUCCESS", steps, durationMs, null);
     }
@@ -316,11 +303,28 @@ public class WorkflowExecutionService {
     }
 
     // Getters for serialization
-    public String getNodeId() { return nodeId; }
-    public String getNodeType() { return nodeType; }
-    public String getLabel() { return label; }
-    public String getResult() { return result; }
-    public String getCondition() { return condition; }
-    public Boolean getConditionResult() { return conditionResult; }
+    public String getNodeId() {
+      return nodeId;
+    }
+
+    public String getNodeType() {
+      return nodeType;
+    }
+
+    public String getLabel() {
+      return label;
+    }
+
+    public String getResult() {
+      return result;
+    }
+
+    public String getCondition() {
+      return condition;
+    }
+
+    public Boolean getConditionResult() {
+      return conditionResult;
+    }
   }
 }

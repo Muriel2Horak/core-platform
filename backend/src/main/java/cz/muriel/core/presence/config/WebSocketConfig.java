@@ -12,11 +12,11 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 /**
- * WebSocket configuration for real-time presence tracking and workflow collaboration
+ * WebSocket configuration for real-time presence tracking and workflow
+ * collaboration
  * 
- * Endpoints:
- * - ws://{host}/ws/presence - Real-time presence tracking
- * - ws://{host}/ws/workflow - Real-time workflow collaboration (W6)
+ * Endpoints: - ws://{host}/ws/presence - Real-time presence tracking -
+ * ws://{host}/ws/workflow - Real-time workflow collaboration (W6)
  * 
  * Protocol: - Client → Server: {"type":"SUB", "entity":"Order", "id":"123",
  * "tenantId":"t1"} - Server → Client: {"type":"PRESENCE",
@@ -45,6 +45,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
         .setAllowedOrigins(allowedOrigins.split(","));
 
     log.info("Presence WebSocket registered at /ws/presence (allowed origins: {})", allowedOrigins);
-    log.info("Workflow collaboration WebSocket registered at /ws/workflow (allowed origins: {})", allowedOrigins);
+    log.info("Workflow collaboration WebSocket registered at /ws/workflow (allowed origins: {})",
+        allowedOrigins);
   }
 }

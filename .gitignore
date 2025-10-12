@@ -9,6 +9,11 @@
 artifacts/
 TEST_REPORT.md
 
+# Build Doctor diagnostics
+diagnostics/*.json
+diagnostics/*.log
+.tmp/*
+
 # IDE
 .vscode/*
 !.vscode/tasks.json
