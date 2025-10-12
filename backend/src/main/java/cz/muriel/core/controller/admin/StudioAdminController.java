@@ -11,23 +11,17 @@ import java.util.Map;
 /**
  * S10/W0: Metamodel Studio Admin API (skeleton)
  * 
- * Phase W0: Empty endpoints for wiring
- * Phase S10: Wire to existing MetamodelAdminController services
+ * Phase W0: Empty endpoints for wiring Phase S10: Wire to existing
+ * MetamodelAdminController services
  * 
- * Note: MetamodelAdminController already has:
- *   - GET /api/admin/metamodel/reload (hot reload + diff)
- *   - POST /api/admin/metamodel/apply-safe-changes
- *   - GET /api/admin/metamodel/status
+ * Note: MetamodelAdminController already has: - GET /api/admin/metamodel/reload
+ * (hot reload + diff) - POST /api/admin/metamodel/apply-safe-changes - GET
+ * /api/admin/metamodel/status
  * 
- * This controller adds:
- *   - Studio GUI lifecycle (validate/preview/propose/approve)
- *   - UI-spec metadata editing
+ * This controller adds: - Studio GUI lifecycle
+ * (validate/preview/propose/approve) - UI-spec metadata editing
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/admin/studio")
-@RequiredArgsConstructor
-@PreAuthorize("hasAuthority('CORE_ADMIN_STUDIO')")
+@Slf4j @RestController @RequestMapping("/api/admin/studio") @RequiredArgsConstructor @PreAuthorize("hasAuthority('CORE_ADMIN_STUDIO')")
 public class StudioAdminController {
 
   /**
@@ -36,11 +30,8 @@ public class StudioAdminController {
   @GetMapping("/health")
   public ResponseEntity<Map<String, String>> health() {
     log.info("🎨 Studio Admin API health check");
-    return ResponseEntity.ok(Map.of(
-        "status", "ok",
-        "phase", "W0",
-        "message", "Studio Admin API skeleton ready - will wire to existing metamodel services"
-    ));
+    return ResponseEntity.ok(Map.of("status", "ok", "phase", "W0", "message",
+        "Studio Admin API skeleton ready - will wire to existing metamodel services"));
   }
 
   // TODO S10: GET /api/admin/studio/entities
