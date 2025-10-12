@@ -14,11 +14,12 @@ import {
   Send as ProposalIcon,
   List as ProposalListIcon,
   History as VersionIcon,
+  PlayCircleFilled as ExecuteIcon,
 } from '@mui/icons-material';
 import { tokens } from '../../shared/theme/tokens';
 
 /**
- * W1-W3: WorkflowToolbar - Toolbar pro Workflow Designer
+ * W1-W7: WorkflowToolbar - Toolbar pro Workflow Designer
  * 
  * Akce:
  * - Add nodes (Start, Task, Decision, End)
@@ -29,6 +30,7 @@ import { tokens } from '../../shared/theme/tokens';
  * - Create Proposal (W3)
  * - View Proposals (W3)
  * - Version History (W3)
+ * - Execute (W7)
  * - Undo/Redo (future)
  */
 export interface WorkflowToolbarProps {
@@ -41,6 +43,7 @@ export interface WorkflowToolbarProps {
   onCreateProposal?: () => void; // W3
   onViewProposals?: () => void; // W3
   onVersionHistory?: () => void; // W3
+  onExecute?: () => void; // W7
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -57,6 +60,7 @@ export const WorkflowToolbar = ({
   onCreateProposal,
   onViewProposals,
   onVersionHistory,
+  onExecute,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -247,11 +251,29 @@ export const WorkflowToolbar = ({
                   startIcon={<VersionIcon />}
                   onClick={onVersionHistory}
                 >
-                  Historie
+                  Verze
                 </Button>
               </Tooltip>
             )}
           </Box>
+        </>
+      )}
+
+      {/* W7: Execute Action */}
+      {onExecute && (
+        <>
+          <Divider orientation="vertical" flexItem />
+          <Tooltip title="Spustit workflow">
+            <Button
+              size="small"
+              variant="contained"
+              color="success"
+              startIcon={<ExecuteIcon />}
+              onClick={onExecute}
+            >
+              Spustit
+            </Button>
+          </Tooltip>
         </>
       )}
 

@@ -1,5 +1,5 @@
 /**
- * W1-W3: Workflow Components Export
+ * W1-W7: Workflow Components Export
  */
 
 export { WorkflowToolbar } from './WorkflowToolbar';
@@ -15,6 +15,12 @@ export { ProposalDialog } from './ProposalDialog';
 export { ProposalListPanel } from './ProposalListPanel';
 export { ProposalReviewDialog } from './ProposalReviewDialog';
 export { VersionHistoryPanel } from './VersionHistoryPanel';
+
+// W6: Collaboration
+export { OnlineUsersPanel } from './OnlineUsersPanel';
+
+// W7: Execution
+export { ExecutionDialog } from './ExecutionDialog';
 
 export {
   TaskNode,

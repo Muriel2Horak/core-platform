@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Container, Typography, Box, Drawer, Tabs, Tab } from '@mui/material';
 import { AccountTree as WorkflowIcon } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
@@ -7,10 +7,12 @@ import ReactFlow, {
   Controls, 
   MiniMap,
   Node,
+  Edge,
   addEdge,
   Connection,
   useNodesState,
   useEdgesState,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import axios from 'axios';
@@ -23,17 +25,22 @@ import {
   ProposalListPanel,
   ProposalReviewDialog,
   VersionHistoryPanel,
+  OnlineUsersPanel,
+  ExecutionDialog,
   nodeTypes,
 } from '../../components/Workflow';
 import { useElkLayout } from '../../lib/layout/useElkLayout';
 import { useDagreLayout } from '../../lib/layout/useDagreLayout';
+import { useWorkflowCollaboration } from '../../hooks/useWorkflowCollaboration';
 
 /**
- * W3: Workflow Designer Page
+ * W7: Workflow Designer Page (Complete)
  * 
  * Phase W1: Interactive canvas with custom nodes, toolbar, auto-layout
  * Phase W2: Validation + Simulation
  * Phase W3: Proposals & Approvals + Version history
+ * Phase W6: Real-time collaboration (multi-user editing)
+ * Phase W7: Workflow execution engine
  */
 export const WorkflowDesignerPage = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -56,11 +63,62 @@ export const WorkflowDesignerPage = () => {
 
   // W3: Right drawer tab state
   const [rightDrawerTab, setRightDrawerTab] = useState<'validation' | 'simulation' | 'proposals' | 'versions'>('validation');
+
+  // W7: Execution state
+  const [showExecutionDialog, setShowExecutionDialog] = useState(false);
+  const [executionResult, setExecutionResult] = useState<any>(null);
   
   const { getLayoutedElements: getElkLayout } = useElkLayout();
   const { getLayoutedElements: getDagreLayout } = useDagreLayout();
 
   const entity = 'customer-onboarding'; // TODO: make dynamic
+  const currentUser = { id: 'user1', name: 'Current User' }; // TODO: get from auth
+
+  // W6: Real-time collaboration
+  const {
+    connected: collabConnected,
+    users: onlineUsers,
+    cursors: remoteCursors,
+    sendNodeUpdate,
+    sendEdgeUpdate,
+    sendNodeDelete,
+    sendCursor,
+  } = useWorkflowCollaboration({
+    entity,
+    userId: currentUser.id,
+    username: currentUser.name,
+    enabled: true, // TODO: toggle via settings
+    onNodeUpdated: (node, userId) => {
+      console.log(`[Collaboration] Node updated by ${userId}:`, node);
+      // Merge remote node update
+      setNodes((nds) => 
+        nds.map((n) => (n.id === node.id ? { ...n, ...node } : n))
+      );
+    },
+    onEdgeUpdated: (edge, userId) => {
+      console.log(`[Collaboration] Edge updated by ${userId}:`, edge);
+      // Merge remote edge update
+      setEdges((eds) => 
+        eds.map((e) => (e.id === edge.id ? { ...e, ...edge } : e))
+      );
+    },
+    onNodeDeleted: (nodeId, userId) => {
+      console.log(`[Collaboration] Node deleted by ${userId}: ${nodeId}`);
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    },
+    onEdgeDeleted: (edgeId, userId) => {
+      console.log(`[Collaboration] Edge deleted by ${userId}: ${edgeId}`);
+      setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+    },
+  });
+
+  // W6: Send cursor position on mouse move
+  const handlePaneMouseMove = useCallback((event: React.MouseEvent) => {
+    const bounds = (event.target as HTMLElement).getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    sendCursor(x, y);
+  }, [sendCursor]);
 
   // Add node handler
   const handleAddNode = useCallback((type: 'start' | 'task' | 'decision' | 'end') => {
@@ -73,11 +131,15 @@ export const WorkflowDesignerPage = () => {
         label: `${type.toUpperCase()} ${nodes.length + 1}`,
         stateType: type.toUpperCase(),
         onEdit: (nodeId: string) => console.log('Edit node:', nodeId),
-        onDelete: (nodeId: string) => setNodes((nds) => nds.filter((n) => n.id !== nodeId)),
+        onDelete: (nodeId: string) => {
+          setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+          sendNodeDelete(nodeId); // W6: Broadcast delete
+        },
       },
     };
     setNodes((nds) => [...nds, newNode]);
-  }, [nodes.length, setNodes]);
+    sendNodeUpdate(newNode); // W6: Broadcast new node
+  }, [nodes.length, setNodes, sendNodeUpdate, sendNodeDelete]);
 
   // Auto-layout handler
   const handleAutoLayout = useCallback(async (engine: 'elk' | 'dagre') => {
@@ -94,8 +156,12 @@ export const WorkflowDesignerPage = () => {
 
   // Edge connection handler
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
-    [setEdges]
+    (connection: Connection) => {
+      const newEdge = addEdge(connection, edges);
+      setEdges(newEdge);
+      sendEdgeUpdate(newEdge[newEdge.length - 1]); // W6: Broadcast new edge
+    },
+    [edges, setEdges, sendEdgeUpdate]
   );
 
   // Save/Load handlers (W2: wired to BE)
@@ -187,6 +253,21 @@ export const WorkflowDesignerPage = () => {
     setShowReviewDialog(true);
   }, []);
 
+  // W7: Execution handler
+  const handleExecute = useCallback(async () => {
+    console.log('🎯 Execute workflow');
+    try {
+      // TODO: Show dialog to collect execution context
+      const context = { amount: 1500, status: 'pending' }; // Mock data
+      const response = await axios.post(`/api/admin/workflows/${entity}/execute`, context);
+      setExecutionResult(response.data);
+      setShowExecutionDialog(true);
+      console.log('✅ Execution result:', response.data);
+    } catch (error) {
+      console.error('❌ Execution failed:', error);
+    }
+  }, [entity]);
+
   return (
     <Container maxWidth="xl" sx={{ py: 4, height: 'calc(100vh - 100px)' }}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -211,6 +292,7 @@ export const WorkflowDesignerPage = () => {
           onCreateProposal={handleCreateProposal}
           onViewProposals={handleViewProposals}
           onVersionHistory={handleVersionHistory}
+          onExecute={handleExecute}
         />
 
         {/* Canvas */}
@@ -221,6 +303,7 @@ export const WorkflowDesignerPage = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onPaneMouseMove={handlePaneMouseMove}
             nodeTypes={nodeTypes}
             fitView
           >
@@ -228,6 +311,9 @@ export const WorkflowDesignerPage = () => {
             <Controls />
             <MiniMap />
           </ReactFlow>
+
+          {/* W6: Online Users Panel */}
+          <OnlineUsersPanel users={onlineUsers} connected={collabConnected} />
         </Box>
       </GlassPaper>
 
@@ -299,6 +385,13 @@ export const WorkflowDesignerPage = () => {
           refreshTrigger={versionRefreshTrigger}
         />
       </Drawer>
+
+      {/* W7: Execution Result Dialog */}
+      <ExecutionDialog
+        open={showExecutionDialog}
+        onClose={() => setShowExecutionDialog(false)}
+        result={executionResult}
+      />
     </Container>
   );
 };
