@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Set;
@@ -31,7 +32,10 @@ class PresenceNrtIT extends AbstractIntegrationTest {
   private PresenceService presenceService;
 
   @Autowired
-  private RedisTemplate<String, String> redisTemplate;
+  private RedisTemplate<String, Object> redisTemplate;
+
+  @Autowired
+  private StringRedisTemplate stringRedisTemplate;
 
   private static final String TENANT_ID = "test-tenant";
   private static final String USER_ID = "user1";
@@ -63,7 +67,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
 
     // Then
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
-    Set<String> members = redisTemplate.opsForSet().members(key);
+    Set<Object> members = redisTemplate.opsForSet().members(key);
     assertThat(members).contains(USER_ID);
   }
 
@@ -77,7 +81,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
 
     // Then
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
-    Set<String> members = redisTemplate.opsForSet().members(key);
+    Set<Object> members = redisTemplate.opsForSet().members(key);
     assertThat(members).doesNotContain(USER_ID);
   }
 
@@ -89,7 +93,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     // Then
     assertThat(acquired).isTrue();
     String lockKey = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":lock:name";
-    String owner = redisTemplate.opsForValue().get(lockKey);
+    String owner = stringRedisTemplate.opsForValue().get(lockKey);
     assertThat(owner).isEqualTo(USER_ID);
   }
 
@@ -115,7 +119,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
 
     // Then
     String lockKey = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":lock:name";
-    String owner = redisTemplate.opsForValue().get(lockKey);
+    String owner = stringRedisTemplate.opsForValue().get(lockKey);
     assertThat(owner).isNull();
   }
 
@@ -128,7 +132,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     // When - wait for TTL expiration (30 seconds default)
     await().atMost(35, TimeUnit.SECONDS)
         .untilAsserted(() -> {
-          Set<String> members = redisTemplate.opsForSet().members(key);
+          Set<Object> members = redisTemplate.opsForSet().members(key);
           assertThat(members).isEmpty();
         });
   }
@@ -143,7 +147,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     await().atMost(25, TimeUnit.SECONDS)
         .untilAsserted(() -> {
           presenceService.heartbeat(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
-          Set<String> members = redisTemplate.opsForSet().members(key);
+          Set<Object> members = redisTemplate.opsForSet().members(key);
           assertThat(members).contains(USER_ID);
         });
   }
@@ -162,8 +166,8 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     String key1 = "presence:" + tenant1 + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
     String key2 = "presence:" + tenant2 + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
-    Set<String> members1 = redisTemplate.opsForSet().members(key1);
-    Set<String> members2 = redisTemplate.opsForSet().members(key2);
+    Set<Object> members1 = redisTemplate.opsForSet().members(key1);
+    Set<Object> members2 = redisTemplate.opsForSet().members(key2);
 
     assertThat(members1).contains(USER_ID);
     assertThat(members2).contains(USER_ID);
@@ -179,7 +183,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
 
     // Then
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
-    Set<String> members = redisTemplate.opsForSet().members(key);
+    Set<Object> members = redisTemplate.opsForSet().members(key);
     assertThat(members).containsExactlyInAnyOrder("user1", "user2", "user3");
   }
 
