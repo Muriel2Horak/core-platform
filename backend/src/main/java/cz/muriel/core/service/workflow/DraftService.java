@@ -19,9 +19,7 @@ import java.util.Optional;
  * 
  * Manages workflow drafts using MetamodelCrudService
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class DraftService {
 
   private final MetamodelCrudService crudService;
@@ -35,8 +33,7 @@ public class DraftService {
     log.info("📂 Loading draft workflow for entity: {}", entity);
 
     Map<String, String> filters = Map.of("entity", entity);
-    List<Map<String, Object>> drafts =
-        crudService.list("WorkflowDraft", filters, null, 0, 1, auth);
+    List<Map<String, Object>> drafts = crudService.list("WorkflowDraft", filters, null, 0, 1, auth);
 
     if (drafts.isEmpty()) {
       log.info("📭 No draft found for entity: {}", entity);
@@ -44,15 +41,15 @@ public class DraftService {
     }
 
     Map<String, Object> draft = drafts.get(0);
-    
+
     // Deserialize JSON data field to Map
     String dataJson = (String) draft.get("data");
     Map<String, Object> data = deserializeData(dataJson);
-    
+
     // Return draft with deserialized data
     Map<String, Object> result = new HashMap<>(draft);
     result.put("data", data);
-    
+
     log.info("✅ Draft loaded for entity: {}", entity);
     return Optional.of(result);
   }
@@ -67,8 +64,8 @@ public class DraftService {
 
     // Check if draft already exists
     Map<String, String> filters = Map.of("entity", entity);
-    List<Map<String, Object>> existing =
-        crudService.list("WorkflowDraft", filters, null, 0, 1, auth);
+    List<Map<String, Object>> existing = crudService.list("WorkflowDraft", filters, null, 0, 1,
+        auth);
 
     String dataJson = serializeData(draftData);
 
@@ -94,8 +91,8 @@ public class DraftService {
       updates.put("data", dataJson);
       updates.put("updatedBy", extractUsername(auth));
 
-      Map<String, Object> updated =
-          crudService.update("WorkflowDraft", draftId, version, updates, auth);
+      Map<String, Object> updated = crudService.update("WorkflowDraft", draftId, version, updates,
+          auth);
       log.info("✅ Draft updated for entity: {}", entity);
       return updated;
     }
@@ -109,8 +106,7 @@ public class DraftService {
     log.info("🗑️ Deleting draft workflow for entity: {}", entity);
 
     Map<String, String> filters = Map.of("entity", entity);
-    List<Map<String, Object>> drafts =
-        crudService.list("WorkflowDraft", filters, null, 0, 1, auth);
+    List<Map<String, Object>> drafts = crudService.list("WorkflowDraft", filters, null, 0, 1, auth);
 
     if (!drafts.isEmpty()) {
       String draftId = (String) drafts.get(0).get("id");

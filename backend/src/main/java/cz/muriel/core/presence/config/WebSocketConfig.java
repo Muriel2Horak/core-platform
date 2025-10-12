@@ -1,6 +1,7 @@
 package cz.muriel.core.presence.config;
 
 import cz.muriel.core.presence.handler.PresenceWebSocketHandler;
+import cz.muriel.core.workflow.handler.WorkflowCollaborationHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -11,9 +12,11 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 /**
- * WebSocket configuration for real-time presence tracking
+ * WebSocket configuration for real-time presence tracking and workflow collaboration
  * 
- * Endpoint: ws://{host}/ws/presence
+ * Endpoints:
+ * - ws://{host}/ws/presence - Real-time presence tracking
+ * - ws://{host}/ws/workflow - Real-time workflow collaboration (W6)
  * 
  * Protocol: - Client → Server: {"type":"SUB", "entity":"Order", "id":"123",
  * "tenantId":"t1"} - Server → Client: {"type":"PRESENCE",
@@ -25,6 +28,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketConfig implements WebSocketConfigurer {
 
   private final PresenceWebSocketHandler presenceWebSocketHandler;
+  private final WorkflowCollaborationHandler workflowCollaborationHandler;
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
@@ -36,6 +40,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     registry.addHandler(presenceWebSocketHandler, "/ws/presence")
         .setAllowedOrigins(allowedOrigins.split(","));
 
+    // W6: Workflow collaboration WebSocket
+    registry.addHandler(workflowCollaborationHandler, "/ws/workflow")
+        .setAllowedOrigins(allowedOrigins.split(","));
+
     log.info("Presence WebSocket registered at /ws/presence (allowed origins: {})", allowedOrigins);
+    log.info("Workflow collaboration WebSocket registered at /ws/workflow (allowed origins: {})", allowedOrigins);
   }
 }

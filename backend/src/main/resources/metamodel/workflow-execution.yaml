@@ -1,0 +1,97 @@
+# =====================================================
+# W7: Workflow Execution Tracking Entity
+# =====================================================
+# Tracks workflow execution history for audit and debugging
+
+apiVersion: metamodel/v1
+kind: EntityDefinition
+
+metadata:
+  name: WorkflowExecution
+  description: Workflow execution history and audit trail
+  version: 1.0.0
+  category: workflow
+
+spec:
+  table:
+    name: workflow_executions
+    schema: core
+
+  fields:
+    - name: id
+      type: uuid
+      required: true
+      primaryKey: true
+      generated: uuid_v7
+      description: Unique execution ID
+
+    - name: entity
+      type: string
+      required: true
+      maxLength: 255
+      indexed: true
+      description: Entity name for which workflow was executed
+
+    - name: status
+      type: string
+      required: true
+      maxLength: 50
+      indexed: true
+      description: Execution status (SUCCESS, ERROR)
+
+    - name: steps
+      type: text
+      required: true
+      format: json
+      description: Execution steps as JSON array
+
+    - name: duration_ms
+      type: integer
+      required: true
+      description: Execution duration in milliseconds
+
+    - name: error
+      type: text
+      required: false
+      description: Error message if execution failed
+
+    - name: executed_at
+      type: timestamp
+      required: true
+      indexed: true
+      description: Execution timestamp
+
+    - name: executed_by
+      type: string
+      required: true
+      maxLength: 255
+      indexed: true
+      description: Username who triggered execution
+
+    - name: version
+      type: integer
+      required: true
+      default: 1
+      optimisticLock: true
+      description: Optimistic locking version
+
+  indexes:
+    - name: idx_workflow_executions_entity_status
+      columns: [entity, status]
+      type: btree
+
+    - name: idx_workflow_executions_executed_at
+      columns: [executed_at]
+      type: btree
+
+  security:
+    policies:
+      - effect: allow
+        actions: [read, create]
+        roles: [CORE_ADMIN_WORKFLOW]
+        description: Workflow admins can read and create executions
+
+      - effect: deny
+        actions: [update, delete]
+        roles: [CORE_ADMIN_WORKFLOW]
+        description: Executions are immutable (cannot be updated or deleted)

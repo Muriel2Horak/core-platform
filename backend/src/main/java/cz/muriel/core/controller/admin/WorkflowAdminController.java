@@ -4,6 +4,7 @@ import cz.muriel.core.service.workflow.DraftService;
 import cz.muriel.core.service.workflow.ProposalService;
 import cz.muriel.core.service.workflow.WorkflowSimulator;
 import cz.muriel.core.service.workflow.WorkflowValidator;
+import cz.muriel.core.workflow.WorkflowExecutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,27 +15,23 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 /**
- * W5: Workflow Admin API (Full Metamodel persistence)
+ * W7: Workflow Admin API (Full Metamodel persistence + Execution Engine)
  * 
- * Phase W0: Health endpoint
- * Phase W1: Draft CRUD (in-memory) + basic validation
- * Phase W2: Enhanced validation + Simulation
- * Phase W3: Proposals & Approvals + Version history
- * Phase W4: Metamodel persistence (Proposals + Versions)
- * Phase W5: Metamodel persistence (Drafts) - All data now in DB
+ * Phase W0: Health endpoint Phase W1: Draft CRUD (in-memory) + basic validation
+ * Phase W2: Enhanced validation + Simulation Phase W3: Proposals & Approvals +
+ * Version history Phase W4: Metamodel persistence (Proposals + Versions) Phase
+ * W5: Metamodel persistence (Drafts) - All data now in DB Phase W6: WebSocket
+ * real-time collaboration Phase W7: Workflow execution engine
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/admin/workflows")
-@RequiredArgsConstructor
-@PreAuthorize("hasAuthority('CORE_ADMIN_WORKFLOW')")
+@Slf4j @RestController @RequestMapping("/api/admin/workflows") @RequiredArgsConstructor @PreAuthorize("hasAuthority('CORE_ADMIN_WORKFLOW')")
 public class WorkflowAdminController {
 
-  // W5: Services (all using metamodel persistence)
+  // W7: Services (all using metamodel persistence)
   private final DraftService draftService;
   private final WorkflowValidator validator;
   private final WorkflowSimulator simulator;
   private final ProposalService proposalService;
+  private final WorkflowExecutionService executionService;
 
   /**
    * W0: Health check
@@ -42,8 +39,8 @@ public class WorkflowAdminController {
   @GetMapping("/health")
   public ResponseEntity<Map<String, String>> health() {
     log.info("🔄 Workflow Admin API health check");
-    return ResponseEntity.ok(Map.of("status", "ok", "phase", "W5", "message",
-        "Workflow Admin API ready - full metamodel persistence (drafts + proposals + versions)"));
+    return ResponseEntity.ok(Map.of("status", "ok", "phase", "W7", "message",
+        "Workflow Admin API ready - full metamodel persistence + execution engine"));
   }
 
   /**
@@ -55,7 +52,7 @@ public class WorkflowAdminController {
     log.info("📂 Loading draft workflow for entity: {}", entity);
 
     Optional<Map<String, Object>> draft = draftService.getDraft(entity, auth);
-    
+
     if (draft.isEmpty()) {
       return ResponseEntity.notFound().build();
     }
@@ -70,14 +67,14 @@ public class WorkflowAdminController {
   public ResponseEntity<Map<String, Object>> saveDraft(@PathVariable String entity,
       @RequestBody Map<String, Object> draftData, Authentication auth) {
     @SuppressWarnings("unchecked")
-    List<Map<String, Object>> nodes =
-        (List<Map<String, Object>>) draftData.getOrDefault("nodes", List.of());
+    List<Map<String, Object>> nodes = (List<Map<String, Object>>) draftData.getOrDefault("nodes",
+        List.of());
     @SuppressWarnings("unchecked")
-    List<Map<String, Object>> edges =
-        (List<Map<String, Object>>) draftData.getOrDefault("edges", List.of());
+    List<Map<String, Object>> edges = (List<Map<String, Object>>) draftData.getOrDefault("edges",
+        List.of());
 
-    log.info("💾 Saving draft workflow for entity: {} (nodes: {}, edges: {})", entity,
-        nodes.size(), edges.size());
+    log.info("💾 Saving draft workflow for entity: {} (nodes: {}, edges: {})", entity, nodes.size(),
+        edges.size());
 
     Map<String, Object> saved = draftService.saveDraft(entity, draftData, auth);
 
@@ -278,5 +275,25 @@ public class WorkflowAdminController {
       log.error("Failed to parse JSON", e);
       return Map.of("nodes", List.of(), "edges", List.of());
     }
+  }
+
+  // ===== W7: Workflow Execution =====
+
+  /**
+   * W7: Execute workflow
+   */
+  @PostMapping("/{entity}/execute")
+  public ResponseEntity<WorkflowExecutionService.ExecutionResult> executeWorkflow(
+      @PathVariable String entity, @RequestBody Map<String, Object> context, Authentication auth) {
+    log.info("🎯 Executing workflow for entity: {}", entity);
+
+    WorkflowExecutionService.ExecutionResult result = executionService.executeWorkflow(entity,
+        context, auth);
+
+    if ("ERROR".equals(result.status())) {
+      return ResponseEntity.badRequest().body(result);
+    }
+
+    return ResponseEntity.ok(result);
   }
 }
