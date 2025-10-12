@@ -1,7 +1,18 @@
 # Makefile for core-platform project
 # Includes environment management and multitenancy tests
 
+# =============================================================================
+# 🏗️ BUILD DOCTOR CONFIGURATION
+# =============================================================================
+SHELL := /bin/bash
+.ONESHELL:
+BUILD_TS := $(shell date +%Y%m%d-%H%M%S)
+LOG_DIR := diagnostics
+LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
+JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
+
 .PHONY: help test-mt report-mt test-and-report clean-artifacts
+.PHONY: up down clean rebuild doctor watch
 
 # =============================================================================
 # 🚀 MAIN ENVIRONMENT TARGETS
@@ -198,9 +209,63 @@ logs-tail:
 	@echo "📋 Live backend logy (Loki)..."
 	@bash tests/loki_query.sh tail backend
 
-# Start complete environment with auto-setup
-.PHONY: up
-up: validate-env kc-image
+# =============================================================================
+# 🏗️ BUILD DOCTOR WRAPPED TARGETS
+# =============================================================================
+
+# Production up with Build Doctor
+up:
+	@scripts/build/wrapper.sh $(MAKE) _up_inner 2>&1 | tee -a $(LOG_FILE)
+
+_up_inner: validate-env kc-image
+	@echo ">>> starting compose up at $(BUILD_TS)"
+	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env up -d --remove-orphans
+	@echo ">>> waiting healthchecks"
+	@scripts/build/wait-healthy.sh --timeout 180
+	@echo "✅ Environment started successfully!"
+
+# Production rebuild with Build Doctor
+rebuild:
+	@scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
+
+_rebuild_inner:
+	@echo ">>> rebuilding at $(BUILD_TS)"
+	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache
+	@$(MAKE) up
+
+# Clean with Build Doctor
+clean:
+	@scripts/build/wrapper.sh $(MAKE) _clean_inner 2>&1 | tee -a $(LOG_FILE)
+
+_clean_inner:
+	@echo ">>> cleaning at $(BUILD_TS)"
+	@docker compose -f docker/docker-compose.yml --env-file .env down -v --remove-orphans
+	@docker system prune -f
+	@echo ">>> clean done"
+
+# Crashloop watcher
+watch:
+	@echo "👁️  Watching for crashloops (Ctrl+C to stop)..."
+	@bash scripts/build/watch-crashloop.sh
+
+# Stop all services
+down:
+	@echo "🛑 Stopping Core Platform environment..."
+	docker compose -f docker/docker-compose.yml --env-file .env down
+
+# Restart all services
+restart:
+	@echo "🔄 Restarting Core Platform environment..."
+	@$(MAKE) down
+	@$(MAKE) up
+
+# =============================================================================
+# 🐳 ORIGINAL PRODUCTION TARGETS (kept for reference)
+# =============================================================================
+
+# Start complete environment with auto-setup (LEGACY - use 'up' instead)
+.PHONY: up-legacy
+up-legacy: validate-env kc-image
 	@echo "🚀 Starting Core Platform environment..."
 	@echo "📋 Environment: $${ENVIRONMENT:-development}"
 	@echo "🌐 Domain: $${DOMAIN:-core-platform.local}"
@@ -214,27 +279,6 @@ up: validate-env kc-image
 	@echo ""
 	@echo "⏳ Waiting for services to be ready... (this may take a few minutes)"
 	@$(MAKE) wait-for-services
-
-# Stop all services
-.PHONY: down
-down:
-	@echo "🛑 Stopping Core Platform environment..."
-	docker compose -f docker/docker-compose.yml --env-file .env down
-
-# Restart all services
-.PHONY: restart
-restart:
-	@echo "🔄 Restarting Core Platform environment..."
-	@$(MAKE) down
-	@$(MAKE) up
-
-# Clean restart (rebuild images)
-.PHONY: clean
-clean:
-	@echo "🧹 Clean restart - rebuilding all images..."
-	docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes
-	@$(MAKE) build
-	@$(MAKE) up
 
 # Fresh start - pouze Keycloak data, zachová DB
 .PHONY: fresh
