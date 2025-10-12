@@ -64,7 +64,8 @@ class BulkUpdateControllerIT {
         .andReturn().getResponse().getContentAsString();
 
     Map<String, Object> response = objectMapper.readValue(responseBody,
-        new TypeReference<Map<String, Object>>() {});
+        new TypeReference<Map<String, Object>>() {
+        });
     String jobId = (String) response.get("jobId");
 
     // Act & Assert - get status
@@ -97,7 +98,8 @@ class BulkUpdateControllerIT {
         .andReturn().getResponse().getContentAsString();
 
     Map<String, Object> response = objectMapper.readValue(responseBody,
-        new TypeReference<Map<String, Object>>() {});
+        new TypeReference<Map<String, Object>>() {
+        });
     String jobId = (String) response.get("jobId");
 
     // Act - cancel job
@@ -157,7 +159,8 @@ class BulkUpdateControllerIT {
         .andReturn().getResponse().getContentAsString();
 
     Map<String, Object> response = objectMapper.readValue(responseBody,
-        new TypeReference<Map<String, Object>>() {});
+        new TypeReference<Map<String, Object>>() {
+        });
     String jobId = (String) response.get("jobId");
 
     // Wait for job to complete (max 5 seconds)

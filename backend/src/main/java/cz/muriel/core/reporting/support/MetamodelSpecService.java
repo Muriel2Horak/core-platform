@@ -385,8 +385,8 @@ public class MetamodelSpecService {
   }
 
   /**
-   * Check if field should be restricted to admin users only.
-   * Fields like tenant_id, version, created_at, updated_at are typically admin-only.
+   * Check if field should be restricted to admin users only. Fields like
+   * tenant_id, version, created_at, updated_at are typically admin-only.
    */
   private boolean isAdminOnlyField(String fieldName) {
     String normalized = fieldName.toLowerCase();

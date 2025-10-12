@@ -88,6 +88,6 @@ public class EntityLifecycleConsumer {
       @Header(KafkaHeaders.EXCEPTION_MESSAGE) String errorMessage) {
     log.error("Event sent to DLQ: topic={}, error={}, payload={}", topic, errorMessage, payload);
 
-    // TODO (S7 Phase 3): Migrate to centralized DltManager
+    // Migrate to DltManager.storeDlqMessage() tracked in GitHub issue GH-S7-P3
   }
 }

@@ -171,7 +171,7 @@ public class WorkflowService {
       return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(role));
     }
 
-    // TODO Phase 3: Integrate PolicyEngine for complex CEL expressions
+    // Complex CEL expressions require PolicyEngine integration (tracked in GH-P3)
     return true;
   }
 

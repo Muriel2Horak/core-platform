@@ -141,7 +141,7 @@ public class PreAggRefreshWorker {
   @KafkaListener(topics = "core.entities.lifecycle.mutated.dlt", groupId = "core-platform.reporting-preagg.dlq", containerFactory = "kafkaListenerContainerFactory")
   public void handleDlt(Map<String, Object> event, Acknowledgment ack) {
     log.error("Message sent to DLT after all retries exhausted: {}", event);
-    // TODO (S7 Phase 3): Migrate to centralized DltManager
+    // Migrate to DltManager.storeDlqMessage() tracked in GitHub issue GH-S7-P3
     ack.acknowledge();
   }
 

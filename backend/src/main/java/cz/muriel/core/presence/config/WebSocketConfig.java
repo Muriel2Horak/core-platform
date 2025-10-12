@@ -28,10 +28,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
   @Override
   public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    // For production: Replace "*" with specific frontend origins (e.g., "https://app.muriel.cz")
+    // For production: Replace "*" with specific frontend origins (e.g.,
+    // "https://app.muriel.cz")
     // Use environment variable ALLOWED_ORIGINS to configure dynamically
     String allowedOrigins = System.getenv().getOrDefault("ALLOWED_ORIGINS", "*");
-    
+
     registry.addHandler(presenceWebSocketHandler, "/ws/presence")
         .setAllowedOrigins(allowedOrigins.split(","));
 

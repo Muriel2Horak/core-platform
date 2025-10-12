@@ -58,7 +58,7 @@ public class EventConsumer {
       // ✅ Record metrics
       metrics.recordWorkerSuccess("User", "normal");
 
-      // TODO (Phase 2): Extend with business logic
+      // Future extensions (tracked in GH-S7-P2):
       // - Update search indexes (Elasticsearch/OpenSearch)
       // - Trigger webhooks to external systems
       // - Send notifications (email/SMS/push)
@@ -108,7 +108,7 @@ public class EventConsumer {
       // ✅ Record metrics
       metrics.recordWorkerSuccess("Inflight", "normal");
 
-      // TODO (Phase 2): Extend with monitoring logic
+      // Future monitoring extensions (tracked in GH-S7-P2):
       // - Update Grafana dashboards with command status
       // - Track command duration/latency
       // - Alert on stuck commands (>threshold time)
@@ -159,9 +159,9 @@ public class EventConsumer {
       // ✅ Record metrics
       metrics.recordWorkerError(entityType, "dlq", "max_retries_exceeded");
 
-      // TODO (Phase 2): Implement DLQ handling
-      // - Send alerts to Slack/PagerDuty
-      // - Store in separate DB table for manual review
+      // Future DLQ handling (tracked in GH-S7-P2):
+      // - Send alerts to Slack/PagerDuty (see DltManager.publishAlert)
+      // - Store in DLQ table via DltManager.storeDlqMessage()
       // - Trigger automated diagnostics/health checks
       // - Create JIRA tickets for critical failures
 

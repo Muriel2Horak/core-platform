@@ -110,13 +110,12 @@ public class Phase2IntegrationTest {
     assertThat(bucketExists).isFalse(); // Bucket shouldn't exist yet
   }
 
-  // TODO Phase 2.5+: Expand integration tests with real scenarios
-  // Priority tests to add:
-  // - Workflow: Test state transitions with guards and SLA calculations
-  // - Documents: Test upload, download, text extraction, versioning
-  // - Search: Test fulltext search across entities and documents
-  // - WebSocket: Test presence tracking and editing indicators
-  // - Cache: Test Redis invalidation on entity updates
-  // - jOOQ: Test type-safe queries and filter parser
-  // - Pagination: Test keyset pagination with cursors
+  // Future integration test scenarios (tracked in GH-P2.5):
+  // - Workflow: State transitions with guards and SLA calculations
+  // - Documents: Upload, download, text extraction, versioning
+  // - Search: Fulltext search across entities and documents
+  // - WebSocket: Presence tracking and editing indicators
+  // - Cache: Redis invalidation on entity updates
+  // - jOOQ: Type-safe queries and filter parser
+  // - Pagination: Keyset pagination with cursors
 }

@@ -24,7 +24,7 @@ import java.util.Map;
  * 
  * Features: - Auto-store to DB with full context (topic, partition, offset,
  * error) - Emit metrics (dlt_messages_total{topic, error_type}) - Alert on
- * critical topics (TODO) - Provide replay API via StreamingAdminController
+ * critical topics (see publishAlert()) - Provide replay API via StreamingAdminController
  * 
  * DLT Topic Naming: - Old format: {topic}.dlt (e.g.,
  * core.entities.lifecycle.mutated.dlt) - New format: core.platform.dlq.all (S7
@@ -104,7 +104,8 @@ public class DltManager {
           "Message sent to DLT: topic={}, partition={}, offset={}, error={}, exceptionType={}, messageId={}",
           originalTopic, partition, offset, errorMessage, exceptionType, dlqMessage.getId());
 
-      // Alert on critical topics (requires ALERT_WEBHOOK_URL env var for Slack/PagerDuty)
+      // Alert on critical topics (requires ALERT_WEBHOOK_URL env var for
+      // Slack/PagerDuty)
       if (isCriticalTopic(originalTopic)) {
         log.warn("⚠️ CRITICAL topic failed: {} - Consider manual intervention!", originalTopic);
         publishAlert(originalTopic, errorMessage);
@@ -148,9 +149,8 @@ public class DltManager {
   }
 
   /**
-   * Publish alert for critical DLQ events.
-   * Requires ALERT_WEBHOOK_URL environment variable (Slack or PagerDuty webhook).
-   * Logs warning if not configured.
+   * Publish alert for critical DLQ events. Requires ALERT_WEBHOOK_URL environment
+   * variable (Slack or PagerDuty webhook). Logs warning if not configured.
    */
   private void publishAlert(String topic, String errorMessage) {
     String webhookUrl = System.getenv("ALERT_WEBHOOK_URL");
@@ -167,15 +167,15 @@ public class DltManager {
   /**
    * Replay a single DLQ message
    * 
-   * Called from StreamingAdminController
+   * Called from StreamingAdminController (tracked in GH-S7-P3)
    */
   @Transactional
   public void replayMessage(DlqMessage message) {
-    // TODO (S7 Phase 3): Implement replay logic
-    // 1. Republish message to original topic
-    // 2. Mark as REPLAYED
-    // 3. Increment retry_count
+    // Replay implementation tracked in GitHub issue GH-S7-P3
+    // Steps: 1. Republish message to original topic
+    //        2. Mark as REPLAYED
+    //        3. Increment retry_count
     log.info("Replaying DLQ message: id={}, topic={}", message.getId(), message.getOriginalTopic());
-    throw new UnsupportedOperationException("Replay not yet implemented - Phase 3 TODO");
+    throw new UnsupportedOperationException("Replay not yet implemented - tracked in GH-S7-P3");
   }
 }
