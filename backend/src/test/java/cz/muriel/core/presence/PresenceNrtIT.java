@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Set;
@@ -20,8 +21,12 @@ import static org.awaitility.Awaitility.await;
 /**
  * Near-Real-Time integration tests for Presence tracking system. Tests
  * WebSocket subscriptions, Redis state, locks, and TTL behavior.
+ * 
+ * TTL values reduced for faster tests: lockTtlMs=200, heartbeatIntervalMs=50 (see application-test.yml)
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PresenceNrtIT extends AbstractIntegrationTest {
 
   @LocalServerPort
@@ -130,27 +135,37 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     presenceService.subscribe(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
-    // When - wait for TTL expiration (60 seconds default)
-    await().atMost(65, TimeUnit.SECONDS).untilAsserted(() -> {
-      Set<Object> members = redisTemplate.opsForSet().members(key);
-      assertThat(members).isEmpty();
-    });
+    // When - wait for TTL expiration (userTtlMs=1000ms in test config)
+    await().atMost(2, TimeUnit.SECONDS)
+        .pollInterval(100, TimeUnit.MILLISECONDS)
+        .untilAsserted(() -> {
+          Set<Object> members = redisTemplate.opsForSet().members(key);
+          assertThat(members).isEmpty();
+        });
   }
 
   @Test
-  void shouldRefreshTTLOnHeartbeat() throws InterruptedException {
+  void shouldRefreshTTLOnHeartbeat() {
     // Given
     presenceService.subscribe(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
-    // When - send heartbeat after 50 seconds (before 60s TTL expiration)
-    Thread.sleep(50_000);
-    presenceService.heartbeat(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
-    
-    // Then - wait another 20 seconds (total 70s, would have expired at 60s without heartbeat)
-    Thread.sleep(20_000);
-    Set<Object> members = redisTemplate.opsForSet().members(key);
-    assertThat(members).contains(USER_ID);
+    // When - send heartbeat after 600ms (before 1000ms TTL expiration)
+    await().pollDelay(600, TimeUnit.MILLISECONDS)
+        .atMost(700, TimeUnit.MILLISECONDS)
+        .untilAsserted(() -> {
+          presenceService.heartbeat(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
+          Set<Object> members = redisTemplate.opsForSet().members(key);
+          assertThat(members).contains(USER_ID);
+        });
+
+    // Then - after another 700ms (total 1300ms, would have expired at 1000ms without heartbeat)
+    await().pollDelay(700, TimeUnit.MILLISECONDS)
+        .atMost(800, TimeUnit.MILLISECONDS)
+        .untilAsserted(() -> {
+          Set<Object> members = redisTemplate.opsForSet().members(key);
+          assertThat(members).contains(USER_ID);
+        });
   }
 
   @Test

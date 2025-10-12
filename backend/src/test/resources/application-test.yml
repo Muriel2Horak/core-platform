@@ -72,8 +72,9 @@ app:
   change-events:
     listener-enabled: false  # Disable ChangeEventPollingService in tests
   presence:
-    lockTtlMs: 30000
-    heartbeatIntervalMs: 10000
+    userTtlMs: 1000          # Reduced for faster tests (1 second, was 60000)
+    lockTtlMs: 200           # Reduced for faster tests (200ms, was 120000)
+    heartbeatIntervalMs: 50  # Reduced for faster tests (was 10000)
 
 # Monitoring/Reporting configuration for tests
 reporting:

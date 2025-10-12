@@ -1,149 +1,226 @@
 package cz.muriel.core.reporting.service;
 
 import cz.muriel.core.test.AbstractIntegrationTest;
-import cz.muriel.core.test.config.TestQueryConfig;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 /**
- * Integration tests for CubeQueryService with Circuit Breaker behavior. Tests
- * resilience patterns: open/closed state transitions, fallback handling.
+ * Integration tests for CubeQueryService with Circuit Breaker behavior.
+ * Tests resilience patterns: open/closed state transitions, fallback handling.
+ * 
+ * Uses WireMock for Cube.js API stubbing and per-test CircuitBreakerRegistry
+ * for deterministic state management.
  */
-@SpringBootTest @ActiveProfiles("test") @Import(TestQueryConfig.class)
+@SpringBootTest
+@ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CubeQueryServiceIT extends AbstractIntegrationTest {
 
-  @Mock
+  private WireMockServer wireMockServer;
   private WebClient cubeWebClient;
-
-  @Mock
-  private WebClient.RequestBodyUriSpec requestBodyUriSpec;
-
-  @Mock
-  private WebClient.RequestHeadersSpec<?> requestHeadersSpec;
-
-  @Mock
-  private WebClient.ResponseSpec responseSpec;
-
-  @Mock
-  private QueryDeduplicator queryDeduplicator;
-
   private CircuitBreakerRegistry circuitBreakerRegistry;
   private CubeQueryService cubeQueryService;
-  private CircuitBreaker circuitBreaker;
+  private QueryDeduplicator queryDeduplicator;
 
   @BeforeEach
   void setUp() {
-    MockitoAnnotations.openMocks(this);
+    // Start WireMock server
+    wireMockServer = new WireMockServer(0); // Random port
+    wireMockServer.start();
+    WireMock.configureFor("localhost", wireMockServer.port());
 
-    // Create real CircuitBreakerRegistry with test config
-    var config = io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
-        .slidingWindowSize(10).failureRateThreshold(50.0f)
-        .slowCallDurationThreshold(java.time.Duration.ofSeconds(5)).slowCallRateThreshold(50.0f)
-        .waitDurationInOpenState(java.time.Duration.ofSeconds(30))
-        .permittedNumberOfCallsInHalfOpenState(5).build();
+    // Create WebClient pointing to WireMock with error handling
+    cubeWebClient = WebClient.builder()
+        .baseUrl("http://localhost:" + wireMockServer.port())
+        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+        .defaultStatusHandler(
+            status -> status.is5xxServerError(),
+            clientResponse -> clientResponse.createException()
+                .map(ex -> new RuntimeException("Cube.js service error: " + ex.getMessage(), ex))
+        )
+        .build();
+
+    // Create CircuitBreakerRegistry with fast test config
+    CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+        .slidingWindowSize(4)
+        .minimumNumberOfCalls(3)  // Allow CB to open after just 3 calls
+        .failureRateThreshold(50.0f)
+        .waitDurationInOpenState(Duration.ofMillis(250))
+        .permittedNumberOfCallsInHalfOpenState(2)
+        .recordExceptions(Exception.class)
+        .build();
 
     circuitBreakerRegistry = CircuitBreakerRegistry.of(config);
+
+    // Create QueryDeduplicator (pass-through for these tests)
+    queryDeduplicator = new QueryDeduplicator() {
+      @Override
+      public Map<String, Object> executeWithDeduplication(Map<String, Object> query,
+          String tenantId, java.util.function.Supplier<Map<String, Object>> executor) {
+        return executor.get();
+      }
+    };
+
+    // Create CubeQueryService with test dependencies
     cubeQueryService = new CubeQueryService(cubeWebClient, circuitBreakerRegistry,
         queryDeduplicator);
-    circuitBreaker = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
-    circuitBreaker.reset();
+  }
 
-    // Setup QueryDeduplicator mock to pass through
-    when(queryDeduplicator.executeWithDeduplication(any(), anyString(), any()))
-        .thenAnswer(invocation -> {
-          java.util.function.Supplier<Map<String, Object>> supplier = invocation.getArgument(2);
-          return supplier.get();
-        });
+  @AfterEach
+  void tearDown() {
+    if (wireMockServer != null && wireMockServer.isRunning()) {
+      wireMockServer.stop();
+    }
   }
 
   @Test
   void shouldExecuteQueryInClosedState() {
-    // Arrange
-    Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
-    Map<String, Object> expectedResponse = Map.of("data", List.of());
-
-    when(cubeWebClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenAnswer(inv -> requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(Map.class)).thenReturn(Mono.just(expectedResponse));
+    // Arrange - stub successful Cube.js response
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
+        .willReturn(aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody("""
+                {
+                  "data": [
+                    {"User.id": "1", "User.name": "John"}
+                  ]
+                }
+                """)));
 
     // Act
+    Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
     Map<String, Object> result = cubeQueryService.executeQuery(query, "tenant-1");
 
     // Assert
-    assertNotNull(result);
-    assertEquals(expectedResponse, result);
-    assertEquals(CircuitBreaker.State.CLOSED, circuitBreaker.getState());
+    assertThat(result).isNotNull();
+    assertThat(result).containsKey("data");
+    
+    CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
+    assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
   }
 
   @Test
-  void shouldTransitionToOpenStateAfterFailureThreshold() {
-    // Arrange
+  void shouldOpenCircuitBreakerOnFailures() {
+    // Arrange - stub 5xx errors to trigger circuit breaker
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
+        .willReturn(aResponse()
+            .withStatus(503)
+            .withBody("Service Unavailable")));
+
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
+    CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
 
-    when(cubeWebClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenAnswer(inv -> requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(Map.class))
-        .thenReturn(Mono.error(new RuntimeException("Cube.js timeout")));
-
-    // Act & Assert: Fail 6 times to exceed 50% failure threshold
-    for (int i = 0; i < 6; i++) {
+    // Act - make 3 failing calls to exceed 50% failure threshold (slidingWindowSize=4, minimumNumberOfCalls=3)
+    for (int i = 0; i < 3; i++) {
       try {
         cubeQueryService.executeQuery(query, "tenant-1");
-        fail("Should have thrown exception");
+        fail("Should have thrown exception on iteration " + i);
+      } catch (Exception e) {
+        // Expected - service error
+      }
+    }
+
+    // Assert - Circuit Breaker should now be OPEN (100% failure rate after 3 calls)
+    assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
+    assertThat(cb.getMetrics().getFailureRate()).isEqualTo(100.0f);
+  }
+
+  @Test
+  void opensOnFailuresThenRecoverToClosedState() throws InterruptedException {
+    // Arrange - First stub 503 errors
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
+        .willReturn(aResponse()
+            .withStatus(503)
+            .withBody("Service Unavailable")));
+
+    Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
+    CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
+
+    // Act - Step 1: 3 failures -> OPEN
+    for (int i = 0; i < 3; i++) {
+      try {
+        cubeQueryService.executeQuery(query, "tenant-1");
       } catch (Exception e) {
         // Expected
       }
     }
+    assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
 
-    // Circuit Breaker should now be OPEN
-    assertEquals(CircuitBreaker.State.OPEN, circuitBreaker.getState());
-  }
+    // Now remove 503 stub and add 200 stub
+    wireMockServer.resetMappings();
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
+        .willReturn(aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody("{\"data\":[]}")));
 
-  @Test
-  void shouldTransitionToHalfOpenAndClose() {
-    // Arrange
-    Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
+    // Act - Step 2: Wait for waitDurationInOpenState (250ms) -> HALF_OPEN
+    Thread.sleep(300);
 
-    when(cubeWebClient.post()).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
-    when(requestBodyUriSpec.bodyValue(any())).thenAnswer(inv -> requestHeadersSpec);
-    when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-    when(responseSpec.bodyToMono(Map.class)).thenReturn(Mono.just(Map.of("data", List.of())));
-
-    // Force HALF_OPEN state
-    circuitBreaker.transitionToHalfOpenState();
-
-    // Act: Make 5 successful test calls
-    for (int i = 0; i < 5; i++) {
+    // Act - Step 3: 2 successful calls in HALF_OPEN -> CLOSED
+    for (int i = 0; i < 2; i++) {
       cubeQueryService.executeQuery(query, "tenant-1");
     }
 
-    // Assert: Circuit should close
-    assertEquals(CircuitBreaker.State.CLOSED, circuitBreaker.getState());
+    // Assert
+    assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
+  }
+
+  @Test
+  void remainsOpenOnContinuousFailure() throws InterruptedException {
+    // Arrange - All calls fail
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
+        .willReturn(aResponse().withStatus(503)));
+
+    Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
+    CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
+
+    // Act - Step 1: 3 failures -> OPEN
+    for (int i = 0; i < 3; i++) {
+      try {
+        cubeQueryService.executeQuery(query, "tenant-1");
+      } catch (Exception e) {
+        // Expected
+      }
+    }
+    assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
+
+    // Act - Step 2: Wait for HALF_OPEN transition
+    Thread.sleep(300);
+
+    // Act - Step 3: Both permitted calls in HALF_OPEN fail -> back to OPEN
+    // (permittedNumberOfCallsInHalfOpenState=2)
+    for (int i = 0; i < 2; i++) {
+      try {
+        cubeQueryService.executeQuery(query, "tenant-1");
+      } catch (Exception e) {
+        // Expected - failures in HALF_OPEN
+      }
+    }
+
+    // Assert - Should be back to OPEN after 2 failures in HALF_OPEN
+    assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.OPEN);
   }
 
   @Test
@@ -151,18 +228,18 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
     // Arrange - tenant-1 CB
     CircuitBreaker tenant1CB = circuitBreakerRegistry
         .circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
-    assertEquals(CircuitBreaker.State.CLOSED, tenant1CB.getState());
+    assertThat(tenant1CB.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
 
     // tenant-2 CB
     CircuitBreaker tenant2CB = circuitBreakerRegistry
         .circuitBreaker("cubeQueryCircuitBreaker-tenant-2");
-    assertEquals(CircuitBreaker.State.CLOSED, tenant2CB.getState());
+    assertThat(tenant2CB.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
 
     // Manually open tenant-1 CB
     tenant1CB.transitionToOpenState();
 
     // Assert: tenant-1 OPEN, tenant-2 still CLOSED
-    assertEquals(CircuitBreaker.State.OPEN, tenant1CB.getState());
-    assertEquals(CircuitBreaker.State.CLOSED, tenant2CB.getState());
+    assertThat(tenant1CB.getState()).isEqualTo(CircuitBreaker.State.OPEN);
+    assertThat(tenant2CB.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
   }
 }

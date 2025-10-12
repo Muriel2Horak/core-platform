@@ -1,7 +1,7 @@
 package cz.muriel.core.presence;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,22 +15,31 @@ import java.util.concurrent.TimeUnit;
  * Service for managing real-time presence tracking and field-level locks
  * 
  * Redis Keys Schema: - presence:{tenant}:{entity}:{id}:users → SET of userId
- * (TTL 60s per heartbeat) - presence:{tenant}:{entity}:{id}:lock:{field} →
- * STRING userId (TTL 120s, NX) - presence:{tenant}:{entity}:{id}:stale →
+ * (TTL configurable via app.presence.userTtlMs) - presence:{tenant}:{entity}:{id}:lock:{field} →
+ * STRING userId (TTL configurable via app.presence.lockTtlMs, NX) - presence:{tenant}:{entity}:{id}:stale →
  * BOOLEAN (set by Kafka consumer) - presence:{tenant}:{entity}:{id}:version →
  * INT (incremented on MUTATED) - presence:{tenant}:{entity}:{id}:busyBy →
  * STRING userId (during MUTATING)
  */
-@Slf4j @Service @RequiredArgsConstructor @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j
+@Service
+@ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class PresenceService {
 
   private final RedisTemplate<String, Object> redisTemplate;
   private final StringRedisTemplate stringRedisTemplate;
+  
+  @Value("${app.presence.userTtlMs:60000}")  // Default 60 seconds
+  private long userTtlMs;
+  
+  @Value("${app.presence.lockTtlMs:120000}")  // Default 120 seconds
+  private long lockTtlMs;
 
-  private static final long USER_TTL_SECONDS = 60; // User presence expires after 60s without
-                                                   // heartbeat
-  private static final long LOCK_TTL_SECONDS = 120; // Field lock expires after 120s without
-                                                    // heartbeat
+  public PresenceService(RedisTemplate<String, Object> redisTemplate,
+      StringRedisTemplate stringRedisTemplate) {
+    this.redisTemplate = redisTemplate;
+    this.stringRedisTemplate = stringRedisTemplate;
+  }
 
   /**
    * Subscribe user to entity presence
@@ -45,7 +54,7 @@ public class PresenceService {
 
     // Add user to set with TTL
     redisTemplate.opsForSet().add(key, userId);
-    redisTemplate.expire(key, Duration.ofSeconds(USER_TTL_SECONDS));
+    redisTemplate.expire(key, Duration.ofMillis(userTtlMs));
 
     log.debug("User {} subscribed to {}:{} (tenant: {})", userId, entity, id, tenantId);
   }
@@ -70,7 +79,7 @@ public class PresenceService {
     Boolean isMember = redisTemplate.opsForSet().isMember(key, userId);
     if (Boolean.TRUE.equals(isMember)) {
       // Refresh TTL
-      redisTemplate.expire(key, Duration.ofSeconds(USER_TTL_SECONDS));
+      redisTemplate.expire(key, Duration.ofMillis(userTtlMs));
       log.trace("Heartbeat from user {} for {}:{}", userId, entity, id);
     } else {
       log.warn("Heartbeat from unsubscribed user {}, re-subscribing", userId);
@@ -97,7 +106,7 @@ public class PresenceService {
 
     // SET NX PX - atomic operation
     Boolean acquired = stringRedisTemplate.opsForValue().setIfAbsent(key, userId,
-        Duration.ofSeconds(LOCK_TTL_SECONDS));
+        Duration.ofMillis(lockTtlMs));
 
     if (Boolean.TRUE.equals(acquired)) {
       log.info("Lock acquired: user={}, field={}, entity={}:{}", userId, field, entity, id);
@@ -147,7 +156,7 @@ public class PresenceService {
     String owner = stringRedisTemplate.opsForValue().get(key);
 
     if (userId.equals(owner)) {
-      stringRedisTemplate.expire(key, LOCK_TTL_SECONDS, TimeUnit.SECONDS);
+      stringRedisTemplate.expire(key, lockTtlMs, TimeUnit.MILLISECONDS);
       log.trace("Lock refreshed: user={}, field={}", userId, field);
     }
   }
