@@ -42,5 +42,6 @@ target/
 # Build outputs
 dist/
 build/
+!scripts/build/
 *.jar
 *.war

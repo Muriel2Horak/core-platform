@@ -1,4 +1,6 @@
 # 🚀 PRODUKČNÍ DOCKERFILE - ČISTÝ ESBUILD
+# syntax=docker/dockerfile:1
+
 FROM node:18-alpine AS build
 WORKDIR /app
 
@@ -12,8 +14,14 @@ ENV GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL}
 ENV API_BASE_URL=${API_BASE_URL}
 
 COPY frontend/package*.json ./
-RUN npm ci
+
+# Install dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
 COPY frontend/ .
+
+# Build with cache
 RUN node esbuild.mjs
 
 FROM nginx:1.25-alpine
