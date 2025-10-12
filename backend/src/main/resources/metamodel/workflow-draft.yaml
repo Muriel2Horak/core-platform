@@ -1,0 +1,83 @@
+entity: WorkflowDraft
+table: workflow_drafts
+idField: id
+tenantField: tenant_id
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    generated: true
+    
+  - name: tenant_id
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: entity
+    type: string
+    required: true
+    maxLength: 100
+    unique: true
+    
+  - name: data
+    type: text
+    required: true
+    
+  - name: created_at
+    type: timestamp
+    generated: true
+    
+  - name: updated_at
+    type: timestamp
+    generated: true
+    
+  - name: created_by
+    type: string
+    maxLength: 100
+    
+  - name: updated_by
+    type: string
+    maxLength: 100
+    
+  - name: version
+    type: long
+    required: true
+
+# ABAC Access Policies
+accessPolicy:
+  read:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  create:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  update:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  delete:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+
+# UI Configuration
+ui:
+  list:
+    columns: [entity, updated_at, updated_by]
+    defaultSort:
+      field: updated_at
+      order: desc
+      
+  detail:
+    sections:
+      - name: Workflow Draft
+        fields: [entity, data, created_by, updated_by, created_at, updated_at]
+
+# Fulltext search
+fulltext: [entity]

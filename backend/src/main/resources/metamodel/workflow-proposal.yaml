@@ -1,0 +1,142 @@
+entity: WorkflowProposal
+table: workflow_proposals
+idField: id
+tenantField: tenant_id
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    generated: true
+    
+  - name: tenant_id
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: entity
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: draft_data
+    type: text
+    required: true
+    
+  - name: author
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: description
+    type: string
+    required: true
+    maxLength: 500
+    
+  - name: status
+    type: string
+    required: true
+    maxLength: 20
+    
+  - name: created_at
+    type: timestamp
+    generated: true
+    
+  - name: reviewed_at
+    type: timestamp
+    
+  - name: reviewed_by
+    type: string
+    maxLength: 100
+    
+  - name: review_comment
+    type: string
+    maxLength: 1000
+    
+  - name: version
+    type: long
+    required: true
+
+# Workflow states
+states:
+  - name: PENDING
+    label: Čeká na schválení
+    color: warning
+    
+  - name: APPROVED
+    label: Schváleno
+    color: success
+    
+  - name: REJECTED
+    label: Zamítnuto
+    color: error
+
+# Workflow transitions
+transitions:
+  - from: PENDING
+    to: APPROVED
+    label: Schválit
+    action: approve
+    permissions:
+      anyOf:
+        - role: CORE_ADMIN_WORKFLOW
+        - role: CORE_ROLE_ADMIN
+        
+  - from: PENDING
+    to: REJECTED
+    label: Zamítnout
+    action: reject
+    permissions:
+      anyOf:
+        - role: CORE_ADMIN_WORKFLOW
+        - role: CORE_ROLE_ADMIN
+
+# ABAC Access Policies
+accessPolicy:
+  read:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  create:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  update:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  delete:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+
+# UI Configuration
+ui:
+  list:
+    columns: [entity, author, status, created_at, reviewed_by]
+    defaultSort:
+      field: created_at
+      order: desc
+    filters:
+      - field: status
+        type: select
+        options: [PENDING, APPROVED, REJECTED]
+      - field: entity
+        type: text
+      
+  detail:
+    sections:
+      - name: Proposal Info
+        fields: [entity, author, description, status]
+      - name: Draft Data
+        fields: [draft_data]
+      - name: Review
+        fields: [reviewed_by, reviewed_at, review_comment]
+      - name: Metadata
+        fields: [created_at, version]
+
+# Fulltext search
+fulltext: [entity, description, author]

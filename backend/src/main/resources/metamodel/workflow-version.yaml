@@ -1,0 +1,115 @@
+entity: WorkflowVersion
+table: workflow_versions
+idField: id
+tenantField: tenant_id
+
+fields:
+  - name: id
+    type: uuid
+    pk: true
+    generated: true
+    
+  - name: tenant_id
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: entity
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: data
+    type: text
+    required: true
+    
+  - name: proposal_id
+    type: uuid
+    required: true
+    
+  - name: created_by
+    type: string
+    required: true
+    maxLength: 100
+    
+  - name: created_at
+    type: timestamp
+    generated: true
+    
+  - name: status
+    type: string
+    required: true
+    maxLength: 20
+    
+  - name: version
+    type: long
+    required: true
+
+# Workflow states
+states:
+  - name: ACTIVE
+    label: Aktivní
+    color: success
+    
+  - name: SUPERSEDED
+    label: Nahrazeno
+    color: default
+
+# Workflow transitions
+transitions:
+  - from: ACTIVE
+    to: SUPERSEDED
+    label: Nahradit novou verzí
+    action: supersede
+    permissions:
+      anyOf:
+        - role: CORE_ADMIN_WORKFLOW
+        - role: CORE_ROLE_ADMIN
+
+# ABAC Access Policies
+accessPolicy:
+  read:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  create:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  update:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+      
+  delete:
+    anyOf:
+      - role: CORE_ADMIN_WORKFLOW
+      - role: CORE_ROLE_ADMIN
+
+# UI Configuration
+ui:
+  list:
+    columns: [entity, created_by, status, created_at]
+    defaultSort:
+      field: created_at
+      order: desc
+    filters:
+      - field: status
+        type: select
+        options: [ACTIVE, SUPERSEDED]
+      - field: entity
+        type: text
+      
+  detail:
+    sections:
+      - name: Version Info
+        fields: [entity, status, proposal_id, created_by, created_at]
+      - name: Workflow Data
+        fields: [data]
+      - name: Metadata
+        fields: [version]
+
+# Fulltext search
+fulltext: [entity, created_by]
