@@ -57,6 +57,23 @@ module.exports = {
     
     // Design System pravidla - vlastní warningy pro lepší adopci
     'no-console': 'warn', // Console.log warningy
+    
+    // 🔒 ENTITY SDK ENFORCEMENT - Ban direct API calls
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: 'CallExpression[callee.object.name="axios"][callee.property.name=/^(get|post|put|patch|delete)$/] > Literal[value=/\\/api\\/entities/]',
+        message: '❌ Direct axios calls to /api/entities/** are forbidden. Use useEntityView/useEntityMutation hooks instead.',
+      },
+      {
+        selector: 'CallExpression[callee.name="fetch"] > Literal[value=/\\/api\\/entities/]',
+        message: '❌ Direct fetch calls to /api/entities/** are forbidden. Use useEntityView/useEntityMutation hooks instead.',
+      },
+      {
+        selector: 'CallExpression[callee.object.name="apiClient"][callee.property.name=/^(get|post|put|patch|delete)$/] > TemplateLiteral[quasis.0.value.cooked=/\\/api\\/entities/]',
+        message: '❌ Direct apiClient calls to /api/entities/** are forbidden. Use useEntityView/useEntityMutation hooks instead (except inside SDK implementation).',
+      },
+    ],
   },
   settings: {
     react: {
@@ -66,6 +83,13 @@ module.exports = {
   
   // Overrides pro specifické soubory
   overrides: [
+    {
+      // Entity SDK implementation - allow direct API calls
+      files: ['**/hooks/useEntityView.js', '**/hooks/useEntity*.js', '**/lib/entity/**/*.js'],
+      rules: {
+        'no-restricted-syntax': 'off'
+      }
+    },
     {
       // Design System komponenty - povolujeme přímé MUI importy
       files: ['**/components/DesignSystem.jsx', '**/components/DesignSystem/**/*.jsx'],
