@@ -18,9 +18,7 @@ import java.util.stream.Collectors;
  * 
  * Manages workflow change proposals using MetamodelCrudService
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class ProposalService {
 
   private final MetamodelCrudService crudService;
@@ -80,8 +78,8 @@ public class ProposalService {
 
     Object versionObj = proposal.get("version");
     long version = versionObj instanceof Number ? ((Number) versionObj).longValue() : 0L;
-    Map<String, Object> updated =
-        crudService.update("WorkflowProposal", proposalId, version, updates, auth);
+    Map<String, Object> updated = crudService.update("WorkflowProposal", proposalId, version,
+        updates, auth);
 
     createVersion(proposal, approver, auth);
 
@@ -108,8 +106,8 @@ public class ProposalService {
 
     Object versionObj = proposal.get("version");
     long version = versionObj instanceof Number ? ((Number) versionObj).longValue() : 0L;
-    Map<String, Object> updated =
-        crudService.update("WorkflowProposal", proposalId, version, updates, auth);
+    Map<String, Object> updated = crudService.update("WorkflowProposal", proposalId, version,
+        updates, auth);
 
     log.info("❌ Proposal rejected: ID={}", proposalId);
     return updated;
@@ -125,8 +123,8 @@ public class ProposalService {
     filters.put("entity", entity);
     filters.put("status", "ACTIVE");
 
-    List<Map<String, Object>> versions =
-        crudService.list("WorkflowVersion", filters, "-created_at", 0, 1, auth);
+    List<Map<String, Object>> versions = crudService.list("WorkflowVersion", filters, "-created_at",
+        0, 1, auth);
 
     return versions.isEmpty() ? Optional.empty() : Optional.of(versions.get(0));
   }
@@ -134,20 +132,20 @@ public class ProposalService {
   @SuppressWarnings("unchecked")
   public WorkflowDiff generateDiff(Map<String, Object> currentData,
       Map<String, Object> proposedData) {
-    List<Map<String, Object>> currentNodes =
-        (List<Map<String, Object>>) currentData.getOrDefault("nodes", List.of());
-    List<Map<String, Object>> proposedNodes =
-        (List<Map<String, Object>>) proposedData.getOrDefault("nodes", List.of());
+    List<Map<String, Object>> currentNodes = (List<Map<String, Object>>) currentData
+        .getOrDefault("nodes", List.of());
+    List<Map<String, Object>> proposedNodes = (List<Map<String, Object>>) proposedData
+        .getOrDefault("nodes", List.of());
 
-    List<Map<String, Object>> currentEdges =
-        (List<Map<String, Object>>) currentData.getOrDefault("edges", List.of());
-    List<Map<String, Object>> proposedEdges =
-        (List<Map<String, Object>>) proposedData.getOrDefault("edges", List.of());
+    List<Map<String, Object>> currentEdges = (List<Map<String, Object>>) currentData
+        .getOrDefault("edges", List.of());
+    List<Map<String, Object>> proposedEdges = (List<Map<String, Object>>) proposedData
+        .getOrDefault("edges", List.of());
 
-    Set<String> currentNodeIds =
-        currentNodes.stream().map(n -> (String) n.get("id")).collect(Collectors.toSet());
-    Set<String> proposedNodeIds =
-        proposedNodes.stream().map(n -> (String) n.get("id")).collect(Collectors.toSet());
+    Set<String> currentNodeIds = currentNodes.stream().map(n -> (String) n.get("id"))
+        .collect(Collectors.toSet());
+    Set<String> proposedNodeIds = proposedNodes.stream().map(n -> (String) n.get("id"))
+        .collect(Collectors.toSet());
 
     List<Map<String, Object>> addedNodes = proposedNodes.stream()
         .filter(n -> !currentNodeIds.contains(n.get("id"))).collect(Collectors.toList());
@@ -155,10 +153,10 @@ public class ProposalService {
     List<Map<String, Object>> removedNodes = currentNodes.stream()
         .filter(n -> !proposedNodeIds.contains(n.get("id"))).collect(Collectors.toList());
 
-    Set<String> currentEdgeIds =
-        currentEdges.stream().map(e -> (String) e.get("id")).collect(Collectors.toSet());
-    Set<String> proposedEdgeIds =
-        proposedEdges.stream().map(e -> (String) e.get("id")).collect(Collectors.toSet());
+    Set<String> currentEdgeIds = currentEdges.stream().map(e -> (String) e.get("id"))
+        .collect(Collectors.toSet());
+    Set<String> proposedEdgeIds = proposedEdges.stream().map(e -> (String) e.get("id"))
+        .collect(Collectors.toSet());
 
     List<Map<String, Object>> addedEdges = proposedEdges.stream()
         .filter(e -> !currentEdgeIds.contains(e.get("id"))).collect(Collectors.toList());
@@ -197,8 +195,8 @@ public class ProposalService {
     filters.put("entity", entity);
     filters.put("status", "ACTIVE");
 
-    List<Map<String, Object>> activeVersions =
-        crudService.list("WorkflowVersion", filters, null, 0, 100, auth);
+    List<Map<String, Object>> activeVersions = crudService.list("WorkflowVersion", filters, null, 0,
+        100, auth);
 
     for (Map<String, Object> version : activeVersions) {
       String versionId = (String) version.get("id");

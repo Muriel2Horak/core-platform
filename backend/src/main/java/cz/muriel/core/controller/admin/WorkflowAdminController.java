@@ -1,5 +1,6 @@
 package cz.muriel.core.controller.admin;
 
+import cz.muriel.core.service.workflow.DraftService;
 import cz.muriel.core.service.workflow.ProposalService;
 import cz.muriel.core.service.workflow.WorkflowSimulator;
 import cz.muriel.core.service.workflow.WorkflowValidator;
@@ -10,18 +11,17 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * W4: Workflow Admin API (Metamodel-based persistence)
+ * W5: Workflow Admin API (Full Metamodel persistence)
  * 
  * Phase W0: Health endpoint
  * Phase W1: Draft CRUD (in-memory) + basic validation
  * Phase W2: Enhanced validation + Simulation
  * Phase W3: Proposals & Approvals + Version history
- * Phase W4: Metamodel persistence (WorkflowDraft, WorkflowProposal, WorkflowVersion)
+ * Phase W4: Metamodel persistence (Proposals + Versions)
+ * Phase W5: Metamodel persistence (Drafts) - All data now in DB
  */
 @Slf4j
 @RestController
@@ -30,37 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @PreAuthorize("hasAuthority('CORE_ADMIN_WORKFLOW')")
 public class WorkflowAdminController {
 
-  /**
-   * W1: Internal DTO for draft storage (TODO W5: migrate to Workflow Draft entity)
-   */
-  private static class WorkflowDraft {
-    String entity;
-    Map<String, Object> data;
-    Instant updatedAt;
-
-    WorkflowDraft(String entity, Map<String, Object> data) {
-      this.entity = entity;
-      this.data = data;
-      this.updatedAt = Instant.now();
-    }
-
-    public String getEntity() {
-      return entity;
-    }
-
-    public Map<String, Object> getData() {
-      return data;
-    }
-
-    public Instant getUpdatedAt() {
-      return updatedAt;
-    }
-  }
-
-  // W1: In-memory draft storage (TODO W5: persist to WorkflowDraft entity)
-  private final Map<String, WorkflowDraft> draftStore = new ConcurrentHashMap<>();
-
-  // W2-W4: Services
+  // W5: Services (all using metamodel persistence)
+  private final DraftService draftService;
   private final WorkflowValidator validator;
   private final WorkflowSimulator simulator;
   private final ProposalService proposalService;
@@ -71,31 +42,33 @@ public class WorkflowAdminController {
   @GetMapping("/health")
   public ResponseEntity<Map<String, String>> health() {
     log.info("🔄 Workflow Admin API health check");
-    return ResponseEntity.ok(Map.of("status", "ok", "phase", "W4", "message",
-        "Workflow Admin API ready - metamodel persistence active"));
+    return ResponseEntity.ok(Map.of("status", "ok", "phase", "W5", "message",
+        "Workflow Admin API ready - full metamodel persistence (drafts + proposals + versions)"));
   }
 
   /**
-   * W1: Get draft workflow for entity
+   * W5: Get draft workflow for entity (metamodel persistence)
    */
   @GetMapping("/{entity}/draft")
-  public ResponseEntity<WorkflowDraft> getDraft(@PathVariable String entity) {
+  public ResponseEntity<Map<String, Object>> getDraft(@PathVariable String entity,
+      Authentication auth) {
     log.info("📂 Loading draft workflow for entity: {}", entity);
 
-    WorkflowDraft draft = draftStore.get(entity);
-    if (draft == null) {
+    Optional<Map<String, Object>> draft = draftService.getDraft(entity, auth);
+    
+    if (draft.isEmpty()) {
       return ResponseEntity.notFound().build();
     }
 
-    return ResponseEntity.ok(draft);
+    return ResponseEntity.ok(draft.get());
   }
 
   /**
-   * W1: Save draft workflow for entity
+   * W5: Save draft workflow for entity (metamodel persistence)
    */
   @PutMapping("/{entity}/draft")
-  public ResponseEntity<Map<String, String>> saveDraft(@PathVariable String entity,
-      @RequestBody Map<String, Object> draftData) {
+  public ResponseEntity<Map<String, Object>> saveDraft(@PathVariable String entity,
+      @RequestBody Map<String, Object> draftData, Authentication auth) {
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> nodes =
         (List<Map<String, Object>>) draftData.getOrDefault("nodes", List.of());
@@ -106,10 +79,9 @@ public class WorkflowAdminController {
     log.info("💾 Saving draft workflow for entity: {} (nodes: {}, edges: {})", entity,
         nodes.size(), edges.size());
 
-    WorkflowDraft draft = new WorkflowDraft(entity, draftData);
-    draftStore.put(entity, draft);
+    Map<String, Object> saved = draftService.saveDraft(entity, draftData, auth);
 
-    return ResponseEntity.ok(Map.of("message", "Draft saved successfully", "entity", entity));
+    return ResponseEntity.ok(saved);
   }
 
   /**
@@ -121,14 +93,14 @@ public class WorkflowAdminController {
     log.info("✅ Validating draft workflow for entity: {}", entity);
 
     @SuppressWarnings("unchecked")
-    List<Map<String, Object>> nodes =
-        (List<Map<String, Object>>) request.getOrDefault("nodes", List.of());
+    List<Map<String, Object>> nodes = (List<Map<String, Object>>) request.getOrDefault("nodes",
+        List.of());
     @SuppressWarnings("unchecked")
-    List<Map<String, Object>> edges =
-        (List<Map<String, Object>>) request.getOrDefault("edges", List.of());
+    List<Map<String, Object>> edges = (List<Map<String, Object>>) request.getOrDefault("edges",
+        List.of());
 
-    WorkflowValidator.ValidationResult result =
-        validator.validate(parseNodes(nodes), parseEdges(edges));
+    WorkflowValidator.ValidationResult result = validator.validate(parseNodes(nodes),
+        parseEdges(edges));
 
     return ResponseEntity.ok(result);
   }
@@ -144,17 +116,17 @@ public class WorkflowAdminController {
     @SuppressWarnings("unchecked")
     Map<String, Object> workflow = (Map<String, Object>) request.get("workflow");
     @SuppressWarnings("unchecked")
-    List<Map<String, Object>> nodes =
-        (List<Map<String, Object>>) workflow.getOrDefault("nodes", List.of());
+    List<Map<String, Object>> nodes = (List<Map<String, Object>>) workflow.getOrDefault("nodes",
+        List.of());
     @SuppressWarnings("unchecked")
-    List<Map<String, Object>> edges =
-        (List<Map<String, Object>>) workflow.getOrDefault("edges", List.of());
+    List<Map<String, Object>> edges = (List<Map<String, Object>>) workflow.getOrDefault("edges",
+        List.of());
 
     @SuppressWarnings("unchecked")
     Map<String, Object> data = (Map<String, Object>) request.get("data");
 
-    WorkflowSimulator.SimulationResult result =
-        simulator.simulate(parseNodes(nodes), parseEdges(edges), data);
+    WorkflowSimulator.SimulationResult result = simulator.simulate(parseNodes(nodes),
+        parseEdges(edges), data);
 
     return ResponseEntity.ok(result);
   }
@@ -167,13 +139,13 @@ public class WorkflowAdminController {
       WorkflowValidator.WorkflowNode node = new WorkflowValidator.WorkflowNode();
       node.setId((String) n.get("id"));
       node.setType((String) n.get("type"));
-      
+
       Map<String, Object> data = (Map<String, Object>) n.get("data");
       if (data != null) {
         node.setLabel((String) data.get("label"));
         node.setBranches((List<String>) data.get("branches"));
       }
-      
+
       return node;
     }).toList();
   }
@@ -202,8 +174,8 @@ public class WorkflowAdminController {
     String author = (String) request.getOrDefault("author", "system");
     String description = (String) request.getOrDefault("description", "Workflow update");
 
-    Map<String, Object> proposal =
-        proposalService.createProposal(entity, draftData, author, description, auth);
+    Map<String, Object> proposal = proposalService.createProposal(entity, draftData, author,
+        description, auth);
 
     return ResponseEntity.ok(proposal);
   }
@@ -213,8 +185,8 @@ public class WorkflowAdminController {
    */
   @GetMapping("/proposals")
   public ResponseEntity<List<Map<String, Object>>> listProposals(
-      @RequestParam(required = false) String entity,
-      @RequestParam(required = false) String status, Authentication auth) {
+      @RequestParam(required = false) String entity, @RequestParam(required = false) String status,
+      Authentication auth) {
     log.info("📋 Listing proposals: entity={}, status={}", entity, status);
 
     List<Map<String, Object>> proposals = proposalService.listProposals(entity, status, auth);
@@ -233,8 +205,8 @@ public class WorkflowAdminController {
     String approver = (String) request.getOrDefault("approver", "system");
     String comment = (String) request.getOrDefault("comment", "Approved");
 
-    Map<String, Object> proposal =
-        proposalService.approveProposal(proposalId, approver, comment, auth);
+    Map<String, Object> proposal = proposalService.approveProposal(proposalId, approver, comment,
+        auth);
 
     return ResponseEntity.ok(proposal);
   }
@@ -250,8 +222,8 @@ public class WorkflowAdminController {
     String reviewer = (String) request.getOrDefault("reviewer", "system");
     String comment = (String) request.getOrDefault("comment", "Rejected");
 
-    Map<String, Object> proposal =
-        proposalService.rejectProposal(proposalId, reviewer, comment, auth);
+    Map<String, Object> proposal = proposalService.rejectProposal(proposalId, reviewer, comment,
+        auth);
 
     return ResponseEntity.ok(proposal);
   }
