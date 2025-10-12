@@ -9,16 +9,20 @@ import {
   CallSplit as DecisionIcon,
   Undo as UndoIcon,
   Redo as RedoIcon,
+  Check as ValidateIcon,
+  PlayCircleOutline as SimulateIcon,
 } from '@mui/icons-material';
 import { tokens } from '../../shared/theme/tokens';
 
 /**
- * W1: WorkflowToolbar - Toolbar pro Workflow Designer
+ * W1-W2: WorkflowToolbar - Toolbar pro Workflow Designer
  * 
  * Akce:
  * - Add nodes (Start, Task, Decision, End)
  * - Layout (ELK hierarchical, Dagre simple)
  * - Save/Load draft
+ * - Validate (W2)
+ * - Simulate (W2)
  * - Undo/Redo (future)
  */
 export interface WorkflowToolbarProps {
@@ -26,6 +30,8 @@ export interface WorkflowToolbarProps {
   onAutoLayout: (engine: 'elk' | 'dagre') => void;
   onSave: () => void;
   onLoad: () => void;
+  onValidate?: () => void; // W2
+  onSimulate?: () => void; // W2
   canUndo?: boolean;
   canRedo?: boolean;
   onUndo?: () => void;
@@ -37,6 +43,8 @@ export const WorkflowToolbar = ({
   onAutoLayout,
   onSave,
   onLoad,
+  onValidate,
+  onSimulate,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -127,6 +135,41 @@ export const WorkflowToolbar = ({
       </Box>
 
       <Divider orientation="vertical" flexItem />
+
+      {/* Validate & Simulate (W2) */}
+      {(onValidate || onSimulate) && (
+        <>
+          <Box display="flex" gap={1}>
+            {onValidate && (
+              <Tooltip title="Validovat workflow">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  startIcon={<ValidateIcon />}
+                  onClick={onValidate}
+                >
+                  Validovat
+                </Button>
+              </Tooltip>
+            )}
+            {onSimulate && (
+              <Tooltip title="Simulovat workflow">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="info"
+                  startIcon={<SimulateIcon />}
+                  onClick={onSimulate}
+                >
+                  Simulovat
+                </Button>
+              </Tooltip>
+            )}
+          </Box>
+          <Divider orientation="vertical" flexItem />
+        </>
+      )}
 
       {/* Save/Load Group */}
       <Box display="flex" gap={1}>

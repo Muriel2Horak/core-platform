@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import { Container, Typography, Box } from '@mui/material';
+import { useCallback, useState } from 'react';
+import { Container, Typography, Box, Drawer } from '@mui/material';
 import { AccountTree as WorkflowIcon } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
 import ReactFlow, { 
@@ -13,19 +13,25 @@ import ReactFlow, {
   useEdgesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import axios from 'axios';
 
-import { WorkflowToolbar, nodeTypes } from '../../components/Workflow';
+import { WorkflowToolbar, ValidationPanel, SimulationPanel, nodeTypes } from '../../components/Workflow';
 import { useElkLayout } from '../../lib/layout/useElkLayout';
 import { useDagreLayout } from '../../lib/layout/useDagreLayout';
 
 /**
- * W1: Workflow Designer Page
+ * W2: Workflow Designer Page
  * 
  * Phase W1: Interactive canvas with custom nodes, toolbar, auto-layout
+ * Phase W2: Validation + Simulation
  */
 export const WorkflowDesignerPage = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [simulationResult, setSimulationResult] = useState<any>(null);
+  const [showValidation, setShowValidation] = useState(false);
+  const [showSimulation, setShowSimulation] = useState(false);
   
   const { getLayoutedElements: getElkLayout } = useElkLayout();
   const { getLayoutedElements: getDagreLayout } = useDagreLayout();
@@ -66,16 +72,58 @@ export const WorkflowDesignerPage = () => {
     [setEdges]
   );
 
-  // Save/Load handlers (TODO W1: wire to BE)
-  const handleSave = useCallback(() => {
+  // Save/Load handlers (W2: wired to BE)
+  const handleSave = useCallback(async () => {
     console.log('💾 Save draft:', { nodes, edges });
-    // TODO W1: POST /api/admin/workflows/{entity}/draft
+    try {
+      await axios.put('/api/admin/workflows/User/draft', { nodes, edges });
+      console.log('✅ Draft saved');
+    } catch (error) {
+      console.error('❌ Save failed:', error);
+    }
   }, [nodes, edges]);
 
-  const handleLoad = useCallback(() => {
+  const handleLoad = useCallback(async () => {
     console.log('📂 Load draft');
-    // TODO W1: GET /api/admin/workflows/{entity}/draft
+    try {
+      const response = await axios.get('/api/admin/workflows/User/draft');
+      console.log('✅ Draft loaded:', response.data);
+    } catch (error) {
+      console.error('❌ Load failed:', error);
+    }
   }, []);
+
+  // W2: Validation handler
+  const handleValidate = useCallback(async () => {
+    console.log('✅ Validating workflow...');
+    try {
+      const response = await axios.post('/api/admin/workflows/User/validate', { 
+        nodes, 
+        edges 
+      });
+      setValidationResult(response.data);
+      setShowValidation(true);
+      setShowSimulation(false);
+    } catch (error) {
+      console.error('❌ Validation failed:', error);
+    }
+  }, [nodes, edges]);
+
+  // W2: Simulation handler
+  const handleSimulate = useCallback(async () => {
+    console.log('🎬 Simulating workflow...');
+    try {
+      const response = await axios.post('/api/admin/workflows/User/simulate', { 
+        workflow: { nodes, edges },
+        data: { userId: 1, status: 'pending' }, // Mock data
+      });
+      setSimulationResult(response.data);
+      setShowSimulation(true);
+      setShowValidation(false);
+    } catch (error) {
+      console.error('❌ Simulation failed:', error);
+    }
+  }, [nodes, edges]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4, height: 'calc(100vh - 100px)' }}>
@@ -96,6 +144,8 @@ export const WorkflowDesignerPage = () => {
           onAutoLayout={handleAutoLayout}
           onSave={handleSave}
           onLoad={handleLoad}
+          onValidate={handleValidate}
+          onSimulate={handleSimulate}
         />
 
         {/* Canvas */}
@@ -115,6 +165,29 @@ export const WorkflowDesignerPage = () => {
           </ReactFlow>
         </Box>
       </GlassPaper>
+
+      {/* W2: Validation Drawer */}
+      <Drawer
+        anchor="right"
+        open={showValidation}
+        onClose={() => setShowValidation(false)}
+        sx={{ '& .MuiDrawer-paper': { width: 400 } }}
+      >
+        <ValidationPanel 
+          validationResult={validationResult}
+          onClose={() => setShowValidation(false)}
+        />
+      </Drawer>
+
+      {/* W2: Simulation Drawer */}
+      <Drawer
+        anchor="right"
+        open={showSimulation}
+        onClose={() => setShowSimulation(false)}
+        sx={{ '& .MuiDrawer-paper': { width: 500 } }}
+      >
+        <SimulationPanel simulationResult={simulationResult} />
+      </Drawer>
     </Container>
   );
 };
