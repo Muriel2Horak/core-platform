@@ -14,8 +14,8 @@ import org.testcontainers.utility.DockerImageName;
  * Base class for integration tests using Testcontainers.
  * 
  * Provides: - PostgreSQL container for main datasource - Redis container for
- * caching/presence - Automatic Spring Boot context loading - Test profile activation -
- * Dynamic property configuration
+ * caching/presence - Automatic Spring Boot context loading - Test profile
+ * activation - Dynamic property configuration
  * 
  * Usage:
  * 
@@ -31,14 +31,12 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest @ActiveProfiles("test") @Testcontainers
 public abstract class AbstractIntegrationTest {
 
-  @Container
-  @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically
+  @Container @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically
   protected static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
       "postgres:16-alpine").withDatabaseName("testdb").withUsername("test").withPassword("test")
           .withReuse(true); // Reuse container across tests for speed
 
-  @Container
-  @SuppressWarnings("resource")
+  @Container @SuppressWarnings("resource")
   protected static final GenericContainer<?> redisContainer = new GenericContainer<>(
       DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379).withReuse(true);
 

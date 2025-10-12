@@ -18,11 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * Near-Real-Time integration tests for Presence tracking system.
- * Tests WebSocket subscriptions, Redis state, locks, and TTL behavior.
+ * Near-Real-Time integration tests for Presence tracking system. Tests
+ * WebSocket subscriptions, Redis state, locks, and TTL behavior.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ActiveProfiles("test")
 class PresenceNrtIT extends AbstractIntegrationTest {
 
   @LocalServerPort
@@ -88,7 +87,8 @@ class PresenceNrtIT extends AbstractIntegrationTest {
   @Test
   void shouldAcquireEditLockInRedis() {
     // When
-    boolean acquired = presenceService.acquireLock(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID, "name");
+    boolean acquired = presenceService.acquireLock(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID,
+        "name");
 
     // Then
     assertThat(acquired).isTrue();
@@ -103,7 +103,8 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     presenceService.acquireLock(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID, "name");
 
     // When
-    boolean acquired = presenceService.acquireLock("user2", TENANT_ID, ENTITY_TYPE, ENTITY_ID, "name");
+    boolean acquired = presenceService.acquireLock("user2", TENANT_ID, ENTITY_TYPE, ENTITY_ID,
+        "name");
 
     // Then
     assertThat(acquired).isFalse();
@@ -129,27 +130,27 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     presenceService.subscribe(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
-    // When - wait for TTL expiration (30 seconds default)
-    await().atMost(35, TimeUnit.SECONDS)
-        .untilAsserted(() -> {
-          Set<Object> members = redisTemplate.opsForSet().members(key);
-          assertThat(members).isEmpty();
-        });
+    // When - wait for TTL expiration (60 seconds default)
+    await().atMost(65, TimeUnit.SECONDS).untilAsserted(() -> {
+      Set<Object> members = redisTemplate.opsForSet().members(key);
+      assertThat(members).isEmpty();
+    });
   }
 
   @Test
-  void shouldRefreshTTLOnHeartbeat() {
+  void shouldRefreshTTLOnHeartbeat() throws InterruptedException {
     // Given
     presenceService.subscribe(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
-    // When - send heartbeat after 20 seconds
-    await().atMost(25, TimeUnit.SECONDS)
-        .untilAsserted(() -> {
-          presenceService.heartbeat(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
-          Set<Object> members = redisTemplate.opsForSet().members(key);
-          assertThat(members).contains(USER_ID);
-        });
+    // When - send heartbeat after 50 seconds (before 60s TTL expiration)
+    Thread.sleep(50_000);
+    presenceService.heartbeat(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
+    
+    // Then - wait another 20 seconds (total 70s, would have expired at 60s without heartbeat)
+    Thread.sleep(20_000);
+    Set<Object> members = redisTemplate.opsForSet().members(key);
+    assertThat(members).contains(USER_ID);
   }
 
   @Test
@@ -171,7 +172,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
 
     assertThat(members1).contains(USER_ID);
     assertThat(members2).contains(USER_ID);
-    assertThat(members1).isNotEqualTo(members2); // Different Redis keys
+    assertThat(key1).isNotEqualTo(key2); // Different Redis keys
   }
 
   @Test

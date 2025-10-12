@@ -26,9 +26,7 @@ import static org.mockito.Mockito.*;
  * Integration tests for CubeQueryService with Circuit Breaker behavior. Tests
  * resilience patterns: open/closed state transitions, fallback handling.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@Import(TestQueryConfig.class)
+@SpringBootTest @ActiveProfiles("test") @Import(TestQueryConfig.class)
 class CubeQueryServiceIT extends AbstractIntegrationTest {
 
   @Mock
@@ -62,10 +60,11 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
         .permittedNumberOfCallsInHalfOpenState(5).build();
 
     circuitBreakerRegistry = CircuitBreakerRegistry.of(config);
-    cubeQueryService = new CubeQueryService(cubeWebClient, circuitBreakerRegistry, queryDeduplicator);
+    cubeQueryService = new CubeQueryService(cubeWebClient, circuitBreakerRegistry,
+        queryDeduplicator);
     circuitBreaker = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
     circuitBreaker.reset();
-    
+
     // Setup QueryDeduplicator mock to pass through
     when(queryDeduplicator.executeWithDeduplication(any(), anyString(), any()))
         .thenAnswer(invocation -> {

@@ -70,7 +70,8 @@ public class MonitoringBffConfig {
   }
 
   @Bean
-  public WebClient grafanaWebClient(GrafanaProperties props, @Qualifier("grafanaCircuitBreaker") CircuitBreaker circuitBreaker) {
+  public WebClient grafanaWebClient(GrafanaProperties props,
+      @Qualifier("grafanaCircuitBreaker") CircuitBreaker circuitBreaker) {
     // Connection pool configuration (production-ready)
     ConnectionProvider provider = ConnectionProvider.builder("grafana-pool").maxConnections(100) // Max
                                                                                                  // 100
@@ -115,9 +116,7 @@ public class MonitoringBffConfig {
    * TTL: 30 seconds (short for real-time monitoring data) Max size: 1000 entries
    * per cache Stats enabled for monitoring
    */
-  @Bean 
-  @Primary 
-  @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "false", matchIfMissing = true)
+  @Bean @Primary @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "false", matchIfMissing = true)
   public CacheManager cacheManager() {
     CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
         "grafana-dashboards", "reportQueryCache");
