@@ -22,11 +22,10 @@ import static org.awaitility.Awaitility.await;
  * Near-Real-Time integration tests for Presence tracking system. Tests
  * WebSocket subscriptions, Redis state, locks, and TTL behavior.
  * 
- * TTL values reduced for faster tests: lockTtlMs=200, heartbeatIntervalMs=50 (see application-test.yml)
+ * TTL values reduced for faster tests: lockTtlMs=200, heartbeatIntervalMs=50
+ * (see application-test.yml)
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ActiveProfiles("test") @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PresenceNrtIT extends AbstractIntegrationTest {
 
   @LocalServerPort
@@ -136,8 +135,7 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
     // When - wait for TTL expiration (userTtlMs=1000ms in test config)
-    await().atMost(2, TimeUnit.SECONDS)
-        .pollInterval(100, TimeUnit.MILLISECONDS)
+    await().atMost(2, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
         .untilAsserted(() -> {
           Set<Object> members = redisTemplate.opsForSet().members(key);
           assertThat(members).isEmpty();
@@ -151,17 +149,16 @@ class PresenceNrtIT extends AbstractIntegrationTest {
     String key = "presence:" + TENANT_ID + ":" + ENTITY_TYPE + ":" + ENTITY_ID + ":users";
 
     // When - send heartbeat after 600ms (before 1000ms TTL expiration)
-    await().pollDelay(600, TimeUnit.MILLISECONDS)
-        .atMost(700, TimeUnit.MILLISECONDS)
+    await().pollDelay(600, TimeUnit.MILLISECONDS).atMost(700, TimeUnit.MILLISECONDS)
         .untilAsserted(() -> {
           presenceService.heartbeat(USER_ID, TENANT_ID, ENTITY_TYPE, ENTITY_ID);
           Set<Object> members = redisTemplate.opsForSet().members(key);
           assertThat(members).contains(USER_ID);
         });
 
-    // Then - after another 700ms (total 1300ms, would have expired at 1000ms without heartbeat)
-    await().pollDelay(700, TimeUnit.MILLISECONDS)
-        .atMost(800, TimeUnit.MILLISECONDS)
+    // Then - after another 700ms (total 1300ms, would have expired at 1000ms
+    // without heartbeat)
+    await().pollDelay(700, TimeUnit.MILLISECONDS).atMost(800, TimeUnit.MILLISECONDS)
         .untilAsserted(() -> {
           Set<Object> members = redisTemplate.opsForSet().members(key);
           assertThat(members).contains(USER_ID);

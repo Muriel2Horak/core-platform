@@ -15,24 +15,23 @@ import java.util.concurrent.TimeUnit;
  * Service for managing real-time presence tracking and field-level locks
  * 
  * Redis Keys Schema: - presence:{tenant}:{entity}:{id}:users → SET of userId
- * (TTL configurable via app.presence.userTtlMs) - presence:{tenant}:{entity}:{id}:lock:{field} →
- * STRING userId (TTL configurable via app.presence.lockTtlMs, NX) - presence:{tenant}:{entity}:{id}:stale →
- * BOOLEAN (set by Kafka consumer) - presence:{tenant}:{entity}:{id}:version →
- * INT (incremented on MUTATED) - presence:{tenant}:{entity}:{id}:busyBy →
- * STRING userId (during MUTATING)
+ * (TTL configurable via app.presence.userTtlMs) -
+ * presence:{tenant}:{entity}:{id}:lock:{field} → STRING userId (TTL
+ * configurable via app.presence.lockTtlMs, NX) -
+ * presence:{tenant}:{entity}:{id}:stale → BOOLEAN (set by Kafka consumer) -
+ * presence:{tenant}:{entity}:{id}:version → INT (incremented on MUTATED) -
+ * presence:{tenant}:{entity}:{id}:busyBy → STRING userId (during MUTATING)
  */
-@Slf4j
-@Service
-@ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Service @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "true", matchIfMissing = false)
 public class PresenceService {
 
   private final RedisTemplate<String, Object> redisTemplate;
   private final StringRedisTemplate stringRedisTemplate;
-  
-  @Value("${app.presence.userTtlMs:60000}")  // Default 60 seconds
+
+  @Value("${app.presence.userTtlMs:60000}") // Default 60 seconds
   private long userTtlMs;
-  
-  @Value("${app.presence.lockTtlMs:120000}")  // Default 120 seconds
+
+  @Value("${app.presence.lockTtlMs:120000}") // Default 120 seconds
   private long lockTtlMs;
 
   public PresenceService(RedisTemplate<String, Object> redisTemplate,

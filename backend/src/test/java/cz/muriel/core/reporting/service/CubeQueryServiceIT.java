@@ -25,15 +25,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for CubeQueryService with Circuit Breaker behavior.
- * Tests resilience patterns: open/closed state transitions, fallback handling.
+ * Integration tests for CubeQueryService with Circuit Breaker behavior. Tests
+ * resilience patterns: open/closed state transitions, fallback handling.
  * 
  * Uses WireMock for Cube.js API stubbing and per-test CircuitBreakerRegistry
  * for deterministic state management.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@SpringBootTest @ActiveProfiles("test") @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CubeQueryServiceIT extends AbstractIntegrationTest {
 
   private WireMockServer wireMockServer;
@@ -50,25 +48,18 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
     WireMock.configureFor("localhost", wireMockServer.port());
 
     // Create WebClient pointing to WireMock with error handling
-    cubeWebClient = WebClient.builder()
-        .baseUrl("http://localhost:" + wireMockServer.port())
+    cubeWebClient = WebClient.builder().baseUrl("http://localhost:" + wireMockServer.port())
         .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-        .defaultStatusHandler(
-            status -> status.is5xxServerError(),
+        .defaultStatusHandler(status -> status.is5xxServerError(),
             clientResponse -> clientResponse.createException()
-                .map(ex -> new RuntimeException("Cube.js service error: " + ex.getMessage(), ex))
-        )
+                .map(ex -> new RuntimeException("Cube.js service error: " + ex.getMessage(), ex)))
         .build();
 
     // Create CircuitBreakerRegistry with fast test config
-    CircuitBreakerConfig config = CircuitBreakerConfig.custom()
-        .slidingWindowSize(4)
-        .minimumNumberOfCalls(3)  // Allow CB to open after just 3 calls
-        .failureRateThreshold(50.0f)
-        .waitDurationInOpenState(Duration.ofMillis(250))
-        .permittedNumberOfCallsInHalfOpenState(2)
-        .recordExceptions(Exception.class)
-        .build();
+    CircuitBreakerConfig config = CircuitBreakerConfig.custom().slidingWindowSize(4)
+        .minimumNumberOfCalls(3) // Allow CB to open after just 3 calls
+        .failureRateThreshold(50.0f).waitDurationInOpenState(Duration.ofMillis(250))
+        .permittedNumberOfCallsInHalfOpenState(2).recordExceptions(Exception.class).build();
 
     circuitBreakerRegistry = CircuitBreakerRegistry.of(config);
 
@@ -96,17 +87,14 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
   @Test
   void shouldExecuteQueryInClosedState() {
     // Arrange - stub successful Cube.js response
-    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
-        .willReturn(aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody("""
-                {
-                  "data": [
-                    {"User.id": "1", "User.name": "John"}
-                  ]
-                }
-                """)));
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load")).willReturn(
+        aResponse().withStatus(200).withHeader("Content-Type", "application/json").withBody("""
+            {
+              "data": [
+                {"User.id": "1", "User.name": "John"}
+              ]
+            }
+            """)));
 
     // Act
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
@@ -115,7 +103,7 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
     // Assert
     assertThat(result).isNotNull();
     assertThat(result).containsKey("data");
-    
+
     CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
     assertThat(cb.getState()).isEqualTo(CircuitBreaker.State.CLOSED);
   }
@@ -124,14 +112,13 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
   void shouldOpenCircuitBreakerOnFailures() {
     // Arrange - stub 5xx errors to trigger circuit breaker
     stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
-        .willReturn(aResponse()
-            .withStatus(503)
-            .withBody("Service Unavailable")));
+        .willReturn(aResponse().withStatus(503).withBody("Service Unavailable")));
 
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
     CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
 
-    // Act - make 3 failing calls to exceed 50% failure threshold (slidingWindowSize=4, minimumNumberOfCalls=3)
+    // Act - make 3 failing calls to exceed 50% failure threshold
+    // (slidingWindowSize=4, minimumNumberOfCalls=3)
     for (int i = 0; i < 3; i++) {
       try {
         cubeQueryService.executeQuery(query, "tenant-1");
@@ -150,9 +137,7 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
   void opensOnFailuresThenRecoverToClosedState() throws InterruptedException {
     // Arrange - First stub 503 errors
     stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
-        .willReturn(aResponse()
-            .withStatus(503)
-            .withBody("Service Unavailable")));
+        .willReturn(aResponse().withStatus(503).withBody("Service Unavailable")));
 
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
     CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
@@ -169,11 +154,8 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
 
     // Now remove 503 stub and add 200 stub
     wireMockServer.resetMappings();
-    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
-        .willReturn(aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody("{\"data\":[]}")));
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load")).willReturn(aResponse().withStatus(200)
+        .withHeader("Content-Type", "application/json").withBody("{\"data\":[]}")));
 
     // Act - Step 2: Wait for waitDurationInOpenState (250ms) -> HALF_OPEN
     Thread.sleep(300);
@@ -190,8 +172,7 @@ class CubeQueryServiceIT extends AbstractIntegrationTest {
   @Test
   void remainsOpenOnContinuousFailure() throws InterruptedException {
     // Arrange - All calls fail
-    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load"))
-        .willReturn(aResponse().withStatus(503)));
+    stubFor(post(urlPathEqualTo("/cubejs-api/v1/load")).willReturn(aResponse().withStatus(503)));
 
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
     CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cubeQueryCircuitBreaker-tenant-1");
