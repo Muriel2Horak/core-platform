@@ -1,5 +1,7 @@
 # Core Platform
 
+[![CI](https://github.com/Muriel2Horak/core-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Muriel2Horak/core-platform/actions/workflows/ci.yml?query=branch%3Amain)
+
 Enterprise-ready **multitenantní** aplikace postavená na **Java 21 + Spring Boot 3.x** s **Keycloak** autentifikací, **React** frontendem a **PostgreSQL** databází.
 
 ## 🏗️ Architektura

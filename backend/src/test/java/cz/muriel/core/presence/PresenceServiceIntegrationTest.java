@@ -24,16 +24,13 @@ import static org.awaitility.Awaitility.await;
  * 
  * Uses Testcontainers to spin up Redis instance
  */
-@SpringBootTest
-@Testcontainers
+@SpringBootTest @Testcontainers
 class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   private static final DockerImageName REDIS_IMAGE = DockerImageName.parse("redis:7-alpine");
 
-  @Container
-  @SuppressWarnings("resource") // Managed by Testcontainers @Container lifecycle
-  static GenericContainer<?> redis = new GenericContainer<>(REDIS_IMAGE)
-      .withExposedPorts(6379);
+  @Container @SuppressWarnings("resource") // Managed by Testcontainers @Container lifecycle
+  static GenericContainer<?> redis = new GenericContainer<>(REDIS_IMAGE).withExposedPorts(6379);
 
   @DynamicPropertySource
   static void redisProperties(DynamicPropertyRegistry registry) {

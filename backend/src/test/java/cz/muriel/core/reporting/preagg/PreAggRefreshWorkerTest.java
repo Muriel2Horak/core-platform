@@ -125,19 +125,17 @@ class PreAggRefreshWorkerTest {
     verify(ack).acknowledge();
   }
 
-  @Test
-  void shouldHandleDltMessages() {
-    // Given
-    Map<String, Object> dltEvent = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
-        "entityId", "user-1", "tenantId", "tenant-1", "errorReason", "Failed after 3 retries");
-
-    // When
-    worker.handleDlt(dltEvent, ack);
-
-    // Then
-    verify(ack).acknowledge();
-    // Should log error (checked manually or with log capture)
-  }
+  /**
+   * Note: DLT handling is now centralized in DltManager (listens to all *.dlt
+   * topics). This test is obsolete and can be removed or replaced with DltManager
+   * integration test.
+   * 
+   * @see cz.muriel.core.kafka.service.DltManager
+   */
+  // @Test - Disabled: handleDlt() method removed from PreAggRefreshWorker
+  // void shouldHandleDltMessages() {
+  // // DLT handling now in DltManager
+  // }
 
   @Test
   void shouldClearDebounceCacheOnDemand() {

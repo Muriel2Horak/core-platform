@@ -170,15 +170,16 @@ public class EventConsumer {
   }
 
   /**
-   * Extension point for business logic processing.
-   * Override this method to add custom processing (search indexing, webhooks, notifications, etc.)
+   * Extension point for business logic processing. Override this method to add
+   * custom processing (search indexing, webhooks, notifications, etc.)
    * 
    * @param eventType Entity type (e.g., "User", "Order")
    * @param entityId Entity ID
    * @param operation CRUD operation (create, update, delete)
    * @param payload Raw JSON payload
    */
-  protected void applyBusinessLogic(String eventType, String entityId, String operation, String payload) {
+  protected void applyBusinessLogic(String eventType, String entityId, String operation,
+      String payload) {
     // Default: No-op (extension point for subclasses)
     // Future implementations:
     // - Update search indexes (Elasticsearch/OpenSearch)
@@ -186,27 +187,28 @@ public class EventConsumer {
     // - Send notifications (email/SMS/push)
     // - Invalidate caches (Redis)
     // - Update analytics databases
-    log.trace("Business logic extension point - eventType={}, entityId={}, operation={}", 
-        eventType, entityId, operation);
+    log.trace("Business logic extension point - eventType={}, entityId={}, operation={}", eventType,
+        entityId, operation);
   }
 
   /**
-   * Extension point for monitoring/observability logic.
-   * Override this method to add custom monitoring (Grafana dashboards, custom metrics, etc.)
+   * Extension point for monitoring/observability logic. Override this method to
+   * add custom monitoring (Grafana dashboards, custom metrics, etc.)
    * 
    * @param commandId Command ID
    * @param status Command status (pending, success, failed)
    * @param operation Operation name
    * @param payload Raw JSON payload
    */
-  protected void applyMonitoringLogic(String commandId, String status, String operation, String payload) {
+  protected void applyMonitoringLogic(String commandId, String status, String operation,
+      String payload) {
     // Default: No-op (extension point for subclasses)
     // Future implementations:
     // - Update Grafana dashboards with command status
     // - Track command duration/latency in custom metrics
     // - Alert on stuck commands (>threshold time)
     // - Update command registry/state machine
-    log.trace("Monitoring logic extension point - commandId={}, status={}, operation={}", 
-        commandId, status, operation);
+    log.trace("Monitoring logic extension point - commandId={}, status={}, operation={}", commandId,
+        status, operation);
   }
 }

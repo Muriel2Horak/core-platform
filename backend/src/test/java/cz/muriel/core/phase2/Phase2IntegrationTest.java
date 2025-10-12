@@ -112,14 +112,13 @@ public class Phase2IntegrationTest {
 
   /**
    * Future integration test scenarios:
+   * 
    * @see https://github.com/Muriel2Horak/core-platform/issues/GH-P2.5
    * 
-   * - Workflow: State transitions with guards and SLA calculations
-   * - Documents: Upload, download, text extraction, versioning
-   * - Search: Fulltext search across entities and documents
-   * - WebSocket: Presence tracking and editing indicators
-   * - Cache: Redis invalidation on entity updates
-   * - jOOQ: Type-safe queries and filter parser
-   * - Pagination: Keyset pagination with cursors
+   * - Workflow: State transitions with guards and SLA calculations - Documents:
+   * Upload, download, text extraction, versioning - Search: Fulltext search
+   * across entities and documents - WebSocket: Presence tracking and editing
+   * indicators - Cache: Redis invalidation on entity updates - jOOQ: Type-safe
+   * queries and filter parser - Pagination: Keyset pagination with cursors
    */
 }

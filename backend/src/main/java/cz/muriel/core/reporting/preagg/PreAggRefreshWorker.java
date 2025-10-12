@@ -136,8 +136,8 @@ public class PreAggRefreshWorker {
    * These are messages that failed after all retry attempts.
    * 
    * <p>
-   * Note: DLT handling is now centralized in DltManager
-   * (listens to all *.dlt topics via @KafkaListener pattern)
+   * Note: DLT handling is now centralized in DltManager (listens to all *.dlt
+   * topics via @KafkaListener pattern)
    */
 
   /**

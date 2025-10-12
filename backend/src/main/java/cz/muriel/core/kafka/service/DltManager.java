@@ -25,7 +25,8 @@ import java.util.Map;
  * 
  * Features: - Auto-store to DB with full context (topic, partition, offset,
  * error) - Emit metrics (dlt_messages_total{topic, error_type}) - Alert on
- * critical topics (see publishAlert()) - Provide replay API via StreamingAdminController
+ * critical topics (see publishAlert()) - Provide replay API via
+ * StreamingAdminController
  * 
  * DLT Topic Naming: - Old format: {topic}.dlt (e.g.,
  * core.entities.lifecycle.mutated.dlt) - New format: core.platform.dlq.all (S7
@@ -170,41 +171,43 @@ public class DltManager {
   /**
    * Replay a single DLQ message
    * 
-   * Republishes the message to its original Kafka topic.
-   * Marks message as REPLAYED and increments retry_count.
+   * Republishes the message to its original Kafka topic. Marks message as
+   * REPLAYED and increments retry_count.
    */
   @Transactional
   public void replayMessage(DlqMessage message) {
     log.info("Replaying DLQ message: id={}, topic={}", message.getId(), message.getOriginalTopic());
-    
+
     try {
       // 1. Convert payload Map to JSON string
       String payloadJson = objectMapper.writeValueAsString(message.getPayload());
-      
+
       // 2. Republish message to original topic
       kafkaTemplate.send(message.getOriginalTopic(), message.getMessageKey(), payloadJson)
           .whenComplete((result, ex) -> {
             if (ex != null) {
               log.error("Failed to replay message id={}: {}", message.getId(), ex.getMessage());
             } else {
-              log.info("Successfully replayed message id={} to topic={}", 
-                  message.getId(), message.getOriginalTopic());
+              log.info("Successfully replayed message id={} to topic={}", message.getId(),
+                  message.getOriginalTopic());
             }
           });
-      
+
       // 3. Mark as REPLAYED
       message.setStatus(DlqMessage.DlqStatus.REPLAYED);
       message.setReplayedAt(java.time.Instant.now());
-      
+
       // 4. Increment retry_count
       message.setRetryCount(message.getRetryCount() != null ? message.getRetryCount() + 1 : 1);
-      
+
       dlqMessageRepository.save(message);
-      
-      log.info("DLQ message replayed: id={}, retryCount={}", message.getId(), message.getRetryCount());
-      
+
+      log.info("DLQ message replayed: id={}, retryCount={}", message.getId(),
+          message.getRetryCount());
+
     } catch (Exception e) {
-      log.error("Failed to replay DLQ message: id={}, error={}", message.getId(), e.getMessage(), e);
+      log.error("Failed to replay DLQ message: id={}, error={}", message.getId(), e.getMessage(),
+          e);
       throw new RuntimeException("Replay failed: " + e.getMessage(), e);
     }
   }

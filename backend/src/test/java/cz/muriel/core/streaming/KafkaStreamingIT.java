@@ -36,10 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest @Testcontainers
 public class KafkaStreamingIT {
 
-  @Container
-  @SuppressWarnings("resource") // Managed by Testcontainers @Container lifecycle
-  static ConfluentKafkaContainer kafka = 
-      new ConfluentKafkaContainer("confluentinc/cp-kafka:7.6.0");
+  // Testcontainers manages lifecycle automatically via @Container annotation
+  @Container @SuppressWarnings("resource")
+  static ConfluentKafkaContainer kafka = new ConfluentKafkaContainer("confluentinc/cp-kafka:7.6.0");
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
