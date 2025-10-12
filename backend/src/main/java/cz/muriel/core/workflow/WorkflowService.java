@@ -171,7 +171,9 @@ public class WorkflowService {
       return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(role));
     }
 
-    // Complex CEL expressions require PolicyEngine integration (tracked in GH-P3)
+    // Complex CEL expressions require PolicyEngine integration
+    // @see https://github.com/Muriel2Horak/core-platform/issues/GH-P3
+    log.warn("Complex guard expression not supported: {} - defaulting to true", expression);
     return true;
   }
 

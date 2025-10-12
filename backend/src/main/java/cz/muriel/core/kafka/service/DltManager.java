@@ -8,6 +8,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -36,15 +37,17 @@ public class DltManager {
   private final DlqMessageRepository dlqMessageRepository;
   private final ObjectMapper objectMapper;
   private final MeterRegistry meterRegistry;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 
   // Metrics
   private final Counter dltMessagesTotal;
 
   public DltManager(DlqMessageRepository dlqMessageRepository, ObjectMapper objectMapper,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry, KafkaTemplate<String, String> kafkaTemplate) {
     this.dlqMessageRepository = dlqMessageRepository;
     this.objectMapper = objectMapper;
     this.meterRegistry = meterRegistry;
+    this.kafkaTemplate = kafkaTemplate;
 
     // Initialize metrics
     this.dltMessagesTotal = Counter.builder("kafka_dlt_messages_total")
@@ -167,15 +170,42 @@ public class DltManager {
   /**
    * Replay a single DLQ message
    * 
-   * Called from StreamingAdminController (tracked in GH-S7-P3)
+   * Republishes the message to its original Kafka topic.
+   * Marks message as REPLAYED and increments retry_count.
    */
   @Transactional
   public void replayMessage(DlqMessage message) {
-    // Replay implementation tracked in GitHub issue GH-S7-P3
-    // Steps: 1. Republish message to original topic
-    //        2. Mark as REPLAYED
-    //        3. Increment retry_count
     log.info("Replaying DLQ message: id={}, topic={}", message.getId(), message.getOriginalTopic());
-    throw new UnsupportedOperationException("Replay not yet implemented - tracked in GH-S7-P3");
+    
+    try {
+      // 1. Convert payload Map to JSON string
+      String payloadJson = objectMapper.writeValueAsString(message.getPayload());
+      
+      // 2. Republish message to original topic
+      kafkaTemplate.send(message.getOriginalTopic(), message.getMessageKey(), payloadJson)
+          .whenComplete((result, ex) -> {
+            if (ex != null) {
+              log.error("Failed to replay message id={}: {}", message.getId(), ex.getMessage());
+            } else {
+              log.info("Successfully replayed message id={} to topic={}", 
+                  message.getId(), message.getOriginalTopic());
+            }
+          });
+      
+      // 3. Mark as REPLAYED
+      message.setStatus(DlqMessage.DlqStatus.REPLAYED);
+      message.setReplayedAt(java.time.Instant.now());
+      
+      // 4. Increment retry_count
+      message.setRetryCount(message.getRetryCount() != null ? message.getRetryCount() + 1 : 1);
+      
+      dlqMessageRepository.save(message);
+      
+      log.info("DLQ message replayed: id={}, retryCount={}", message.getId(), message.getRetryCount());
+      
+    } catch (Exception e) {
+      log.error("Failed to replay DLQ message: id={}, error={}", message.getId(), e.getMessage(), e);
+      throw new RuntimeException("Replay failed: " + e.getMessage(), e);
+    }
   }
 }

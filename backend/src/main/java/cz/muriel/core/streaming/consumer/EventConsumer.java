@@ -58,12 +58,8 @@ public class EventConsumer {
       // ✅ Record metrics
       metrics.recordWorkerSuccess("User", "normal");
 
-      // Future extensions (tracked in GH-S7-P2):
-      // - Update search indexes (Elasticsearch/OpenSearch)
-      // - Trigger webhooks to external systems
-      // - Send notifications (email/SMS/push)
-      // - Invalidate caches (Redis)
-      // - Update analytics databases
+      // ✅ Apply business logic extensions
+      applyBusinessLogic(eventType, entityId, operation, record.value());
 
       // Acknowledge message
       ack.acknowledge();
@@ -108,11 +104,8 @@ public class EventConsumer {
       // ✅ Record metrics
       metrics.recordWorkerSuccess("Inflight", "normal");
 
-      // Future monitoring extensions (tracked in GH-S7-P2):
-      // - Update Grafana dashboards with command status
-      // - Track command duration/latency
-      // - Alert on stuck commands (>threshold time)
-      // - Update command registry
+      // ✅ Apply monitoring logic extensions
+      applyMonitoringLogic(commandId, status, operation, record.value());
 
       // Acknowledge message
       ack.acknowledge();
@@ -159,11 +152,7 @@ public class EventConsumer {
       // ✅ Record metrics
       metrics.recordWorkerError(entityType, "dlq", "max_retries_exceeded");
 
-      // Future DLQ handling (tracked in GH-S7-P2):
-      // - Send alerts to Slack/PagerDuty (see DltManager.publishAlert)
-      // - Store in DLQ table via DltManager.storeDlqMessage()
-      // - Trigger automated diagnostics/health checks
-      // - Create JIRA tickets for critical failures
+      // Note: DLT storage/alerting is handled by centralized DltManager
 
       // Acknowledge message even for DLQ (prevent infinite loops)
       ack.acknowledge();
@@ -178,5 +167,46 @@ public class EventConsumer {
       // Acknowledge even on error to prevent infinite DLQ loops
       ack.acknowledge();
     }
+  }
+
+  /**
+   * Extension point for business logic processing.
+   * Override this method to add custom processing (search indexing, webhooks, notifications, etc.)
+   * 
+   * @param eventType Entity type (e.g., "User", "Order")
+   * @param entityId Entity ID
+   * @param operation CRUD operation (create, update, delete)
+   * @param payload Raw JSON payload
+   */
+  protected void applyBusinessLogic(String eventType, String entityId, String operation, String payload) {
+    // Default: No-op (extension point for subclasses)
+    // Future implementations:
+    // - Update search indexes (Elasticsearch/OpenSearch)
+    // - Trigger webhooks to external systems
+    // - Send notifications (email/SMS/push)
+    // - Invalidate caches (Redis)
+    // - Update analytics databases
+    log.trace("Business logic extension point - eventType={}, entityId={}, operation={}", 
+        eventType, entityId, operation);
+  }
+
+  /**
+   * Extension point for monitoring/observability logic.
+   * Override this method to add custom monitoring (Grafana dashboards, custom metrics, etc.)
+   * 
+   * @param commandId Command ID
+   * @param status Command status (pending, success, failed)
+   * @param operation Operation name
+   * @param payload Raw JSON payload
+   */
+  protected void applyMonitoringLogic(String commandId, String status, String operation, String payload) {
+    // Default: No-op (extension point for subclasses)
+    // Future implementations:
+    // - Update Grafana dashboards with command status
+    // - Track command duration/latency in custom metrics
+    // - Alert on stuck commands (>threshold time)
+    // - Update command registry/state machine
+    log.trace("Monitoring logic extension point - commandId={}, status={}, operation={}", 
+        commandId, status, operation);
   }
 }

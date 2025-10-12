@@ -77,17 +77,6 @@ public class EntityLifecycleConsumer {
     }
   }
 
-  /**
-   * Dead Letter Queue handler for failed events
-   * 
-   * S7: Will migrate to centralized DltManager in Phase 3
-   */
-  @KafkaListener(topics = { "core.entities.lifecycle.mutating.dlt",
-      "core.entities.lifecycle.mutated.dlt" }, groupId = "core-platform.presence-mutating.dlq")
-  public void handleDlt(@Payload String payload, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-      @Header(KafkaHeaders.EXCEPTION_MESSAGE) String errorMessage) {
-    log.error("Event sent to DLQ: topic={}, error={}, payload={}", topic, errorMessage, payload);
-
-    // Migrate to DltManager.storeDlqMessage() tracked in GitHub issue GH-S7-P3
-  }
+  // Note: DLT handling is now centralized in DltManager
+  // (listens to all *.dlt topics via @KafkaListener pattern)
 }
