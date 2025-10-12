@@ -38,9 +38,9 @@ import {
 } from './pages/Admin';
 
 // 🆕 S2: Presence System - Edit Pages
-import { UserEditPage } from './pages/admin/UserEditPage.tsx';
-import { TenantEditPage } from './pages/admin/TenantEditPage.tsx';
-import { RoleEditPage } from './pages/admin/RoleEditPage.tsx';
+import { UserEditPage } from './pages/admin/UserEditPage';
+import { TenantEditPage } from './pages/admin/TenantEditPage';
+import { RoleEditPage } from './pages/admin/RoleEditPage';
 
 // 🆕 Tenant Admin sekce
 import {
