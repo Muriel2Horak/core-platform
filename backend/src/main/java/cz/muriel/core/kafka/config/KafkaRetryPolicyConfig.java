@@ -9,9 +9,10 @@ import org.springframework.context.annotation.Configuration;
  * 
  * Defines standardized retry policies for Kafka consumers based on severity:
  * 
- * - CRITICAL: User CRUD, payments, auth (5 attempts, 1s-60s) - HIGH: Notifications,
- * analytics, reporting (4 attempts, 2s-30s) - NORMAL: Logging, auditing (3
- * attempts, 5s-30s) - BULK: Batch operations, imports (2 attempts, 10s-60s)
+ * - CRITICAL: User CRUD, payments, auth (5 attempts, 1s-60s) - HIGH:
+ * Notifications, analytics, reporting (4 attempts, 2s-30s) - NORMAL: Logging,
+ * auditing (3 attempts, 5s-30s) - BULK: Batch operations, imports (2 attempts,
+ * 10s-60s)
  */
 @Configuration @ConfigurationProperties(prefix = "app.kafka.retry") @Data
 public class KafkaRetryPolicyConfig {

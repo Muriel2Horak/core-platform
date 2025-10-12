@@ -15,12 +15,11 @@ import static org.awaitility.Awaitility.await;
 /**
  * Integration test for pre-aggregation refresh worker.
  * 
- * <p>Tests end-to-end flow: Kafka event → Worker → Cube.js API call
+ * <p>
+ * Tests end-to-end flow: Kafka event → Worker → Cube.js API call
  */
-@TestPropertySource(properties = {
-    "app.cube.preagg.enabled=true",
-    "app.cube.preagg.debounceMs=500"
-})
+@TestPropertySource(properties = { "app.cube.preagg.enabled=true",
+    "app.cube.preagg.debounceMs=500" })
 class PreAggRefreshWorkerIT extends AbstractIntegrationTest {
 
   @Autowired
@@ -35,20 +34,14 @@ class PreAggRefreshWorkerIT extends AbstractIntegrationTest {
   @Test
   void shouldConsumeEntityMutationEventAndTriggerRefresh() {
     // Given
-    Map<String, Object> event = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-123",
-        "tenantId", "test-tenant",
-        "timestamp", System.currentTimeMillis()
-    );
+    Map<String, Object> event = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-123", "tenantId", "test-tenant", "timestamp", System.currentTimeMillis());
 
     // When - send Kafka event
     kafkaTemplate.send("core.entities.lifecycle.mutated", "user-123", event);
 
     // Then - wait for worker to process event
-    await().atMost(5, TimeUnit.SECONDS)
-        .pollInterval(100, TimeUnit.MILLISECONDS)
+    await().atMost(5, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
         .untilAsserted(() -> {
           Map<String, Long> stats = worker.getDebounceStats();
           assertThat(stats).containsKey("User");
@@ -59,20 +52,12 @@ class PreAggRefreshWorkerIT extends AbstractIntegrationTest {
   void shouldDebounceMultipleEventsForSameEntityType() throws InterruptedException {
     // Given
     worker.clearDebounceCache();
-    
-    Map<String, Object> event1 = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "Tenant",
-        "entityId", "tenant-1",
-        "tenantId", "test-tenant"
-    );
-    
-    Map<String, Object> event2 = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "Tenant",
-        "entityId", "tenant-2",
-        "tenantId", "test-tenant"
-    );
+
+    Map<String, Object> event1 = Map.of("eventType", "ENTITY_UPDATED", "entityType", "Tenant",
+        "entityId", "tenant-1", "tenantId", "test-tenant");
+
+    Map<String, Object> event2 = Map.of("eventType", "ENTITY_UPDATED", "entityType", "Tenant",
+        "entityId", "tenant-2", "tenantId", "test-tenant");
 
     // When - send 2 events rapidly
     kafkaTemplate.send("core.entities.lifecycle.mutated", "tenant-1", event1);
@@ -80,8 +65,7 @@ class PreAggRefreshWorkerIT extends AbstractIntegrationTest {
     kafkaTemplate.send("core.entities.lifecycle.mutated", "tenant-2", event2);
 
     // Then - wait and verify only 1 refresh happened
-    await().atMost(2, TimeUnit.SECONDS)
-        .pollInterval(100, TimeUnit.MILLISECONDS)
+    await().atMost(2, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
         .untilAsserted(() -> {
           Map<String, Long> stats = worker.getDebounceStats();
           assertThat(stats).containsKey("Tenant");
@@ -91,17 +75,12 @@ class PreAggRefreshWorkerIT extends AbstractIntegrationTest {
     TimeUnit.MILLISECONDS.sleep(600);
 
     // Send another event - should trigger new refresh
-    Map<String, Object> event3 = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "Tenant",
-        "entityId", "tenant-3",
-        "tenantId", "test-tenant"
-    );
-    
+    Map<String, Object> event3 = Map.of("eventType", "ENTITY_UPDATED", "entityType", "Tenant",
+        "entityId", "tenant-3", "tenantId", "test-tenant");
+
     kafkaTemplate.send("core.entities.lifecycle.mutated", "tenant-3", event3);
 
-    await().atMost(2, TimeUnit.SECONDS)
-        .pollInterval(100, TimeUnit.MILLISECONDS)
+    await().atMost(2, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
         .untilAsserted(() -> {
           Map<String, Long> stats = worker.getDebounceStats();
           assertThat(stats.get("Tenant")).isNotNull();
@@ -114,8 +93,7 @@ class PreAggRefreshWorkerIT extends AbstractIntegrationTest {
     var supportedTypes = cubePreAggService.getSupportedEntityTypes();
 
     // Then
-    assertThat(supportedTypes)
-        .containsExactlyInAnyOrder("User", "Tenant", "Group");
+    assertThat(supportedTypes).containsExactlyInAnyOrder("User", "Tenant", "Group");
   }
 
   @Test

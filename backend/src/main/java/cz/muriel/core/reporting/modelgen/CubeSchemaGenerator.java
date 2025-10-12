@@ -13,22 +13,22 @@ import java.util.stream.Collectors;
 /**
  * Generates Cube.js schema (.js files) from metamodel EntitySchema definitions.
  * 
- * <p>Converts YAML metamodel → Cube.js JavaScript schema with:
+ * <p>
+ * Converts YAML metamodel → Cube.js JavaScript schema with:
  * <ul>
- *   <li>Dimensions (string, number, time, boolean)</li>
- *   <li>Measures (count, sum, avg, min, max)</li>
- *   <li>Pre-aggregations (daily, weekly rollups)</li>
- *   <li>Joins (relationships between cubes)</li>
+ * <li>Dimensions (string, number, time, boolean)</li>
+ * <li>Measures (count, sum, avg, min, max)</li>
+ * <li>Pre-aggregations (daily, weekly rollups)</li>
+ * <li>Joins (relationships between cubes)</li>
  * </ul>
  * 
  * @see EntitySchema
  */
-@Slf4j
-@Service
+@Slf4j @Service
 public class CubeSchemaGenerator {
 
-  private static final DateTimeFormatter TIMESTAMP_FORMATTER = 
-      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter
+      .ofPattern("yyyy-MM-dd HH:mm:ss");
 
   /**
    * Generate Cube.js schema JavaScript code from EntitySchema.
@@ -45,7 +45,7 @@ public class CubeSchemaGenerator {
     js.append("/**\n");
     js.append(" * Cube.js Schema: ").append(schema.getEntity()).append("\n");
     js.append(" * Generated from metamodel at: ")
-      .append(LocalDateTime.now().format(TIMESTAMP_FORMATTER)).append("\n");
+        .append(LocalDateTime.now().format(TIMESTAMP_FORMATTER)).append("\n");
     js.append(" * \n");
     js.append(" * @generated DO NOT EDIT MANUALLY\n");
     js.append(" * Regenerate via: CubeSchemaGenerator.generate()\n");
@@ -83,12 +83,13 @@ public class CubeSchemaGenerator {
    */
   private void generateSql(EntitySchema schema, StringBuilder js) {
     js.append("  sql: `SELECT * FROM ").append(schema.getTable()).append("`");
-    
+
     // Add tenant isolation if tenantField exists
     if (schema.getTenantField() != null) {
       js.append(",\n\n");
       js.append("  // 🔐 Multi-tenancy: Automatic tenant isolation\n");
-      js.append("  preAggregationsSchema: `").append(schema.getTable()).append("_preagg_${SECURITY_CONTEXT.tenantId.unsafeValue()}`,\n");
+      js.append("  preAggregationsSchema: `").append(schema.getTable())
+          .append("_preagg_${SECURITY_CONTEXT.tenantId.unsafeValue()}`,\n");
     } else {
       js.append(",\n\n");
     }
@@ -98,19 +99,20 @@ public class CubeSchemaGenerator {
    * Generate dimensions from metamodel fields.
    */
   private void generateDimensions(EntitySchema schema, StringBuilder js) {
-    js.append("  // ============================================================================\n");
+    js.append(
+        "  // ============================================================================\n");
     js.append("  // DIMENSIONS\n");
-    js.append("  // ============================================================================\n\n");
+    js.append(
+        "  // ============================================================================\n\n");
     js.append("  dimensions: {\n");
 
-    List<FieldSchema> dimensionFields = schema.getFields().stream()
-        .filter(this::isDimension)
+    List<FieldSchema> dimensionFields = schema.getFields().stream().filter(this::isDimension)
         .collect(Collectors.toList());
 
     for (int i = 0; i < dimensionFields.size(); i++) {
       FieldSchema field = dimensionFields.get(i);
       generateDimension(field, schema.getTable(), js);
-      
+
       if (i < dimensionFields.size() - 1) {
         js.append(",\n\n");
       } else {
@@ -145,22 +147,24 @@ public class CubeSchemaGenerator {
    * Generate measures (count, aggregations).
    */
   private void generateMeasures(EntitySchema schema, StringBuilder js) {
-    js.append("  // ============================================================================\n");
+    js.append(
+        "  // ============================================================================\n");
     js.append("  // MEASURES\n");
-    js.append("  // ============================================================================\n\n");
+    js.append(
+        "  // ============================================================================\n\n");
     js.append("  measures: {\n");
 
     // Always add count measure
     js.append("    count: {\n");
     js.append("      type: `count`,\n");
     js.append("      drillMembers: [");
-    
+
     // Add primary key and important dimensions to drill members
     List<String> drillMembers = schema.getFields().stream()
-        .filter(f -> Boolean.TRUE.equals(f.getPk()) || "email".equals(f.getName()) || "name".equals(f.getName()))
-        .map(f -> toCamelCase(f.getName()))
-        .collect(Collectors.toList());
-    
+        .filter(f -> Boolean.TRUE.equals(f.getPk()) || "email".equals(f.getName())
+            || "name".equals(f.getName()))
+        .map(f -> toCamelCase(f.getName())).collect(Collectors.toList());
+
     js.append(String.join(", ", drillMembers));
     js.append("]\n");
     js.append("    }");
@@ -200,17 +204,18 @@ public class CubeSchemaGenerator {
    * Generate pre-aggregations for time-series data.
    */
   private void generatePreAggregations(EntitySchema schema, StringBuilder js) {
-    js.append("  // ============================================================================\n");
+    js.append(
+        "  // ============================================================================\n");
     js.append("  // PRE-AGGREGATIONS\n");
-    js.append("  // ============================================================================\n\n");
+    js.append(
+        "  // ============================================================================\n\n");
     js.append("  preAggregations: {\n");
 
     // Find timestamp field (createdAt, updatedAt, etc.)
     FieldSchema timeField = schema.getFields().stream()
-        .filter(f -> "timestamp".equals(f.getType()) && 
-                     (f.getName().contains("created") || f.getName().contains("updated")))
-        .findFirst()
-        .orElse(null);
+        .filter(f -> "timestamp".equals(f.getType())
+            && (f.getName().contains("created") || f.getName().contains("updated")))
+        .findFirst().orElse(null);
 
     if (timeField != null) {
       String timeDimension = toCamelCase(timeField.getName());
@@ -236,20 +241,22 @@ public class CubeSchemaGenerator {
    * Generate segments for state-based filtering.
    */
   private void generateSegments(EntitySchema schema, StringBuilder js) {
-    js.append("  // ============================================================================\n");
+    js.append(
+        "  // ============================================================================\n");
     js.append("  // SEGMENTS\n");
-    js.append("  // ============================================================================\n\n");
+    js.append(
+        "  // ============================================================================\n\n");
     js.append("  segments: {\n");
 
     if (schema.getStates() != null && !schema.getStates().isEmpty()) {
       for (int i = 0; i < schema.getStates().size(); i++) {
         var state = schema.getStates().get(i);
         String segmentName = toCamelCase(state.getCode()) + "Items";
-        
+
         js.append("    ").append(segmentName).append(": {\n");
         js.append("      sql: `${CUBE}.status = '").append(state.getCode()).append("'`\n");
         js.append("    }");
-        
+
         if (i < schema.getStates().size() - 1) {
           js.append(",\n\n");
         }
@@ -265,26 +272,23 @@ public class CubeSchemaGenerator {
 
   private boolean isDimension(FieldSchema field) {
     // All non-ref fields are dimensions
-    return !"ref".equals(field.getType()) && 
-           !"collection".equals(field.getType()) &&
-           !"manyToMany".equals(field.getType()) &&
-           !"oneToMany".equals(field.getType());
+    return !"ref".equals(field.getType()) && !"collection".equals(field.getType())
+        && !"manyToMany".equals(field.getType()) && !"oneToMany".equals(field.getType());
   }
 
   private String mapFieldTypeToCubeDimensionType(String metamodelType) {
     return switch (metamodelType) {
-      case "uuid", "string", "email", "text" -> "string";
-      case "long", "number" -> "number";
-      case "timestamp" -> "time";
-      case "boolean" -> "boolean";
-      default -> "string";
+    case "uuid", "string", "email", "text" -> "string";
+    case "long", "number" -> "number";
+    case "timestamp" -> "time";
+    case "boolean" -> "boolean";
+    default -> "string";
     };
   }
 
   private boolean shouldHavePreAggregations(EntitySchema schema) {
     // Have pre-agg if entity has timestamp field
-    return schema.getFields().stream()
-        .anyMatch(f -> "timestamp".equals(f.getType()));
+    return schema.getFields().stream().anyMatch(f -> "timestamp".equals(f.getType()));
   }
 
   private boolean hasStates(EntitySchema schema) {
@@ -299,7 +303,7 @@ public class CubeSchemaGenerator {
     StringBuilder camelCase = new StringBuilder(parts[0].toLowerCase());
     for (int i = 1; i < parts.length; i++) {
       camelCase.append(parts[i].substring(0, 1).toUpperCase())
-               .append(parts[i].substring(1).toLowerCase());
+          .append(parts[i].substring(1).toLowerCase());
     }
     return camelCase.toString();
   }

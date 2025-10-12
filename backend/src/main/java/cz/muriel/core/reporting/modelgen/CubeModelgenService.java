@@ -19,17 +19,19 @@ import java.util.Map;
 /**
  * Service for exporting Cube.js schemas from metamodel to filesystem.
  * 
- * <p>Generates .js files in Cube.js schema directory from registered metamodel entities.
+ * <p>
+ * Generates .js files in Cube.js schema directory from registered metamodel
+ * entities.
  * 
- * <p>Usage:
+ * <p>
+ * Usage:
+ * 
  * <pre>
  * modelgenService.exportAll();
  * // → Writes docker/cube/schema/User.js, Tenant.js, etc.
  * </pre>
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class CubeModelgenService {
 
   private final MetamodelRegistry metamodelRegistry;
@@ -48,7 +50,7 @@ public class CubeModelgenService {
    */
   public List<Path> exportAll() {
     log.info("Starting Cube.js schema export from metamodel...");
-    
+
     List<Path> generatedFiles = new ArrayList<>();
     Map<String, EntitySchema> allSchemas = metamodelRegistry.getAllSchemas();
 
@@ -80,12 +82,8 @@ public class CubeModelgenService {
     Files.createDirectories(outputPath.getParent());
 
     // Write file
-    Files.writeString(
-        outputPath, 
-        jsCode, 
-        StandardOpenOption.CREATE, 
-        StandardOpenOption.TRUNCATE_EXISTING
-    );
+    Files.writeString(outputPath, jsCode, StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING);
 
     log.debug("Exported Cube.js schema: {} → {}", schema.getEntity(), outputPath);
     return outputPath;

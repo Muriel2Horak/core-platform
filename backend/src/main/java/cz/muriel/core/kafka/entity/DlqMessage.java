@@ -17,19 +17,14 @@ import java.util.UUID;
  * 
  * Created by DltManager when messages fail after all retry attempts.
  */
-@Entity
-@Table(name = "dlq_messages", indexes = {
+@Entity @Table(name = "dlq_messages", indexes = {
     @Index(name = "idx_dlq_topic_status", columnList = "original_topic, status"),
     @Index(name = "idx_dlq_created_at", columnList = "created_at"),
     @Index(name = "idx_dlq_consumer_group", columnList = "consumer_group"),
-    @Index(name = "idx_dlq_exception_type", columnList = "exception_type")
-})
-@Data
-@NoArgsConstructor
+    @Index(name = "idx_dlq_exception_type", columnList = "exception_type") }) @Data @NoArgsConstructor
 public class DlqMessage {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
+  @Id @GeneratedValue(strategy = GenerationType.AUTO)
   private UUID id;
 
   @Column(name = "original_topic", nullable = false, length = 255)
@@ -44,8 +39,7 @@ public class DlqMessage {
   @Column(name = "message_key", length = 255)
   private String messageKey;
 
-  @JdbcTypeCode(SqlTypes.JSON)
-  @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
+  @JdbcTypeCode(SqlTypes.JSON) @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
   private Map<String, Object> payload;
 
   @Column(name = "error_message", columnDefinition = "TEXT")
@@ -57,8 +51,7 @@ public class DlqMessage {
   @Column(name = "retry_count", nullable = false)
   private Integer retryCount = 0;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false, length = 20)
+  @Enumerated(EnumType.STRING) @Column(name = "status", nullable = false, length = 20)
   private DlqStatus status = DlqStatus.PENDING;
 
   @Column(name = "created_at", nullable = false)
@@ -74,8 +67,6 @@ public class DlqMessage {
   private String exceptionType;
 
   public enum DlqStatus {
-    PENDING,
-    REPLAYED,
-    DISCARDED
+    PENDING, REPLAYED, DISCARDED
   }
 }

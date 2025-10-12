@@ -20,6 +20,7 @@ import java.lang.annotation.Target;
  * 
  * DLT: Routes to core.platform.dlq.all
  */
-@Target({ ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) @RetryableTopic(attempts = "${app.kafka.retry.critical.attempts:5}", backoff = @Backoff(delayExpression = "${app.kafka.retry.critical.delay-ms:1000}", multiplierExpression = "${app.kafka.retry.critical.multiplier:2.0}", maxDelayExpression = "${app.kafka.retry.critical.max-delay-ms:60000}"), kafkaTemplate = "kafkaTemplate", dltTopicSuffix = ".dlt", dltStrategy = DltStrategy.FAIL_ON_ERROR, include = Exception.class)
+@Target({
+    ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) @RetryableTopic(attempts = "${app.kafka.retry.critical.attempts:5}", backoff = @Backoff(delayExpression = "${app.kafka.retry.critical.delay-ms:1000}", multiplierExpression = "${app.kafka.retry.critical.multiplier:2.0}", maxDelayExpression = "${app.kafka.retry.critical.max-delay-ms:60000}"), kafkaTemplate = "kafkaTemplate", dltTopicSuffix = ".dlt", dltStrategy = DltStrategy.FAIL_ON_ERROR, include = Exception.class)
 public @interface CriticalRetry {
 }

@@ -1,0 +1,190 @@
+# 🤖 Dependabot Configuration (S8)
+# Automated dependency updates for Maven, npm, GitHub Actions, and Docker
+
+version: 2
+
+updates:
+  # Backend (Maven) - Java dependencies
+  - package-ecosystem: "maven"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Muriel2Horak"
+    labels:
+      - "dependencies"
+      - "backend"
+      - "java"
+    commit-message:
+      prefix: "deps(backend)"
+      include: "scope"
+    groups:
+      # Group Spring Boot dependencies
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+          - "org.springframework:*"
+      # Group Kafka dependencies
+      kafka:
+        patterns:
+          - "org.springframework.kafka:*"
+          - "org.apache.kafka:*"
+      # Group PostgreSQL dependencies
+      database:
+        patterns:
+          - "org.postgresql:*"
+          - "org.flywaydb:*"
+      # Group testing dependencies
+      testing:
+        patterns:
+          - "org.junit.jupiter:*"
+          - "org.mockito:*"
+          - "org.assertj:*"
+          - "org.testcontainers:*"
+      # Group security dependencies (higher priority)
+      security:
+        patterns:
+          - "org.keycloak:*"
+          - "org.springframework.security:*"
+          - "io.jsonwebtoken:*"
+    ignore:
+      # Ignore patch updates for stable dependencies
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+    # Security-only updates
+    allow:
+      - dependency-type: "all"
+
+  # Frontend (npm) - JavaScript dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Muriel2Horak"
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "javascript"
+    commit-message:
+      prefix: "deps(frontend)"
+      include: "scope"
+    groups:
+      # Group React dependencies
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router-dom"
+          - "@types/react*"
+      # Group Material-UI dependencies
+      mui:
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+      # Group Vite dependencies
+      vite:
+        patterns:
+          - "vite"
+          - "vite-*"
+          - "@vitejs/*"
+      # Group testing dependencies
+      testing:
+        patterns:
+          - "vitest"
+          - "@testing-library/*"
+          - "@vitest/*"
+      # Group ESLint dependencies
+      linting:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+    ignore:
+      # Ignore patch updates for stable dependencies
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+
+  # GitHub Actions - Workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Muriel2Horak"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Docker - Container dependencies
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Muriel2Horak"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "deps(docker)"
+      include: "scope"
+    groups:
+      base-images:
+        patterns:
+          - "*"
+
+  # Keycloak Event Listener (Maven)
+  - package-ecosystem: "maven"
+    directory: "/keycloak-event-listener"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "keycloak"
+    commit-message:
+      prefix: "deps(keycloak)"
+
+  # Keycloak SPI Event Webhook (Maven)
+  - package-ecosystem: "maven"
+    directory: "/keycloak-spi-event-webhook"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "keycloak"
+    commit-message:
+      prefix: "deps(keycloak-spi)"

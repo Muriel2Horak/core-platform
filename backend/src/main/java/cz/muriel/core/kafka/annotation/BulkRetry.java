@@ -14,11 +14,12 @@ import java.lang.annotation.Target;
  * 
  * For bulk operations: Batch imports, background jobs
  * 
- * Retry strategy: - 2 attempts - 10s initial delay - 1.5x exponential backoff
- * - 60s max delay - Total max duration: ~25s (10s + 15s)
+ * Retry strategy: - 2 attempts - 10s initial delay - 1.5x exponential backoff -
+ * 60s max delay - Total max duration: ~25s (10s + 15s)
  * 
  * DLT: Routes to core.platform.dlq.all
  */
-@Target({ ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) @RetryableTopic(attempts = "${app.kafka.retry.bulk.attempts:2}", backoff = @Backoff(delayExpression = "${app.kafka.retry.bulk.delay-ms:10000}", multiplierExpression = "${app.kafka.retry.bulk.multiplier:1.5}", maxDelayExpression = "${app.kafka.retry.bulk.max-delay-ms:60000}"), kafkaTemplate = "kafkaTemplate", dltTopicSuffix = ".dlt", dltStrategy = DltStrategy.FAIL_ON_ERROR, include = Exception.class)
+@Target({
+    ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) @RetryableTopic(attempts = "${app.kafka.retry.bulk.attempts:2}", backoff = @Backoff(delayExpression = "${app.kafka.retry.bulk.delay-ms:10000}", multiplierExpression = "${app.kafka.retry.bulk.multiplier:1.5}", maxDelayExpression = "${app.kafka.retry.bulk.max-delay-ms:60000}"), kafkaTemplate = "kafkaTemplate", dltTopicSuffix = ".dlt", dltStrategy = DltStrategy.FAIL_ON_ERROR, include = Exception.class)
 public @interface BulkRetry {
 }

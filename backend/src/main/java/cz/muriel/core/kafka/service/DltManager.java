@@ -27,8 +27,8 @@ import java.util.Map;
  * critical topics (TODO) - Provide replay API via StreamingAdminController
  * 
  * DLT Topic Naming: - Old format: {topic}.dlt (e.g.,
- * core.entities.lifecycle.mutated.dlt) - New format: core.platform.dlq.all
- * (S7 unified DLQ)
+ * core.entities.lifecycle.mutated.dlt) - New format: core.platform.dlq.all (S7
+ * unified DLQ)
  */
 @Slf4j @Service @ConditionalOnProperty(name = "app.kafka.enabled", havingValue = "true", matchIfMissing = false)
 public class DltManager {
@@ -48,14 +48,15 @@ public class DltManager {
 
     // Initialize metrics
     this.dltMessagesTotal = Counter.builder("kafka_dlt_messages_total")
-        .description("Total number of messages sent to DLT").tag("source", "dlt-manager").register(meterRegistry);
+        .description("Total number of messages sent to DLT").tag("source", "dlt-manager")
+        .register(meterRegistry);
   }
 
   /**
    * Handle DLT messages from all consumers
    * 
-   * Listens to all *.dlt topics (legacy format) and core.platform.dlq.all (new
-   * S7 format)
+   * Listens to all *.dlt topics (legacy format) and core.platform.dlq.all (new S7
+   * format)
    */
   @KafkaListener(topicPattern = ".*\\.dlt", groupId = "core-platform.dlt-manager", containerFactory = "kafkaListenerContainerFactory") @Transactional
   public void handleDlt(@Payload String payload, @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -72,7 +73,8 @@ public class DltManager {
       Map<String, Object> payloadMap = objectMapper.readValue(payload, Map.class);
 
       // Extract original topic (remove .dlt suffix)
-      String originalTopic = topic.endsWith(".dlt") ? topic.substring(0, topic.length() - 4) : topic;
+      String originalTopic = topic.endsWith(".dlt") ? topic.substring(0, topic.length() - 4)
+          : topic;
 
       // Extract exception type from stack trace (first line)
       String exceptionType = extractExceptionType(stackTrace);
@@ -102,7 +104,8 @@ public class DltManager {
           "Message sent to DLT: topic={}, partition={}, offset={}, error={}, exceptionType={}, messageId={}",
           originalTopic, partition, offset, errorMessage, exceptionType, dlqMessage.getId());
 
-      // TODO (S7 Phase 6): Send alert if critical topic (e.g., core.entities.*.mutating)
+      // TODO (S7 Phase 6): Send alert if critical topic (e.g.,
+      // core.entities.*.mutating)
       if (isCriticalTopic(originalTopic)) {
         log.warn("⚠️ CRITICAL topic failed: {} - Consider manual intervention!", originalTopic);
         // TODO: Send PagerDuty/Slack alert
@@ -141,7 +144,8 @@ public class DltManager {
    * Check if topic is critical (requires immediate attention)
    */
   private boolean isCriticalTopic(String topic) {
-    return topic.contains(".entities.") && (topic.contains(".mutating") || topic.contains(".mutated"));
+    return topic.contains(".entities.")
+        && (topic.contains(".mutating") || topic.contains(".mutated"));
   }
 
   /**

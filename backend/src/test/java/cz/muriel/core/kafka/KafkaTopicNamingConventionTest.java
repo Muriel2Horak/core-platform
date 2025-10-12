@@ -31,8 +31,7 @@ class KafkaTopicNamingConventionTest {
 
   @Test
   void shouldGeneratePlatformTopic() {
-    assertEquals("core.platform.dlq.all",
-        KafkaTopicNamingConvention.platformTopic("dlq", "all"));
+    assertEquals("core.platform.dlq.all", KafkaTopicNamingConvention.platformTopic("dlq", "all"));
     assertEquals("core.platform.audit.critical",
         KafkaTopicNamingConvention.platformTopic("audit", "critical"));
     assertEquals("core.platform.metrics.system",
@@ -43,12 +42,15 @@ class KafkaTopicNamingConventionTest {
   void shouldValidateTopicNames() {
     // Valid
     assertTrue(KafkaTopicNamingConvention.isValidTopicName("core.entities.user.mutated"));
-    assertTrue(KafkaTopicNamingConvention.isValidTopicName("core.reporting.preagg.refresh-requested"));
+    assertTrue(
+        KafkaTopicNamingConvention.isValidTopicName("core.reporting.preagg.refresh-requested"));
     assertTrue(KafkaTopicNamingConvention.isValidTopicName("core.platform.dlq.all"));
 
     // Invalid
     assertFalse(KafkaTopicNamingConvention.isValidTopicName("UserMutated")); // Wrong format
-    assertFalse(KafkaTopicNamingConvention.isValidTopicName("core-entities-user")); // Hyphens instead of dots
+    assertFalse(KafkaTopicNamingConvention.isValidTopicName("core-entities-user")); // Hyphens
+                                                                                    // instead of
+                                                                                    // dots
     assertFalse(KafkaTopicNamingConvention.isValidTopicName("CORE.ENTITIES.USER")); // Uppercase
     assertFalse(KafkaTopicNamingConvention.isValidTopicName("core.entities.user")); // Only 3 parts
     assertFalse(KafkaTopicNamingConvention.isValidTopicName("core.entities")); // Only 2 parts
@@ -58,10 +60,8 @@ class KafkaTopicNamingConventionTest {
 
   @Test
   void shouldExtractEntityFromTopic() {
-    assertEquals("user",
-        KafkaTopicNamingConvention.extractEntity("core.entities.user.mutated"));
-    assertEquals("group",
-        KafkaTopicNamingConvention.extractEntity("core.entities.group.created"));
+    assertEquals("user", KafkaTopicNamingConvention.extractEntity("core.entities.user.mutated"));
+    assertEquals("group", KafkaTopicNamingConvention.extractEntity("core.entities.group.created"));
     assertEquals("preagg",
         KafkaTopicNamingConvention.extractEntity("core.reporting.preagg.refresh-requested"));
     assertNull(KafkaTopicNamingConvention.extractEntity("invalid-topic"));

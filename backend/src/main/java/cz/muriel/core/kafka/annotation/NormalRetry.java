@@ -19,6 +19,7 @@ import java.lang.annotation.Target;
  * 
  * DLT: Routes to core.platform.dlq.all
  */
-@Target({ ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) @RetryableTopic(attempts = "${app.kafka.retry.normal.attempts:3}", backoff = @Backoff(delayExpression = "${app.kafka.retry.normal.delay-ms:5000}", multiplierExpression = "${app.kafka.retry.normal.multiplier:2.0}", maxDelayExpression = "${app.kafka.retry.normal.max-delay-ms:30000}"), kafkaTemplate = "kafkaTemplate", dltTopicSuffix = ".dlt", dltStrategy = DltStrategy.FAIL_ON_ERROR, include = Exception.class)
+@Target({
+    ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) @RetryableTopic(attempts = "${app.kafka.retry.normal.attempts:3}", backoff = @Backoff(delayExpression = "${app.kafka.retry.normal.delay-ms:5000}", multiplierExpression = "${app.kafka.retry.normal.multiplier:2.0}", maxDelayExpression = "${app.kafka.retry.normal.max-delay-ms:30000}"), kafkaTemplate = "kafkaTemplate", dltTopicSuffix = ".dlt", dltStrategy = DltStrategy.FAIL_ON_ERROR, include = Exception.class)
 public @interface NormalRetry {
 }

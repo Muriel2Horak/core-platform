@@ -26,9 +26,9 @@ public class KafkaTopicNamingConvention {
   /**
    * Generate entity lifecycle topic name
    * 
-   * @param entity    Entity name (e.g., "user", "group")
+   * @param entity Entity name (e.g., "user", "group")
    * @param eventType Event type (e.g., "mutating", "mutated", "created",
-   *                  "deleted")
+   * "deleted")
    * @return Topic name: core.entities.{entity}.{eventType}
    */
   public static String entityLifecycleTopic(String entity, String eventType) {
@@ -41,7 +41,7 @@ public class KafkaTopicNamingConvention {
   /**
    * Generate reporting topic name
    * 
-   * @param entity    Entity name (e.g., "user", "preagg")
+   * @param entity Entity name (e.g., "user", "preagg")
    * @param eventType Event type (e.g., "refresh-requested", "completed")
    * @return Topic name: core.reporting.{entity}.{eventType}
    */
@@ -56,7 +56,7 @@ public class KafkaTopicNamingConvention {
    * Generate platform-level topic name (DLQ, system events)
    * 
    * @param category Category (e.g., "dlq", "audit", "metrics")
-   * @param subType  Sub-type (e.g., "all", "critical")
+   * @param subType Sub-type (e.g., "all", "critical")
    * @return Topic name: core.platform.{category}.{subType}
    */
   public static String platformTopic(String category, String subType) {
@@ -125,7 +125,7 @@ public class KafkaTopicNamingConvention {
   /**
    * Get backward-compatible legacy topic name (for migration phase)
    * 
-   * @param entity    Entity name
+   * @param entity Entity name
    * @param eventType Event type (mutating, mutated)
    * @return Legacy topic: core.entities.lifecycle.{eventType}
    */
@@ -139,8 +139,8 @@ public class KafkaTopicNamingConvention {
       throw new IllegalArgumentException(fieldName + " cannot be null or blank");
     }
     if (!value.matches("^[a-z0-9-]+$")) {
-      throw new IllegalArgumentException(fieldName
-          + " must contain only lowercase letters, numbers, and hyphens: " + value);
+      throw new IllegalArgumentException(
+          fieldName + " must contain only lowercase letters, numbers, and hyphens: " + value);
     }
   }
 }

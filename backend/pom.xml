@@ -482,21 +482,42 @@
 						<version>1.8.0</version>
 					</dependency>
 				</dependencies>
-			</plugin>			<!-- OWASP Dependency-Check Plugin -->
+			</plugin>			<!-- OWASP Dependency-Check Plugin (S8) -->
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
 				<version>11.1.0</version>
 				<configuration>
+					<!-- Fail build on HIGH (7.0+) or CRITICAL (9.0+) vulnerabilities -->
 					<failBuildOnCVSS>7</failBuildOnCVSS>
+					
+					<!-- Suppression file for false positives -->
 					<suppressionFiles>
 						<suppressionFile>owasp-suppressions.xml</suppressionFile>
 					</suppressionFiles>
+					
+					<!-- Output formats -->
 					<formats>
 						<format>HTML</format>
 						<format>JSON</format>
+						<format>JUNIT</format>
 					</formats>
 					<outputDirectory>${project.build.directory}/dependency-check</outputDirectory>
+					
+					<!-- NVD API configuration (faster updates) -->
+					<!-- Set NVD_API_KEY environment variable for rate limit increase -->
+					<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+					
+					<!-- Skip analysis for test dependencies -->
+					<skipTestScope>false</skipTestScope>
+					
+					<!-- Analyzers configuration -->
+					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+					<nuspecAnalyzerEnabled>false</nuspecAnalyzerEnabled>
+					<nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+					
+					<!-- Vulnerability data retention -->
+					<cveValidForHours>4</cveValidForHours>
 				</configuration>
 				<executions>
 					<execution>
@@ -551,7 +572,7 @@
 				</executions>
 			</plugin>
 
-			<!-- JaCoCo for code coverage -->
+			<!-- JaCoCo for code coverage (S8: Enhanced thresholds) -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -580,8 +601,15 @@
 								<rule>
 									<element>BUNDLE</element>
 									<limits>
+										<!-- Line coverage: 80% target (S8) -->
 										<limit>
 											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+										<!-- Branch coverage: 70% target (S8) -->
+										<limit>
+											<counter>BRANCH</counter>
 											<value>COVEREDRATIO</value>
 											<minimum>0.70</minimum>
 										</limit>
@@ -591,6 +619,103 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			
+			<!-- SpotBugs for static analysis (S8) -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.4</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Medium</threshold>
+					<xmlOutput>true</xmlOutput>
+					<htmlOutput>true</htmlOutput>
+					<failOnError>true</failOnError>
+					<plugins>
+						<plugin>
+							<groupId>com.h3xstream.findsecbugs</groupId>
+							<artifactId>findsecbugs-plugin</artifactId>
+							<version>1.13.0</version>
+						</plugin>
+					</plugins>
+				</configuration>
+				<executions>
+					<execution>
+						<id>spotbugs-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			
+			<!-- PMD for code quality analysis (S8) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>3.26.0</version>
+				<configuration>
+					<targetJdk>17</targetJdk>
+					<rulesets>
+						<ruleset>pmd-ruleset.xml</ruleset>
+					</rulesets>
+					<failOnViolation>true</failOnViolation>
+					<printFailingErrors>true</printFailingErrors>
+					<linkXRef>false</linkXRef>
+				</configuration>
+				<executions>
+					<execution>
+						<id>pmd-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+							<goal>cpd-check</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>net.sourceforge.pmd</groupId>
+						<artifactId>pmd-core</artifactId>
+						<version>7.9.0</version>
+					</dependency>
+					<dependency>
+						<groupId>net.sourceforge.pmd</groupId>
+						<artifactId>pmd-java</artifactId>
+						<version>7.9.0</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+			
+			<!-- Checkstyle for code style enforcement (S8) -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>3.5.0</version>
+				<configuration>
+					<configLocation>checkstyle.xml</configLocation>
+					<consoleOutput>true</consoleOutput>
+					<failsOnError>true</failsOnError>
+					<linkXRef>false</linkXRef>
+				</configuration>
+				<executions>
+					<execution>
+						<id>checkstyle-check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>10.20.1</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 		</plugins>
 	</build>

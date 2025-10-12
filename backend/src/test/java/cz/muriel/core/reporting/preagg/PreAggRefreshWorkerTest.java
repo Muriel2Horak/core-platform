@@ -38,14 +38,9 @@ class PreAggRefreshWorkerTest {
   void shouldTriggerPreAggRefreshForUserEntity() {
     // Given
     when(cubePreAggService.refreshForEntityType("User", "tenant-1")).thenReturn(true);
-    
-    Map<String, Object> event = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-123",
-        "tenantId", "tenant-1",
-        "timestamp", System.currentTimeMillis()
-    );
+
+    Map<String, Object> event = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-123", "tenantId", "tenant-1", "timestamp", System.currentTimeMillis());
 
     // When
     worker.handleEntityMutation(event, ack);
@@ -59,20 +54,12 @@ class PreAggRefreshWorkerTest {
   void shouldDebounceMultipleEventsForSameEntityType() throws InterruptedException {
     // Given
     when(cubePreAggService.refreshForEntityType(anyString(), anyString())).thenReturn(true);
-    
-    Map<String, Object> event1 = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1"
-    );
-    
-    Map<String, Object> event2 = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-2",
-        "tenantId", "tenant-1"
-    );
+
+    Map<String, Object> event1 = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1");
+
+    Map<String, Object> event2 = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-2", "tenantId", "tenant-1");
 
     // When
     worker.handleEntityMutation(event1, ack);
@@ -87,13 +74,9 @@ class PreAggRefreshWorkerTest {
   void shouldNotDebounceAfterWindowExpires() throws InterruptedException {
     // Given
     when(cubePreAggService.refreshForEntityType(anyString(), anyString())).thenReturn(true);
-    
-    Map<String, Object> event = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1"
-    );
+
+    Map<String, Object> event = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1");
 
     // When
     worker.handleEntityMutation(event, ack);
@@ -109,20 +92,12 @@ class PreAggRefreshWorkerTest {
   void shouldHandleDifferentEntityTypesIndependently() {
     // Given
     when(cubePreAggService.refreshForEntityType(anyString(), anyString())).thenReturn(true);
-    
-    Map<String, Object> userEvent = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1"
-    );
-    
-    Map<String, Object> tenantEvent = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "Tenant",
-        "entityId", "tenant-2",
-        "tenantId", "tenant-1"
-    );
+
+    Map<String, Object> userEvent = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1");
+
+    Map<String, Object> tenantEvent = Map.of("eventType", "ENTITY_UPDATED", "entityType", "Tenant",
+        "entityId", "tenant-2", "tenantId", "tenant-1");
 
     // When
     worker.handleEntityMutation(userEvent, ack);
@@ -138,13 +113,9 @@ class PreAggRefreshWorkerTest {
   void shouldSkipEventsWhenDisabled() {
     // Given
     PreAggRefreshWorker disabledWorker = new PreAggRefreshWorker(cubePreAggService, false, 1000);
-    
-    Map<String, Object> event = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1"
-    );
+
+    Map<String, Object> event = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1");
 
     // When
     disabledWorker.handleEntityMutation(event, ack);
@@ -157,13 +128,8 @@ class PreAggRefreshWorkerTest {
   @Test
   void shouldHandleDltMessages() {
     // Given
-    Map<String, Object> dltEvent = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1",
-        "errorReason", "Failed after 3 retries"
-    );
+    Map<String, Object> dltEvent = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1", "errorReason", "Failed after 3 retries");
 
     // When
     worker.handleDlt(dltEvent, ack);
@@ -177,13 +143,9 @@ class PreAggRefreshWorkerTest {
   void shouldClearDebounceCacheOnDemand() {
     // Given
     when(cubePreAggService.refreshForEntityType(anyString(), anyString())).thenReturn(true);
-    
-    Map<String, Object> event = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1"
-    );
+
+    Map<String, Object> event = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1");
 
     // When
     worker.handleEntityMutation(event, ack); // First event
@@ -198,25 +160,17 @@ class PreAggRefreshWorkerTest {
   void shouldReturnDebounceStats() {
     // Given
     when(cubePreAggService.refreshForEntityType(anyString(), anyString())).thenReturn(true);
-    
-    Map<String, Object> userEvent = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "User",
-        "entityId", "user-1",
-        "tenantId", "tenant-1"
-    );
-    
-    Map<String, Object> tenantEvent = Map.of(
-        "eventType", "ENTITY_UPDATED",
-        "entityType", "Tenant",
-        "entityId", "tenant-2",
-        "tenantId", "tenant-1"
-    );
+
+    Map<String, Object> userEvent = Map.of("eventType", "ENTITY_UPDATED", "entityType", "User",
+        "entityId", "user-1", "tenantId", "tenant-1");
+
+    Map<String, Object> tenantEvent = Map.of("eventType", "ENTITY_UPDATED", "entityType", "Tenant",
+        "entityId", "tenant-2", "tenantId", "tenant-1");
 
     // When
     worker.handleEntityMutation(userEvent, ack);
     worker.handleEntityMutation(tenantEvent, ack);
-    
+
     Map<String, Long> stats = worker.getDebounceStats();
 
     // Then

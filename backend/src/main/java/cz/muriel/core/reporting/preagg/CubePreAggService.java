@@ -15,51 +15,46 @@ import java.util.Set;
 /**
  * Service for triggering Cube.js pre-aggregation refresh via API.
  * 
- * <p>Cube.js Pre-aggregation API: POST /cubejs-api/v1/pre-aggregations/jobs
+ * <p>
+ * Cube.js Pre-aggregation API: POST /cubejs-api/v1/pre-aggregations/jobs
  * 
- * <p>Supported entity types and their Cube.js schema mappings:
+ * <p>
+ * Supported entity types and their Cube.js schema mappings:
  * <ul>
- *   <li>User → Users.js</li>
- *   <li>Tenant → Tenants.js</li>
- *   <li>Group → Groups.js</li>
+ * <li>User → Users.js</li>
+ * <li>Tenant → Tenants.js</li>
+ * <li>Group → Groups.js</li>
  * </ul>
  * 
- * @see <a href="https://cube.dev/docs/rest-api#v1pre-aggregationsjobs">Cube.js Pre-agg API</a>
+ * @see <a href="https://cube.dev/docs/rest-api#v1pre-aggregationsjobs">Cube.js
+ * Pre-agg API</a>
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class CubePreAggService {
 
   private final RestClient cubeRestClient;
-  
+
   @Value("${app.cube.preagg.timeout:30000}")
   private long timeoutMs;
 
   // Mapping: entityType -> Cube.js schema name
-  private static final Map<String, String> ENTITY_TO_CUBE_SCHEMA = Map.of(
-      "User", "Users",
-      "Tenant", "Tenants",
-      "Group", "Groups"
-  );
+  private static final Map<String, String> ENTITY_TO_CUBE_SCHEMA = Map.of("User", "Users", "Tenant",
+      "Tenants", "Group", "Groups");
 
   // Cube schemas that have pre-aggregations configured
-  private static final Set<String> SCHEMAS_WITH_PREAGG = Set.of(
-      "Users",
-      "Tenants",
-      "Groups"
-  );
+  private static final Set<String> SCHEMAS_WITH_PREAGG = Set.of("Users", "Tenants", "Groups");
 
   /**
    * Trigger pre-aggregation refresh for entity type.
    * 
    * @param entityType Entity type (e.g., "User", "Tenant")
    * @param tenantId Tenant ID (for multi-tenancy context, can be null)
-   * @return true if refresh was triggered, false if no pre-agg exists for this entity
+   * @return true if refresh was triggered, false if no pre-agg exists for this
+   * entity
    */
   public boolean refreshForEntityType(String entityType, String tenantId) {
     String cubeSchema = ENTITY_TO_CUBE_SCHEMA.get(entityType);
-    
+
     if (cubeSchema == null) {
       log.debug("No Cube.js schema mapping for entityType={}", entityType);
       return false;
@@ -76,9 +71,12 @@ public class CubePreAggService {
   /**
    * Trigger pre-aggregation refresh for Cube.js schema.
    * 
-   * <p>Uses Cube.js REST API: POST /cubejs-api/v1/pre-aggregations/jobs
+   * <p>
+   * Uses Cube.js REST API: POST /cubejs-api/v1/pre-aggregations/jobs
    * 
-   * <p>Request body:
+   * <p>
+   * Request body:
+   * 
    * <pre>
    * {
    *   "action": "post",
@@ -99,29 +97,19 @@ public class CubePreAggService {
 
     try {
       // Build request body
-      Map<String, Object> securityContext = tenantId != null 
-          ? Map.of("tenantId", tenantId) 
+      Map<String, Object> securityContext = tenantId != null ? Map.of("tenantId", tenantId)
           : Map.of();
-      
-      Map<String, Object> requestBody = Map.of(
-          "action", "post",
-          "selector", Map.of(
-              "contexts", new Object[] { Map.of("securityContext", securityContext) },
-              "timezones", new String[] { "UTC" },
-              "cubes", new String[] { cubeSchema }
-          )
-      );
+
+      Map<String, Object> requestBody = Map.of("action", "post", "selector",
+          Map.of("contexts", new Object[] { Map.of("securityContext", securityContext) },
+              "timezones", new String[] { "UTC" }, "cubes", new String[] { cubeSchema }));
 
       // Call Cube.js API
-      var response = cubeRestClient.post()
-          .uri("/cubejs-api/v1/pre-aggregations/jobs")
-          .contentType(MediaType.APPLICATION_JSON)
-          .body(requestBody)
-          .retrieve()
-          .toEntity(Map.class);
+      var response = cubeRestClient.post().uri("/cubejs-api/v1/pre-aggregations/jobs")
+          .contentType(MediaType.APPLICATION_JSON).body(requestBody).retrieve().toEntity(Map.class);
 
       if (response.getStatusCode() == HttpStatus.OK) {
-        log.info("Pre-aggregation refresh job created: schema={}, tenant={}, response={}", 
+        log.info("Pre-aggregation refresh job created: schema={}, tenant={}, response={}",
             cubeSchema, tenantId, response.getBody());
         return true;
       } else {
@@ -130,7 +118,7 @@ public class CubePreAggService {
       }
 
     } catch (HttpStatusCodeException e) {
-      log.error("Failed to trigger pre-aggregation refresh: schema={}, status={}, body={}", 
+      log.error("Failed to trigger pre-aggregation refresh: schema={}, status={}, body={}",
           cubeSchema, e.getStatusCode(), e.getResponseBodyAsString(), e);
       return false;
 
