@@ -1,16 +1,14 @@
 package cz.muriel.core.reporting.preagg;
 
+import cz.muriel.core.kafka.annotation.HighPriorityRetry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Kafka consumer for triggering Cube.js pre-aggregation refresh
@@ -24,6 +22,8 @@ import java.util.concurrent.TimeUnit;
  *   <li>app.cube.preagg.debounceMs - Debounce window (default: 30000ms = 30s)</li>
  *   <li>app.cube.preagg.enabled - Enable/disable worker (default: true)</li>
  * </ul>
+ * 
+ * <p>Retry Strategy (S7): @HighPriorityRetry - 4 attempts, 2s→30s max - Total: ~30s
  * 
  * @see cz.muriel.core.reporting.preagg.CubePreAggService
  */
@@ -64,16 +64,10 @@ public class PreAggRefreshWorker {
    * }
    * </pre>
    */
-  @RetryableTopic(
-      attempts = "3",
-      backoff = @Backoff(delay = 2000, multiplier = 2.0),
-      kafkaTemplate = "kafkaTemplate",
-      dltTopicSuffix = ".dlt",
-      include = Exception.class
-  )
+  @HighPriorityRetry
   @KafkaListener(
       topics = "core.entities.lifecycle.mutated",
-      groupId = "preagg-refresh-worker",
+      groupId = "core-platform.reporting-preagg",
       containerFactory = "kafkaListenerContainerFactory"
   )
   public void handleEntityMutation(Map<String, Object> event, Acknowledgment ack) {
@@ -114,7 +108,7 @@ public class PreAggRefreshWorker {
 
     } catch (Exception e) {
       log.error("Failed to process entity mutation event: {}", event, e);
-      throw e; // Trigger retry via @RetryableTopic
+      throw e; // Trigger retry via @HighPriorityRetry
     }
   }
 
@@ -138,15 +132,17 @@ public class PreAggRefreshWorker {
    * Handle DLT (Dead Letter Topic) messages.
    * 
    * <p>These are messages that failed after all retry attempts.
+   * 
+   * <p>S7 Phase 3: Will migrate to centralized DltManager
    */
   @KafkaListener(
       topics = "core.entities.lifecycle.mutated.dlt",
-      groupId = "preagg-refresh-worker-dlt",
+      groupId = "core-platform.reporting-preagg.dlq",
       containerFactory = "kafkaListenerContainerFactory"
   )
   public void handleDlt(Map<String, Object> event, Acknowledgment ack) {
     log.error("Message sent to DLT after all retries exhausted: {}", event);
-    // TODO: Send to monitoring/alerting system
+    // TODO (S7 Phase 3): Migrate to centralized DltManager
     ack.acknowledge();
   }
 

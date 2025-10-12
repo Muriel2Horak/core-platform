@@ -20,7 +20,54 @@ CREATE TABLE IF NOT EXISTS tenants (
 );
 
 CREATE INDEX idx_tenants_key ON tenants(key);
-CREATE INDEX idx_tenants_keycloak_realm_id ON tenants(keycloak_realm_id);
+CREATE INDEX idx_tenants_keycloak_realm_id ON ten    RAISE NOTICE '📊 Workflow tables: entity_state, state_transition, entity_state_log';
+    RAISE NOTICE '📊 Document tables: document, document_index';
+    RAISE NOTICE '📊 Analytics tables: presence_activity';
+    RAISE NOTICE '📊 Streaming tables: command_queue, work_state, outbox_final';
+    RAISE NOTICE '📊 Kafka DLQ table: dlq_messages';
+    RAISE NOTICE '🔐 RLS policies enabled for tenant isolation';
+    RAISE NOTICE '⚙️ Triggers: version increment, updated_at auto-update';
+END $$;
+
+-- =====================================================
+-- SECTION 7: KAFKA DLQ (Dead Letter Queue) - S7
+-- =====================================================
+
+-- 7.1) DLQ Messages - Centralized dead letter queue for all Kafka consumers
+CREATE TABLE IF NOT EXISTS dlq_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    original_topic VARCHAR(255) NOT NULL,
+    partition INT,
+    offset_value BIGINT,  -- renamed from 'offset' (reserved keyword)
+    message_key VARCHAR(255),
+    payload JSONB NOT NULL,
+    error_message TEXT,
+    stack_trace TEXT,
+    retry_count INT DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'replayed', 'discarded')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    replayed_at TIMESTAMP,
+    
+    -- Metadata
+    consumer_group VARCHAR(255),
+    exception_type VARCHAR(255)
+);
+
+-- Indexes for common queries
+CREATE INDEX idx_dlq_topic_status ON dlq_messages(original_topic, status);
+CREATE INDEX idx_dlq_created_at ON dlq_messages(created_at DESC);
+CREATE INDEX idx_dlq_consumer_group ON dlq_messages(consumer_group);
+CREATE INDEX idx_dlq_exception_type ON dlq_messages(exception_type);
+
+-- Partial index for pending messages (hot path)
+CREATE INDEX idx_dlq_pending ON dlq_messages(created_at DESC) WHERE status = 'pending';
+
+COMMENT ON TABLE dlq_messages IS 'S7: Centralized DLQ for all Kafka consumers - stores failed messages for manual replay';
+COMMENT ON COLUMN dlq_messages.original_topic IS 'Topic where message originally failed';
+COMMENT ON COLUMN dlq_messages.retry_count IS 'Number of times message was replayed';
+COMMENT ON COLUMN dlq_messages.status IS 'pending = needs action, replayed = successfully reprocessed, discarded = manual deletion';
+COMMENT ON COLUMN dlq_messages.consumer_group IS 'Consumer group that failed to process message';
+COMMENT ON COLUMN dlq_messages.exception_type IS 'Java exception class name for error categorization';ycloak_realm_id);
 
 COMMENT ON TABLE tenants IS 'Minimal tenant registry - display names fetched from Keycloak realms';
 COMMENT ON COLUMN tenants.key IS 'Keycloak realm name (source of truth)';
