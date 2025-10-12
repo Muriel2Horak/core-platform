@@ -1,8 +1,8 @@
 package cz.muriel.core.monitoring.bff.service;
 
 import cz.muriel.core.monitoring.bff.model.TenantBinding;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +17,18 @@ import java.util.Map;
  * Service for proxying requests to Grafana HTTP API. Adds service account token
  * and X-Grafana-Org-Id header. Never exposes tokens to the browser.
  */
-@Service @RequiredArgsConstructor @Slf4j
+@Service
+@Slf4j
 public class MonitoringProxyService {
 
   private final TenantOrgService tenantOrgService;
   private final WebClient grafanaClient;
+
+  public MonitoringProxyService(TenantOrgService tenantOrgService,
+      @Qualifier("grafanaWebClient") WebClient grafanaClient) {
+    this.tenantOrgService = tenantOrgService;
+    this.grafanaClient = grafanaClient;
+  }
 
   /**
    * Forward POST /api/ds/query request to Grafana. Used by Grafana Scenes to
