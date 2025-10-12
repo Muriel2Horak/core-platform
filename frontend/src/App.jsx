@@ -33,6 +33,8 @@ import {
   KeycloakSyncPage,
   SyncHistoryPage,
   StreamingDashboardPage,
+  WorkflowDesignerPage,
+  MetamodelStudioPage,
 } from './pages/Admin';
 
 // 🆕 S2: Presence System - Edit Pages
@@ -483,6 +485,8 @@ const AppContent = () => {
           <Route path="keycloak-sync" element={<KeycloakSyncPage user={user} />} />
           <Route path="sync-history" element={<SyncHistoryPage />} />
           <Route path="streaming" element={<StreamingDashboardPage />} />
+          <Route path="workflows" element={<WorkflowDesignerPage />} />
+          <Route path="studio" element={<MetamodelStudioPage />} />
         </Route>
         
         {/* 🆕 Tenant Admin sekce - pro tenant administrátory */}

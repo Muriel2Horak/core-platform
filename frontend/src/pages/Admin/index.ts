@@ -7,3 +7,5 @@ export { default as AdminAuditPage } from './AdminAuditPage';
 export { KeycloakSyncPage } from './KeycloakSyncPage';
 export { SyncHistoryPage } from './SyncHistoryPage';
 export { default as StreamingDashboardPage } from './StreamingDashboardPage';
+export { default as WorkflowDesignerPage } from './WorkflowDesignerPage';
+export { default as MetamodelStudioPage } from './MetamodelStudioPage';
