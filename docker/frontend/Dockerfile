@@ -17,7 +17,7 @@ COPY frontend/package*.json ./
 
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+  npm ci
 
 COPY frontend/ .
 

@@ -9,3 +9,6 @@ export { SyncHistoryPage } from './SyncHistoryPage';
 export { default as StreamingDashboardPage } from './StreamingDashboardPage';
 export { default as WorkflowDesignerPage } from './WorkflowDesignerPage';
 export { default as MetamodelStudioPage } from './MetamodelStudioPage';
+export { UserEditPage } from './UserEditPage';
+export { TenantEditPage } from './TenantEditPage';
+export { RoleEditPage } from './RoleEditPage';
