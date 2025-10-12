@@ -38,7 +38,7 @@ import {
   UserEditPage,
   TenantEditPage,
   RoleEditPage,
-} from './pages/admin';
+} from './pages/Admin';
 
 // 🆕 Tenant Admin sekce
 import {
