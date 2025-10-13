@@ -219,10 +219,19 @@ up:
 
 _up_inner: validate-env kc-image
 	@echo ">>> starting compose up at $(BUILD_TS)"
+	@echo "🚀 Starting Core Platform environment..."
+	@echo "📋 Environment: $${ENVIRONMENT:-development}"
+	@echo "🌐 Domain: $${DOMAIN:-core-platform.local}"
 	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env up -d --remove-orphans
-	@echo ">>> waiting healthchecks"
-	@scripts/build/wait-healthy.sh --timeout 180
+	@echo ""
 	@echo "✅ Environment started successfully!"
+	@echo "🌐 Admin Frontend: https://admin.$${DOMAIN:-core-platform.local}"
+	@echo "🔐 Keycloak: https://localhost:8081"
+	@echo "📊 Grafana: http://localhost:3001"
+	@echo "🗄️  PgAdmin: http://localhost:5050"
+	@echo ""
+	@echo "⏳ Waiting for services to be ready... (this may take a few minutes)"
+	@$(MAKE) wait-for-services
 
 # Production rebuild with Build Doctor
 rebuild:
@@ -239,9 +248,9 @@ clean:
 
 _clean_inner:
 	@echo ">>> cleaning at $(BUILD_TS)"
-	@docker compose -f docker/docker-compose.yml --env-file .env down -v --remove-orphans
-	@docker system prune -f
-	@echo ">>> clean done"
+	@echo "🧹 Clean restart - rebuilding all images..."
+	@docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes
+	@$(MAKE) rebuild
 
 # Crashloop watcher
 watch:
