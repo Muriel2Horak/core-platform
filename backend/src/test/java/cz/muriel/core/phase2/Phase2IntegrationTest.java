@@ -25,9 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 
  * Tests for WebSocket, Workflow, Documents and Search functionality
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(MockTestConfig.class)
-@Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Import(MockTestConfig.class) @Testcontainers
 public class Phase2IntegrationTest {
 
   @LocalServerPort

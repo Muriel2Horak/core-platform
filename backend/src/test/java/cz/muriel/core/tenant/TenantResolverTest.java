@@ -86,33 +86,20 @@ class TenantResolverTest {
   }
 
   private Jwt createJwtWithRealmInIssuer(String tenantKey) {
-    return Jwt.withTokenValue("token")
-        .header("alg", "RS256")
-        .claim("sub", "user123")
-        .issuer("http://localhost:8081/realms/" + tenantKey)
-        .issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(3600))
-        .build();
+    return Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
+        .issuer("http://localhost:8081/realms/" + tenantKey).issuedAt(Instant.now())
+        .expiresAt(Instant.now().plusSeconds(3600)).build();
   }
 
   private Jwt createJwtWithRealmClaim(String tenantKey) {
-    return Jwt.withTokenValue("token")
-        .header("alg", "RS256")
-        .claim("sub", "user123")
-        .claim("realm", tenantKey)
-        .issuer("http://localhost:8081/auth")  // No realm in issuer
-        .issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(3600))
-        .build();
+    return Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
+        .claim("realm", tenantKey).issuer("http://localhost:8081/auth") // No realm in issuer
+        .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
   }
 
   private Jwt createJwtWithoutRealm() {
-    return Jwt.withTokenValue("token")
-        .header("alg", "RS256")
-        .claim("sub", "user123")
-        .issuer("http://localhost:8081/auth")  // No realm anywhere
-        .issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(3600))
-        .build();
+    return Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
+        .issuer("http://localhost:8081/auth") // No realm anywhere
+        .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
   }
 }

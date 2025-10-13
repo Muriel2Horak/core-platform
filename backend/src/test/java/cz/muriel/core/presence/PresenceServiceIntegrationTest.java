@@ -24,8 +24,7 @@ import static org.awaitility.Awaitility.await;
  * 
  * Uses Testcontainers to spin up Redis instance
  */
-@SpringBootTest
-@Testcontainers
+@SpringBootTest @Testcontainers
 class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   private static final DockerImageName REDIS_IMAGE = DockerImageName.parse("redis:7-alpine");

@@ -29,10 +29,7 @@ import org.testcontainers.utility.DockerImageName;
  * }
  * </pre>
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Import(MockTestConfig.class)
+@SpringBootTest @ActiveProfiles("test") @Testcontainers @Import(MockTestConfig.class)
 public abstract class AbstractIntegrationTest {
 
   @Container @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically
