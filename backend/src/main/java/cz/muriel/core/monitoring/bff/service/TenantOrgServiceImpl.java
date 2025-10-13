@@ -1,74 +1,57 @@
 package cz.muriel.core.monitoring.bff.service;
 
 import cz.muriel.core.monitoring.bff.model.TenantBinding;
+import cz.muriel.core.monitoring.grafana.entity.GrafanaTenantBinding;
+import cz.muriel.core.monitoring.grafana.repository.GrafanaTenantBindingRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Default implementation of TenantOrgService. Loads tenant-to-org mapping from
- * environment/config. In production, this should load from Vault/Secrets
- * Manager.
+ * 🔄 REFACTORED: Dynamic tenant-org resolution
+ * 
+ * Místo static init() nyní používá database storage s Grafana provisioning
  */
-@Service @Slf4j
+@Service
+@Slf4j
+@RequiredArgsConstructor
 public class TenantOrgServiceImpl implements TenantOrgService {
 
-  @Value("${monitoring.tenant-org-map:{}}")
-  private String tenantOrgMapJson;
+  private final GrafanaTenantBindingRepository bindingRepository;
 
-  private final Map<String, TenantBinding> tenantOrgMap = new HashMap<>();
-
-  @PostConstruct
-  public void init() {
-    // ✅ PRODUCTION: Service account tokens loaded from environment variables
-    // These should be injected via Kubernetes Secrets, Vault, or AWS Secrets
-    // Manager
-    // Format: GRAFANA_SAT_<TENANT_ID_UPPERCASE> (e.g., GRAFANA_SAT_CORE_PLATFORM)
-
-    log.info("Initializing tenant-org mappings from environment");
-
-    // Load tenant mappings from environment variables
-    loadTenantMapping("core-platform", 1L, "GRAFANA_SAT_CORE_PLATFORM");
-    loadTenantMapping("test-tenant", 2L, "GRAFANA_SAT_TEST_TENANT");
-
-    log.info("Loaded {} tenant-org mappings", tenantOrgMap.size());
+  @Override
+  @Cacheable(value = "tenantOrgBindings", key = "#tenantId")
+  public TenantBinding resolve(Jwt jwt) {
+    String tenantId = extractTenantId(jwt);
+    return resolveTenantBinding(tenantId);
   }
 
   /**
-   * Load tenant mapping from environment variable
+   * 🔍 RESOLVE TENANT BINDING
+   * 
+   * Načte binding z databáze (s cache podporou)
    */
-  private void loadTenantMapping(String tenantId, Long orgId, String envVarName) {
-    String token = System.getenv(envVarName);
+  private TenantBinding resolveTenantBinding(String tenantId) {
+    log.debug("🔍 Resolving tenant binding for: {}", tenantId);
 
-    if (token == null || token.isBlank()) {
-      log.warn("⚠️ Missing service account token for tenant {}: {} not set", tenantId, envVarName);
-      // In development, use placeholder (will fail on actual Grafana calls)
-      token = "glsa_dev_placeholder_" + tenantId;
-    }
+    GrafanaTenantBinding binding =
+        bindingRepository.findByTenantId(tenantId).orElseThrow(() -> {
+          log.error("❌ No Grafana org mapping found for tenant: {}", tenantId);
+          return new IllegalStateException(
+              "Grafana organization not configured for tenant: " + tenantId
+                  + ". Please ensure the tenant is properly provisioned.");
+        });
 
-    tenantOrgMap.put(tenantId, new TenantBinding(tenantId, orgId, token));
-    log.debug("Loaded mapping: {} -> org {} (token masked)", tenantId, orgId);
-  }
+    log.debug("✅ Resolved tenant {} to org {} (token masked)", tenantId,
+        binding.getGrafanaOrgId());
 
-  @Override
-  public TenantBinding resolve(Jwt jwt) {
-    String tenantId = extractTenantId(jwt);
-
-    TenantBinding binding = tenantOrgMap.get(tenantId);
-    if (binding == null) {
-      log.error("No Grafana org mapping found for tenant: {}", tenantId);
-      throw new IllegalStateException(
-          "Grafana organization not configured for tenant: " + tenantId);
-    }
-
-    log.debug("Resolved tenant {} to org {} (token masked)", tenantId, binding.orgId());
-    return binding;
+    return new TenantBinding(binding.getTenantId(), binding.getGrafanaOrgId(),
+        binding.getServiceAccountToken());
   }
 
   @Override
@@ -106,11 +89,12 @@ public class TenantOrgServiceImpl implements TenantOrgService {
     String preferredUsername = jwt.getClaimAsString("preferred_username");
     if (preferredUsername != null && preferredUsername.contains("@")) {
       String realm = preferredUsername.split("@")[1];
-      log.warn("Falling back to realm {} from preferred_username for tenant resolution", realm);
+      log.warn("⚠️ Falling back to realm {} from preferred_username for tenant resolution",
+          realm);
       return realm;
     }
 
-    log.error("Could not extract tenant_id from JWT. Claims: {}", jwt.getClaims().keySet());
+    log.error("❌ Could not extract tenant_id from JWT. Claims: {}", jwt.getClaims().keySet());
     throw new IllegalArgumentException("No tenant_id found in JWT token");
   }
 }
