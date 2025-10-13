@@ -1,25 +1,53 @@
 package cz.muriel.core.monitoring.bff.service;
 
 import cz.muriel.core.monitoring.bff.model.TenantBinding;
+import cz.muriel.core.monitoring.grafana.entity.GrafanaTenantBinding;
+import cz.muriel.core.monitoring.grafana.repository.GrafanaTenantBindingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import static org.assertj.core.api.Assertions.*;
+import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
+
+@ExtendWith(MockitoExtension.class)
 class TenantOrgServiceImplTest {
+
+  @Mock
+  private GrafanaTenantBindingRepository bindingRepository;
 
   private TenantOrgServiceImpl tenantOrgService;
 
   @BeforeEach
   void setUp() {
-    // Set environment variables for test tokens
-    System.setProperty("GRAFANA_SAT_CORE_PLATFORM", "glsa_test_core_token");
-    System.setProperty("GRAFANA_SAT_TEST_TENANT", "glsa_test_tenant_token");
+    tenantOrgService = new TenantOrgServiceImpl(bindingRepository);
 
-    // Initialize service (uses hardcoded dev mappings)
-    tenantOrgService = new TenantOrgServiceImpl();
-    tenantOrgService.init();
+    // Setup mock bindings for core-platform (lenient to avoid UnnecessaryStubbingException)
+    GrafanaTenantBinding coreBinding = new GrafanaTenantBinding();
+    coreBinding.setTenantId("core-platform");
+    coreBinding.setGrafanaOrgId(1L);
+    coreBinding.setServiceAccountToken("glsa_test_core_token");
+    
+    lenient().when(bindingRepository.findByTenantId("core-platform"))
+        .thenReturn(Optional.of(coreBinding));
+
+    // Setup mock bindings for test-tenant
+    GrafanaTenantBinding testBinding = new GrafanaTenantBinding();
+    testBinding.setTenantId("test-tenant");
+    testBinding.setGrafanaOrgId(2L);
+    testBinding.setServiceAccountToken("glsa_test_tenant_token");
+    
+    lenient().when(bindingRepository.findByTenantId("test-tenant"))
+        .thenReturn(Optional.of(testBinding));
+
+    // Setup empty binding for unknown tenants
+    lenient().when(bindingRepository.findByTenantId("unknown-tenant"))
+        .thenReturn(Optional.empty());
   }
 
   @Test
@@ -70,8 +98,8 @@ class TenantOrgServiceImplTest {
 
     // When/Then
     assertThatThrownBy(() -> tenantOrgService.resolve(jwt))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Could not determine tenant ID from JWT");
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("No tenant_id found in JWT token");
   }
 
   @Test
@@ -89,18 +117,28 @@ class TenantOrgServiceImplTest {
   }
 
   @Test
-  void resolve_shouldExtractTenantFromGroups() {
-    // Given: JWT with tenant in groups claim
+  void resolve_shouldExtractTenantFromRoles() {
+    // Given: JWT with tenant in realm_access.roles claim
+    // Note: TENANT_TEST_TENANT converts to test_tenant (with underscore)
+    // So we need to add a binding for that format
+    GrafanaTenantBinding underscoreBinding = new GrafanaTenantBinding();
+    underscoreBinding.setTenantId("test_tenant");
+    underscoreBinding.setGrafanaOrgId(3L);
+    underscoreBinding.setServiceAccountToken("glsa_test_underscore_token");
+    
+    lenient().when(bindingRepository.findByTenantId("test_tenant"))
+        .thenReturn(Optional.of(underscoreBinding));
+    
     Jwt jwt = Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
         .claim("realm_access",
-            java.util.Map.of("groups", java.util.List.of("TENANT_test-tenant", "ROLE_USER")))
+            java.util.Map.of("roles", java.util.List.of("TENANT_TEST_TENANT", "ROLE_USER")))
         .build();
 
     // When
     TenantBinding binding = tenantOrgService.resolve(jwt);
 
     // Then
-    assertThat(binding.tenantId()).isEqualTo("test-tenant");
+    assertThat(binding.tenantId()).isEqualTo("test_tenant");
   }
 
   // Helper method to create test JWTs
