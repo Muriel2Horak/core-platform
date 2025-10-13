@@ -13,21 +13,26 @@ Build Doctor automaticky:
 - **Detekuje crashloopy** v reálném čase
 - **Integruje s Loki** pro pokročilou analýzu logů
 - **Automaticky ověřuje** prostředí po deployu (smoke testy)
+- **🆕 Spouští unit testy** před každým buildem
 
 ## 🚀 Rychlý start
 
 ```bash
 # Normální použití (s Build Doctorem + automatická verifikace)
 make up        # Start s diagnostikou + post-deployment checks
-make rebuild   # Rebuild s diagnostikou + verifikací
-make clean     # Clean s diagnostikou
-
-# Sledování crashloopů
-make watch
+make rebuild   # 🆕 Unit testy → Build → Start → Verifikace
 
 # Manuální verifikace
 make verify       # Rychlé smoke testy (health checks)
 make verify-full  # Plné integration testy
+
+# 🆕 Manuální unit testy
+make test-all     # Backend + Frontend unit testy
+make test-backend # Jen backend
+make test-frontend # Jen frontend
+
+# Sledování crashloopů
+make watch
 ```
 
 ## 📁 Kde najít reporty
@@ -71,6 +76,48 @@ Při `make verify-full` nebo `RUN_FULL_TESTS=true`:
 - ✅ Streaming integration tests
 
 Pokud některý test selže, Build Doctor vypíše konkrétní chybu a návod na troubleshooting.
+
+## 🧪 Pre-Build Testing (NOVÉ!)
+
+Od této verze se **všechny unit testy spouštějí automaticky před Docker buildem**.
+
+### Workflow při `make rebuild`
+
+```
+1. 🧪 Step 1/3: Running pre-build tests...
+   ├─ Backend unit tests (Maven)
+   └─ Frontend tests (npm)
+   
+2. 🏗️  Step 2/3: Building Docker images...
+   └─ Jen pokud testy prošly ✅
+   
+3. 🚀 Step 3/3: Starting services...
+   └─ + Post-deployment checks
+```
+
+### Pokud testy selžou
+
+```
+❌ Pre-build tests FAILED
+
+Last 30 lines of test output:
+[ERROR] Tests run: 6, Failures: 1, Errors: 0
+
+💡 Options:
+   1. Fix the failing tests
+   2. Run with SKIP_TESTS=true to bypass (NOT RECOMMENDED)
+```
+
+**Build se zastaví** - Docker image se nesestaví s failing testy!
+
+### Přeskočení testů (Emergency only)
+
+```bash
+# POUZE v nouzi - oprav testy co nejdřív!
+SKIP_TESTS=true make rebuild
+```
+
+Více v [AUTOMATED_TESTING.md](AUTOMATED_TESTING.md)
 
 ## 🔬 Jak funguje triage
 

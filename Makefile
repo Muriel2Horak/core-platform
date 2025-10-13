@@ -46,9 +46,13 @@ help:
 	@echo "🧪 Testing:"
 	@echo "  test-backend    - Backend unit tests"
 	@echo "  test-frontend   - Frontend tests"
+	@echo "  test-all        - All unit tests (backend + frontend)"
 	@echo "  test-mt         - Multitenancy tests"
 	@echo "  verify          - Quick smoke tests (health checks)"
 	@echo "  verify-full     - Full integration tests"
+	@echo ""
+	@echo "💡 Note: Unit tests run automatically before 'make rebuild'"
+	@echo "         Use SKIP_TESTS=true to bypass (not recommended)"
 	@echo ""
 	@echo "📚 More: make help-advanced"
 
@@ -259,7 +263,14 @@ rebuild:
 
 _rebuild_inner:
 	@echo ">>> rebuilding at $(BUILD_TS)"
+	@echo ""
+	@echo "🧪 Step 1/3: Running pre-build tests..."
+	@bash scripts/build/pre-build-test.sh all
+	@echo ""
+	@echo "🏗️  Step 2/3: Building Docker images..."
 	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache
+	@echo ""
+	@echo "🚀 Step 3/3: Starting services..."
 	@$(MAKE) up
 
 # Clean with Build Doctor
@@ -938,12 +949,12 @@ nuclear-rebuild-frontend:
 .PHONY: test-backend-unit
 test-backend-unit:
 	@echo "🧪 Running backend unit tests..."
-	@mkdir -p artifacts
-	@cd backend && ./mvnw test -Dtest="**/*Test" > ../artifacts/backend_unit_tests.log 2>&1 || \
-		(echo "❌ Unit tests failed - check artifacts/backend_unit_tests.log" && exit 1)
-	@echo "✅ Unit tests passed"
+	@cd backend && ./mvnw test
 
-# Run backend integration tests
+# Alias for backward compatibility
+.PHONY: test-backend
+test-backend: test-backend-unit
+
 .PHONY: test-backend-integration
 test-backend-integration:
 	@echo "🧪 Running backend integration tests..."
@@ -994,3 +1005,14 @@ show-backend-test-results:
 		echo "🏥 Health Checks:"; \
 		cat artifacts/backend_health.log; \
 	fi
+# Run frontend tests
+.PHONY: test-frontend
+test-frontend:
+	@echo "🧪 Running frontend tests..."
+	@cd frontend && npm test -- --run
+
+# Run all pre-build tests (for manual execution)
+.PHONY: test-all
+test-all:
+	@echo "🧪 Running all pre-build tests..."
+	@bash scripts/build/pre-build-test.sh all

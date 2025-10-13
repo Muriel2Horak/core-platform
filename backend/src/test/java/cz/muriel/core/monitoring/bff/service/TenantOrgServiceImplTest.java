@@ -27,12 +27,13 @@ class TenantOrgServiceImplTest {
   void setUp() {
     tenantOrgService = new TenantOrgServiceImpl(bindingRepository);
 
-    // Setup mock bindings for core-platform (lenient to avoid UnnecessaryStubbingException)
+    // Setup mock bindings for core-platform (lenient to avoid
+    // UnnecessaryStubbingException)
     GrafanaTenantBinding coreBinding = new GrafanaTenantBinding();
     coreBinding.setTenantId("core-platform");
     coreBinding.setGrafanaOrgId(1L);
     coreBinding.setServiceAccountToken("glsa_test_core_token");
-    
+
     lenient().when(bindingRepository.findByTenantId("core-platform"))
         .thenReturn(Optional.of(coreBinding));
 
@@ -41,13 +42,12 @@ class TenantOrgServiceImplTest {
     testBinding.setTenantId("test-tenant");
     testBinding.setGrafanaOrgId(2L);
     testBinding.setServiceAccountToken("glsa_test_tenant_token");
-    
+
     lenient().when(bindingRepository.findByTenantId("test-tenant"))
         .thenReturn(Optional.of(testBinding));
 
     // Setup empty binding for unknown tenants
-    lenient().when(bindingRepository.findByTenantId("unknown-tenant"))
-        .thenReturn(Optional.empty());
+    lenient().when(bindingRepository.findByTenantId("unknown-tenant")).thenReturn(Optional.empty());
   }
 
   @Test
@@ -125,10 +125,10 @@ class TenantOrgServiceImplTest {
     underscoreBinding.setTenantId("test_tenant");
     underscoreBinding.setGrafanaOrgId(3L);
     underscoreBinding.setServiceAccountToken("glsa_test_underscore_token");
-    
+
     lenient().when(bindingRepository.findByTenantId("test_tenant"))
         .thenReturn(Optional.of(underscoreBinding));
-    
+
     Jwt jwt = Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
         .claim("realm_access",
             java.util.Map.of("roles", java.util.List.of("TENANT_TEST_TENANT", "ROLE_USER")))
