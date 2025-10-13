@@ -17,15 +17,12 @@ import java.util.Map;
  * 
  * Místo static init() nyní používá database storage s Grafana provisioning
  */
-@Service
-@Slf4j
-@RequiredArgsConstructor
+@Service @Slf4j @RequiredArgsConstructor
 public class TenantOrgServiceImpl implements TenantOrgService {
 
   private final GrafanaTenantBindingRepository bindingRepository;
 
-  @Override
-  @Cacheable(value = "tenantOrgBindings", key = "#tenantId")
+  @Override @Cacheable(value = "tenantOrgBindings", key = "#tenantId")
   public TenantBinding resolve(Jwt jwt) {
     String tenantId = extractTenantId(jwt);
     return resolveTenantBinding(tenantId);
@@ -39,16 +36,13 @@ public class TenantOrgServiceImpl implements TenantOrgService {
   private TenantBinding resolveTenantBinding(String tenantId) {
     log.debug("🔍 Resolving tenant binding for: {}", tenantId);
 
-    GrafanaTenantBinding binding =
-        bindingRepository.findByTenantId(tenantId).orElseThrow(() -> {
-          log.error("❌ No Grafana org mapping found for tenant: {}", tenantId);
-          return new IllegalStateException(
-              "Grafana organization not configured for tenant: " + tenantId
-                  + ". Please ensure the tenant is properly provisioned.");
-        });
+    GrafanaTenantBinding binding = bindingRepository.findByTenantId(tenantId).orElseThrow(() -> {
+      log.error("❌ No Grafana org mapping found for tenant: {}", tenantId);
+      return new IllegalStateException("Grafana organization not configured for tenant: " + tenantId
+          + ". Please ensure the tenant is properly provisioned.");
+    });
 
-    log.debug("✅ Resolved tenant {} to org {} (token masked)", tenantId,
-        binding.getGrafanaOrgId());
+    log.debug("✅ Resolved tenant {} to org {} (token masked)", tenantId, binding.getGrafanaOrgId());
 
     return new TenantBinding(binding.getTenantId(), binding.getGrafanaOrgId(),
         binding.getServiceAccountToken());
@@ -89,8 +83,7 @@ public class TenantOrgServiceImpl implements TenantOrgService {
     String preferredUsername = jwt.getClaimAsString("preferred_username");
     if (preferredUsername != null && preferredUsername.contains("@")) {
       String realm = preferredUsername.split("@")[1];
-      log.warn("⚠️ Falling back to realm {} from preferred_username for tenant resolution",
-          realm);
+      log.warn("⚠️ Falling back to realm {} from preferred_username for tenant resolution", realm);
       return realm;
     }
 

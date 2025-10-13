@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 
@@ -64,5 +65,12 @@ public class KeycloakDataSourceConfig {
     public DataSource keycloakDataSource() {
         log.info("✅ Creating Keycloak DataSource for change_events polling");
         return new HikariDataSource(keycloakHikariConfig());
+    }
+
+    @Bean(name = "keycloakJdbcTemplate")
+    public JdbcTemplate keycloakJdbcTemplate(
+            @Qualifier("keycloakDataSource") DataSource dataSource) {
+        log.info("✅ Creating Keycloak JdbcTemplate");
+        return new JdbcTemplate(dataSource);
     }
 }

@@ -11,21 +11,15 @@ import java.time.Instant;
 /**
  * 🔗 GRAFANA TENANT BINDING
  * 
- * Perzistentní mapování mezi tenanty a Grafana organizacemi
- * Obsahuje service account token pro autentizaci Grafana API
+ * Perzistentní mapování mezi tenanty a Grafana organizacemi Obsahuje service
+ * account token pro autentizaci Grafana API
  */
-@Entity
-@Table(name = "grafana_tenant_bindings", indexes = {
+@Entity @Table(name = "grafana_tenant_bindings", indexes = {
     @Index(name = "idx_tenant_id", columnList = "tenant_id", unique = true),
-    @Index(name = "idx_grafana_org_id", columnList = "grafana_org_id")})
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+    @Index(name = "idx_grafana_org_id", columnList = "grafana_org_id") }) @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class GrafanaTenantBinding {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   @Column(name = "tenant_id", nullable = false, unique = true, length = 100)

@@ -16,15 +16,11 @@ import java.util.Map;
 /**
  * 🔧 GRAFANA ADMIN API CLIENT
  * 
- * REST klient pro Grafana Admin API s podporou:
- * - Organization management (create/delete)
- * - Service Account management (create/delete/list)
- * - Service Account Token generation
- * - Circuit breaker pro resilience
+ * REST klient pro Grafana Admin API s podporou: - Organization management
+ * (create/delete) - Service Account management (create/delete/list) - Service
+ * Account Token generation - Circuit breaker pro resilience
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
+@Slf4j @Component @RequiredArgsConstructor
 public class GrafanaAdminClient {
 
   private final RestTemplate restTemplate;
@@ -39,8 +35,7 @@ public class GrafanaAdminClient {
   private String adminPassword;
 
   /**
-   * 🏢 CREATE ORGANIZATION
-   * Vytvoří novou Grafana organizaci
+   * 🏢 CREATE ORGANIZATION Vytvoří novou Grafana organizaci
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "createOrganizationFallback")
   public CreateOrgResponse createOrganization(String orgName) {
@@ -54,8 +49,8 @@ public class GrafanaAdminClient {
     HttpEntity<CreateOrgRequest> entity = new HttpEntity<>(request, headers);
 
     try {
-      ResponseEntity<CreateOrgResponse> response =
-          restTemplate.exchange(url, HttpMethod.POST, entity, CreateOrgResponse.class);
+      ResponseEntity<CreateOrgResponse> response = restTemplate.exchange(url, HttpMethod.POST,
+          entity, CreateOrgResponse.class);
 
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         CreateOrgResponse orgResponse = response.getBody();
@@ -71,8 +66,7 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🤖 CREATE SERVICE ACCOUNT
-   * Vytvoří service account v dané organizaci
+   * 🤖 CREATE SERVICE ACCOUNT Vytvoří service account v dané organizaci
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "createServiceAccountFallback")
   public CreateServiceAccountResponse createServiceAccount(Long orgId, String name, String role) {
@@ -105,12 +99,11 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🔑 CREATE SERVICE ACCOUNT TOKEN
-   * Vygeneruje token pro service account
+   * 🔑 CREATE SERVICE ACCOUNT TOKEN Vygeneruje token pro service account
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "createServiceAccountTokenFallback")
-  public CreateServiceAccountTokenResponse createServiceAccountToken(Long orgId, Long serviceAccountId,
-      String tokenName) {
+  public CreateServiceAccountTokenResponse createServiceAccountToken(Long orgId,
+      Long serviceAccountId, String tokenName) {
     log.info("🔑 Creating Grafana service account token: {} for SA: {} in orgId: {}", tokenName,
         serviceAccountId, orgId);
 
@@ -137,14 +130,12 @@ public class GrafanaAdminClient {
     } catch (Exception e) {
       log.error("❌ Failed to create Grafana service account token: {} for SA: {} in orgId: {}",
           tokenName, serviceAccountId, orgId, e);
-      throw new GrafanaApiException("Failed to create service account token: " + e.getMessage(),
-          e);
+      throw new GrafanaApiException("Failed to create service account token: " + e.getMessage(), e);
     }
   }
 
   /**
-   * 🗑️ DELETE ORGANIZATION
-   * Smaže Grafana organizaci
+   * 🗑️ DELETE ORGANIZATION Smaže Grafana organizaci
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "deleteOrganizationFallback")
   public void deleteOrganization(Long orgId) {
@@ -155,9 +146,9 @@ public class GrafanaAdminClient {
     HttpEntity<Void> entity = new HttpEntity<>(headers);
 
     try {
-      ResponseEntity<Map<String, Object>> response =
-          restTemplate.exchange(url, HttpMethod.DELETE, entity, 
-              new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {});
+      ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.DELETE,
+          entity, new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+          });
 
       if (response.getStatusCode() == HttpStatus.OK) {
         log.info("✅ Grafana organization deleted: {}", orgId);
@@ -171,8 +162,7 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🔍 LIST SERVICE ACCOUNTS
-   * Vrátí seznam service accounts v organizaci
+   * 🔍 LIST SERVICE ACCOUNTS Vrátí seznam service accounts v organizaci
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "listServiceAccountsFallback")
   public List<ServiceAccountInfo> listServiceAccounts(Long orgId) {
@@ -201,8 +191,7 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🔐 CREATE AUTH HEADERS
-   * Vytvoří HTTP headers s Basic Auth
+   * 🔐 CREATE AUTH HEADERS Vytvoří HTTP headers s Basic Auth
    */
   private HttpHeaders createAuthHeaders() {
     HttpHeaders headers = new HttpHeaders();
@@ -223,8 +212,8 @@ public class GrafanaAdminClient {
   @SuppressWarnings("unused")
   private CreateServiceAccountResponse createServiceAccountFallback(Long orgId, String name,
       String role, Exception e) {
-    log.error("⚠️ Circuit breaker: createServiceAccount fallback for {} in orgId: {}", name,
-        orgId, e);
+    log.error("⚠️ Circuit breaker: createServiceAccount fallback for {} in orgId: {}", name, orgId,
+        e);
     throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
   }
 

@@ -12,12 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 🚀 GRAFANA PROVISIONING SERVICE
  * 
- * Orchestruje automatické zakládání Grafana organizací, service accounts a tokenů
- * při vytváření nových tenantů
+ * Orchestruje automatické zakládání Grafana organizací, service accounts a
+ * tokenů při vytváření nových tenantů
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class GrafanaProvisioningService {
 
   private final GrafanaAdminClient grafanaAdminClient;
@@ -32,8 +30,9 @@ public class GrafanaProvisioningService {
   /**
    * 🏗️ PROVISION TENANT
    * 
-   * Kompletní provisioning: 1. Vytvoří Grafana organizaci 2. Vytvoří service account v
-   * organizaci 3. Vygeneruje service account token 4. Uloží binding do databáze
+   * Kompletní provisioning: 1. Vytvoří Grafana organizaci 2. Vytvoří service
+   * account v organizaci 3. Vygeneruje service account token 4. Uloží binding do
+   * databáze
    */
   @Transactional
   public GrafanaTenantBinding provisionTenant(String tenantId) {
@@ -58,14 +57,14 @@ public class GrafanaProvisioningService {
 
       // Step 2: Create service account
       String saName = generateServiceAccountName(tenantId);
-      CreateServiceAccountResponse saResponse =
-          grafanaAdminClient.createServiceAccount(orgId, saName, defaultServiceAccountRole);
+      CreateServiceAccountResponse saResponse = grafanaAdminClient.createServiceAccount(orgId,
+          saName, defaultServiceAccountRole);
       Long serviceAccountId = saResponse.getId();
 
       // Step 3: Create service account token
       String tokenName = generateTokenName(tenantId);
-      CreateServiceAccountTokenResponse tokenResponse =
-          grafanaAdminClient.createServiceAccountToken(orgId, serviceAccountId, tokenName);
+      CreateServiceAccountTokenResponse tokenResponse = grafanaAdminClient
+          .createServiceAccountToken(orgId, serviceAccountId, tokenName);
       String token = tokenResponse.getKey();
 
       // Step 4: Save binding to database
@@ -83,8 +82,8 @@ public class GrafanaProvisioningService {
 
     } catch (Exception e) {
       log.error("❌ Grafana provisioning failed for tenant: {}", tenantId, e);
-      throw new GrafanaProvisioningException(
-          "Failed to provision Grafana for tenant: " + tenantId, e);
+      throw new GrafanaProvisioningException("Failed to provision Grafana for tenant: " + tenantId,
+          e);
     }
   }
 
@@ -105,8 +104,8 @@ public class GrafanaProvisioningService {
 
     try {
       // Find binding
-      GrafanaTenantBinding binding =
-          bindingRepository.findByTenantId(tenantId).orElseThrow(() -> new GrafanaProvisioningException(
+      GrafanaTenantBinding binding = bindingRepository.findByTenantId(tenantId)
+          .orElseThrow(() -> new GrafanaProvisioningException(
               "Grafana binding not found for tenant: " + tenantId));
 
       // Delete Grafana organization (cascades to service accounts and tokens)

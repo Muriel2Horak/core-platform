@@ -75,7 +75,9 @@ public class KeycloakRealmManagementService {
         grafanaProvisioningService.provisionTenant(tenantKey);
         log.info("✅ Grafana provisioning completed for tenant: {}", tenantKey);
       } catch (Exception e) {
-        log.error("⚠️ Grafana provisioning failed for tenant: {} (tenant created but monitoring unavailable)", tenantKey, e);
+        log.error(
+            "⚠️ Grafana provisioning failed for tenant: {} (tenant created but monitoring unavailable)",
+            tenantKey, e);
         // Don't fail entire tenant creation if Grafana provisioning fails
       }
 
@@ -103,7 +105,9 @@ public class KeycloakRealmManagementService {
         grafanaProvisioningService.deprovisionTenant(tenantKey);
         log.info("✅ Grafana deprovisioning completed for tenant: {}", tenantKey);
       } catch (Exception e) {
-        log.error("⚠️ Grafana deprovisioning failed for tenant: {} (continuing with tenant deletion)", tenantKey, e);
+        log.error(
+            "⚠️ Grafana deprovisioning failed for tenant: {} (continuing with tenant deletion)",
+            tenantKey, e);
         // Don't fail entire tenant deletion if Grafana deprovisioning fails
       }
 
