@@ -70,9 +70,9 @@ accessPolicy:
 ui:
   list:
     columns: [entity, updated_at, updated_by]
-    defaultSort:
-      field: updated_at
-      order: desc
+    sort:
+      defaultField: updated_at
+      fields: [entity, updated_at, updated_by]
       
   detail:
     sections:

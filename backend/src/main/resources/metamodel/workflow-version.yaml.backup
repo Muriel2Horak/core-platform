@@ -10,8 +10,9 @@ fields:
     generated: true
     
   - name: tenant_id
-    type: uuid
+    type: string
     required: true
+    maxLength: 100
     
   - name: entity
     type: string
@@ -22,35 +23,23 @@ fields:
     type: text
     required: true
     
-  - name: version_number
-    type: long
-    required: true
-    
-  - name: status
-    type: string
-    required: true
-    maxLength: 20
-    
-  - name: created_from_proposal
+  - name: proposal_id
     type: uuid
+    required: true
     
-  - name: activated_at
-    type: timestamp
-    
-  - name: activated_by
+  - name: created_by
     type: string
-    maxLength: 100
-    
-  - name: archived_at
-    type: timestamp
-    
-  - name: archived_by
-    type: string
+    required: true
     maxLength: 100
     
   - name: created_at
     type: timestamp
     generated: true
+    
+  - name: status
+    type: string
+    required: true
+    maxLength: 20
     
   - name: version
     type: long
@@ -58,34 +47,18 @@ fields:
 
 # Workflow states
 states:
-  - code: DRAFT
-    label: Koncept
-    description: Verze v přípravě
-    
   - code: ACTIVE
     label: Aktivní
-    description: Aktivní verze workflow
     
-  - code: ARCHIVED
-    label: Archivováno
-    description: Archivovaná verze
+  - code: SUPERSEDED
+    label: Nahrazeno
 
 # Workflow transitions
 transitions:
-  - code: activate
-    from: DRAFT
-    to: ACTIVE
-    label: Aktivovat
-    guard:
-      anyOf:
-        - role: CORE_ADMIN_WORKFLOW
-        - role: CORE_ROLE_ADMIN
-        
-  - code: archive
-    from: ACTIVE
-    to: ARCHIVED
-    label: Archivovat
-    guard:
+  - from: ACTIVE
+    to: SUPERSEDED
+    label: Nahradit novou verzí
+    permissions:
       anyOf:
         - role: CORE_ADMIN_WORKFLOW
         - role: CORE_ROLE_ADMIN
@@ -115,24 +88,25 @@ accessPolicy:
 # UI Configuration
 ui:
   list:
-    columns: [entity, version_number, status, activated_at, activated_by]
-    sort:
-      defaultField: created_at
-      fields: [entity, version_number, status, created_at, activated_at]
-    filters: [status, entity]
+    columns: [entity, created_by, status, created_at]
+    defaultSort:
+      field: created_at
+      order: desc
+    filters:
+      - field: status
+        type: select
+        options: [ACTIVE, SUPERSEDED]
+      - field: entity
+        type: text
       
   detail:
     sections:
       - name: Version Info
-        fields: [entity, version_number, status]
+        fields: [entity, status, proposal_id, created_by, created_at]
       - name: Workflow Data
         fields: [data]
-      - name: Activation
-        fields: [activated_by, activated_at]
-      - name: Archive
-        fields: [archived_by, archived_at]
       - name: Metadata
-        fields: [created_from_proposal, created_at, version]
+        fields: [version]
 
 # Fulltext search
-fulltext: [entity]
+fulltext: [entity, created_by]

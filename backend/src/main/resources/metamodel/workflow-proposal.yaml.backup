@@ -10,8 +10,9 @@ fields:
     generated: true
     
   - name: tenant_id
-    type: uuid
+    type: string
     required: true
+    maxLength: 100
     
   - name: entity
     type: string
@@ -60,37 +61,27 @@ fields:
 states:
   - code: PENDING
     label: Čeká na schválení
-    description: Návrh čeká na schválení
     
   - code: APPROVED
     label: Schváleno
-    description: Návrh byl schválen
     
   - code: REJECTED
     label: Zamítnuto
-    description: Návrh byl zamítnut
 
 # Workflow transitions
 transitions:
-  - code: submit
-    from: null
-    to: PENDING
-    label: Odeslat ke schválení
-    
-  - code: approve
-    from: PENDING
+  - from: PENDING
     to: APPROVED
     label: Schválit
-    guard:
+    permissions:
       anyOf:
         - role: CORE_ADMIN_WORKFLOW
         - role: CORE_ROLE_ADMIN
         
-  - code: reject
-    from: PENDING
+  - from: PENDING
     to: REJECTED
     label: Zamítnout
-    guard:
+    permissions:
       anyOf:
         - role: CORE_ADMIN_WORKFLOW
         - role: CORE_ROLE_ADMIN
@@ -121,10 +112,15 @@ accessPolicy:
 ui:
   list:
     columns: [entity, author, status, created_at, reviewed_by]
-    sort:
-      defaultField: created_at
-      fields: [entity, author, status, created_at, reviewed_by]
-    filters: [status, entity, author]
+    defaultSort:
+      field: created_at
+      order: desc
+    filters:
+      - field: status
+        type: select
+        options: [PENDING, APPROVED, REJECTED]
+      - field: entity
+        type: text
       
   detail:
     sections:
