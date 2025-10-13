@@ -486,7 +486,7 @@
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
-				<version>11.1.0</version>
+				<version>12.1.7</version>
 				<configuration>
 					<!-- Fail build on HIGH (7.0+) or CRITICAL (9.0+) vulnerabilities -->
 					<failBuildOnCVSS>7</failBuildOnCVSS>
