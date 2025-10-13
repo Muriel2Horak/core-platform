@@ -181,7 +181,10 @@ public class MetamodelSpecService {
 
   private boolean isEditableField(FieldSchema field) {
     // Primary keys and generated fields are not editable
-    return !Boolean.TRUE.equals(field.getPk()) && !Boolean.TRUE.equals(field.getGenerated());
+    // Also exclude 'version' field (JPA @Version for optimistic locking)
+    return !Boolean.TRUE.equals(field.getPk()) 
+        && !Boolean.TRUE.equals(field.getGenerated())
+        && !"version".equalsIgnoreCase(field.getName());
   }
 
   private boolean isDimensionField(FieldSchema field) {

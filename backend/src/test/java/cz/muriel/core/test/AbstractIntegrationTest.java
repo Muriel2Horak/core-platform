@@ -1,6 +1,7 @@
 package cz.muriel.core.test;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -15,7 +16,7 @@ import org.testcontainers.utility.DockerImageName;
  * 
  * Provides: - PostgreSQL container for main datasource - Redis container for
  * caching/presence - Automatic Spring Boot context loading - Test profile
- * activation - Dynamic property configuration
+ * activation - Dynamic property configuration - Mock beans for testing
  * 
  * Usage:
  * 
@@ -28,7 +29,10 @@ import org.testcontainers.utility.DockerImageName;
  * }
  * </pre>
  */
-@SpringBootTest @ActiveProfiles("test") @Testcontainers
+@SpringBootTest
+@ActiveProfiles("test")
+@Testcontainers
+@Import(MockTestConfig.class)
 public abstract class AbstractIntegrationTest {
 
   @Container @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically

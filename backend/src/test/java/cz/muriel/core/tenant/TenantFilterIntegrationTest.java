@@ -5,10 +5,12 @@ import cz.muriel.core.entity.UserDirectoryEntity;
 import cz.muriel.core.repository.TenantRepository;
 import cz.muriel.core.repository.UserDirectoryRepository;
 import cz.muriel.core.service.UserDirectoryService;
+import cz.muriel.core.test.MockTestConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +18,10 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest @ActiveProfiles("test") @Transactional
+@SpringBootTest
+@Import(MockTestConfig.class)
+@ActiveProfiles("test")
+@Transactional
 class TenantFilterIntegrationTest {
 
   @Autowired

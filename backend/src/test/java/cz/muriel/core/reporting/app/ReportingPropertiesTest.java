@@ -1,8 +1,10 @@
 package cz.muriel.core.reporting.app;
 
+import cz.muriel.core.test.MockTestConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -11,7 +13,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for ReportingProperties configuration.
  */
-@SpringBootTest @ActiveProfiles("test") @TestPropertySource(properties = { "reporting.enabled=true",
+@SpringBootTest
+@Import(MockTestConfig.class)
+@ActiveProfiles("test")
+@TestPropertySource(properties = { "reporting.enabled=true",
     "reporting.max-rows=50000", "reporting.max-interval-days=92",
     "reporting.default-ttl-seconds=60", "reporting.cache.provider=redis",
     "reporting.cache.key-prefix=rpt:", "reporting.rate-limit.per-tenant-per-min=120",

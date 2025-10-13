@@ -4,9 +4,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -159,20 +161,53 @@ class QueryDeduplicatorTest {
     Map<String, Object> query1 = Map.of("dimensions", List.of("User.id"), "filters", List.of());
     Map<String, Object> query2 = Map.of("dimensions", List.of("User.id"), "filters", List.of());
 
-    List<String> fingerprints = new ArrayList<>();
+    List<String> fingerprints = Collections.synchronizedList(new ArrayList<>());
 
-    // Act: Execute same query twice, capture executions
-    queryDeduplicator.executeWithDeduplication(query1, "tenant-1", () -> {
-      fingerprints.add("exec1");
-      return Map.of();
-    });
+    // Act: Execute same query in parallel to test deduplication
+    CountDownLatch latch = new CountDownLatch(2);
+    CountDownLatch startLatch = new CountDownLatch(1);
 
-    queryDeduplicator.executeWithDeduplication(query2, "tenant-1", () -> {
-      fingerprints.add("exec2");
-      return Map.of();
-    });
+    new Thread(() -> {
+      try {
+        startLatch.await();
+        queryDeduplicator.executeWithDeduplication(query1, "tenant-1", () -> {
+          fingerprints.add("exec1");
+          try {
+            Thread.sleep(100); // Simulate slow query
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
+          return Map.of();
+        });
+      } catch (Exception e) {
+        // ignore
+      } finally {
+        latch.countDown();
+      }
+    }).start();
 
-    // Assert: Same fingerprint → only 1 execution
+    new Thread(() -> {
+      try {
+        startLatch.await();
+        queryDeduplicator.executeWithDeduplication(query2, "tenant-1", () -> {
+          fingerprints.add("exec2");
+          return Map.of();
+        });
+      } catch (Exception e) {
+        // ignore
+      } finally {
+        latch.countDown();
+      }
+    }).start();
+
+    startLatch.countDown(); // Start both threads
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
+    // Assert: Same fingerprint → only 1 execution (deduplication worked)
     assertEquals(1, fingerprints.size(), "Identical queries should generate same fingerprint");
   }
 

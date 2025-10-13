@@ -10,7 +10,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 
@@ -31,13 +30,13 @@ class TenantResolverTest {
   @BeforeEach
   void setUp() {
     SecurityContextHolder.setContext(securityContext);
-    ReflectionTestUtils.setField(tenantResolver, "tenantClaimName", "tenant");
+    // No longer need to set tenantClaimName - it's extracted from JWT issuer/realm
   }
 
   @Test
-  void shouldResolveTenantFromJwtClaim() {
+  void shouldResolveTenantFromJwtIssuer() {
     // Given
-    Jwt jwt = createJwtWithTenantClaim(testTenantKey);
+    Jwt jwt = createJwtWithRealmInIssuer(testTenantKey);
     JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt);
     when(securityContext.getAuthentication()).thenReturn(auth);
 
@@ -49,9 +48,9 @@ class TenantResolverTest {
   }
 
   @Test
-  void shouldThrowExceptionWhenJwtClaimMissing() {
+  void shouldThrowExceptionWhenRealmMissing() {
     // Given
-    Jwt jwt = createJwtWithoutTenantClaim();
+    Jwt jwt = createJwtWithoutRealm();
     JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt);
     when(securityContext.getAuthentication()).thenReturn(auth);
 
@@ -73,12 +72,9 @@ class TenantResolverTest {
   }
 
   @Test
-  void shouldHandleCustomTenantClaimName() {
-    // Given
-    ReflectionTestUtils.setField(tenantResolver, "tenantClaimName", "custom_tenant");
-    Jwt jwt = Jwt.withTokenValue("token").header("alg", "RS256")
-        .claim("custom_tenant", testTenantKey).claim("sub", "user123").issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(3600)).build();
+  void shouldResolveTenantFromRealmClaim() {
+    // Given - JWT with 'realm' claim as fallback
+    Jwt jwt = createJwtWithRealmClaim(testTenantKey);
     JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt);
     when(securityContext.getAuthentication()).thenReturn(auth);
 
@@ -89,14 +85,34 @@ class TenantResolverTest {
     assertThat(result).isEqualTo(testTenantKey);
   }
 
-  private Jwt createJwtWithTenantClaim(String tenantKey) {
-    return Jwt.withTokenValue("token").header("alg", "RS256").claim("tenant", tenantKey)
-        .claim("sub", "user123").issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600))
+  private Jwt createJwtWithRealmInIssuer(String tenantKey) {
+    return Jwt.withTokenValue("token")
+        .header("alg", "RS256")
+        .claim("sub", "user123")
+        .issuer("http://localhost:8081/realms/" + tenantKey)
+        .issuedAt(Instant.now())
+        .expiresAt(Instant.now().plusSeconds(3600))
         .build();
   }
 
-  private Jwt createJwtWithoutTenantClaim() {
-    return Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
-        .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600)).build();
+  private Jwt createJwtWithRealmClaim(String tenantKey) {
+    return Jwt.withTokenValue("token")
+        .header("alg", "RS256")
+        .claim("sub", "user123")
+        .claim("realm", tenantKey)
+        .issuer("http://localhost:8081/auth")  // No realm in issuer
+        .issuedAt(Instant.now())
+        .expiresAt(Instant.now().plusSeconds(3600))
+        .build();
+  }
+
+  private Jwt createJwtWithoutRealm() {
+    return Jwt.withTokenValue("token")
+        .header("alg", "RS256")
+        .claim("sub", "user123")
+        .issuer("http://localhost:8081/auth")  // No realm anywhere
+        .issuedAt(Instant.now())
+        .expiresAt(Instant.now().plusSeconds(3600))
+        .build();
   }
 }
