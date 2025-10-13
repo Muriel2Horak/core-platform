@@ -1,6 +1,20 @@
 # Changelog
 
-All notable changes to the Core Platform project will be documented in this file.
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+### Added
+- **Post-Deployment Verification**: Automatické smoke testy po `make up/rebuild`
+  - Kontrola container health, API endpoints, frontend přístupnosti
+  - Verifikace observability stacku (Grafana, Loki, Prometheus)
+  - Volitelné plné integration testy (`make verify-full`)
+  - Nové příkazy: `make verify`, `make verify-full`
+  - Dokumentace: `docs/POST_DEPLOYMENT_VERIFICATION.md`
+
+## [Previous entries...]
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

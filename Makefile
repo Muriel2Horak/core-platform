@@ -12,7 +12,7 @@ LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
 JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
 
 .PHONY: help test-mt report-mt test-and-report clean-artifacts
-.PHONY: up down clean rebuild doctor watch
+.PHONY: up down clean rebuild doctor watch verify verify-full
 
 # =============================================================================
 # 🚀 MAIN ENVIRONMENT TARGETS
@@ -47,6 +47,8 @@ help:
 	@echo "  test-backend    - Backend unit tests"
 	@echo "  test-frontend   - Frontend tests"
 	@echo "  test-mt         - Multitenancy tests"
+	@echo "  verify          - Quick smoke tests (health checks)"
+	@echo "  verify-full     - Full integration tests"
 	@echo ""
 	@echo "📚 More: make help-advanced"
 
@@ -102,6 +104,21 @@ clean-artifacts:
 	@rm -rf artifacts/
 	@rm -f TEST_REPORT.md
 	@echo "✅ Artifacts cleaned"
+
+# Quick smoke tests (health checks only)
+.PHONY: verify
+verify:
+	@echo "🔍 Running quick smoke tests..."
+	@bash scripts/build/post-deployment-check.sh
+
+# Full integration tests (includes multitenancy and streaming)
+.PHONY: verify-full
+verify-full:
+	@echo "🧪 Running full integration tests..."
+	@RUN_FULL_TESTS=true bash scripts/build/post-deployment-check.sh
+	@echo ""
+	@echo "📊 Generating detailed report..."
+	@$(MAKE) test-and-report
 
 # =============================================================================
 # 🐳 DEV CONTAINER TARGETS (Hot Reload - DOPORUČENO)
@@ -231,7 +248,10 @@ _up_inner: validate-env kc-image
 	@echo "🗄️  PgAdmin: http://localhost:5050"
 	@echo ""
 	@echo "⏳ Waiting for services to be ready... (this may take a few minutes)"
-	@$(MAKE) wait-for-services
+	@scripts/build/wait-healthy.sh --timeout 180
+	@echo ""
+	@echo "🧪 Running post-deployment checks..."
+	@bash scripts/build/post-deployment-check.sh
 
 # Production rebuild with Build Doctor
 rebuild:

@@ -12,17 +12,22 @@ Build Doctor automaticky:
 - **Navrhuje konkrétní opravy** s přesnými kroky
 - **Detekuje crashloopy** v reálném čase
 - **Integruje s Loki** pro pokročilou analýzu logů
+- **Automaticky ověřuje** prostředí po deployu (smoke testy)
 
 ## 🚀 Rychlý start
 
 ```bash
-# Normální použití (s Build Doctorem)
-make up        # Start s diagnostikou
-make rebuild   # Rebuild s diagnostikou
+# Normální použití (s Build Doctorem + automatická verifikace)
+make up        # Start s diagnostikou + post-deployment checks
+make rebuild   # Rebuild s diagnostikou + verifikací
 make clean     # Clean s diagnostikou
 
 # Sledování crashloopů
 make watch
+
+# Manuální verifikace
+make verify       # Rychlé smoke testy (health checks)
+make verify-full  # Plné integration testy
 ```
 
 ## 📁 Kde najít reporty
@@ -30,6 +35,42 @@ make watch
 - **Logy**: `diagnostics/build-YYYYMMDD-HHMMSS.log`
 - **JSON reporty**: `diagnostics/build-report-YYYYMMDD-HHMMSS.json`
 - **Crash dumps**: `.tmp/crash-<container>-YYYYMMDD-HHMMSS.json`
+
+## 🧪 Post-Deployment Checks
+
+Po úspěšném `make up` nebo `make rebuild` se **automaticky** spustí sada smoke testů, které ověří:
+
+### 1. Container Health
+- ✅ Všechny kontejnery běží
+- ✅ Žádný kontejner se nerestartuje
+- ✅ Backend health endpoint
+- ✅ Keycloak health endpoint
+- ✅ Database connectivity
+
+### 2. API Endpoints
+- ✅ API root accessible
+- ✅ Swagger UI dostupný
+- ✅ Actuator endpoints (info, metrics)
+
+### 3. Frontend
+- ✅ Frontend přístupný přes HTTPS
+- ✅ Admin frontend přístupný
+
+### 4. Observability Stack
+- ✅ Grafana health
+- ✅ Loki ready
+- ✅ Prometheus healthy
+
+### 5. Keycloak
+- ✅ Realm existuje
+- ✅ Admin console přístupný
+
+### 6. Volitelné: Plné testy
+Při `make verify-full` nebo `RUN_FULL_TESTS=true`:
+- ✅ Multitenancy smoke tests
+- ✅ Streaming integration tests
+
+Pokud některý test selže, Build Doctor vypíše konkrétní chybu a návod na troubleshooting.
 
 ## 🔬 Jak funguje triage
 
@@ -193,6 +234,40 @@ which curl     # pro Loki
 
 # Zkontroluj permissions
 ls -la scripts/build/*.sh  # všechny musí být executable
+```
+
+### Post-deployment checks selhávají
+
+```bash
+# Zkontroluj konkrétní service
+docker ps --filter "name=core-platform"
+docker logs <container-name> --tail=100
+
+# Spusť jednotlivé checks manuálně
+curl -sf http://localhost:8080/actuator/health | jq '.'
+curl -sf http://localhost:8081/health | jq '.'
+curl -sfk https://core-platform.local/ -o /dev/null
+
+# Zkontroluj DNS/hosts
+ping core-platform.local
+cat /etc/hosts | grep core-platform
+
+# Zkontroluj porty
+lsof -i :8080  # Backend
+lsof -i :8081  # Keycloak
+lsof -i :3100  # Loki
+```
+
+### Přeskočit automatickou verifikaci
+
+Pokud chcete spustit prostředí bez automatických testů:
+
+```bash
+# Použít dev-up místo up (žádné wrapper/triage)
+make dev-up
+
+# Nebo zavolat _up_inner přímo (NEDOPORUČENO)
+make _up_inner
 ```
 
 ### Loki nefunguje

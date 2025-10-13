@@ -100,6 +100,45 @@ make setup-wildcard
 
 ## 🚀 Quick Start
 
+### Development Mode (Hot Reload - DOPORUČENO)
+
+```bash
+# 1. První setup (jednou)
+make dev-setup     # Nastaví SSL, domény, atd.
+
+# 2. Start vývojového prostředí
+make dev-up        # Automatický hot reload
+
+# 3. Sleduj logy
+make logs-backend  # Backend logy (Loki)
+make logs-frontend # Frontend logy
+
+# 4. Změny v kódu se automaticky aplikují!
+```
+
+### Production-like Mode (s Build Doctorem)
+
+```bash
+# Start s automatickou verifikací
+make up            # Build + Start + Smoke tests
+
+# Rebuild s verifikací
+make rebuild       # Rebuild všeho + Smoke tests
+
+# Manuální verifikace
+make verify        # Rychlé smoke testy (~15s)
+make verify-full   # Plné integration testy (~3min)
+```
+
+Po úspěšném `make up` se **automaticky spustí** smoke testy, které ověří:
+- ✅ Container health
+- ✅ API endpoints
+- ✅ Frontend přístupnost
+- ✅ Observability stack
+- ✅ Keycloak konfigurace
+
+Více v [docs/POST_DEPLOYMENT_VERIFICATION.md](docs/POST_DEPLOYMENT_VERIFICATION.md)
+
 ### Příprava
 ```bash
 # Zkopíruj environment konfiguraci
