@@ -71,7 +71,7 @@ class MetamodelSpecServiceTest {
 
     FieldSchema tenantIdField = new FieldSchema();
     tenantIdField.setName("tenant_id");
-    tenantIdField.setType("uuid");
+    tenantIdField.setType("ref"); // Changed from "uuid" to "ref" to properly represent relation
     tenantIdField.setRefEntity("Tenant");
 
     schema.setFields(Arrays.asList(idField, emailField, statusField, versionField, createdAtField,

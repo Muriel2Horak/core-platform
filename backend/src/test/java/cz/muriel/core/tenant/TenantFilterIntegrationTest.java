@@ -166,8 +166,13 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
   private void createUser(String username, String email) {
     // Note: We don't set tenantId manually - TenantContext and JPA interceptor
     // handle it
-    UserDirectoryEntity user = UserDirectoryEntity.builder().username(username).email(email)
-        .firstName("Test").lastName("User").build();
+    UserDirectoryEntity user = UserDirectoryEntity.builder()
+        .id(java.util.UUID.randomUUID()) // ID must be set manually
+        .username(username)
+        .email(email)
+        .firstName("Test")
+        .lastName("User")
+        .build();
     userDirectoryRepository.save(user);
   }
 }

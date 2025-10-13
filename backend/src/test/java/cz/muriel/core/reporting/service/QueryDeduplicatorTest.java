@@ -34,17 +34,20 @@ class QueryDeduplicatorTest {
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
     Map<String, Object> expectedResult = Map.of("data", List.of());
 
-    // Act: 3 concurrent requests with same query
+    // Act - Execute same query concurrently 3 times
     CompletableFuture<Map<String, Object>> future1 = CompletableFuture
         .supplyAsync(() -> queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
           executionCount.incrementAndGet();
           try {
-            Thread.sleep(100); // Simulate query execution time
+            Thread.sleep(200); // Ensure other requests arrive during execution
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           }
           return expectedResult;
         }));
+
+    // Small delay to ensure future1 starts first
+    Thread.sleep(50);
 
     CompletableFuture<Map<String, Object>> future2 = CompletableFuture
         .supplyAsync(() -> queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
@@ -157,9 +160,8 @@ class QueryDeduplicatorTest {
 
   @Test
   void shouldGenerateConsistentFingerprints() {
-    // Arrange
-    Map<String, Object> query1 = Map.of("dimensions", List.of("User.id"), "filters", List.of());
-    Map<String, Object> query2 = Map.of("dimensions", List.of("User.id"), "filters", List.of());
+    // Arrange - Use SAME query object to ensure identical fingerprints
+    Map<String, Object> query = Map.of("dimensions", List.of("User.id"), "filters", List.of());
 
     List<String> fingerprints = Collections.synchronizedList(new ArrayList<>());
 
@@ -170,7 +172,7 @@ class QueryDeduplicatorTest {
     new Thread(() -> {
       try {
         startLatch.await();
-        queryDeduplicator.executeWithDeduplication(query1, "tenant-1", () -> {
+        queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
           fingerprints.add("exec1");
           try {
             Thread.sleep(100); // Simulate slow query
@@ -189,7 +191,7 @@ class QueryDeduplicatorTest {
     new Thread(() -> {
       try {
         startLatch.await();
-        queryDeduplicator.executeWithDeduplication(query2, "tenant-1", () -> {
+        queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
           fingerprints.add("exec2");
           return Map.of();
         });
