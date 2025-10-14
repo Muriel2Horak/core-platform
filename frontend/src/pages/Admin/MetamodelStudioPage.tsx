@@ -10,6 +10,15 @@ import {
   Divider,
 } from '@mui/material';
 import { useAuth } from '../../components/AuthProvider.jsx';
+import { ModelTree } from '../../components/Studio/ModelTree';
+import { EntityDetail } from '../../components/Studio/EntityDetail';
+
+interface Entity {
+  name: string;
+  entity: string;
+  table: string;
+  fields?: any[];
+}
 
 /**
  * S10-A: Metamodel Studio - Admin GUI for Metamodel Management
@@ -31,6 +40,7 @@ export const MetamodelStudioPage = () => {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('entities');
+  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
 
   // RBAC check - Cast user to any to avoid TS issues with roles property
   const hasAccess = (user as any)?.roles?.includes('CORE_ADMIN_STUDIO');
@@ -100,9 +110,10 @@ export const MetamodelStudioPage = () => {
                 📂 Model Tree
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Alert severity="info" sx={{ mt: 2 }}>
-                S10-B: Tree view bude načítat entity z BE
-              </Alert>
+              <ModelTree
+                onSelectEntity={setSelectedEntity}
+                selectedEntity={selectedEntity}
+              />
             </Paper>
           </Grid>
 
@@ -117,7 +128,7 @@ export const MetamodelStudioPage = () => {
               }}
             >
               <Typography variant="h6" gutterBottom>
-                ✏️ Editor
+                ✏️ Entity Detail (Read-only)
               </Typography>
               <Divider sx={{ mb: 2 }} />
               {error && (
@@ -125,9 +136,7 @@ export const MetamodelStudioPage = () => {
                   {error}
                 </Alert>
               )}
-              <Alert severity="info">
-                S10-C: EntityEditor, FieldEditor, RelationEditor, ValidationEditor
-              </Alert>
+              <EntityDetail entity={selectedEntity} />
             </Paper>
           </Grid>
 
