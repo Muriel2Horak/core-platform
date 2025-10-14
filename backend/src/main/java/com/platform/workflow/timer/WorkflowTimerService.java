@@ -13,191 +13,171 @@ import java.util.Map;
 /**
  * 🔄 W8: Workflow Timer Service
  * 
- * Manages workflow timers for:
- * - SLA monitoring (warn/breach alerts)
- * - Scheduled transitions (auto-approve after N days)
- * - Reminder notifications
+ * Manages workflow timers for: - SLA monitoring (warn/breach alerts) -
+ * Scheduled transitions (auto-approve after N days) - Reminder notifications
  * 
- * Features:
- * - Periodic timer check (every minute)
- * - Timer execution via WorkflowExecutionService
- * - SLA breach metrics
+ * Features: - Periodic timer check (every minute) - Timer execution via
+ * WorkflowExecutionService - SLA breach metrics
  * 
  * @since 2025-01-14
  */
 @Service
 public class WorkflowTimerService {
 
-    private static final Logger log = LoggerFactory.getLogger(WorkflowTimerService.class);
+  private static final Logger log = LoggerFactory.getLogger(WorkflowTimerService.class);
 
-    private final JdbcTemplate jdbcTemplate;
+  private final JdbcTemplate jdbcTemplate;
 
-    public WorkflowTimerService(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+  public WorkflowTimerService(JdbcTemplate jdbcTemplate) {
+    this.jdbcTemplate = jdbcTemplate;
+  }
+
+  /**
+   * Check for expired timers every minute
+   */
+  @Scheduled(fixedDelay = 60000, initialDelay = 10000)
+  public void checkExpiredTimers() {
+    log.debug("Checking for expired workflow timers");
+
+    var expiredTimers = findExpiredTimers();
+
+    if (expiredTimers.isEmpty()) {
+      return;
     }
 
-    /**
-     * Check for expired timers every minute
-     */
-    @Scheduled(fixedDelay = 60000, initialDelay = 10000)
-    public void checkExpiredTimers() {
-        log.debug("Checking for expired workflow timers");
+    log.info("Found {} expired timers", expiredTimers.size());
 
-        var expiredTimers = findExpiredTimers();
-        
-        if (expiredTimers.isEmpty()) {
-            return;
-        }
+    for (var timer : expiredTimers) {
+      try {
+        processExpiredTimer(timer);
+      } catch (Exception e) {
+        log.error("Failed to process timer {}: {}", timer.get("id"), e.getMessage(), e);
+      }
+    }
+  }
 
-        log.info("Found {} expired timers", expiredTimers.size());
+  /**
+   * Find all timers that have expired
+   */
+  private List<Map<String, Object>> findExpiredTimers() {
+    String sql = """
+        SELECT id, workflow_instance_id, timer_type, trigger_at, action_code, context
+        FROM workflow_timers
+        WHERE status = 'PENDING'
+          AND trigger_at <= ?
+        ORDER BY trigger_at
+        LIMIT 100
+        """;
 
-        for (var timer : expiredTimers) {
-            try {
-                processExpiredTimer(timer);
-            } catch (Exception e) {
-                log.error("Failed to process timer {}: {}", timer.get("id"), e.getMessage(), e);
-            }
-        }
+    return jdbcTemplate.queryForList(sql, Instant.now());
+  }
+
+  /**
+   * Process single expired timer
+   */
+  private void processExpiredTimer(Map<String, Object> timer) {
+    Long timerId = ((Number) timer.get("id")).longValue();
+    Long instanceId = ((Number) timer.get("workflow_instance_id")).longValue();
+    String timerType = (String) timer.get("timer_type");
+    String actionCode = (String) timer.get("action_code");
+
+    log.info("Processing expired timer: id={}, type={}, instance={}", timerId, timerType,
+        instanceId);
+
+    switch (timerType) {
+    case "SLA_WARNING" -> handleSlaWarning(timerId, instanceId);
+    case "SLA_BREACH" -> handleSlaBreach(timerId, instanceId);
+    case "AUTO_TRANSITION" -> handleAutoTransition(timerId, instanceId, actionCode);
+    case "REMINDER" -> handleReminder(timerId, instanceId);
+    default -> log.warn("Unknown timer type: {}", timerType);
     }
 
-    /**
-     * Find all timers that have expired
-     */
-    private List<Map<String, Object>> findExpiredTimers() {
-        String sql = """
-            SELECT id, workflow_instance_id, timer_type, trigger_at, action_code, context
-            FROM workflow_timers
-            WHERE status = 'PENDING'
-              AND trigger_at <= ?
-            ORDER BY trigger_at
-            LIMIT 100
-            """;
+    markTimerCompleted(timerId);
+  }
 
-        return jdbcTemplate.queryForList(sql, Instant.now());
-    }
+  /**
+   * Handle SLA warning timer
+   */
+  private void handleSlaWarning(Long timerId, Long instanceId) {
+    log.warn("SLA WARNING triggered for instance {}", instanceId);
 
-    /**
-     * Process single expired timer
-     */
-    private void processExpiredTimer(Map<String, Object> timer) {
-        Long timerId = ((Number) timer.get("id")).longValue();
-        Long instanceId = ((Number) timer.get("workflow_instance_id")).longValue();
-        String timerType = (String) timer.get("timer_type");
-        String actionCode = (String) timer.get("action_code");
+    // Publish event, send notification, etc.
+    jdbcTemplate.update("""
+        INSERT INTO workflow_events (workflow_instance_id, event_type, event_data, created_at)
+        VALUES (?, 'SLA_WARNING', ?::jsonb, ?)
+        """, instanceId, "{\"timerId\": " + timerId + ", \"severity\": \"WARNING\"}",
+        Instant.now());
+  }
 
-        log.info("Processing expired timer: id={}, type={}, instance={}", 
-            timerId, timerType, instanceId);
+  /**
+   * Handle SLA breach timer
+   */
+  private void handleSlaBreach(Long timerId, Long instanceId) {
+    log.error("SLA BREACH triggered for instance {}", instanceId);
 
-        switch (timerType) {
-            case "SLA_WARNING" -> handleSlaWarning(timerId, instanceId);
-            case "SLA_BREACH" -> handleSlaBreach(timerId, instanceId);
-            case "AUTO_TRANSITION" -> handleAutoTransition(timerId, instanceId, actionCode);
-            case "REMINDER" -> handleReminder(timerId, instanceId);
-            default -> log.warn("Unknown timer type: {}", timerType);
-        }
+    jdbcTemplate.update("""
+        INSERT INTO workflow_events (workflow_instance_id, event_type, event_data, created_at)
+        VALUES (?, 'SLA_BREACH', ?::jsonb, ?)
+        """, instanceId, "{\"timerId\": " + timerId + ", \"severity\": \"CRITICAL\"}",
+        Instant.now());
+  }
 
-        markTimerCompleted(timerId);
-    }
+  /**
+   * Handle auto-transition timer
+   */
+  private void handleAutoTransition(Long timerId, Long instanceId, String actionCode) {
+    log.info("AUTO_TRANSITION triggered: instance={}, action={}", instanceId, actionCode);
 
-    /**
-     * Handle SLA warning timer
-     */
-    private void handleSlaWarning(Long timerId, Long instanceId) {
-        log.warn("SLA WARNING triggered for instance {}", instanceId);
-        
-        // Publish event, send notification, etc.
-        jdbcTemplate.update("""
-            INSERT INTO workflow_events (workflow_instance_id, event_type, event_data, created_at)
-            VALUES (?, 'SLA_WARNING', ?::jsonb, ?)
-            """,
-            instanceId,
-            "{\"timerId\": " + timerId + ", \"severity\": \"WARNING\"}",
-            Instant.now()
-        );
-    }
+    // Execute transition via WorkflowService
+    // (Would integrate with WorkflowService.applyTransition here)
+  }
 
-    /**
-     * Handle SLA breach timer
-     */
-    private void handleSlaBreach(Long timerId, Long instanceId) {
-        log.error("SLA BREACH triggered for instance {}", instanceId);
-        
-        jdbcTemplate.update("""
-            INSERT INTO workflow_events (workflow_instance_id, event_type, event_data, created_at)
-            VALUES (?, 'SLA_BREACH', ?::jsonb, ?)
-            """,
-            instanceId,
-            "{\"timerId\": " + timerId + ", \"severity\": \"CRITICAL\"}",
-            Instant.now()
-        );
-    }
+  /**
+   * Handle reminder timer
+   */
+  private void handleReminder(Long timerId, Long instanceId) {
+    log.info("REMINDER triggered for instance {}", instanceId);
 
-    /**
-     * Handle auto-transition timer
-     */
-    private void handleAutoTransition(Long timerId, Long instanceId, String actionCode) {
-        log.info("AUTO_TRANSITION triggered: instance={}, action={}", instanceId, actionCode);
-        
-        // Execute transition via WorkflowService
-        // (Would integrate with WorkflowService.applyTransition here)
-    }
+    // Send reminder notification
+  }
 
-    /**
-     * Handle reminder timer
-     */
-    private void handleReminder(Long timerId, Long instanceId) {
-        log.info("REMINDER triggered for instance {}", instanceId);
-        
-        // Send reminder notification
-    }
+  /**
+   * Mark timer as completed
+   */
+  private void markTimerCompleted(Long timerId) {
+    jdbcTemplate.update("""
+        UPDATE workflow_timers
+        SET status = 'COMPLETED', completed_at = ?
+        WHERE id = ?
+        """, Instant.now(), timerId);
+  }
 
-    /**
-     * Mark timer as completed
-     */
-    private void markTimerCompleted(Long timerId) {
-        jdbcTemplate.update("""
-            UPDATE workflow_timers
-            SET status = 'COMPLETED', completed_at = ?
-            WHERE id = ?
-            """,
-            Instant.now(),
-            timerId
-        );
-    }
-
-    /**
-     * Create SLA timer for workflow instance
-     */
-    public void createSlaTimer(Long instanceId, String timerType, Instant triggerAt) {
-        jdbcTemplate.update("""
+  /**
+   * Create SLA timer for workflow instance
+   */
+  public void createSlaTimer(Long instanceId, String timerType, Instant triggerAt) {
+    jdbcTemplate.update(
+        """
             INSERT INTO workflow_timers (workflow_instance_id, timer_type, trigger_at, status, created_at)
             VALUES (?, ?, ?, 'PENDING', ?)
             """,
-            instanceId,
-            timerType,
-            triggerAt,
-            Instant.now()
-        );
+        instanceId, timerType, triggerAt, Instant.now());
 
-        log.info("Created {} timer for instance {}, triggers at {}", 
-            timerType, instanceId, triggerAt);
+    log.info("Created {} timer for instance {}, triggers at {}", timerType, instanceId, triggerAt);
+  }
+
+  /**
+   * Cancel pending timers for instance
+   */
+  public void cancelTimers(Long instanceId) {
+    int cancelled = jdbcTemplate.update("""
+        UPDATE workflow_timers
+        SET status = 'CANCELLED', completed_at = ?
+        WHERE workflow_instance_id = ? AND status = 'PENDING'
+        """, Instant.now(), instanceId);
+
+    if (cancelled > 0) {
+      log.info("Cancelled {} pending timers for instance {}", cancelled, instanceId);
     }
-
-    /**
-     * Cancel pending timers for instance
-     */
-    public void cancelTimers(Long instanceId) {
-        int cancelled = jdbcTemplate.update("""
-            UPDATE workflow_timers
-            SET status = 'CANCELLED', completed_at = ?
-            WHERE workflow_instance_id = ? AND status = 'PENDING'
-            """,
-            Instant.now(),
-            instanceId
-        );
-
-        if (cancelled > 0) {
-            log.info("Cancelled {} pending timers for instance {}", cancelled, instanceId);
-        }
-    }
+  }
 }

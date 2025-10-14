@@ -14,57 +14,54 @@ import static org.assertj.core.api.Assertions.*;
  */
 class SendEmailExecutorTest {
 
-    private final SendEmailExecutor executor = new SendEmailExecutor();
+  private final SendEmailExecutor executor = new SendEmailExecutor();
 
-    @Test
-    void shouldHaveCorrectName() {
-        assertThat(executor.getName()).isEqualTo("send-email");
-    }
+  @Test
+  void shouldHaveCorrectName() {
+    assertThat(executor.getName()).isEqualTo("send-email");
+  }
 
-    @Test
-    void shouldSupportEmailActions() {
-        assertThat(executor.supports("send-email")).isTrue();
-        assertThat(executor.supports("notify-email")).isTrue();
-        assertThat(executor.supports("email-confirmation")).isTrue();
-        assertThat(executor.supports("send-sms")).isFalse();
-    }
+  @Test
+  void shouldSupportEmailActions() {
+    assertThat(executor.supports("send-email")).isTrue();
+    assertThat(executor.supports("notify-email")).isTrue();
+    assertThat(executor.supports("email-confirmation")).isTrue();
+    assertThat(executor.supports("send-sms")).isFalse();
+  }
 
-    @Test
-    void shouldUseAggressiveRetryPolicy() {
-        var policy = executor.getRetryPolicy();
-        
-        assertThat(policy.maxAttempts()).isEqualTo(5);
-        assertThat(policy.initialDelayMs()).isEqualTo(500);
-    }
+  @Test
+  void shouldUseAggressiveRetryPolicy() {
+    var policy = executor.getRetryPolicy();
 
-    @Test
-    void shouldExecuteEmailSending() throws ExecutionException, InterruptedException {
-        Map<String, Object> context = Map.of(
-            "emailTemplate", "order-confirmation",
-            "recipient", "customer@example.com",
-            "subject", "Order Confirmed"
-        );
+    assertThat(policy.maxAttempts()).isEqualTo(5);
+    assertThat(policy.initialDelayMs()).isEqualTo(500);
+  }
 
-        var result = executor.execute("order", "123", "send-email", context).get();
+  @Test
+  void shouldExecuteEmailSending() throws ExecutionException, InterruptedException {
+    Map<String, Object> context = Map.of("emailTemplate", "order-confirmation", "recipient",
+        "customer@example.com", "subject", "Order Confirmed");
 
-        assertThat(result.get("emailSent")).isEqualTo(true);
-        assertThat(result.get("recipient")).isEqualTo("customer@example.com");
-        assertThat(result).containsKey("messageId");
-    }
+    var result = executor.execute("order", "123", "send-email", context).get();
 
-    @Test
-    void shouldUseDefaultsWhenContextEmpty() throws ExecutionException, InterruptedException {
-        var result = executor.execute("order", "123", "send-email", Map.of()).get();
+    assertThat(result.get("emailSent")).isEqualTo(true);
+    assertThat(result.get("recipient")).isEqualTo("customer@example.com");
+    assertThat(result).containsKey("messageId");
+  }
 
-        assertThat(result.get("emailSent")).isEqualTo(true);
-        assertThat(result.get("recipient")).isEqualTo("customer@example.com");
-    }
+  @Test
+  void shouldUseDefaultsWhenContextEmpty() throws ExecutionException, InterruptedException {
+    var result = executor.execute("order", "123", "send-email", Map.of()).get();
 
-    @Test
-    void shouldCompensateEmailSend() throws ExecutionException, InterruptedException {
-        Map<String, Object> context = Map.of("messageId", "msg-12345");
+    assertThat(result.get("emailSent")).isEqualTo(true);
+    assertThat(result.get("recipient")).isEqualTo("customer@example.com");
+  }
 
-        // Should not throw
-        executor.compensate("order", "123", "send-email", context).get();
-    }
+  @Test
+  void shouldCompensateEmailSend() throws ExecutionException, InterruptedException {
+    Map<String, Object> context = Map.of("messageId", "msg-12345");
+
+    // Should not throw
+    executor.compensate("order", "123", "send-email", context).get();
+  }
 }
