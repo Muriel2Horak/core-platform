@@ -109,19 +109,29 @@ help-advanced:
 
 # Run multitenancy smoke tests
 test-mt:
-	@echo "🧪 Running multitenancy smoke tests..."
-	@bash tests/multitenancy_smoke.sh
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 MULTITENANCY SMOKE TESTS                                   ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash tests/multitenancy_smoke.sh 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/\[OK\]/✅/g' | \
+		sed 's/\[FAIL\]/❌/g' | \
+		sed 's/PASS/✅ PASS/g' | \
+		sed 's/FAIL/❌ FAIL/g'
+	@echo ""
 
 # Generate report from test artifacts
 report-mt:
 	@echo "📊 Generating test report..."
 	@bash tests/make_report.sh
+	@echo "✅ Report generated: ./TEST_REPORT.md"
 
 # Run tests and generate report
 test-and-report: test-mt report-mt
 	@echo ""
 	@echo "🎉 Tests completed and report generated!"
-	@echo "REPORT: ./TEST_REPORT.md"
+	@echo "📄 Report: ./TEST_REPORT.md"
 
 # Clean test artifacts
 clean-artifacts:
@@ -133,17 +143,40 @@ clean-artifacts:
 # Quick smoke tests (health checks only)
 .PHONY: verify
 verify:
-	@echo "🔍 Running quick smoke tests..."
-	@bash scripts/build/post-deployment-check.sh
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🔍 QUICK SMOKE TESTS (HEALTH CHECKS)                         ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/build/post-deployment-check.sh 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/\[OK\]/✅/g' | \
+		sed 's/\[FAIL\]/❌/g' | \
+		sed 's/\[PASS\]/✅/g' | \
+		sed 's/Checking/▶️  Checking/g'
+	@echo ""
+	@echo "✅ Smoke tests completed!"
+	@echo ""
 
 # Full integration tests (includes multitenancy and streaming)
 .PHONY: verify-full
 verify-full:
-	@echo "🧪 Running full integration tests..."
-	@RUN_FULL_TESTS=true bash scripts/build/post-deployment-check.sh
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 FULL INTEGRATION TESTS                                     ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "📊 Generating detailed report..."
+	@echo "▶️  [1/2] Running integration tests..."
+	@RUN_FULL_TESTS=true bash scripts/build/post-deployment-check.sh 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/\[OK\]/✅/g' | \
+		sed 's/\[FAIL\]/❌/g' | \
+		sed 's/\[PASS\]/✅/g'
+	@echo ""
+	@echo "▶️  [2/2] Generating detailed report..."
 	@$(MAKE) test-and-report
+	@echo ""
+	@echo "🎉 Full integration tests completed!"
+	@echo "📊 Report: ./TEST_REPORT.md"
+	@echo ""
 
 # =============================================================================
 # 🐳 DEV CONTAINER TARGETS (Hot Reload - DOPORUČENO)
@@ -152,30 +185,38 @@ verify-full:
 # Start Dev Container environment with hot reload
 .PHONY: dev-up
 dev-up:
-	@echo "🐳 Starting Dev Container with HOT RELOAD..."
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🐳 DEV ENVIRONMENT STARTUP                                    ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "📋 Режим:"
+	@echo "📋 Режим Hot Reload:"
 	@echo "   • Backend: Spring DevTools auto-restart (2-5s)"
 	@echo "   • Frontend: Vite watch + nginx (3-7s)"
 	@echo "   • První build: ~3-5 minut (jednou)"
 	@echo ""
-	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env up -d
+	@echo "▶️  Starting Docker Compose..."
+	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env up -d 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/Container .* Started/  ✅ Container started/g' | \
+		sed 's/Container .* Starting/  ⏳ Container starting/g'
 	@echo ""
 	@echo "✅ Dev prostředí běží!"
 	@echo ""
-	@echo "📍 Přístup:"
-	@echo "   Frontend:  https://core-platform.local/"
-	@echo "   API:       https://core-platform.local/api"
-	@echo "   Keycloak:  http://localhost:8081/admin/"
-	@echo "   Grafana:   http://localhost:3001/"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "📍 Access Points:"
+	@echo "   🌐 Frontend:  https://core-platform.local/"
+	@echo "   🔌 API:       https://core-platform.local/api"
+	@echo "   🔐 Keycloak:  http://localhost:8081/admin/"
+	@echo "   📊 Grafana:   http://localhost:3001/"
 	@echo ""
-	@echo "🐛 Debug:"
-	@echo "   Java: localhost:5005 (VS Code F5)"
+	@echo "🐛 Debug: localhost:5005 (VS Code F5)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	@echo "💡 Další kroky:"
-	@echo "   1. make dev-check     - Zkontroluj prostředí"
-	@echo "   2. make logs-backend  - Sleduj backend logy"
-	@echo "   3. Edituj kód → automatický rebuild!"
+	@echo "💡 Next Steps:"
+	@echo "   1. make dev-check     - Health check"
+	@echo "   2. make logs-backend  - Watch logs"
+	@echo "   3. Edit code → auto-rebuild! 🚀"
+	@echo ""
 
 # Start with watch mode (foreground)
 .PHONY: dev-watch
@@ -186,30 +227,78 @@ dev-watch:
 # Stop Dev Container
 .PHONY: dev-down
 dev-down:
-	@echo "🛑 Stopping dev environment..."
-	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env down
-	@echo "✅ Stopped"
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🛑 STOPPING DEV ENVIRONMENT                                   ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  Stopping containers..."
+	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env down 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/Container .* Stopped/  ✅ Container stopped/g' | \
+		sed 's/Container .* Stopping/  ⏳ Container stopping/g'
+	@echo ""
+	@echo "✅ Dev environment stopped successfully!"
+	@echo ""
 
 # Restart dev services
 .PHONY: dev-restart
 dev-restart:
-	@echo "🔄 Restarting dev services..."
-	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env restart
-	@echo "✅ Restarted"
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🔄 RESTARTING DEV SERVICES                                    ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  Restarting all containers..."
+	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env restart 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/Container .* Restarted/  ✅ Container restarted/g' | \
+		sed 's/Container .* Restarting/  ⏳ Container restarting/g'
+	@echo ""
+	@echo "✅ All dev services restarted!"
+	@echo "💡 Use 'make dev-check' to verify health"
+	@echo ""
 
 # Clean restart dev environment
 .PHONY: dev-clean
 dev-clean:
-	@echo "🧹 Clean dev restart (with cache)..."
-	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env down -v
-	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env build
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧹 CLEAN DEV RESTART (WITH REBUILD)                          ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "⚠️  This will:"
+	@echo "   • Stop all containers"
+	@echo "   • Remove volumes (data will be lost!)"
+	@echo "   • Rebuild images (with cache)"
+	@echo "   • Start fresh environment"
+	@echo ""
+	@echo "▶️  [1/3] Stopping and removing containers + volumes..."
+	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env down -v 2>&1 | \
+		grep -v "^\[DEBUG\]" | tail -5
+	@echo "  ✅ Cleanup complete"
+	@echo ""
+	@echo "▶️  [2/3] Rebuilding images..."
+	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env build 2>&1 | \
+		grep -E "(Building|built|CACHED)" | tail -10
+	@echo "  ✅ Build complete"
+	@echo ""
+	@echo "▶️  [3/3] Starting environment..."
 	@$(MAKE) dev-up
+	@echo ""
+	@echo "🎉 Clean restart completed!"
+	@echo ""
 
 # Health check
 .PHONY: dev-check
 dev-check:
-	@echo "🧪 Checking dev environment..."
-	@bash scripts/devcontainer/test-env-check.sh || echo "⚠️  Some checks failed"
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 DEV ENVIRONMENT HEALTH CHECK                               ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/devcontainer/test-env-check.sh 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/\[OK\]/✅/g' | \
+		sed 's/\[FAIL\]/❌/g' | \
+		sed 's/\[WARN\]/⚠️ /g' || echo "⚠️  Some checks failed (see details above)"
+	@echo ""
 
 # =============================================================================
 # 📊 LOKI LOGS (JEDINÝ ZPŮSOB PRO LOGY)
@@ -260,46 +349,73 @@ up:
 	@scripts/build/wrapper.sh $(MAKE) _up_inner 2>&1 | tee -a $(LOG_FILE)
 
 _up_inner: validate-env kc-image
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🚀 PRODUCTION ENVIRONMENT STARTUP                             ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 	@echo ">>> starting compose up at $(BUILD_TS)"
-	@echo "🚀 Starting Core Platform environment..."
 	@echo "📋 Environment: $${ENVIRONMENT:-development}"
 	@echo "🌐 Domain: $${DOMAIN:-core-platform.local}"
-	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env up -d --remove-orphans
+	@echo ""
+	@echo "▶️  Starting Docker Compose..."
+	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env up -d --remove-orphans 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/Container .* Started/  ✅ Container started/g' | \
+		sed 's/Container .* Starting/  ⏳ Container starting/g'
 	@echo ""
 	@echo "✅ Environment started successfully!"
-	@echo "🌐 Admin Frontend: https://admin.$${DOMAIN:-core-platform.local}"
-	@echo "🔐 Keycloak: https://localhost:8081"
-	@echo "📊 Grafana: http://localhost:3001"
-	@echo "🗄️  PgAdmin: http://localhost:5050"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "📍 Access Points:"
+	@echo "   🌐 Admin Frontend: https://admin.$${DOMAIN:-core-platform.local}"
+	@echo "   🔐 Keycloak:       https://localhost:8081"
+	@echo "   📊 Grafana:        http://localhost:3001"
+	@echo "   🗄️  PgAdmin:        http://localhost:5050"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@echo "⏳ Waiting for services to be ready... (this may take a few minutes)"
 	@scripts/build/wait-healthy.sh --timeout 180
 	@echo ""
 	@echo "🧪 Running post-deployment checks..."
 	@bash scripts/build/post-deployment-check.sh
+	@echo ""
 
 # Production rebuild with Build Doctor
 rebuild:
 	@scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
 
 _rebuild_inner:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🏗️  PRODUCTION REBUILD (WITH CACHE)                          ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 	@echo ">>> rebuilding at $(BUILD_TS)"
 	@echo ""
-	@echo "🧪 Step 1/4: Running pre-build tests..."
-	@bash scripts/build/pre-build-test.sh all
+	@echo "▶️  [1/4] Running pre-build tests..."
+	@bash scripts/build/pre-build-test.sh all 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
+		sed 's/Tests run:/📊 Tests:/g' | \
+		tail -15
+	@echo "  ✅ Pre-build tests passed"
 	@echo ""
-	@echo "🏗️  Step 2/4: Building Docker images (with cache)..."
-	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel
+	@echo "▶️  [2/4] Building Docker images (parallel, with cache)..."
+	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | \
+		grep -E "(Building|built|CACHED|exporting)" | tail -20
+	@echo "  ✅ Images built successfully"
 	@echo ""
-	@echo "🚀 Step 3/4: Starting services..."
+	@echo "▶️  [3/4] Starting services..."
 	@$(MAKE) up
 	@echo ""
 	@if [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
-		echo "🎭 Step 4/4: Running PRE-DEPLOY E2E tests..."; \
+		echo "▶️  [4/4] Running PRE-DEPLOY E2E tests..."; \
 		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
 	else \
-		echo "⏭️  Step 4/4: E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
+		echo "⏭️  [4/4] E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
 	fi
+	@echo ""
+	@echo "🎉 Rebuild completed successfully!"
+	@echo ""
 
 # Force rebuild without cache (slower but ensures clean build)
 .PHONY: rebuild-clean
@@ -307,33 +423,61 @@ rebuild-clean:
 	@scripts/build/wrapper.sh $(MAKE) _rebuild_clean_inner 2>&1 | tee -a $(LOG_FILE)
 
 _rebuild_clean_inner:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🏗️  PRODUCTION REBUILD (NO CACHE - CLEAN)                    ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 	@echo ">>> force rebuilding (no cache) at $(BUILD_TS)"
+	@echo "⚠️  Warning: This will take longer but ensures clean build"
 	@echo ""
-	@echo "🧪 Step 1/4: Running pre-build tests..."
-	@bash scripts/build/pre-build-test.sh all
+	@echo "▶️  [1/4] Running pre-build tests..."
+	@bash scripts/build/pre-build-test.sh all 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
+		sed 's/Tests run:/📊 Tests:/g' | \
+		tail -15
+	@echo "  ✅ Pre-build tests passed"
 	@echo ""
-	@echo "🏗️  Step 2/4: Building Docker images (NO CACHE - slower but clean)..."
-	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache
+	@echo "▶️  [2/4] Building Docker images (NO CACHE - parallel)..."
+	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1 | \
+		grep -E "(Building|built|exporting)" | tail -20
+	@echo "  ✅ Images built successfully"
 	@echo ""
-	@echo "🚀 Step 3/4: Starting services..."
+	@echo "▶️  [3/4] Starting services..."
 	@$(MAKE) up
 	@echo ""
 	@if [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
-		echo "🎭 Step 4/4: Running PRE-DEPLOY E2E tests..."; \
+		echo "▶️  [4/4] Running PRE-DEPLOY E2E tests..."; \
 		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
 	else \
-		echo "⏭️  Step 4/4: E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
+		echo "⏭️  [4/4] E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
 	fi
+	@echo ""
+	@echo "🎉 Clean rebuild completed successfully!"
+	@echo ""
 
 # Clean with Build Doctor
 clean:
 	@scripts/build/wrapper.sh $(MAKE) _clean_inner 2>&1 | tee -a $(LOG_FILE)
 
 _clean_inner:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧹 CLEAN RESTART (REMOVES DATA + REBUILDS)                   ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 	@echo ">>> cleaning at $(BUILD_TS)"
-	@echo "🧹 Clean restart - rebuilding all images..."
-	@docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes
+	@echo "⚠️  WARNING: This will DELETE all volumes and data!"
+	@echo ""
+	@echo "▶️  Removing containers, images, and volumes..."
+	@docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes 2>&1 | \
+		grep -v "^\[DEBUG\]" | tail -10
+	@echo "  ✅ Cleanup complete"
+	@echo ""
+	@echo "▶️  Rebuilding from scratch..."
 	@$(MAKE) rebuild
+	@echo ""
+	@echo "🎉 Clean restart completed!"
+	@echo ""
 
 # Crashloop watcher
 watch:
@@ -342,8 +486,18 @@ watch:
 
 # Stop all services
 down:
-	@echo "🛑 Stopping Core Platform environment..."
-	docker compose -f docker/docker-compose.yml --env-file .env down
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🛑 STOPPING PRODUCTION ENVIRONMENT                            ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  Stopping all containers..."
+	@docker compose -f docker/docker-compose.yml --env-file .env down 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/Container .* Stopped/  ✅ Container stopped/g' | \
+		sed 's/Container .* Stopping/  ⏳ Container stopping/g'
+	@echo ""
+	@echo "✅ All services stopped successfully!"
+	@echo ""
 
 # Restart all services
 restart:
@@ -1021,19 +1175,53 @@ nuclear-rebuild-frontend:
 .PHONY: test-backend-unit
 test-backend-unit:
 	@echo "🧪 Running backend unit tests..."
-	@cd backend && ./mvnw test
+	@cd backend && ./mvnw test 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		grep -v "^2025-" | \
+		grep -v "DEBUG \[tenant:" | \
+		sed 's/\[INFO\]/  ℹ️ /g' | \
+		sed 's/\[ERROR\]/  ❌/g' | \
+		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
+		sed 's/BUILD FAILURE/❌ BUILD FAILURE/g' | \
+		sed 's/Tests run:/  📊 Tests:/g'
 
 # Alias for backward compatibility
 .PHONY: test-backend
 test-backend: test-backend-unit
 
+# Run Grafana integration tests with beautiful UX logs
+.PHONY: test-grafana
+test-grafana:
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  📊 GRAFANA PROVISIONING TESTS                                ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@cd backend && ./mvnw test -Dtest=GrafanaProvisioningServiceIT 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		grep -v "^Mockito" | \
+		grep -v "^WARNING:" | \
+		grep -v "^OpenJDK" | \
+		grep -v "org.flywaydb" | \
+		grep -E "(📝|🔧|🚀|🧪|✅|✓|❌|Tests run:|BUILD|INFO.*Grafana)"
+	@echo ""
+
 .PHONY: test-backend-integration
 test-backend-integration:
-	@echo "🧪 Running backend integration tests..."
+	@echo "🔗 Running backend integration tests..."
 	@mkdir -p artifacts
-	@cd backend && ./mvnw test -Dtest="**/*IT,**/*IntegrationTest" > ../artifacts/backend_integration_tests.log 2>&1 || \
-		(echo "❌ Integration tests failed - check artifacts/backend_integration_tests.log" && exit 1)
-	@echo "✅ Integration tests passed"
+	@cd backend && ./mvnw test -Dtest="**/*IT,**/*IntegrationTest" 2>&1 | \
+		tee ../artifacts/backend_integration_tests.log | \
+		grep -v "^\[DEBUG\]" | \
+		grep -v "^2025-" | \
+		grep -v "DEBUG \[tenant:" | \
+		sed 's/\[INFO\]/  ℹ️ /g' | \
+		sed 's/\[ERROR\]/  ❌/g' | \
+		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
+		sed 's/BUILD FAILURE/❌ BUILD FAILURE/g' | \
+		sed 's/Tests run:/  📊 Tests:/g' || \
+		(echo "" && echo "❌ Integration tests failed - check artifacts/backend_integration_tests.log" && exit 1)
+	@echo "✅ Integration tests completed"
 
 # Run backend health check tests
 .PHONY: test-backend-health
@@ -1057,8 +1245,42 @@ test-backend-health:
 
 # Run all backend tests
 .PHONY: test-backend-all
-test-backend-all: test-backend-unit test-backend-integration test-backend-health
-	@echo "🎉 All backend tests completed successfully!"
+test-backend-all:
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 RUNNING COMPLETE BACKEND TEST SUITE                       ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Test Plan:"
+	@echo "  1️⃣  Unit Tests          - All Java unit tests"
+	@echo "  2️⃣  Integration Tests   - Database, API, Grafana"
+	@echo "  3️⃣  Health Checks       - Application health"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "▶️  [1/3] Running Unit Tests..."
+	@$(MAKE) test-backend-unit || (echo "❌ Unit tests failed!" && exit 1)
+	@echo ""
+	@echo "✅ [1/3] Unit Tests PASSED"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "▶️  [2/3] Running Integration Tests..."
+	@$(MAKE) test-backend-integration || (echo "❌ Integration tests failed!" && exit 1)
+	@echo ""
+	@echo "✅ [2/3] Integration Tests PASSED"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "▶️  [3/3] Running Health Checks..."
+	@$(MAKE) test-backend-health || (echo "❌ Health checks failed!" && exit 1)
+	@echo ""
+	@echo "✅ [3/3] Health Checks PASSED"
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🎉 ALL BACKEND TESTS COMPLETED SUCCESSFULLY! 🎉               ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 
 # Show backend test results
 .PHONY: show-backend-test-results
@@ -1080,8 +1302,21 @@ show-backend-test-results:
 # Run frontend tests
 .PHONY: test-frontend
 test-frontend:
-	@echo "🧪 Running frontend unit tests..."
-	@cd frontend && npm test -- --run
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 FRONTEND UNIT TESTS                                        ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  Running Vitest tests..."
+	@cd frontend && npm test -- --run 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/✓/  ✅/g' | \
+		sed 's/✗/  ❌/g' | \
+		sed 's/PASS/✅ PASS/g' | \
+		sed 's/FAIL/❌ FAIL/g' | \
+		sed 's/Test Files/📊 Test Files/g'
+	@echo ""
+	@echo "✅ Frontend tests completed!"
+	@echo ""
 
 # =============================================================================
 # 🎭 E2E TESTING (Two-Tier Strategy)
@@ -1090,7 +1325,10 @@ test-frontend:
 # PRE-DEPLOY: Fast smoke tests (gate before deployment)
 .PHONY: test-e2e-pre
 test-e2e-pre:
-	@echo "🎭 Running PRE-DEPLOY E2E smoke tests..."
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🎭 PRE-DEPLOY E2E SMOKE TESTS (FAST GATE)                    ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 	@echo "⚠️  Requires: Running environment (make dev-up or make up)"
 	@echo "📋 Tests: Login, RBAC, Grid/Form, Workflow panel"
 	@echo "⏱️  Duration: ~5-7 minutes"
@@ -1099,15 +1337,25 @@ test-e2e-pre:
 		echo "📦 Installing E2E dependencies..."; \
 		cd e2e && npm install; \
 	fi
-	@cd e2e && npm run test:pre
+	@echo "▶️  Running smoke tests..."
+	@cd e2e && npm run test:pre 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/✓/  ✅/g' | \
+		sed 's/✗/  ❌/g' | \
+		sed 's/passed/✅ passed/g' | \
+		sed 's/failed/❌ failed/g'
 	@echo ""
 	@echo "✅ PRE-DEPLOY smoke tests completed!"
 	@echo "📊 Report: e2e/playwright-report/index.html"
+	@echo ""
 
 # POST-DEPLOY: Full E2E tests with ephemeral data
 .PHONY: test-e2e-post
 test-e2e-post:
-	@echo "🎭 Running POST-DEPLOY E2E tests..."
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🎭 POST-DEPLOY E2E FULL TESTS                                 ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
 	@echo "⚠️  Requires: Deployed environment (staging/production)"
 	@echo "📋 Tests: Full scenarios with scaffold/teardown"
 	@echo "⏱️  Duration: ~20-30 minutes"
@@ -1116,38 +1364,62 @@ test-e2e-post:
 		echo "📦 Installing E2E dependencies..."; \
 		cd e2e && npm install; \
 	fi
-	@echo "1️⃣  Creating ephemeral test data..."
-	@cd e2e && npm run scaffold
+	@echo "▶️  [1/3] Creating ephemeral test data..."
+	@cd e2e && npm run scaffold 2>&1 | tail -10
+	@echo "  ✅ Test data created"
 	@echo ""
-	@echo "2️⃣  Running full E2E tests..."
-	@cd e2e && npm run test:post || (echo "❌ Tests failed!"; cd e2e && npm run teardown; exit 1)
+	@echo "▶️  [2/3] Running full E2E tests..."
+	@cd e2e && npm run test:post 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/✓/  ✅/g' | \
+		sed 's/✗/  ❌/g' | \
+		sed 's/passed/✅ passed/g' | \
+		sed 's/failed/❌ failed/g' || \
+	(echo "  ❌ Tests failed!"; cd e2e && npm run teardown; exit 1)
 	@echo ""
-	@echo "3️⃣  Cleaning up test data..."
-	@cd e2e && npm run teardown
+	@echo "▶️  [3/3] Cleaning up test data..."
+	@cd e2e && npm run teardown 2>&1 | tail -5
+	@echo "  ✅ Cleanup complete"
 	@echo ""
 	@echo "✅ POST-DEPLOY E2E tests completed!"
 	@echo "📊 Report: e2e/playwright-report/index.html"
+	@echo ""
 
 # Run all E2E tests (PRE + POST)
 .PHONY: test-e2e
 test-e2e:
-	@echo "🎭 Running ALL E2E tests (PRE + POST)..."
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🎭 ALL E2E TESTS (PRE + POST DEPLOY)                         ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
+	@echo "▶️  [1/2] PRE-DEPLOY smoke tests (fast gate)..."
 	@$(MAKE) test-e2e-pre
 	@echo ""
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
+	@echo "▶️  [2/2] POST-DEPLOY full scenarios..."
 	@$(MAKE) test-e2e-post
 	@echo ""
-	@echo "🎉 All E2E tests completed!"
+	@echo "🎉 All E2E tests completed successfully!"
+	@echo ""
 
 # Install E2E dependencies and Playwright browsers
 .PHONY: e2e-setup
 e2e-setup:
-	@echo "📦 Setting up E2E testing environment..."
-	@cd e2e && npm install
-	@cd e2e && npx playwright install --with-deps chromium
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  📦 E2E SETUP (DEPENDENCIES + PLAYWRIGHT)                     ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  [1/2] Installing npm dependencies..."
+	@cd e2e && npm install 2>&1 | tail -5
+	@echo "  ✅ Dependencies installed"
+	@echo ""
+	@echo "▶️  [2/2] Installing Playwright browsers (chromium)..."
+	@cd e2e && npx playwright install --with-deps chromium 2>&1 | tail -5
+	@echo "  ✅ Browsers installed"
+	@echo ""
 	@echo "✅ E2E setup complete!"
+	@echo ""
 
 # Open E2E test report
 .PHONY: e2e-report
@@ -1158,66 +1430,98 @@ e2e-report:
 # Run E2E scaffold only (for debugging)
 .PHONY: e2e-scaffold
 e2e-scaffold:
-	@echo "🏗️  Creating ephemeral test data..."
-	@cd e2e && npm run scaffold
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🏗️  E2E SCAFFOLD (CREATE TEST DATA)                          ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  Creating ephemeral test data..."
+	@cd e2e && npm run scaffold 2>&1 | grep -v "^\[DEBUG\]"
+	@echo ""
+	@echo "✅ Test data created!"
+	@echo ""
 
 # Run E2E teardown only (for cleanup)
 .PHONY: e2e-teardown
 e2e-teardown:
-	@echo "🧹 Cleaning up test data..."
-	@cd e2e && npm run teardown
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧹 E2E TEARDOWN (CLEANUP TEST DATA)                          ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "▶️  Cleaning up test data..."
+	@cd e2e && npm run teardown 2>&1 | grep -v "^\[DEBUG\]"
+	@echo ""
+	@echo "✅ Cleanup complete!"
+	@echo ""
 
 # Run all pre-build tests (unit tests only)
 .PHONY: test-all
 test-all:
-	@echo "🧪 Running all unit tests..."
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 ALL UNIT TESTS (BACKEND + FRONTEND)                       ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "1️⃣  Backend unit tests..."
+	@echo "▶️  [1/2] Backend unit tests..."
 	@$(MAKE) test-backend
 	@echo ""
-	@echo "2️⃣  Frontend unit tests..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "▶️  [2/2] Frontend unit tests..."
 	@$(MAKE) test-frontend
 	@echo ""
-	@echo "✅ All unit tests completed!"
+	@echo "🎉 All unit tests completed successfully!"
+	@echo ""
 
 # Run comprehensive test suite (unit + integration + E2E PRE)
 .PHONY: test-comprehensive
 test-comprehensive:
-	@echo "🧪 Running comprehensive test suite..."
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 COMPREHENSIVE TEST SUITE                                   ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
+	@echo "▶️  [1/2] All unit tests (backend + frontend)..."
 	@$(MAKE) test-all
 	@echo ""
-	@echo "3️⃣  PRE-DEPLOY E2E smoke tests..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "▶️  [2/2] PRE-DEPLOY E2E smoke tests..."
 	@$(MAKE) test-e2e-pre
 	@echo ""
-	@echo "🎉 Comprehensive testing completed!"
+	@echo "🎉 Comprehensive testing completed successfully!"
+	@echo ""
 
 # CI/CD: Full test pipeline with E2E gate
 .PHONY: ci-test-pipeline
 ci-test-pipeline:
-	@echo "🚀 CI/CD Test Pipeline"
-	@echo "======================"
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🚀 CI/CD TEST PIPELINE                                        ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "Phase 1: Unit Tests"
-	@echo "-------------------"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@$(MAKE) test-all
 	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "Phase 2: Environment Startup"
-	@echo "----------------------------"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@$(MAKE) up
 	@echo ""
-	@echo "Phase 3: PRE-DEPLOY E2E Gate"
-	@echo "----------------------------"
-	@$(MAKE) test-e2e-pre || (echo "❌ E2E gate failed! Deployment blocked."; exit 1)
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "Phase 3: PRE-DEPLOY E2E Gate (CRITICAL)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@$(MAKE) test-e2e-pre || (echo ""; echo "❌ E2E gate failed! Deployment blocked."; exit 1)
 	@echo ""
-	@echo "✅ CI/CD pipeline successful! Ready to deploy."
+	@echo "🎉 CI/CD pipeline successful! Ready to deploy."
+	@echo ""
 
 # CI/CD: Post-deployment validation
 .PHONY: ci-post-deploy
 ci-post-deploy:
-	@echo "🚀 Post-Deployment Validation"
-	@echo "=============================="
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🚀 POST-DEPLOYMENT VALIDATION                                 ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@$(MAKE) test-e2e-post
 	@echo ""
 	@echo "✅ Post-deployment validation complete!"
+	@echo ""
