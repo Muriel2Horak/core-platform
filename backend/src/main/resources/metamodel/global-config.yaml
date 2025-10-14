@@ -22,3 +22,40 @@ streaming:
     normal: 20
     bulk: 10
 
+# 🤖 AI Configuration (since 2025-10-14)
+ai:
+  # Feature flags
+  enabled: false  # Master kill-switch
+  mode: META_ONLY  # META_ONLY|REDACTED|FULL
+  
+  # Policies
+  policies:
+    defaultVisibility: META_ONLY
+    redactFields: 
+      - email
+      - phone
+      - nationalId
+      - secret*
+      - password*
+      - token*
+    maxFields: 30
+    maxRecords: 20
+    maxTokens: 8000
+  
+  # System prompts
+  prompts:
+    userAgent:
+      system: "You are a helpful assistant for the Core Platform application. Provide clear, concise guidance based on screen metadata and workflow definitions. Never expose actual user data."
+    devAgent:
+      system: "You are a developer assistant for the Core Platform. Help with technical questions based on metamodel, workflow, and system architecture. Never expose sensitive data."
+  
+  # MCP Tools (contracts only, implementation TBD)
+  tools:
+    - name: ui_context.get_current_view
+      description: "Get UI context for current view (metadata only)"
+    - name: wf_context.get_workflow
+      description: "Get workflow metadata for entity/route"
+    - name: auth.get_user_capabilities
+      description: "Get user's allowed actions for route"
+    - name: data_context.query
+      description: "Query data (stub, returns schema only in META_ONLY mode)"

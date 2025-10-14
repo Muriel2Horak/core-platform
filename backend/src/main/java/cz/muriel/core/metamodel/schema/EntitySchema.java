@@ -1,5 +1,6 @@
 package cz.muriel.core.metamodel.schema;
 
+import cz.muriel.core.metamodel.schema.ai.AiConfig;
 import lombok.Data;
 import java.util.List;
 
@@ -33,4 +34,7 @@ public class EntitySchema {
 
   // 📊 NEW: Streaming configuration
   private StreamingEntityConfig streaming;
+  
+  // 🤖 AI configuration (since 2025-10-14)
+  private AiConfig ai;
 }
