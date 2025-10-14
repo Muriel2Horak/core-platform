@@ -72,9 +72,9 @@ public class WorkflowService {
   @Transactional
   public WorkflowModels.TransitionResult applyTransition(Authentication auth, String entityType,
       String entityId, String tenantId, String transitionCode) {
-    
+
     Instant startTime = Instant.now();
-    
+
     // Get transition definition
     String sql = "SELECT * FROM state_transition WHERE code = ? AND entity_type = ?";
     List<WorkflowModels.StateTransition> transitions = jdbcTemplate.query(sql,
@@ -117,10 +117,11 @@ public class WorkflowService {
     // Apply transition
     Instant now = Instant.now();
     String userId = getUserId(auth);
-    
+
     // W5: Publish EXIT_STATE event
     if (fromCode != null) {
-      eventPublisher.publishExitState(tenantId, entityType, entityId, fromCode, userId, stateDurationMs, null);
+      eventPublisher.publishExitState(tenantId, entityType, entityId, fromCode, userId,
+          stateDurationMs, null);
     }
 
     if (currentState == null) {
@@ -139,7 +140,8 @@ public class WorkflowService {
     jdbcTemplate.update(
         "INSERT INTO entity_state_log (entity_type, entity_id, tenant_id, from_code, to_code, transition_code, changed_by, changed_at) "
             + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        entityType, entityId, tenantId, fromCode, transition.getToCode(), transitionCode, userId, now);
+        entityType, entityId, tenantId, fromCode, transition.getToCode(), transitionCode, userId,
+        now);
 
     // Calculate transition duration and SLA status
     long transitionDurationMs = Duration.between(startTime, now).toMillis();
@@ -151,17 +153,18 @@ public class WorkflowService {
 
     log.info("State transition applied: entity={}/{}, transition={}, from={}, to={}, by={}",
         entityType, entityId, transitionCode, fromCode, transition.getToCode(), userId);
-    
+
     // W5: Publish ENTER_STATE and ACTION_APPLIED events
-    eventPublisher.publishEnterState(tenantId, entityType, entityId, transition.getToCode(), userId, null);
-    eventPublisher.publishActionApplied(tenantId, entityType, entityId, fromCode, transition.getToCode(), 
-        transitionCode, userId, transitionDurationMs, null);
-    
+    eventPublisher.publishEnterState(tenantId, entityType, entityId, transition.getToCode(), userId,
+        null);
+    eventPublisher.publishActionApplied(tenantId, entityType, entityId, fromCode,
+        transition.getToCode(), transitionCode, userId, transitionDurationMs, null);
+
     // W5: Record metrics
-    metricsService.recordTransitionDuration(entityType, fromCode, transition.getToCode(), 
+    metricsService.recordTransitionDuration(entityType, fromCode, transition.getToCode(),
         Duration.ofMillis(transitionDurationMs));
     metricsService.incrementTransitionCount(entityType, transitionCode, true);
-    
+
     // Record SLA metrics
     if (slaStatus == WorkflowModels.SlaStatus.BREACH) {
       metricsService.recordSlaBreach(entityType, transition.getToCode());

@@ -19,6 +19,11 @@ export { VersionHistoryPanel } from './VersionHistoryPanel';
 // W6: Collaboration
 export { OnlineUsersPanel } from './OnlineUsersPanel';
 
+// W6: Runtime UX Components
+export { WorkflowGraph } from './WorkflowGraph';
+export { TimelinePanel } from './TimelinePanel';
+export { ActionsBar } from './ActionsBar';
+
 // W7: Execution
 export { ExecutionDialog } from './ExecutionDialog';
 

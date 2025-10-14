@@ -24,19 +24,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 🧪 W5: Workflow Events Kafka Integration Test
  * 
- * Tests:
- * - Publishing ENTER_STATE, EXIT_STATE, ACTION_APPLIED events
- * - JSON Schema validation of event payloads
- * - Event ordering and delivery
+ * Tests: - Publishing ENTER_STATE, EXIT_STATE, ACTION_APPLIED events - JSON
+ * Schema validation of event payloads - Event ordering and delivery
  * 
  * @since 2025-10-14
  */
-@SpringBootTest
-@Testcontainers
+@SpringBootTest @Testcontainers
 class WorkflowEventsKafkaIT {
 
-  @Container
-  @SuppressWarnings("resource")
+  @Container @SuppressWarnings("resource")
   static ConfluentKafkaContainer kafka = new ConfluentKafkaContainer("confluentinc/cp-kafka:7.6.0");
 
   @DynamicPropertySource
@@ -57,8 +53,10 @@ class WorkflowEventsKafkaIT {
     consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
     consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group-" + UUID.randomUUID());
     consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-    consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+        StringDeserializer.class.getName());
+    consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+        StringDeserializer.class.getName());
     consumer = new KafkaConsumer<>(consumerProps);
     consumer.subscribe(List.of(TOPIC));
   }
@@ -117,7 +115,8 @@ class WorkflowEventsKafkaIT {
     UUID instanceId = UUID.randomUUID();
 
     // Act
-    eventPublisher.publishExitState(tenantId, entityType, entityId, stateCode, actor, durationMs, instanceId);
+    eventPublisher.publishExitState(tenantId, entityType, entityId, stateCode, actor, durationMs,
+        instanceId);
 
     // Assert
     ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
@@ -146,7 +145,7 @@ class WorkflowEventsKafkaIT {
     UUID instanceId = UUID.randomUUID();
 
     // Act
-    eventPublisher.publishActionApplied(tenantId, entityType, entityId, fromState, toState, 
+    eventPublisher.publishActionApplied(tenantId, entityType, entityId, fromState, toState,
         transitionCode, actor, durationMs, instanceId);
 
     // Assert
@@ -176,7 +175,8 @@ class WorkflowEventsKafkaIT {
     UUID instanceId = UUID.randomUUID();
 
     // Act
-    eventPublisher.publishError(tenantId, entityType, entityId, stateCode, errorDetails, actor, instanceId);
+    eventPublisher.publishError(tenantId, entityType, entityId, stateCode, errorDetails, actor,
+        instanceId);
 
     // Assert
     ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
@@ -244,14 +244,7 @@ class WorkflowEventsKafkaIT {
     Map<String, Object> event = objectMapper.readValue(value, Map.class);
 
     // Assert: Required fields present
-    assertThat(event).containsKeys(
-        "eventId",
-        "tenantId",
-        "entityType",
-        "entityId",
-        "eventType",
-        "actor",
-        "timestamp"
-    );
+    assertThat(event).containsKeys("eventId", "tenantId", "entityType", "entityId", "eventType",
+        "actor", "timestamp");
   }
 }

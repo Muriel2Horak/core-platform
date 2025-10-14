@@ -13,19 +13,17 @@ import java.util.UUID;
 /**
  * 🔄 W5: Workflow Event Publisher
  * 
- * Publishes workflow events to Kafka for downstream processing.
- * Events: ENTER_STATE, EXIT_STATE, ACTION_APPLIED
+ * Publishes workflow events to Kafka for downstream processing. Events:
+ * ENTER_STATE, EXIT_STATE, ACTION_APPLIED
  * 
  * @since 2025-10-14
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
+@Service @RequiredArgsConstructor @Slf4j
 public class WorkflowEventPublisher {
 
   private final KafkaTemplate<String, String> kafkaTemplate;
   private final ObjectMapper objectMapper = new ObjectMapper();
-  
+
   private static final String TOPIC = "workflow.events";
 
   /**
@@ -33,19 +31,13 @@ public class WorkflowEventPublisher {
    */
   public void publishEnterState(String tenantId, String entityType, String entityId,
       String stateCode, String actor, UUID workflowInstanceId) {
-    
+
     WorkflowModels.WorkflowEvent event = WorkflowModels.WorkflowEvent.builder()
-        .eventId(UUID.randomUUID())
-        .tenantId(tenantId)
-        .entityType(entityType)
-        .entityId(entityId)
+        .eventId(UUID.randomUUID()).tenantId(tenantId).entityType(entityType).entityId(entityId)
         .workflowInstanceId(workflowInstanceId)
-        .eventType(WorkflowModels.WorkflowEventType.ENTER_STATE)
-        .toStateCode(stateCode)
-        .actor(actor)
-        .timestamp(Instant.now())
-        .build();
-    
+        .eventType(WorkflowModels.WorkflowEventType.ENTER_STATE).toStateCode(stateCode).actor(actor)
+        .timestamp(Instant.now()).build();
+
     publishEvent(event);
   }
 
@@ -54,20 +46,13 @@ public class WorkflowEventPublisher {
    */
   public void publishExitState(String tenantId, String entityType, String entityId,
       String stateCode, String actor, Long durationMs, UUID workflowInstanceId) {
-    
+
     WorkflowModels.WorkflowEvent event = WorkflowModels.WorkflowEvent.builder()
-        .eventId(UUID.randomUUID())
-        .tenantId(tenantId)
-        .entityType(entityType)
-        .entityId(entityId)
+        .eventId(UUID.randomUUID()).tenantId(tenantId).entityType(entityType).entityId(entityId)
         .workflowInstanceId(workflowInstanceId)
-        .eventType(WorkflowModels.WorkflowEventType.EXIT_STATE)
-        .fromStateCode(stateCode)
-        .actor(actor)
-        .timestamp(Instant.now())
-        .durationMs(durationMs)
-        .build();
-    
+        .eventType(WorkflowModels.WorkflowEventType.EXIT_STATE).fromStateCode(stateCode)
+        .actor(actor).timestamp(Instant.now()).durationMs(durationMs).build();
+
     publishEvent(event);
   }
 
@@ -75,46 +60,31 @@ public class WorkflowEventPublisher {
    * Publish ACTION_APPLIED event
    */
   public void publishActionApplied(String tenantId, String entityType, String entityId,
-      String fromState, String toState, String transitionCode, String actor, 
-      Long durationMs, UUID workflowInstanceId) {
-    
+      String fromState, String toState, String transitionCode, String actor, Long durationMs,
+      UUID workflowInstanceId) {
+
     WorkflowModels.WorkflowEvent event = WorkflowModels.WorkflowEvent.builder()
-        .eventId(UUID.randomUUID())
-        .tenantId(tenantId)
-        .entityType(entityType)
-        .entityId(entityId)
+        .eventId(UUID.randomUUID()).tenantId(tenantId).entityType(entityType).entityId(entityId)
         .workflowInstanceId(workflowInstanceId)
-        .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED)
-        .fromStateCode(fromState)
-        .toStateCode(toState)
-        .transitionCode(transitionCode)
-        .actor(actor)
-        .timestamp(Instant.now())
-        .durationMs(durationMs)
-        .build();
-    
+        .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED).fromStateCode(fromState)
+        .toStateCode(toState).transitionCode(transitionCode).actor(actor).timestamp(Instant.now())
+        .durationMs(durationMs).build();
+
     publishEvent(event);
   }
 
   /**
    * Publish ERROR event
    */
-  public void publishError(String tenantId, String entityType, String entityId,
-      String stateCode, String errorDetails, String actor, UUID workflowInstanceId) {
-    
+  public void publishError(String tenantId, String entityType, String entityId, String stateCode,
+      String errorDetails, String actor, UUID workflowInstanceId) {
+
     WorkflowModels.WorkflowEvent event = WorkflowModels.WorkflowEvent.builder()
-        .eventId(UUID.randomUUID())
-        .tenantId(tenantId)
-        .entityType(entityType)
-        .entityId(entityId)
-        .workflowInstanceId(workflowInstanceId)
-        .eventType(WorkflowModels.WorkflowEventType.ERROR)
-        .fromStateCode(stateCode)
-        .actor(actor)
-        .timestamp(Instant.now())
-        .errorDetails(errorDetails)
+        .eventId(UUID.randomUUID()).tenantId(tenantId).entityType(entityType).entityId(entityId)
+        .workflowInstanceId(workflowInstanceId).eventType(WorkflowModels.WorkflowEventType.ERROR)
+        .fromStateCode(stateCode).actor(actor).timestamp(Instant.now()).errorDetails(errorDetails)
         .build();
-    
+
     publishEvent(event);
   }
 
@@ -125,16 +95,15 @@ public class WorkflowEventPublisher {
     try {
       String key = event.getEntityType() + ":" + event.getEntityId();
       String value = objectMapper.writeValueAsString(toEventPayload(event));
-      
-      kafkaTemplate.send(TOPIC, key, value)
-          .whenComplete((result, ex) -> {
-            if (ex != null) {
-              log.error("Failed to publish workflow event: {}", event.getEventId(), ex);
-            } else {
-              log.debug("Published workflow event: {} to topic {}", event.getEventId(), TOPIC);
-            }
-          });
-      
+
+      kafkaTemplate.send(TOPIC, key, value).whenComplete((result, ex) -> {
+        if (ex != null) {
+          log.error("Failed to publish workflow event: {}", event.getEventId(), ex);
+        } else {
+          log.debug("Published workflow event: {} to topic {}", event.getEventId(), TOPIC);
+        }
+      });
+
     } catch (Exception e) {
       log.error("Failed to serialize workflow event: {}", event.getEventId(), e);
     }
@@ -149,9 +118,8 @@ public class WorkflowEventPublisher {
     payload.put("tenantId", event.getTenantId());
     payload.put("entityType", event.getEntityType());
     payload.put("entityId", event.getEntityId());
-    payload.put("workflowInstanceId", event.getWorkflowInstanceId() != null 
-        ? event.getWorkflowInstanceId().toString() 
-        : null);
+    payload.put("workflowInstanceId",
+        event.getWorkflowInstanceId() != null ? event.getWorkflowInstanceId().toString() : null);
     payload.put("eventType", event.getEventType().name());
     payload.put("fromStateCode", event.getFromStateCode());
     payload.put("toStateCode", event.getToStateCode());
