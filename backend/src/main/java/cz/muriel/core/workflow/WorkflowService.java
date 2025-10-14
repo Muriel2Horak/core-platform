@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 🔄 Workflow Service - State Management & Transitions
+ * 🔄 Workflow Service - State Management & Transitions (W5 Enhanced)
  */
 @Service @RequiredArgsConstructor @Slf4j
 public class WorkflowService {
@@ -31,6 +31,8 @@ public class WorkflowService {
   private final MetamodelRegistry metamodelRegistry; // Reserved for schema validation
   @SuppressWarnings("unused")
   private final PolicyEngine policyEngine; // Reserved for future guard evaluation
+  private final WorkflowEventPublisher eventPublisher; // W5: Event publishing
+  private final WorkflowMetricsService metricsService; // W5: Metrics tracking
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   /**
@@ -65,17 +67,21 @@ public class WorkflowService {
   }
 
   /**
-   * Apply transition
+   * Apply transition (W5 Enhanced with Events + Metrics)
    */
   @Transactional
   public WorkflowModels.TransitionResult applyTransition(Authentication auth, String entityType,
       String entityId, String tenantId, String transitionCode) {
+    
+    Instant startTime = Instant.now();
+    
     // Get transition definition
     String sql = "SELECT * FROM state_transition WHERE code = ? AND entity_type = ?";
     List<WorkflowModels.StateTransition> transitions = jdbcTemplate.query(sql,
         new StateTransitionRowMapper(), transitionCode, entityType);
 
     if (transitions.isEmpty()) {
+      metricsService.recordTransitionError(entityType, transitionCode, "NOT_FOUND");
       return WorkflowModels.TransitionResult.builder().success(false)
           .message("Transition not found: " + transitionCode).build();
     }
@@ -84,6 +90,7 @@ public class WorkflowService {
 
     // Validate guard
     if (!evaluateGuard(auth, transition.getGuard())) {
+      metricsService.recordTransitionError(entityType, transitionCode, "GUARD_FAILED");
       return WorkflowModels.TransitionResult.builder().success(false)
           .message("Transition not allowed: guard condition failed").build();
     }
@@ -95,13 +102,26 @@ public class WorkflowService {
     // Validate from state
     if ((transition.getFromCode() == null && fromCode != null)
         || (transition.getFromCode() != null && !transition.getFromCode().equals(fromCode))) {
+      metricsService.recordTransitionError(entityType, transitionCode, "INVALID_STATE");
       return WorkflowModels.TransitionResult.builder().success(false)
           .message("Invalid transition: current state is " + fromCode).build();
+    }
+
+    // Calculate state duration before exit
+    Long stateDurationMs = null;
+    if (currentState != null) {
+      stateDurationMs = Duration.between(currentState.getSince(), Instant.now()).toMillis();
+      metricsService.recordStateDuration(entityType, fromCode, Duration.ofMillis(stateDurationMs));
     }
 
     // Apply transition
     Instant now = Instant.now();
     String userId = getUserId(auth);
+    
+    // W5: Publish EXIT_STATE event
+    if (fromCode != null) {
+      eventPublisher.publishExitState(tenantId, entityType, entityId, fromCode, userId, stateDurationMs, null);
+    }
 
     if (currentState == null) {
       // Insert new state
@@ -117,11 +137,12 @@ public class WorkflowService {
 
     // Log transition
     jdbcTemplate.update(
-        "INSERT INTO entity_state_log (entity_type, entity_id, tenant_id, from_code, to_code, changed_by, changed_at) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        entityType, entityId, tenantId, fromCode, transition.getToCode(), userId, now);
+        "INSERT INTO entity_state_log (entity_type, entity_id, tenant_id, from_code, to_code, transition_code, changed_by, changed_at) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        entityType, entityId, tenantId, fromCode, transition.getToCode(), transitionCode, userId, now);
 
-    // Calculate SLA status
+    // Calculate transition duration and SLA status
+    long transitionDurationMs = Duration.between(startTime, now).toMillis();
     WorkflowModels.SlaStatus slaStatus = calculateSlaStatus(now, transition.getSlaMinutes());
 
     WorkflowModels.EntityState newState = WorkflowModels.EntityState.builder()
@@ -130,6 +151,23 @@ public class WorkflowService {
 
     log.info("State transition applied: entity={}/{}, transition={}, from={}, to={}, by={}",
         entityType, entityId, transitionCode, fromCode, transition.getToCode(), userId);
+    
+    // W5: Publish ENTER_STATE and ACTION_APPLIED events
+    eventPublisher.publishEnterState(tenantId, entityType, entityId, transition.getToCode(), userId, null);
+    eventPublisher.publishActionApplied(tenantId, entityType, entityId, fromCode, transition.getToCode(), 
+        transitionCode, userId, transitionDurationMs, null);
+    
+    // W5: Record metrics
+    metricsService.recordTransitionDuration(entityType, fromCode, transition.getToCode(), 
+        Duration.ofMillis(transitionDurationMs));
+    metricsService.incrementTransitionCount(entityType, transitionCode, true);
+    
+    // Record SLA metrics
+    if (slaStatus == WorkflowModels.SlaStatus.BREACH) {
+      metricsService.recordSlaBreach(entityType, transition.getToCode());
+    } else if (slaStatus == WorkflowModels.SlaStatus.WARN) {
+      metricsService.recordSlaWarning(entityType, transition.getToCode());
+    }
 
     return WorkflowModels.TransitionResult.builder().success(true)
         .message("Transition applied successfully").newState(newState).slaStatus(slaStatus).build();
