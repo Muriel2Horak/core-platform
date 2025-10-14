@@ -6,8 +6,11 @@ import cz.muriel.core.tenant.TenantResolver;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -24,6 +27,10 @@ public class MockTestConfig {
   public GrafanaTenantBindingRepository mockGrafanaTenantBindingRepository() {
     GrafanaTenantBindingRepository mock = mock(GrafanaTenantBindingRepository.class);
 
+    // In-memory storage for bindings created during tests
+    ConcurrentHashMap<String, GrafanaTenantBinding> bindings = new ConcurrentHashMap<>();
+    AtomicLong idGenerator = new AtomicLong(100L); // Start IDs from 100 to avoid conflicts
+
     // Default bindings for common test tenants
     GrafanaTenantBinding corePlatformBinding = new GrafanaTenantBinding();
     corePlatformBinding.setId(1L);
@@ -32,6 +39,7 @@ public class MockTestConfig {
     corePlatformBinding.setServiceAccountId(1L);
     corePlatformBinding.setServiceAccountName("sa-core-platform");
     corePlatformBinding.setServiceAccountToken("test-token-core");
+    bindings.put("core-platform", corePlatformBinding);
 
     GrafanaTenantBinding testTenantBinding = new GrafanaTenantBinding();
     testTenantBinding.setId(2L);
@@ -40,6 +48,7 @@ public class MockTestConfig {
     testTenantBinding.setServiceAccountId(2L);
     testTenantBinding.setServiceAccountName("sa-test-tenant");
     testTenantBinding.setServiceAccountToken("test-token-t1");
+    bindings.put("test-tenant", testTenantBinding);
 
     GrafanaTenantBinding testTenantUnderscoreBinding = new GrafanaTenantBinding();
     testTenantUnderscoreBinding.setId(3L);
@@ -48,6 +57,7 @@ public class MockTestConfig {
     testTenantUnderscoreBinding.setServiceAccountId(3L);
     testTenantUnderscoreBinding.setServiceAccountName("sa-test-tenant-underscore");
     testTenantUnderscoreBinding.setServiceAccountToken("test-token-t1-underscore");
+    bindings.put("test_tenant", testTenantUnderscoreBinding);
 
     GrafanaTenantBinding tenantABinding = new GrafanaTenantBinding();
     tenantABinding.setId(4L);
@@ -56,27 +66,51 @@ public class MockTestConfig {
     tenantABinding.setServiceAccountId(4L);
     tenantABinding.setServiceAccountName("sa-tenant-a");
     tenantABinding.setServiceAccountToken("test-token-tenant-a");
+    bindings.put("TENANT_A", tenantABinding);
 
-    // Setup lenient stubbing
-    lenient().when(mock.findByTenantId("core-platform"))
-        .thenReturn(Optional.of(corePlatformBinding));
-    lenient().when(mock.findByTenantId("test-tenant")).thenReturn(Optional.of(testTenantBinding));
-    lenient().when(mock.findByTenantId("test_tenant"))
-        .thenReturn(Optional.of(testTenantUnderscoreBinding));
-    lenient().when(mock.findByTenantId("TENANT_A")).thenReturn(Optional.of(tenantABinding));
-    lenient().when(mock.findByTenantId("unknown-tenant")).thenReturn(Optional.empty());
+    // Setup dynamic stubbing that uses in-memory map
+    lenient().when(mock.findByTenantId(org.mockito.ArgumentMatchers.anyString()))
+        .thenAnswer(invocation -> Optional.ofNullable(bindings.get(invocation.getArgument(0))));
 
-    lenient().when(mock.findByGrafanaOrgId(1L)).thenReturn(Optional.of(corePlatformBinding));
-    lenient().when(mock.findByGrafanaOrgId(2L)).thenReturn(Optional.of(testTenantBinding));
-    lenient().when(mock.findByGrafanaOrgId(3L))
-        .thenReturn(Optional.of(testTenantUnderscoreBinding));
-    lenient().when(mock.findByGrafanaOrgId(4L)).thenReturn(Optional.of(tenantABinding));
+    lenient().when(mock.findByGrafanaOrgId(org.mockito.ArgumentMatchers.anyLong()))
+        .thenAnswer(invocation -> bindings.values().stream()
+            .filter(b -> b.getGrafanaOrgId().equals(invocation.getArgument(0))).findFirst());
 
-    lenient().when(mock.existsByTenantId("core-platform")).thenReturn(true);
-    lenient().when(mock.existsByTenantId("test-tenant")).thenReturn(true);
-    lenient().when(mock.existsByTenantId("test_tenant")).thenReturn(true);
-    lenient().when(mock.existsByTenantId("TENANT_A")).thenReturn(true);
-    lenient().when(mock.existsByTenantId("unknown-tenant")).thenReturn(false);
+    lenient().when(mock.existsByTenantId(org.mockito.ArgumentMatchers.anyString()))
+        .thenAnswer(invocation -> bindings.containsKey(invocation.getArgument(0)));
+
+    // Mock save() and saveAndFlush() to store in memory and return the input entity
+    lenient().when(mock.save(org.mockito.ArgumentMatchers.any(GrafanaTenantBinding.class)))
+        .thenAnswer(invocation -> {
+          GrafanaTenantBinding binding = invocation.getArgument(0);
+          if (binding.getId() == null) {
+            binding.setId(idGenerator.incrementAndGet());
+          }
+          bindings.put(binding.getTenantId(), binding);
+          return binding;
+        });
+
+    lenient().when(mock.saveAndFlush(org.mockito.ArgumentMatchers.any(GrafanaTenantBinding.class)))
+        .thenAnswer(invocation -> {
+          GrafanaTenantBinding binding = invocation.getArgument(0);
+          if (binding.getId() == null) {
+            binding.setId(idGenerator.incrementAndGet());
+          }
+          bindings.put(binding.getTenantId(), binding);
+          return binding;
+        });
+
+    // Mock deleteByTenantId() to remove from memory
+    lenient().doAnswer(invocation -> {
+      bindings.remove(invocation.getArgument(0));
+      return null;
+    }).when(mock).deleteByTenantId(org.mockito.ArgumentMatchers.anyString());
+
+    lenient().doAnswer(invocation -> {
+      GrafanaTenantBinding binding = invocation.getArgument(0);
+      bindings.remove(binding.getTenantId());
+      return null;
+    }).when(mock).delete(org.mockito.ArgumentMatchers.any(GrafanaTenantBinding.class));
 
     return mock;
   }
@@ -87,5 +121,10 @@ public class MockTestConfig {
     // Výchozí behavior - vrací "test-tenant"
     lenient().when(mock.resolveTenantKey()).thenReturn("test-tenant");
     return mock;
+  }
+
+  @Bean @Primary @SuppressWarnings("unchecked")
+  public KafkaTemplate<String, String> mockKafkaTemplate() {
+    return mock(KafkaTemplate.class);
   }
 }

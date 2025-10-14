@@ -72,7 +72,7 @@ public class GrafanaProvisioningService {
           .grafanaOrgId(orgId).serviceAccountId(serviceAccountId).serviceAccountName(saName)
           .serviceAccountToken(token).build();
 
-      GrafanaTenantBinding saved = bindingRepository.save(binding);
+      GrafanaTenantBinding saved = bindingRepository.saveAndFlush(binding);
 
       log.info(
           "✅ Grafana provisioning completed for tenant: {} (orgId: {}, saId: {}, token: {}***)",

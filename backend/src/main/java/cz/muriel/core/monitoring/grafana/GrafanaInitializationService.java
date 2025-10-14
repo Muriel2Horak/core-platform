@@ -5,6 +5,7 @@ import cz.muriel.core.repository.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -17,8 +18,10 @@ import java.util.List;
  * Automaticky provisionuje Grafana organizace pro existující tenanty při startu
  * aplikace (např. admin tenant, který se vytváří v
  * KeycloakInitializationService)
+ * 
+ * NOTE: Disabled in test profile to avoid automatic provisioning during tests
  */
-@Slf4j @Component @RequiredArgsConstructor
+@Slf4j @Component @RequiredArgsConstructor @Profile("!test")
 public class GrafanaInitializationService {
 
   private final GrafanaProvisioningService grafanaProvisioningService;

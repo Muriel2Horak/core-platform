@@ -4,25 +4,24 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.*;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 
 /**
  * JUnit 5 Extension for WireMock Server
  * 
- * Starts WireMock on random port before tests and stops after. Sets system
- * property WIREMOCK_PORT so Spring can inject it into configuration.
+ * Starts WireMock on random port before Spring context and stops after tests.
+ * Injects WireMock URL into Spring properties for Grafana configuration.
  * 
  * Usage:
  * 
  * <pre>
- * &#64;SpringBootTest(webEnvironment = RANDOM_PORT) &#64;ActiveProfiles("test") &#64;ExtendWith(WireMockExtension.class)
+ * &#64;SpringBootTest(webEnvironment = RANDOM_PORT) &#64;ExtendWith(WireMockExtension.class)
  * class MyIntegrationTest {
  * 
- *   &#64;Autowired
- *   private WireMockServer wireMockServer;
- * 
  *   &#64;Test
- *   void testWithMock() {
- *     wireMockServer.stubFor(get("/api/test").willReturn(ok("response")));
+ *   void testWithMock(WireMockServer wireMock) {
+ *     wireMock.stubFor(get("/api/test").willReturn(ok("response")));
  *     // ... test code
  *   }
  * }
@@ -35,22 +34,41 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback, P
       .create(WireMockExtension.class);
   private static final String WIREMOCK_SERVER_KEY = "wireMockServer";
 
+  public static class WireMockInitializer
+      implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+    @Override
+    public void initialize(ConfigurableApplicationContext applicationContext) {
+      String wireMockPort = System.getProperty("WIREMOCK_PORT");
+      if (wireMockPort != null) {
+        String wireMockUrl = "http://localhost:" + wireMockPort;
+        log.info("🔧 Configuring Grafana to use WireMock at: {}", wireMockUrl);
+        System.setProperty("grafana.admin.base-url", wireMockUrl);
+        System.setProperty("grafana.client.base-url", wireMockUrl);
+      }
+    }
+  }
+
   @Override
   public void beforeAll(ExtensionContext context) {
-    WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort() // Random
-                                                                                                     // port
-    );
+    // Use fixed port 8089 for predictable configuration
+    WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.options().port(8089));
 
     wireMockServer.start();
     int port = wireMockServer.port();
 
-    // Set system property so Spring can use it in @Value("${WIREMOCK_PORT}")
+    // Set system property BEFORE Spring context loads
     System.setProperty("WIREMOCK_PORT", String.valueOf(port));
+
+    // Also set Grafana URLs directly
+    String wireMockUrl = "http://localhost:" + port;
+    System.setProperty("grafana.admin.base-url", wireMockUrl);
+    System.setProperty("grafana.client.base-url", wireMockUrl);
 
     // Store in extension context
     context.getStore(NAMESPACE).put(WIREMOCK_SERVER_KEY, wireMockServer);
 
-    log.info("WireMock server started on port {}", port);
+    log.info("✅ WireMock server started on port {}", port);
+    log.info("   Grafana URLs configured: {}", wireMockUrl);
   }
 
   @Override
@@ -61,6 +79,8 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback, P
     if (wireMockServer != null) {
       wireMockServer.stop();
       System.clearProperty("WIREMOCK_PORT");
+      System.clearProperty("grafana.admin.base-url");
+      System.clearProperty("grafana.client.base-url");
       log.info("WireMock server stopped");
     }
   }
