@@ -5,6 +5,7 @@ import {
   Typography,
   Grid,
   Alert,
+  CircularProgress,
   Tabs,
   Tab,
   Divider,
@@ -27,13 +28,14 @@ import { useAuth } from '../../components/AuthProvider.jsx';
  * - Validations
  * - Workflow Steps (S10-E placeholder)
  */
-export const MetamodelStudioPage = () => {
+export function MetamodelStudioPage() {
   const { user } = useAuth();
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('entities');
 
-  // RBAC check - Cast user to any to avoid TS issues with roles property
-  const hasAccess = (user as any)?.roles?.includes('CORE_ADMIN_STUDIO');
+  // RBAC check
+  const hasAccess = user?.roles?.includes('CORE_ADMIN_STUDIO');
 
   useEffect(() => {
     if (!hasAccess) {
@@ -56,14 +58,14 @@ export const MetamodelStudioPage = () => {
     );
   }
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
+  const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
   return (
-    <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', background: '#f5f5f5' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h4" gutterBottom>
           🎨 Metamodel Studio
         </Typography>
@@ -73,7 +75,7 @@ export const MetamodelStudioPage = () => {
       </Box>
 
       {/* Navigation Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', background: '#ffffff' }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={handleTabChange}>
           <Tab label="📦 Entities" value="entities" />
           <Tab label="🔗 Relations" value="relations" />
@@ -83,7 +85,7 @@ export const MetamodelStudioPage = () => {
       </Box>
 
       {/* Main Content - 3 Column Layout */}
-      <Box sx={{ flex: 1, overflow: 'hidden', p: 2, background: '#fafafa' }}>
+      <Box sx={{ flex: 1, overflow: 'hidden', p: 2 }}>
         <Grid container spacing={2} sx={{ height: '100%' }}>
           {/* Left Panel: ModelTree */}
           <Grid item xs={12} md={3}>
@@ -100,9 +102,15 @@ export const MetamodelStudioPage = () => {
                 📂 Model Tree
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Alert severity="info" sx={{ mt: 2 }}>
-                S10-B: Tree view bude načítat entity z BE
-              </Alert>
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                  <CircularProgress size={40} />
+                </Box>
+              ) : (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  S10-B: Tree view bude načítat entity z BE
+                </Alert>
+              )}
             </Paper>
           </Grid>
 
@@ -155,6 +163,6 @@ export const MetamodelStudioPage = () => {
       </Box>
     </Box>
   );
-};
+}
 
 export default MetamodelStudioPage;
