@@ -1,0 +1,235 @@
+{
+  "dashboard": {
+    "title": "Workflow Runtime - Overview",
+    "uid": "workflow-overview",
+    "tags": ["workflow", "runtime", "W12"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Workflow Instances",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "workflow_instances_active_total",
+            "legendFormat": "{{entity_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 100, "color": "yellow" },
+                { "value": 1000, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 }
+      },
+      {
+        "id": 2,
+        "title": "Transition Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(workflow_transitions_total{status=\"success\"}[5m]) / rate(workflow_transitions_total[5m]) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "red" },
+                { "value": 90, "color": "yellow" },
+                { "value": 95, "color": "green" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 }
+      },
+      {
+        "id": 3,
+        "title": "Stuck Instances (>2h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "workflow_stuck_instances_total",
+            "legendFormat": "Stuck"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 10, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 }
+      },
+      {
+        "id": 4,
+        "title": "SLA Violations",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "workflow_sla_violations_total",
+            "legendFormat": "Violations"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "orange" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        },
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 }
+      },
+      {
+        "id": 5,
+        "title": "Instances by State",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "workflow_instances_by_state_total",
+            "legendFormat": "{{current_state}}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 }
+      },
+      {
+        "id": 6,
+        "title": "Transition Rate (per minute)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(workflow_transitions_total[1m]) * 60",
+            "legendFormat": "{{entity_type}} - {{event}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "Transitions/min" },
+          { "show": false }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 }
+      },
+      {
+        "id": 7,
+        "title": "Average Execution Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "workflow_execution_duration_seconds_avg",
+            "legendFormat": "{{entity_type}}"
+          }
+        ],
+        "yaxes": [
+          { "label": "Seconds", "format": "s" },
+          { "show": false }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 }
+      },
+      {
+        "id": 8,
+        "title": "Error Rate by State",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(workflow_transitions_total{status=\"error\"}[5m])",
+            "legendFormat": "{{from_state}} errors"
+          }
+        ],
+        "yaxes": [
+          { "label": "Errors/sec" },
+          { "show": false }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 }
+      },
+      {
+        "id": 9,
+        "title": "Throughput (Completed Instances)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(workflow_instances_completed_total[1h])",
+            "legendFormat": "{{entity_type}} completed"
+          }
+        ],
+        "yaxes": [
+          { "label": "Instances/hour" },
+          { "show": false }
+        ],
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 }
+      },
+      {
+        "id": 10,
+        "title": "Recent Events (Last 100)",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"backend\"} |= \"workflow\" | json | line_format \"{{.timestamp}} [{{.level}}] {{.message}}\""
+          }
+        ],
+        "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "entity_type",
+          "type": "query",
+          "query": "label_values(workflow_instances_active_total, entity_type)",
+          "multi": true,
+          "includeAll": true
+        },
+        {
+          "name": "tenant_id",
+          "type": "query",
+          "query": "label_values(workflow_instances_active_total, tenant_id)",
+          "multi": false
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "expr": "workflow_version_activated",
+          "name": "Version Activated",
+          "titleFormat": "V{{version}} activated"
+        }
+      ]
+    }
+  }
+}

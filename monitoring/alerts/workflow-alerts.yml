@@ -1,0 +1,155 @@
+groups:
+  - name: workflow_alerts
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: WorkflowHighErrorRate
+        expr: |
+          (
+            rate(workflow_transitions_total{status="error"}[5m])
+            /
+            rate(workflow_transitions_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "High workflow error rate detected"
+          description: "Workflow {{ $labels.entity_type }} has error rate {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Critical error rate
+      - alert: WorkflowCriticalErrorRate
+        expr: |
+          (
+            rate(workflow_transitions_total{status="error"}[5m])
+            /
+            rate(workflow_transitions_total[5m])
+          ) > 0.25
+        for: 2m
+        labels:
+          severity: critical
+          component: workflow
+        annotations:
+          summary: "CRITICAL: Workflow error rate above 25%"
+          description: "Workflow {{ $labels.entity_type }} has critical error rate {{ $value | humanizePercentage }}"
+
+      # Stuck instances alert
+      - alert: WorkflowStuckInstances
+        expr: workflow_stuck_instances_total > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "Multiple workflow instances are stuck"
+          description: "{{ $value }} workflow instances for {{ $labels.entity_type }} have been stuck for >2 hours"
+
+      # SLA violations
+      - alert: WorkflowSLAViolations
+        expr: workflow_sla_violations_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "Workflow SLA violations detected"
+          description: "{{ $value }} instances of {{ $labels.entity_type }} are violating SLA (>60min runtime)"
+
+      # No activity detected
+      - alert: WorkflowNoActivity
+        expr: rate(workflow_transitions_total[10m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "No workflow activity detected"
+          description: "No workflow transitions in last 15 minutes for {{ $labels.entity_type }}"
+
+      # High queue depth
+      - alert: WorkflowHighQueueDepth
+        expr: workflow_instances_active_total > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "High number of active workflow instances"
+          description: "{{ $value }} active instances for {{ $labels.entity_type }} (threshold: 1000)"
+
+      # Slow execution time
+      - alert: WorkflowSlowExecution
+        expr: workflow_execution_duration_seconds_avg > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "Workflow execution is slow"
+          description: "Average execution time for {{ $labels.entity_type }} is {{ $value }}s (threshold: 300s)"
+
+      # Database connection issues
+      - alert: WorkflowDatabaseErrors
+        expr: rate(workflow_database_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: workflow
+        annotations:
+          summary: "Workflow database errors detected"
+          description: "{{ $value }} database errors per second in workflow operations"
+
+      # Version activation failure
+      - alert: WorkflowVersionActivationFailed
+        expr: workflow_version_activation_errors_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: workflow
+        annotations:
+          summary: "Workflow version activation failed"
+          description: "Failed to activate workflow version for {{ $labels.entity_type }}"
+
+      # Migration failures
+      - alert: WorkflowMigrationFailures
+        expr: |
+          (
+            workflow_migration_instances_failed_total
+            /
+            (workflow_migration_instances_migrated_total + workflow_migration_instances_failed_total)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "High workflow migration failure rate"
+          description: "{{ $value | humanizePercentage }} of migrations are failing for {{ $labels.entity_type }}"
+
+      # Deadlock detection
+      - alert: WorkflowDeadlock
+        expr: workflow_deadlock_detected_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: workflow
+        annotations:
+          summary: "Workflow deadlock detected"
+          description: "Deadlock detected in workflow {{ $labels.entity_type }} - {{ $labels.instance_id }}"
+
+      # Memory pressure
+      - alert: WorkflowMemoryPressure
+        expr: |
+          (
+            process_resident_memory_bytes{job="backend"}
+            /
+            1024 / 1024 / 1024
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: workflow
+        annotations:
+          summary: "Workflow service memory usage high"
+          description: "Backend memory usage is {{ $value }}GB (threshold: 2GB)"
