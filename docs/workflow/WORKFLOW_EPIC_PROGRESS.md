@@ -10,8 +10,8 @@
 | Phase | Status | Tests | DoD | Tag |
 |-------|--------|-------|-----|-----|
 | **W5** | ✅ Complete | ✅ Pass | ✅ Met | `studio-workflow-W5` |
-| **W6** | 🔵 Next | ⏳ Pending | ⏳ Pending | - |
-| **W7** | ⏳ Queue | ⏳ Pending | ⏳ Pending | - |
+| **W6** | ✅ Complete | ✅ Pass | ✅ Met | `studio-workflow-W6` |
+| **W7** | 🔵 Next | ⏳ Pending | ⏳ Pending | - |
 | **W8** | ⏳ Queue | ⏳ Pending | ⏳ Pending | - |
 | **W9** | ⏳ Queue | ⏳ Pending | ⏳ Pending | - |
 | **W10** | ⏳ Queue | ⏳ Pending | ⏳ Pending | - |
@@ -68,16 +68,90 @@ docs/workflow/W5_RUNTIME_GUIDE.md
 
 ---
 
-## 🔵 W6: Frontend UX (mapa, timeline, actions) - NEXT
+## ✅ W6: Frontend UX (Graph, Timeline, Actions) - COMPLETE
+
+**Delivered**: 2025-01-14  
+**Commits**: 5 (components, unit tests, IT, E2E, docs)  
+**Tag**: `studio-workflow-W6`
+
+### Scope Delivered
+- ✅ **WorkflowGraph.tsx**: React Flow visualization
+  - Current state highlighting (blue border/background)
+  - Allowed edges (green, animated) vs blocked edges (gray, static)
+  - "Why not" tooltips for disabled transitions
+  - Layout toggle: ELK (hierarchical) / Dagre (compact)
+  - Legend for visual indicators
+- ✅ **TimelinePanel.tsx**: MUI Timeline with history
+  - Duration formatting (ms → human readable: 5m 30s, 2h 15m)
+  - SLA badges (OK/WARN/BREACH) with icons
+  - Actor tracking + relative timestamps (date-fns)
+- ✅ **ActionsBar.tsx**: Context-aware action buttons
+  - Allowed actions from current state
+  - Read-only mode on workflow lock (Kafka signal)
+  - Stale→Fresh refresh (30s timeout before apply)
+  - Disabled actions with "why not" tooltips
+- ✅ **Layout Hooks**:
+  - `useElkLayout.ts` - ELK.js hierarchical layout
+  - `useDagreLayout.ts` - Dagre compact layout
+
+### Tests Delivered
+- ✅ **Unit (Vitest + RTL)**: 24 tests total
+  - `WorkflowGraph.test.tsx` (7 tests): nodes, edges, highlighting, tooltips, layout toggle
+  - `TimelinePanel.test.tsx` (8 tests): durations, SLA badges, actors, empty state
+  - `ActionsBar.test.tsx` (9 tests): buttons, lock detection, stale refresh, tooltips
+- ✅ **Integration**: `PresenceLockIT.java` (4 tests)
+  - Kafka lock signal → Actions disabled
+  - Kafka unlock signal → Actions enabled
+  - Multiple users → First-come-first-served
+  - Lock expiration → Auto-unlock after 5 minutes
+- ✅ **E2E**: `pre/06_workflow_ux.spec.ts` (8 tests)
+  - Graph rendering + state highlighting
+  - Layout toggle (elk ↔ dagre)
+  - Edge styling (colors, animations)
+  - Timeline (durations, SLA badges)
+  - Actions (enabled/disabled, lock/unlock)
+  - Stale data refresh
+
+### DoD Verification
+- ✅ Obrazovka plní 3 UX cíle: **WHERE AM I / WHAT HAPPENED / WHAT'S NEXT**
+- ✅ Auto-layout funguje (elkjs i dagre přepínač)
+- ✅ Tooltips zobrazují "why not" pro disabled edges
+- ✅ Lock/unlock flow funguje přes Kafka (Testcontainers validation)
+
+### Key Files
+```
+frontend/src/components/Workflow/
+  - WorkflowGraph.tsx (212 lines)
+  - TimelinePanel.tsx (135 lines)
+  - ActionsBar.tsx (145 lines)
+  - index.ts (updated exports)
+frontend/src/hooks/
+  - useElkLayout.ts
+  - useDagreLayout.ts
+  - index.ts
+frontend/src/components/Workflow/__tests__/
+  - WorkflowGraph.test.tsx
+  - TimelinePanel.test.tsx
+  - ActionsBar.test.tsx
+backend/src/test/java/com/platform/workflow/
+  - PresenceLockIT.java (Testcontainers PostgreSQL + Kafka)
+e2e/pre/06_workflow_ux.spec.ts (Playwright)
+W6_FRONTEND_UX.md (comprehensive documentation)
+```
+
+---
+
+## 🔵 W7: Workflow Executors (automatické kroky) - NEXT
 
 **Target**: TBD  
 **Status**: 🔵 Starting
 
 ### Planned Scope
-- [ ] React Flow: zvýraznit aktuální stav, possible edges barevně, disabled edges s tooltipem "proč" (guard verdict)
-- [ ] Auto-layout přepínač: elkjs/dagre
-- [ ] Timeline panel (durations, SLA badge + pending uzel)
-- [ ] ActionsBar: povolené akce; read-only při stale/lock (signál z Kafky), auto-refresh a odemčení po update
+- [ ] Executor interface + registry (auto-kroky jak SendEmail, NotifySlack)
+- [ ] Async execution s CompletableFuture
+- [ ] Rollback/compensation logic při chybě
+- [ ] Executor monitoring (Micrometer metrics)
+- [ ] Error handling s retry policy
 
 ### Planned Tests
 - [ ] **Unit (FE)**: 
