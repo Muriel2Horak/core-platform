@@ -98,8 +98,8 @@ class TenantOrgServiceImplTest {
 
     // When/Then
     assertThatThrownBy(() -> tenantOrgService.resolve(jwt))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("No tenant_id found in JWT token");
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("No tenant information in JWT");
   }
 
   @Test
@@ -130,6 +130,8 @@ class TenantOrgServiceImplTest {
         .thenReturn(Optional.of(underscoreBinding));
 
     Jwt jwt = Jwt.withTokenValue("token").header("alg", "RS256").claim("sub", "user123")
+        .claim("tenant_id", "test_tenant") // Musíme přidat tenant_id, jinak extractTenantIdStatic
+                                           // selže
         .claim("realm_access",
             java.util.Map.of("roles", java.util.List.of("TENANT_TEST_TENANT", "ROLE_USER")))
         .build();

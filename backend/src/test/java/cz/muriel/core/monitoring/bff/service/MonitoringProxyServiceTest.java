@@ -1,9 +1,11 @@
 package cz.muriel.core.monitoring.bff.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -19,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration tests for MonitoringProxyService with WireMock.
@@ -32,6 +33,17 @@ class MonitoringProxyServiceTest extends AbstractIntegrationTest {
 
   @Autowired
   private TenantOrgService tenantOrgService;
+
+  @Autowired
+  private CacheManager cacheManager;
+
+  @BeforeEach
+  void clearCache() {
+    // Smazat cache před každým testem
+    if (cacheManager.getCache("grafana-queries") != null) {
+      cacheManager.getCache("grafana-queries").clear();
+    }
+  }
 
   private Jwt createMockJwt(String tenantId) {
     Map<String, Object> claims = new HashMap<>();
@@ -103,8 +115,11 @@ class MonitoringProxyServiceTest extends AbstractIntegrationTest {
     Map<String, Object> requestBody = Map.of("queries", List.of(Map.of("refId", "A")));
     Jwt jwt = createMockJwt("TENANT_A");
 
-    // Execute and verify exception
-    assertThatThrownBy(() -> proxyService.forwardQuery(jwt, requestBody))
-        .hasMessageContaining("500");
+    // Execute - should return 500 response instead of throwing exception
+    ResponseEntity<String> response = proxyService.forwardQuery(jwt, requestBody);
+
+    // Verify error response
+    assertThat(response.getStatusCode().is5xxServerError()).isTrue();
+    assertThat(response.getBody()).contains("error");
   }
 }

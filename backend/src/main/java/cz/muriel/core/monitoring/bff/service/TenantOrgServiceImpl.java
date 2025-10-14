@@ -22,8 +22,7 @@ public class TenantOrgServiceImpl implements TenantOrgService {
 
   private final GrafanaTenantBindingRepository bindingRepository;
 
-  @Override 
-  @Cacheable(value = "tenantOrgBindings", key = "T(cz.muriel.core.monitoring.bff.service.TenantOrgServiceImpl).extractTenantIdStatic(#jwt)")
+  @Override @Cacheable(value = "tenantOrgBindings", key = "T(cz.muriel.core.monitoring.bff.service.TenantOrgServiceImpl).extractTenantIdStatic(#jwt)")
   public TenantBinding resolve(Jwt jwt) {
     String tenantId = extractTenantId(jwt);
     return resolveTenantBinding(tenantId);

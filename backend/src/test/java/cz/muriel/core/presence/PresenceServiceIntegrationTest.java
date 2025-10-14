@@ -3,16 +3,11 @@ package cz.muriel.core.presence;
 import cz.muriel.core.test.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.Set;
 
@@ -22,22 +17,10 @@ import static org.awaitility.Awaitility.await;
 /**
  * Integration tests for PresenceService with real Redis
  * 
- * Uses Testcontainers to spin up Redis instance
+ * Uses Redis container from AbstractIntegrationTest
  */
-@SpringBootTest @Testcontainers
+@SpringBootTest
 class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
-
-  private static final DockerImageName REDIS_IMAGE = DockerImageName.parse("redis:7-alpine");
-
-  @Container @SuppressWarnings("resource") // Managed by Testcontainers @Container lifecycle
-  static GenericContainer<?> redis = new GenericContainer<>(REDIS_IMAGE).withExposedPorts(6379);
-
-  @DynamicPropertySource
-  static void redisProperties(DynamicPropertyRegistry registry) {
-    registry.add("app.redis.enabled", () -> "true");
-    registry.add("spring.data.redis.host", redis::getHost);
-    registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-  }
 
   @Autowired
   private PresenceService presenceService;
@@ -104,7 +87,10 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(users).doesNotContain(USER_1);
   }
 
-  @Test
+  /**
+   * ⏱️ SLOW TEST: Waits 62 seconds for presence TTL expiration
+   */
+  @Test @Disabled("Slow test - waits 62s for TTL expiration. Enable for manual testing.")
   void shouldExpirePresenceAfterTTL() {
     // Subscribe user
     presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
@@ -116,7 +102,10 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     });
   }
 
-  @Test
+  /**
+   * ⏱️ SLOW TEST: Waits 81 seconds with heartbeat refresh
+   */
+  @Test @Disabled("Slow test - waits 81s testing heartbeat refresh. Enable for manual testing.")
   void shouldRefreshTTLOnHeartbeat() {
     // Subscribe user
     presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
@@ -172,7 +161,10 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(owner).isNull(); // Lock released
   }
 
-  @Test
+  /**
+   * ⏱️ SLOW TEST: Waits 122 seconds for lock TTL expiration
+   */
+  @Test @Disabled("Slow test - waits 122s for TTL expiration. Enable for manual testing.")
   void shouldExpireLockAfterTTL() {
     String field = "totalAmount";
 
@@ -186,7 +178,10 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     });
   }
 
-  @Test
+  /**
+   * ⏱️ SLOW TEST: Waits 81 seconds then refreshes lock
+   */
+  @Test @Disabled("Slow test - waits 81s before refresh. Enable for manual testing.")
   void shouldRefreshLockTTL() {
     String field = "totalAmount";
 

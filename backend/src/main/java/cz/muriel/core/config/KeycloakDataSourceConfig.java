@@ -18,7 +18,7 @@ import javax.sql.DataSource;
  * Samostatný DataSource pro přístup k Keycloak DB (change_events polling).
  * Používá connection pool pro efektivní polling.
  */
-@Configuration @Slf4j @ConditionalOnProperty(name = "keycloak.datasource.enabled", havingValue = "true", matchIfMissing = true)
+@Configuration @Slf4j @ConditionalOnProperty(name = "keycloak.datasource.enabled", havingValue = "true", matchIfMissing = false)
 public class KeycloakDataSourceConfig {
 
     @Value("${keycloak.datasource.url}")

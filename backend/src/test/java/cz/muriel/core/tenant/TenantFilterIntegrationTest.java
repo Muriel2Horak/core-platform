@@ -66,8 +66,8 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
       // Then - Should only see tenant1 users
       assertThat(users).hasSize(2); // Only tenant1 users from setUp
       assertThat(users).allMatch(user -> user.getTenantId() != null);
-      assertThat(users).extracting(UserDirectoryEntity::getUsername).containsExactlyInAnyOrder(
-          "user1-t1", "user2-t1");
+      assertThat(users).extracting(UserDirectoryEntity::getUsername)
+          .containsExactlyInAnyOrder("user1-t1", "user2-t1");
 
     } finally {
       TenantContext.clear();
@@ -168,14 +168,13 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
 
   private void createUser(String username, String email, java.util.UUID tenantId) {
     // Note: tenantId must be set explicitly in tests
-    UserDirectoryEntity user = UserDirectoryEntity.builder()
-        .id(java.util.UUID.randomUUID()) // ID must be set manually
+    UserDirectoryEntity user = UserDirectoryEntity.builder().id(java.util.UUID.randomUUID()) // ID
+                                                                                             // must
+                                                                                             // be
+                                                                                             // set
+                                                                                             // manually
         .tenantId(tenantId) // Set tenant ID explicitly
-        .username(username)
-        .email(email)
-        .firstName("Test")
-        .lastName("User")
-        .build();
+        .username(username).email(email).firstName("Test").lastName("User").build();
     userDirectoryRepository.save(user);
   }
 }

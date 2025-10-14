@@ -10,14 +10,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for ReportingProperties configuration.
  */
-@TestPropertySource(properties = {
-    "reporting.enabled=true", "reporting.max-rows=50000", "reporting.max-interval-days=92",
-    "reporting.default-ttl-seconds=60", "reporting.cache.provider=redis",
-    "reporting.cache.key-prefix=rpt:", "reporting.rate-limit.per-tenant-per-min=120",
-    "reporting.cube.base-url=http://cube:4000", "reporting.cube.api-token=test-token",
-    "reporting.cube.connect-timeout-ms=5000", "reporting.cube.read-timeout-ms=30000",
-    "reporting.bulk.chunk-size=1000", "reporting.bulk.max-affect-rows=500000",
-    "reporting.bulk.queue-concurrency=2", "reporting.bulk.timeout-seconds=300" })
+@TestPropertySource(properties = { "reporting.enabled=true", "reporting.max-rows=50000",
+    "reporting.max-interval-days=92", "reporting.default-ttl-seconds=60",
+    "reporting.cache.provider=redis", "reporting.cache.key-prefix=rpt:",
+    "reporting.rate-limit.per-tenant-per-min=120", "reporting.cube.base-url=http://cube:4000",
+    "reporting.cube.api-token=test-token", "reporting.cube.connect-timeout-ms=5000",
+    "reporting.cube.read-timeout-ms=30000", "reporting.bulk.chunk-size=1000",
+    "reporting.bulk.max-affect-rows=500000", "reporting.bulk.queue-concurrency=2",
+    "reporting.bulk.timeout-seconds=300" })
 class ReportingPropertiesTest extends AbstractIntegrationTest {
 
   @Autowired

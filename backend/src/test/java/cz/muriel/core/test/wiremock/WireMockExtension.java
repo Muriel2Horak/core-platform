@@ -39,7 +39,6 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback, P
   public void beforeAll(ExtensionContext context) {
     WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort() // Random
                                                                                                      // port
-        .disableRequestJournal() // Better performance in tests
     );
 
     wireMockServer.start();
