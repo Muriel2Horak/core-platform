@@ -1,6 +1,7 @@
 package cz.muriel.core.controller.ai;
 
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
+import cz.muriel.core.metrics.AiMetricsCollector;
 import cz.muriel.core.service.ai.UiContextService;
 import cz.muriel.core.service.ai.WfContextService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class McpController {
   private final UiContextService uiContextService;
   private final WfContextService wfContextService;
   private final GlobalMetamodelConfig globalConfig;
+  private final AiMetricsCollector metricsCollector;
   
   /**
    * MCP Tool: ui_context.get_current_view
@@ -52,11 +54,13 @@ public class McpController {
     try {
       Map<String, Object> context = uiContextService.getCurrentView(routeId);
       
+      metricsCollector.recordMcpCall("ui_context");
       log.info("✅ MCP: ui_context.get_current_view completed [{}]", correlationId);
       return ResponseEntity.ok(context);
       
     } catch (Exception e) {
       log.error("❌ MCP: ui_context.get_current_view failed [{}]", correlationId, e);
+      metricsCollector.recordAiError("MCP_UI_CONTEXT_ERROR");
       return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
     }
   }
@@ -90,14 +94,17 @@ public class McpController {
       } else if (routeId != null) {
         workflow = wfContextService.getWorkflowForRoute(routeId);
       } else {
+        metricsCollector.recordAiError("MCP_INVALID_INPUT");
         return ResponseEntity.status(400).body(Map.of("error", "entity or routeId required"));
       }
       
+      metricsCollector.recordMcpCall("wf_context");
       log.info("✅ MCP: wf_context.get_workflow completed [{}]", correlationId);
       return ResponseEntity.ok(workflow);
       
     } catch (Exception e) {
       log.error("❌ MCP: wf_context.get_workflow failed [{}]", correlationId, e);
+      metricsCollector.recordAiError("MCP_WF_CONTEXT_ERROR");
       return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
     }
   }
@@ -133,6 +140,7 @@ public class McpController {
         "note", "Stub implementation - integrate with PermissionService"
     );
     
+    metricsCollector.recordMcpCall("auth");
     log.info("✅ MCP: auth.get_user_capabilities completed [{}]", correlationId);
     return ResponseEntity.ok(capabilities);
   }
@@ -164,6 +172,7 @@ public class McpController {
         "contract", "Validated input schema"
     );
     
+    metricsCollector.recordMcpCall("data_context");
     log.warn("⚠️ MCP: data_context.query not implemented [{}]", correlationId);
     return ResponseEntity.status(501).body(response);
   }

@@ -1,6 +1,7 @@
 package cz.muriel.core.controller.ai;
 
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
+import cz.muriel.core.metrics.AiMetricsCollector;
 import cz.muriel.core.service.ai.ContextAssembler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class AiContextController {
   
   private final ContextAssembler contextAssembler;
   private final GlobalMetamodelConfig globalConfig;
+  private final AiMetricsCollector metricsCollector;
   
   /**
    * Get AI context for route
@@ -53,6 +55,7 @@ public class AiContextController {
     // Check if AI is enabled
     if (globalConfig.getAi() == null || !Boolean.TRUE.equals(globalConfig.getAi().getEnabled())) {
       log.warn("❌ AI is disabled");
+      metricsCollector.recordAiError("AI_DISABLED");
       return ResponseEntity.status(404)
           .body(Map.of("error", "AI is disabled", "code", "AI_DISABLED"));
     }
@@ -69,21 +72,33 @@ public class AiContextController {
     try {
       Map<String, Object> context = contextAssembler.assembleContext(routeId, tenantId);
       
+      // Record metrics
+      String mode = globalConfig.getAi().getMode() != null ? 
+          globalConfig.getAi().getMode().name() : "META_ONLY";
+      metricsCollector.recordAiRequest(
+          tenantId != null ? tenantId.toString() : "unknown", 
+          routeId, 
+          mode
+      );
+      
       log.info("✅ AI context returned: route={}", routeId);
       return ResponseEntity.ok(context);
       
     } catch (IllegalStateException e) {
       log.error("❌ AI context failed: {}", e.getMessage());
+      metricsCollector.recordAiError("AI_UNAVAILABLE");
       return ResponseEntity.status(503)
           .body(Map.of("error", e.getMessage(), "code", "AI_UNAVAILABLE"));
           
     } catch (IllegalArgumentException e) {
       log.error("❌ Invalid route: {}", e.getMessage());
+      metricsCollector.recordAiError("INVALID_ROUTE");
       return ResponseEntity.status(400)
           .body(Map.of("error", e.getMessage(), "code", "INVALID_ROUTE"));
           
     } catch (Exception e) {
       log.error("❌ AI context error", e);
+      metricsCollector.recordAiError("INTERNAL_ERROR");
       return ResponseEntity.status(500)
           .body(Map.of("error", "Internal error", "code", "INTERNAL_ERROR"));
     }
