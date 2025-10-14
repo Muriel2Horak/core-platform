@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Box, Paper, Typography, Tooltip, Chip, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import ReactFlow, {
   Background,
@@ -7,7 +7,6 @@ import ReactFlow, {
   Node,
   Edge,
   MarkerType,
-  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useElkLayout } from '../../lib/layout/useElkLayout';
@@ -127,10 +126,25 @@ export const WorkflowGraph = ({ graph }: WorkflowGraphProps) => {
   }, [graph.edges]);
 
   // Apply layout
-  const { nodes: layoutedNodes, edges: layoutedEdges } = useMemo(() => {
+  const layoutedElements = useMemo(() => {
     const layoutFn = layoutEngine === 'elk' ? getElkLayout : getDagreLayout;
     return layoutFn(flowNodes, flowEdges);
   }, [flowNodes, flowEdges, layoutEngine, getElkLayout, getDagreLayout]);
+
+  // Extract nodes and edges from layout result
+  const layoutedNodes = useMemo(() => {
+    if (!layoutedElements) return flowNodes;
+    return 'then' in layoutedElements 
+      ? flowNodes // Fallback if Promise
+      : layoutedElements.nodes || flowNodes;
+  }, [layoutedElements, flowNodes]);
+
+  const layoutedEdges = useMemo(() => {
+    if (!layoutedElements) return flowEdges;
+    return 'then' in layoutedElements
+      ? flowEdges // Fallback if Promise
+      : layoutedElements.edges || flowEdges;
+  }, [layoutedElements, flowEdges]);
 
   const handleLayoutChange = useCallback((_event: React.MouseEvent<HTMLElement>, newLayout: LayoutEngine | null) => {
     if (newLayout !== null) {
