@@ -30,6 +30,13 @@ public class UserDirectoryService {
   }
 
   /**
+   * Find all users (tenant-filtered via AOP)
+   */
+  public List<UserDirectoryEntity> findAll() {
+    return userDirectoryRepository.findAll();
+  }
+
+  /**
    * Find user by Keycloak user ID
    */
   public Optional<UserDirectoryEntity> findByKeycloakUserId(String keycloakUserId) {
@@ -127,6 +134,11 @@ public class UserDirectoryService {
     // 🎯 AUTO-SET: Automatically set tenant ID from context
     UUID tenantId = tenantService.getTenantIdFromKey(currentTenantKey);
     user.setTenantId(tenantId);
+
+    // 🎯 AUTO-SET: If ID is null, generate one (entity has no @GeneratedValue)
+    if (user.getId() == null) {
+      user.setId(UUID.randomUUID());
+    }
 
     log.debug("Creating/updating user {} in tenant {}", user.getUsername(), currentTenantKey);
 

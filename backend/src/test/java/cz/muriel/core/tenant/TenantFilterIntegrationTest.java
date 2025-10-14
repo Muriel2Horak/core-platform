@@ -43,14 +43,14 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
 
     // Create users for tenant 1 (set context first)
     TenantContext.setTenantKey(tenant1Key);
-    createUser("user1-t1", "user1@tenant1.com");
-    createUser("user2-t1", "user2@tenant1.com");
+    createUser("user1-t1", "user1@tenant1.com", tenant1.getId());
+    createUser("user2-t1", "user2@tenant1.com", tenant1.getId());
     TenantContext.clear();
 
     // Create users for tenant 2
     TenantContext.setTenantKey(tenant2Key);
-    createUser("user1-t2", "user1@tenant2.com");
-    createUser("user2-t2", "user2@tenant2.com");
+    createUser("user1-t2", "user1@tenant2.com", tenant2.getId());
+    createUser("user2-t2", "user2@tenant2.com", tenant2.getId());
     TenantContext.clear();
   }
 
@@ -60,11 +60,14 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
     TenantContext.setTenantKey(tenant1Key);
 
     try {
-      // When - filter by tenant1
-      List<UserDirectoryEntity> tenant1Users = userDirectoryRepository.findAll();
+      // When - Query users (AOP will enable tenant filter)
+      List<UserDirectoryEntity> users = userDirectoryService.findAll();
 
-      // Then - should only see tenant1 users
-      assertThat(tenant1Users).hasSize(2); // user1-t1 and user2-t1 from setUp
+      // Then - Should only see tenant1 users
+      assertThat(users).hasSize(2); // Only tenant1 users from setUp
+      assertThat(users).allMatch(user -> user.getTenantId() != null);
+      assertThat(users).extracting(UserDirectoryEntity::getUsername).containsExactlyInAnyOrder(
+          "user1-t1", "user2-t1");
 
     } finally {
       TenantContext.clear();
@@ -78,7 +81,7 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
 
     try {
       // When - filter by tenant2
-      List<UserDirectoryEntity> tenant2Users = userDirectoryRepository.findAll();
+      List<UserDirectoryEntity> tenant2Users = userDirectoryService.findAll();
 
       // Then - should only see tenant2 users
       assertThat(tenant2Users).hasSize(2); // user1-t2 and user2-t2 from setUp
@@ -95,7 +98,7 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
 
     try {
       // When - Query users (should not see tenant1 users due to RLS)
-      List<UserDirectoryEntity> users = userDirectoryRepository.findAll();
+      List<UserDirectoryEntity> users = userDirectoryService.findAll();
 
       // Then - should not see users from tenant1, only tenant2
       assertThat(users).hasSize(2); // Only tenant2 users from setUp
@@ -163,11 +166,11 @@ class TenantFilterIntegrationTest extends AbstractIntegrationTest {
     }
   }
 
-  private void createUser(String username, String email) {
-    // Note: We don't set tenantId manually - TenantContext and JPA interceptor
-    // handle it
+  private void createUser(String username, String email, java.util.UUID tenantId) {
+    // Note: tenantId must be set explicitly in tests
     UserDirectoryEntity user = UserDirectoryEntity.builder()
         .id(java.util.UUID.randomUUID()) // ID must be set manually
+        .tenantId(tenantId) // Set tenant ID explicitly
         .username(username)
         .email(email)
         .firstName("Test")
