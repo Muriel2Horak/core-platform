@@ -41,17 +41,24 @@ help:
 	@echo "  up              - Start production environment"
 	@echo "  down            - Stop all services"
 	@echo "  restart         - Restart all services"
+	@echo "  rebuild         - Rebuild with cache (FAST ⚡)"
+	@echo "  rebuild-clean   - Rebuild without cache (slow but clean)"
 	@echo "  clean           - Clean restart (rebuild + smaže DATA)"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  test-backend    - Backend unit tests"
-	@echo "  test-frontend   - Frontend tests"
+	@echo "  test-frontend   - Frontend unit tests"
 	@echo "  test-all        - All unit tests (backend + frontend)"
 	@echo "  test-mt         - Multitenancy tests"
+	@echo "  test-e2e-pre    - PRE-DEPLOY smoke tests (fast gate)"
+	@echo "  test-e2e-post   - POST-DEPLOY full E2E (with scaffold)"
+	@echo "  test-e2e        - All E2E tests (pre + post)"
 	@echo "  verify          - Quick smoke tests (health checks)"
 	@echo "  verify-full     - Full integration tests"
 	@echo ""
 	@echo "💡 Note: Unit tests run automatically before 'make rebuild'"
+	@echo "         PRE-DEPLOY E2E: Fast smoke tests (5-7 min)"
+	@echo "         POST-DEPLOY E2E: Full scenarios (20-30 min)"
 	@echo "         Use SKIP_TESTS=true to bypass (not recommended)"
 	@echo ""
 	@echo "📚 More: make help-advanced"
@@ -61,7 +68,21 @@ help:
 help-advanced:
 	@echo "🔧 Advanced Commands:"
 	@echo ""
-	@echo "🐳 Single Service Management:"
+	@echo "🎭 E2E Testing (Two-Tier):"
+	@echo "  e2e-setup           - Install E2E dependencies + Playwright"
+	@echo "  test-e2e-pre        - PRE-DEPLOY smoke tests (5-7 min)"
+	@echo "  test-e2e-post       - POST-DEPLOY full E2E (20-30 min)"
+	@echo "  test-e2e            - All E2E tests (pre + post)"
+	@echo "  e2e-scaffold        - Create test data only"
+	@echo "  e2e-teardown        - Cleanup test data only"
+	@echo "  e2e-report          - Open HTML test report"
+	@echo ""
+	@echo "� CI/CD Pipeline:"
+	@echo "  ci-test-pipeline    - Full CI pipeline (unit + E2E gate)"
+	@echo "  ci-post-deploy      - Post-deployment validation"
+	@echo "  test-comprehensive  - Comprehensive test suite"
+	@echo ""
+	@echo "�🐳 Single Service Management:"
 	@echo "  rebuild-backend     - Rebuild backend only"
 	@echo "  rebuild-frontend    - Rebuild frontend only"
 	@echo "  rebuild-keycloak    - Rebuild keycloak only"
@@ -179,9 +200,9 @@ dev-restart:
 # Clean restart dev environment
 .PHONY: dev-clean
 dev-clean:
-	@echo "🧹 Clean dev restart..."
+	@echo "🧹 Clean dev restart (with cache)..."
 	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env down -v
-	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env build --no-cache
+	@docker compose -f docker/docker-compose.yml -f .devcontainer/docker-compose.devcontainer.yml --env-file .env build
 	@$(MAKE) dev-up
 
 # Health check
@@ -264,14 +285,45 @@ rebuild:
 _rebuild_inner:
 	@echo ">>> rebuilding at $(BUILD_TS)"
 	@echo ""
-	@echo "🧪 Step 1/3: Running pre-build tests..."
+	@echo "🧪 Step 1/4: Running pre-build tests..."
 	@bash scripts/build/pre-build-test.sh all
 	@echo ""
-	@echo "🏗️  Step 2/3: Building Docker images..."
+	@echo "🏗️  Step 2/4: Building Docker images (with cache)..."
+	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel
+	@echo ""
+	@echo "🚀 Step 3/4: Starting services..."
+	@$(MAKE) up
+	@echo ""
+	@if [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
+		echo "🎭 Step 4/4: Running PRE-DEPLOY E2E tests..."; \
+		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
+	else \
+		echo "⏭️  Step 4/4: E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
+	fi
+
+# Force rebuild without cache (slower but ensures clean build)
+.PHONY: rebuild-clean
+rebuild-clean:
+	@scripts/build/wrapper.sh $(MAKE) _rebuild_clean_inner 2>&1 | tee -a $(LOG_FILE)
+
+_rebuild_clean_inner:
+	@echo ">>> force rebuilding (no cache) at $(BUILD_TS)"
+	@echo ""
+	@echo "🧪 Step 1/4: Running pre-build tests..."
+	@bash scripts/build/pre-build-test.sh all
+	@echo ""
+	@echo "🏗️  Step 2/4: Building Docker images (NO CACHE - slower but clean)..."
 	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache
 	@echo ""
-	@echo "🚀 Step 3/3: Starting services..."
+	@echo "🚀 Step 3/4: Starting services..."
 	@$(MAKE) up
+	@echo ""
+	@if [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
+		echo "🎭 Step 4/4: Running PRE-DEPLOY E2E tests..."; \
+		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
+	else \
+		echo "⏭️  Step 4/4: E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
+	fi
 
 # Clean with Build Doctor
 clean:
@@ -399,9 +451,9 @@ db-clean-migrate:
 # Build all images
 .PHONY: build
 build:
-	@echo "🔨 Building all images..."
+	@echo "🔨 Building all images (with cache)..."
 	@$(MAKE) kc-image
-	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache
+	docker compose -f docker/docker-compose.yml --env-file .env build
 
 # Show services status
 .PHONY: status 
@@ -610,11 +662,11 @@ kc-image-no-cache:
 # Rebuild & restart backend only
 .PHONY: rebuild-backend
 rebuild-backend:
-	@echo "🔨 Rebuilding backend service..."
+	@echo "🔨 Rebuilding backend service (with cache)..."
 	# @echo "🧪 Running unit tests before rebuild..."
 	# @$(MAKE) test-backend-unit || (echo "❌ Unit tests failed - aborting rebuild" && exit 1)
 	docker compose -f docker/docker-compose.yml --env-file .env stop backend
-	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache backend
+	docker compose -f docker/docker-compose.yml --env-file .env build backend
 	docker compose -f docker/docker-compose.yml --env-file .env up -d backend
 	@echo "✅ Backend rebuilt and restarted"
 	@echo "⏳ Waiting for backend to be ready..."
@@ -627,6 +679,15 @@ rebuild-backend:
 	done
 	# @echo "🧪 Running integration tests after rebuild..."
 	# @$(MAKE) test-backend-integration
+
+# Force rebuild backend without cache
+.PHONY: rebuild-backend-clean
+rebuild-backend-clean:
+	@echo "🔨 Force rebuilding backend service (NO CACHE)..."
+	docker compose -f docker/docker-compose.yml --env-file .env stop backend
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache backend
+	docker compose -f docker/docker-compose.yml --env-file .env up -d backend
+	@echo "✅ Backend force rebuilt and restarted"
 
 # Restart backend service only
 .PHONY: restart-backend
@@ -657,8 +718,8 @@ rebuild-frontend:
 	-docker rmi docker-frontend:latest 2>/dev/null || echo "Image already removed"
 	@echo "🚿 Clearing Docker build cache for frontend..."
 	-docker builder prune -f --filter label=stage=frontend-build 2>/dev/null || true
-	@echo "🏗️  Building fresh frontend image (no cache)..."
-	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache frontend
+	@echo "🏗️  Building fresh frontend image (with cache for dependencies)..."
+	docker compose -f docker/docker-compose.yml --env-file .env build frontend
 	@echo "🚀 Starting ONLY frontend container (no dependencies)..."
 	docker compose -f docker/docker-compose.yml --env-file .env up -d --no-deps frontend
 	@echo ""
@@ -671,6 +732,17 @@ rebuild-frontend:
 	@echo "   3. Or open Application tab → Storage → Clear site data"
 	@echo ""
 	@echo "🧹 To clear browser data automatically, run: make clear-browser-cache"
+
+# Force rebuild frontend without cache
+.PHONY: rebuild-frontend-clean
+rebuild-frontend-clean:
+	@echo "🔨 Force rebuilding frontend service (NO CACHE)..."
+	docker compose -f docker/docker-compose.yml --env-file .env stop frontend
+	-docker rm core-frontend 2>/dev/null || echo "Container already removed"
+	-docker rmi docker-frontend:latest 2>/dev/null || echo "Image already removed"
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache frontend
+	docker compose -f docker/docker-compose.yml --env-file .env up -d --no-deps frontend
+	@echo "✅ Frontend force rebuilt and restarted"
 
 # Rebuild & restart keycloak only
 .PHONY: rebuild-keycloak
@@ -1008,11 +1080,144 @@ show-backend-test-results:
 # Run frontend tests
 .PHONY: test-frontend
 test-frontend:
-	@echo "🧪 Running frontend tests..."
+	@echo "🧪 Running frontend unit tests..."
 	@cd frontend && npm test -- --run
 
-# Run all pre-build tests (for manual execution)
+# =============================================================================
+# 🎭 E2E TESTING (Two-Tier Strategy)
+# =============================================================================
+
+# PRE-DEPLOY: Fast smoke tests (gate before deployment)
+.PHONY: test-e2e-pre
+test-e2e-pre:
+	@echo "🎭 Running PRE-DEPLOY E2E smoke tests..."
+	@echo "⚠️  Requires: Running environment (make dev-up or make up)"
+	@echo "📋 Tests: Login, RBAC, Grid/Form, Workflow panel"
+	@echo "⏱️  Duration: ~5-7 minutes"
+	@echo ""
+	@if [ ! -d "e2e/node_modules" ]; then \
+		echo "📦 Installing E2E dependencies..."; \
+		cd e2e && npm install; \
+	fi
+	@cd e2e && npm run test:pre
+	@echo ""
+	@echo "✅ PRE-DEPLOY smoke tests completed!"
+	@echo "📊 Report: e2e/playwright-report/index.html"
+
+# POST-DEPLOY: Full E2E tests with ephemeral data
+.PHONY: test-e2e-post
+test-e2e-post:
+	@echo "🎭 Running POST-DEPLOY E2E tests..."
+	@echo "⚠️  Requires: Deployed environment (staging/production)"
+	@echo "📋 Tests: Full scenarios with scaffold/teardown"
+	@echo "⏱️  Duration: ~20-30 minutes"
+	@echo ""
+	@if [ ! -d "e2e/node_modules" ]; then \
+		echo "📦 Installing E2E dependencies..."; \
+		cd e2e && npm install; \
+	fi
+	@echo "1️⃣  Creating ephemeral test data..."
+	@cd e2e && npm run scaffold
+	@echo ""
+	@echo "2️⃣  Running full E2E tests..."
+	@cd e2e && npm run test:post || (echo "❌ Tests failed!"; cd e2e && npm run teardown; exit 1)
+	@echo ""
+	@echo "3️⃣  Cleaning up test data..."
+	@cd e2e && npm run teardown
+	@echo ""
+	@echo "✅ POST-DEPLOY E2E tests completed!"
+	@echo "📊 Report: e2e/playwright-report/index.html"
+
+# Run all E2E tests (PRE + POST)
+.PHONY: test-e2e
+test-e2e:
+	@echo "🎭 Running ALL E2E tests (PRE + POST)..."
+	@echo ""
+	@$(MAKE) test-e2e-pre
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@$(MAKE) test-e2e-post
+	@echo ""
+	@echo "🎉 All E2E tests completed!"
+
+# Install E2E dependencies and Playwright browsers
+.PHONY: e2e-setup
+e2e-setup:
+	@echo "📦 Setting up E2E testing environment..."
+	@cd e2e && npm install
+	@cd e2e && npx playwright install --with-deps chromium
+	@echo "✅ E2E setup complete!"
+
+# Open E2E test report
+.PHONY: e2e-report
+e2e-report:
+	@echo "📊 Opening E2E test report..."
+	@cd e2e && npm run report
+
+# Run E2E scaffold only (for debugging)
+.PHONY: e2e-scaffold
+e2e-scaffold:
+	@echo "🏗️  Creating ephemeral test data..."
+	@cd e2e && npm run scaffold
+
+# Run E2E teardown only (for cleanup)
+.PHONY: e2e-teardown
+e2e-teardown:
+	@echo "🧹 Cleaning up test data..."
+	@cd e2e && npm run teardown
+
+# Run all pre-build tests (unit tests only)
 .PHONY: test-all
 test-all:
-	@echo "🧪 Running all pre-build tests..."
-	@bash scripts/build/pre-build-test.sh all
+	@echo "🧪 Running all unit tests..."
+	@echo ""
+	@echo "1️⃣  Backend unit tests..."
+	@$(MAKE) test-backend
+	@echo ""
+	@echo "2️⃣  Frontend unit tests..."
+	@$(MAKE) test-frontend
+	@echo ""
+	@echo "✅ All unit tests completed!"
+
+# Run comprehensive test suite (unit + integration + E2E PRE)
+.PHONY: test-comprehensive
+test-comprehensive:
+	@echo "🧪 Running comprehensive test suite..."
+	@echo ""
+	@$(MAKE) test-all
+	@echo ""
+	@echo "3️⃣  PRE-DEPLOY E2E smoke tests..."
+	@$(MAKE) test-e2e-pre
+	@echo ""
+	@echo "🎉 Comprehensive testing completed!"
+
+# CI/CD: Full test pipeline with E2E gate
+.PHONY: ci-test-pipeline
+ci-test-pipeline:
+	@echo "🚀 CI/CD Test Pipeline"
+	@echo "======================"
+	@echo ""
+	@echo "Phase 1: Unit Tests"
+	@echo "-------------------"
+	@$(MAKE) test-all
+	@echo ""
+	@echo "Phase 2: Environment Startup"
+	@echo "----------------------------"
+	@$(MAKE) up
+	@echo ""
+	@echo "Phase 3: PRE-DEPLOY E2E Gate"
+	@echo "----------------------------"
+	@$(MAKE) test-e2e-pre || (echo "❌ E2E gate failed! Deployment blocked."; exit 1)
+	@echo ""
+	@echo "✅ CI/CD pipeline successful! Ready to deploy."
+
+# CI/CD: Post-deployment validation
+.PHONY: ci-post-deploy
+ci-post-deploy:
+	@echo "🚀 Post-Deployment Validation"
+	@echo "=============================="
+	@echo ""
+	@$(MAKE) test-e2e-post
+	@echo ""
+	@echo "✅ Post-deployment validation complete!"

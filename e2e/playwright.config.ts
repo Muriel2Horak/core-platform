@@ -69,16 +69,25 @@ export default defineConfig({
   
   // Test projects
   projects: [
+    // PRE-DEPLOY: Fast smoke tests against local dev environment
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'pre',
+      testDir: './specs/pre',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.PRE_BASE_URL || config.baseUrl,
+      },
     },
     
-    // Optional: přidat Firefox/Safari později
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
+    // POST-DEPLOY: Full E2E tests against deployed environment
+    {
+      name: 'post',
+      testDir: './specs/post',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.POST_BASE_URL || config.baseUrl,
+      },
+    },
   ],
   
   // Output folder

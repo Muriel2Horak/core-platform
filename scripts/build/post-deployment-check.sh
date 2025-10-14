@@ -162,6 +162,49 @@ if [ "${RUN_FULL_TESTS:-false}" = "true" ]; then
 fi
 
 # =============================================================================
+# 7. E2E Tests (Optional - Playwright)
+# =============================================================================
+if [ "${RUN_E2E_TESTS:-false}" = "true" ]; then
+    echo ""
+    echo -e "${BLUE}🎭 E2E Tests (Playwright):${NC}"
+    
+    if [ -f "frontend/package.json" ]; then
+        cd frontend
+        
+        # Check if Playwright is installed
+        if npm run | grep -q "test:e2e"; then
+            echo -e "${YELLOW}Running E2E tests...${NC}"
+            
+            # Wait for services to be fully ready
+            echo "⏳ Waiting for services to stabilize..."
+            sleep 5
+            
+            # Run E2E tests
+            if npm run test:e2e -- --reporter=line 2>&1 | tee /tmp/e2e-test.log; then
+                TESTS_COUNT=$(grep -oE "[0-9]+ passed" /tmp/e2e-test.log | head -1 | grep -o "[0-9]*" || echo "0")
+                echo -e "    ${GREEN}✅ PASS${NC} ($TESTS_COUNT E2E tests)"
+                CHECKS_PASSED=$((CHECKS_PASSED + 1))
+            else
+                FAILED_COUNT=$(grep -oE "[0-9]+ failed" /tmp/e2e-test.log | head -1 | grep -o "[0-9]*" || echo "unknown")
+                echo -e "    ${RED}❌ FAIL${NC} ($FAILED_COUNT tests failed)"
+                echo ""
+                echo "💡 Check test results in:"
+                echo "   - frontend/test-results/"
+                echo "   - frontend/playwright-report/"
+                CHECKS_FAILED=$((CHECKS_FAILED + 1))
+            fi
+        else
+            echo -e "    ${YELLOW}⚠️  SKIP${NC} (Playwright not configured)"
+        fi
+        
+        cd ..
+        CHECKS_TOTAL=$((CHECKS_TOTAL + 1))
+    else
+        echo -e "    ${YELLOW}⚠️  SKIP${NC} (frontend not found)"
+    fi
+fi
+
+# =============================================================================
 # Summary
 # =============================================================================
 echo ""

@@ -165,9 +165,9 @@ export function readE2EConfig(): E2EConfig {
     frontendUrl = authServerUrl;
   }
   
-  // Test user credentials
-  const username = process.env.E2E_USER || 'testuser';
-  const password = process.env.E2E_PASS || expanded['TEST_USER_PASSWORD'] || 'Test.1234';
+  // Test user credentials (override via ENV)
+  const username = process.env.E2E_USER || 'test';
+  const password = process.env.E2E_PASS || 'Test.1234';
   
   return {
     baseUrl,

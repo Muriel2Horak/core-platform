@@ -84,6 +84,7 @@ jobs:
       
       - name: Comment PR with report
         if: github.event_name == 'pull_request' && always()
-        uses: daun/playwright-report-comment@v3
+        uses: daun/playwright-report-summary@v3
         with:
-          report-path: frontend/playwright-report
+          report-file: frontend/playwright-report/results.json
+          comment-title: '🧪 E2E Test Results'

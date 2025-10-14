@@ -4,42 +4,51 @@ import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.flyway.FlywayMigrationStrategy;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * 🔧 Flyway Configuration
  * 
- * Ensures Flyway uses the PRIMARY DataSource (core DB), not keycloakDataSource.
- * Without this, Flyway may incorrectly use keycloakDataSource when multiple
- * DataSources exist.
+ * CRITICAL: Runs Flyway migrations BEFORE JPA/Hibernate initialization! -
+ * Disables Spring Boot's FlywayAutoConfiguration (runs too late) - Manually
+ * runs migrations in @PostConstruct (runs early) - Uses PRIMARY DataSource
+ * (core DB), not keycloakDataSource
  */
-@Configuration @Slf4j
+@Configuration @Slf4j @Order(1) // Run before other configs
+@EnableAutoConfiguration(exclude = FlywayAutoConfiguration.class)
 public class FlywayConfig {
 
-  /**
-   * Force Flyway to use primary DataSource
-   */
-  @Bean
-  public Flyway flyway(@Qualifier("dataSource") DataSource primaryDataSource) {
-    log.info("🔧 Configuring Flyway with PRIMARY DataSource (core DB)");
+  private final DataSource primaryDataSource;
 
-    return Flyway.configure().dataSource(primaryDataSource).locations("classpath:db/migration")
-        .baselineOnMigrate(true).baselineVersion("0") // Start from 0, so V1 will run
-        .load();
+  public FlywayConfig(@Qualifier("dataSource") DataSource primaryDataSource) {
+    this.primaryDataSource = primaryDataSource;
   }
 
   /**
-   * Migration strategy - run migrations on startup
+   * Run Flyway migrations IMMEDIATELY after bean construction This ensures
+   * migrations run BEFORE JPA entities are scanned
    */
-  @Bean
-  public FlywayMigrationStrategy flywayMigrationStrategy() {
-    return flyway -> {
-      log.info("🚀 Running Flyway migrations on PRIMARY DataSource");
-      flyway.migrate();
-    };
+  @PostConstruct
+  public void migrate() {
+    log.info("🔧 Configuring Flyway with PRIMARY DataSource (core DB)");
+    log.info("🚀 Running Flyway migrations in @PostConstruct (BEFORE JPA)");
+
+    Flyway flyway = Flyway.configure().dataSource(primaryDataSource)
+        .locations("classpath:db/migration").cleanDisabled(false) // ENABLE clean for development
+        .load();
+
+    // CLEAN database first (removes ALL objects in the schema)
+    log.warn("⚠️ Cleaning database (removes ALL tables, views, functions...)");
+    flyway.clean();
+
+    int migrationsRun = flyway.migrate().migrationsExecuted;
+
+    log.info("✅ Flyway migrations completed: {} migrations executed", migrationsRun);
   }
 }

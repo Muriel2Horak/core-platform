@@ -185,11 +185,13 @@
       "rootUrl": "https://admin.core-platform.local/",
       "redirectUris": [
         "https://admin.core-platform.local/*",
+        "https://core-platform.local/*",
         "http://localhost:3000/*",
         "http://localhost/*"
       ],
       "webOrigins": [
         "https://admin.core-platform.local",
+        "https://core-platform.local",
         "+"
       ],
       "protocolMappers": [

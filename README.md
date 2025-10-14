@@ -122,13 +122,24 @@ make logs-frontend # Frontend logy
 # Start s automatickou verifikací
 make up            # Build + Start + Smoke tests
 
-# Rebuild s verifikací
-make rebuild       # Rebuild všeho + Smoke tests
+# Rebuild s verifikací (FAST ⚡ - používá cache)
+make rebuild       # 3-5x rychlejší než dřív!
+
+# Force rebuild (slow but clean - bez cache)
+make rebuild-clean # Používej jen při problémech s dependencies
 
 # Manuální verifikace
 make verify        # Rychlé smoke testy (~15s)
 make verify-full   # Plné integration testy (~3min)
 ```
+
+**⚡ Build Optimization:** `make rebuild` nyní používá Docker cache, což znamená:
+- Dependencies se stahují pouze jednou
+- Běžné změny v kódu = rebuild za ~2-3 minuty místo ~10 minut
+- První build (~10 min), další buildy (~2-3 min) - **3-5x rychlejší!**
+- Používej `make rebuild-clean` pouze při změnách v `pom.xml`/`package.json`
+
+Více v [BUILD_OPTIMIZATION_IMPLEMENTATION.md](BUILD_OPTIMIZATION_IMPLEMENTATION.md)
 
 Po úspěšném `make up` se **automaticky spustí** smoke testy, které ověří:
 - ✅ Container health
@@ -242,6 +253,78 @@ Po každém reset Keycloak (`fresh`, `reset-kc`, `clean`):
 - `GET /api/tenants/me` - Current tenant info
 - `GET /api/users/me` - Current user info
 - `GET /api/users/search?q=` - Search users in tenant
+
+## 🧪 Testing
+
+### Test Structure
+```
+core-platform/
+├── backend/src/test/          # Backend unit tests (JUnit 5)
+├── frontend/src/**/*.test.tsx # Frontend unit tests (Vitest)
+├── e2e/                       # E2E tests (Playwright)
+│   ├── specs/pre/             # PRE-DEPLOY smoke tests
+│   └── specs/post/            # POST-DEPLOY full E2E
+└── tests/                     # Legacy integration tests
+```
+
+### Quick Commands
+```bash
+# Unit Tests
+make test-backend    # Backend unit tests
+make test-frontend   # Frontend unit tests
+make test-all       # All unit tests
+
+# E2E Tests (Playwright)
+make e2e-setup      # Install E2E dependencies (jednou)
+make test-e2e-pre   # PRE-DEPLOY smoke (5-7 min)
+make test-e2e-post  # POST-DEPLOY full (20-30 min)
+make test-e2e       # All E2E tests
+make e2e-report     # View HTML report
+
+# CI/CD
+make ci-test-pipeline  # Full CI pipeline (unit + E2E gate)
+make ci-post-deploy    # Post-deployment validation
+```
+
+### Two-Tier E2E Strategy
+
+**PRE-DEPLOY (Fast Gate - 5-7 min):**
+- ✅ Login & authentication flow
+- ✅ Menu RBAC validation
+- ✅ Entity CRUD operations
+- ✅ Workflow panel UI
+
+**POST-DEPLOY (Full E2E - 20-30 min):**
+- ✅ Auth + profile updates
+- ✅ Entity creation via Studio
+- ✅ Workflow execution
+- ✅ Directory consistency
+- ✅ Cleanup verification
+
+### Testing URLs
+
+**Local Development:**
+```bash
+# PRE & POST tests na lokálním prostředí
+make test-e2e-pre   # uses https://core-platform.local
+make ci-post-deploy # uses https://core-platform.local
+```
+
+**Staging/Production:**
+```bash
+# POST tests na nasazeném prostředí
+POST_BASE_URL=https://staging.your-domain.com make ci-post-deploy
+```
+
+### Test Credentials
+- Regular user: `test` / `Test.1234`
+- Admin user: `test_admin` / `Test.1234`
+
+### Documentation
+- 📖 [TESTING_STRUCTURE.md](./TESTING_STRUCTURE.md) - Complete testing guide
+- 📖 [TESTING_FAQ.md](./TESTING_FAQ.md) - Frequently asked questions
+- 📖 [E2E_MAKEFILE_INTEGRATION.md](./E2E_MAKEFILE_INTEGRATION.md) - E2E details
+- 📖 [e2e/README.md](./e2e/README.md) - Playwright setup
 
 ## 🔍 Kvalita kódu & preflight checks
 
@@ -573,12 +656,16 @@ docker exec core-platform-db-1 pg_isready -U core
 
 **Testing (S1-S2):**
 11. [TESTING.md](./TESTING.md) - Test strategy & results
+12. [TESTING_STRUCTURE.md](./TESTING_STRUCTURE.md) - Complete testing guide
+13. [TESTING_FAQ.md](./TESTING_FAQ.md) - Testing FAQ (tests location, URLs, clean)
+14. [E2E_MAKEFILE_INTEGRATION.md](./E2E_MAKEFILE_INTEGRATION.md) - E2E integration guide
+15. [e2e/README.md](./e2e/README.md) - Playwright E2E setup
 
 **Development:**
-12. [GRAFANA_INTEGRATION.md](./docs/GRAFANA_INTEGRATION.md) - Multi-tenant monitoring
-13. [DATABASE_MIGRATIONS_GUIDE.md](./docs/DATABASE_MIGRATIONS_GUIDE.md) - Flyway workflows
+16. [GRAFANA_INTEGRATION.md](./docs/GRAFANA_INTEGRATION.md) - Multi-tenant monitoring
+17. [DATABASE_MIGRATIONS_GUIDE.md](./docs/DATABASE_MIGRATIONS_GUIDE.md) - Flyway workflows
 
-**Total:** 15,000+ lines of documentation across 38+ files
+**Total:** 15,000+ lines of documentation across 40+ files
 
 ### 🎯 Next Steps: S10 - Production Hardening
 

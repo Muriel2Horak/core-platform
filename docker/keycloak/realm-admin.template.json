@@ -185,11 +185,13 @@
       "rootUrl": "https://${DOMAIN}/",
       "redirectUris": [
         "https://${DOMAIN}/*",
+        "https://core-platform.local/*",
         "http://localhost:3000/*",
         "http://localhost/*"
       ],
       "webOrigins": [
         "https://${DOMAIN}",
+        "https://core-platform.local",
         "+"
       ],
       "protocolMappers": [

@@ -35,12 +35,12 @@ while true; do
         echo "❌ Timeout after ${TIMEOUT}s waiting for containers"
         echo ""
         echo "Unhealthy containers:"
-        docker ps --filter "name=core-platform" --format "table {{.Names}}\t{{.Status}}" | grep -v "Up.*healthy" || true
+        docker ps --filter "name=core-" --format "table {{.Names}}\t{{.Status}}" | grep -v "Up.*healthy" || true
         exit 1
     fi
     
-    # Get all core-platform containers
-    CONTAINERS=$(docker ps --filter "name=core-platform" --format "{{.Names}}" 2>/dev/null || true)
+    # Get all core- containers (core-backend, core-frontend, etc.)
+    CONTAINERS=$(docker ps --filter "name=core-" --format "{{.Names}}" 2>/dev/null || true)
     
     if [ -z "$CONTAINERS" ]; then
         echo "⚠️  No containers found"

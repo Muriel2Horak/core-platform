@@ -4,7 +4,16 @@
   "type": "module",
   "description": "E2E tests for Core Platform",
   "private": true,
+  "scripts": {
+    "test:pre": "playwright test --project=pre",
+    "test:post": "playwright test --project=post",
+    "test:all": "playwright test",
+    "scaffold": "node scripts/scaffold.ts",
+    "teardown": "node scripts/teardown.ts",
+    "report": "playwright show-report playwright-report"
+  },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@types/node": "^24.7.2"
   }
 }
