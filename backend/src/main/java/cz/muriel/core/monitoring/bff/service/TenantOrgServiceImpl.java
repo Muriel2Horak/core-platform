@@ -22,10 +22,41 @@ public class TenantOrgServiceImpl implements TenantOrgService {
 
   private final GrafanaTenantBindingRepository bindingRepository;
 
-  @Override @Cacheable(value = "tenantOrgBindings", key = "#tenantId")
+  @Override 
+  @Cacheable(value = "tenantOrgBindings", key = "T(cz.muriel.core.monitoring.bff.service.TenantOrgServiceImpl).extractTenantIdStatic(#jwt)")
   public TenantBinding resolve(Jwt jwt) {
     String tenantId = extractTenantId(jwt);
     return resolveTenantBinding(tenantId);
+  }
+
+  /**
+   * Static method for cache key generation
+   */
+  public static String extractTenantIdStatic(Jwt jwt) {
+    // Try multiple claim locations
+
+    // 1. Direct tenant_id claim
+    String tenantId = jwt.getClaimAsString("tenant_id");
+    if (tenantId != null && !tenantId.isEmpty()) {
+      return tenantId;
+    }
+
+    // 2. tenant claim
+    tenantId = jwt.getClaimAsString("tenant");
+    if (tenantId != null && !tenantId.isEmpty()) {
+      return tenantId;
+    }
+
+    // 3. Extract from issuer (realm)
+    String issuer = jwt.getClaimAsString("iss");
+    if (issuer != null && issuer.contains("/realms/")) {
+      String realm = issuer.substring(issuer.lastIndexOf("/realms/") + 8);
+      if (!realm.isEmpty()) {
+        return realm;
+      }
+    }
+
+    throw new IllegalStateException("No tenant information in JWT");
   }
 
   /**
@@ -50,44 +81,6 @@ public class TenantOrgServiceImpl implements TenantOrgService {
 
   @Override
   public String extractTenantId(Jwt jwt) {
-    // Try multiple claim locations
-
-    // 1. Direct tenant_id claim
-    String tenantId = jwt.getClaimAsString("tenant_id");
-    if (tenantId != null && !tenantId.isEmpty()) {
-      return tenantId;
-    }
-
-    // 2. tenant claim
-    tenantId = jwt.getClaimAsString("tenant");
-    if (tenantId != null && !tenantId.isEmpty()) {
-      return tenantId;
-    }
-
-    // 3. realm_access.groups (extract tenant from group name)
-    Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-    if (realmAccess != null) {
-      Object rolesObj = realmAccess.get("roles");
-      if (rolesObj instanceof List) {
-        @SuppressWarnings("unchecked")
-        List<String> roles = (List<String>) rolesObj;
-        for (String role : roles) {
-          if (role.startsWith("TENANT_")) {
-            return role.substring(7).toLowerCase(); // TENANT_CORE_PLATFORM -> core-platform
-          }
-        }
-      }
-    }
-
-    // 4. Fallback to preferred_username realm
-    String preferredUsername = jwt.getClaimAsString("preferred_username");
-    if (preferredUsername != null && preferredUsername.contains("@")) {
-      String realm = preferredUsername.split("@")[1];
-      log.warn("⚠️ Falling back to realm {} from preferred_username for tenant resolution", realm);
-      return realm;
-    }
-
-    log.error("❌ Could not extract tenant_id from JWT. Claims: {}", jwt.getClaims().keySet());
-    throw new IllegalArgumentException("No tenant_id found in JWT token");
+    return extractTenantIdStatic(jwt);
   }
 }
