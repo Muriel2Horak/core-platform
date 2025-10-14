@@ -8,6 +8,8 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import cz.muriel.core.test.AbstractIntegrationTest;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -17,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest @AutoConfigureMockMvc @TestPropertySource(properties = {
     "metamodel.schema.auto-generate=false" // Disable schema generator in tests
 })
-class StudioAdminControllerIT {
+class StudioAdminControllerIT extends AbstractIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;

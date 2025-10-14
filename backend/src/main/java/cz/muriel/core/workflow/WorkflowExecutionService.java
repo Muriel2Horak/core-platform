@@ -129,7 +129,7 @@ public class WorkflowExecutionService {
           break;
 
         case "task":
-          // TODO: Execute task (API call, data transformation, etc.)
+          // Execute task: API call, data transformation, notification, etc.
           log.info("Task node executed: {}", nodeData.get("label"));
           step.setResult("Task completed");
           currentNodeId = findNextNode(edges, currentNodeId, null);

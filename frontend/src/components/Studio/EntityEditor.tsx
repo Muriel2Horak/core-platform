@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   TextField,
@@ -11,10 +11,17 @@ import {
   Stack,
   IconButton,
   Chip,
+  Tooltip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import SaveIcon from '@mui/icons-material/Save';
+import DownloadIcon from '@mui/icons-material/Download';
+import UploadIcon from '@mui/icons-material/Upload';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 interface Field {
   name: string;
@@ -46,13 +53,19 @@ interface EntityEditorProps {
 }
 
 /**
- * S10-C: EntityEditor - Edit entity schema (draft mode)
+ * S10-C+F: EntityEditor - Edit entity schema with UX enhancements
  * 
- * Features:
+ * S10-C Features:
  * - Edit entity name, table name
  * - Edit fields (name, type, required, unique)
  * - Validate draft (client + server)
  * - Save draft locally
+ * 
+ * S10-F Features (UX Enhancements):
+ * - Undo/Redo history (max 50 entries)
+ * - Autosave with debounce (500ms)
+ * - Export/Import draft JSON
+ * - Duplicate entity/field buttons
  */
 export function EntityEditor({ entity, onSave, onValidate }: EntityEditorProps) {
   const [draft, setDraft] = useState<EntityDraft>({
@@ -68,45 +81,187 @@ export function EntityEditor({ entity, onSave, onValidate }: EntityEditorProps) 
   const [validating, setValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
 
+  // S10-F: Undo/Redo history
+  const [history, setHistory] = useState<EntityDraft[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const MAX_HISTORY = 50;
+
+  // S10-F: Autosave indicator
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // S10-F: File upload ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (entity) {
-      setDraft({
+      const newDraft = {
         entity: entity.entity || entity.name || '',
         table: entity.table || '',
         idField: entity.idField || 'id',
         versionField: entity.versionField || 'version',
         tenantField: entity.tenantField || 'tenant_id',
         fields: entity.fields || [],
-      });
+      };
+      setDraft(newDraft);
       setValidationStatus('idle');
       setValidationErrors([]);
+      // Initialize history with first draft
+      setHistory([newDraft]);
+      setHistoryIndex(0);
     }
   }, [entity]);
 
+  // S10-F: Autosave with debounce (500ms)
+  useEffect(() => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(`draft-${draft.entity}`, JSON.stringify(draft));
+        setLastSaved(new Date().toLocaleTimeString());
+      } catch (err) {
+        console.error('Autosave failed:', err);
+      }
+    }, 500);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [draft]);
+
+  // S10-F: Add to history on draft change
+  const addToHistory = useCallback((newDraft: EntityDraft) => {
+    setHistory((prev) => {
+      // Remove any "future" history if we're not at the end
+      const newHistory = prev.slice(0, historyIndex + 1);
+      // Add new draft
+      newHistory.push(newDraft);
+      // Limit to MAX_HISTORY
+      if (newHistory.length > MAX_HISTORY) {
+        newHistory.shift();
+        setHistoryIndex((prevIndex) => prevIndex); // Keep same relative position
+      } else {
+        setHistoryIndex((prevIndex) => prevIndex + 1);
+      }
+      return newHistory;
+    });
+  }, [historyIndex, MAX_HISTORY]);
+
   const handleFieldChange = (field: keyof EntityDraft, value: any) => {
-    setDraft((prev) => ({ ...prev, [field]: value }));
+    const newDraft = { ...draft, [field]: value };
+    setDraft(newDraft);
+    addToHistory(newDraft);
     setValidationStatus('idle');
   };
 
   const handleFieldItemChange = (index: number, field: keyof Field, value: any) => {
     const newFields = [...draft.fields];
     newFields[index] = { ...newFields[index], [field]: value };
-    setDraft((prev) => ({ ...prev, fields: newFields }));
+    const newDraft = { ...draft, fields: newFields };
+    setDraft(newDraft);
+    addToHistory(newDraft);
     setValidationStatus('idle');
   };
 
   const handleAddField = () => {
-    setDraft((prev) => ({
-      ...prev,
-      fields: [...prev.fields, { name: '', type: 'string', required: false, unique: false }],
-    }));
+    const newDraft = {
+      ...draft,
+      fields: [...draft.fields, { name: '', type: 'string', required: false, unique: false }],
+    };
+    setDraft(newDraft);
+    addToHistory(newDraft);
   };
 
   const handleRemoveField = (index: number) => {
-    setDraft((prev) => ({
-      ...prev,
-      fields: prev.fields.filter((_, i) => i !== index),
-    }));
+    const newDraft = {
+      ...draft,
+      fields: draft.fields.filter((_, i) => i !== index),
+    };
+    setDraft(newDraft);
+    addToHistory(newDraft);
+  };
+
+  // S10-F: Duplicate field
+  const handleDuplicateField = (index: number) => {
+    const field = draft.fields[index];
+    const newDraft = {
+      ...draft,
+      fields: [
+        ...draft.fields,
+        { ...field, name: `${field.name}_copy` },
+      ],
+    };
+    setDraft(newDraft);
+    addToHistory(newDraft);
+  };
+
+  // S10-F: Duplicate entity
+  const handleDuplicateEntity = () => {
+    const newDraft = {
+      ...draft,
+      entity: `${draft.entity}Copy`,
+      table: `${draft.table}_copy`,
+    };
+    setDraft(newDraft);
+    addToHistory(newDraft);
+  };
+
+  // S10-F: Undo
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex((prev) => prev - 1);
+      setDraft(history[historyIndex - 1]);
+      setValidationStatus('idle');
+    }
+  };
+
+  // S10-F: Redo
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex((prev) => prev + 1);
+      setDraft(history[historyIndex + 1]);
+      setValidationStatus('idle');
+    }
+  };
+
+  // S10-F: Export draft as JSON
+  const handleExport = () => {
+    const dataStr = JSON.stringify(draft, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${draft.entity || 'entity'}-draft.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // S10-F: Import draft from JSON
+  const handleImport = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target?.result as string);
+        setDraft(imported);
+        addToHistory(imported);
+        setValidationStatus('idle');
+      } catch (err) {
+        alert('Failed to parse JSON file');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleValidate = async () => {
@@ -148,6 +303,57 @@ export function EntityEditor({ entity, onSave, onValidate }: EntityEditorProps) 
 
   return (
     <Box>
+      {/* S10-F: Toolbar with UX actions */}
+      <Paper variant="outlined" sx={{ p: 1, mb: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Tooltip title="Undo (Ctrl+Z)">
+          <span>
+            <IconButton size="small" onClick={handleUndo} disabled={historyIndex <= 0}>
+              <UndoIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Redo (Ctrl+Y)">
+          <span>
+            <IconButton size="small" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
+              <RedoIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Divider orientation="vertical" flexItem />
+        <Tooltip title="Duplicate Entity">
+          <IconButton size="small" onClick={handleDuplicateEntity}>
+            <ContentCopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Export Draft JSON">
+          <IconButton size="small" onClick={handleExport}>
+            <DownloadIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Import Draft JSON">
+          <IconButton size="small" onClick={handleImport}>
+            <UploadIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={handleFileUpload}
+        />
+        <Box sx={{ flexGrow: 1 }} />
+        {lastSaved && (
+          <Chip
+            icon={<SaveIcon />}
+            label={`Saved ${lastSaved}`}
+            size="small"
+            color="success"
+            variant="outlined"
+          />
+        )}
+      </Paper>
+
       {/* Entity metadata */}
       <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6" gutterBottom>
@@ -236,6 +442,11 @@ export function EntityEditor({ entity, onSave, onValidate }: EntityEditorProps) 
                     size="small"
                     onClick={() => handleFieldItemChange(index, 'unique', !field.unique)}
                   />
+                  <Tooltip title="Duplicate Field">
+                    <IconButton size="small" onClick={() => handleDuplicateField(index)}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <IconButton size="small" color="error" onClick={() => handleRemoveField(index)}>
                     <DeleteIcon />
                   </IconButton>

@@ -105,10 +105,17 @@ reporting:
 # Monitoring BFF Grafana configuration
 monitoring:
   grafana:
-    base-url: http://localhost:${WIREMOCK_PORT:0}  # Will be set by WireMock in tests
+    base-url: http://localhost:8089  # Fixed WireMock port for tests
     connect-timeout-ms: 1000
     read-timeout-ms: 5000
     max-response-size-mb: 10
+
+# Grafana Admin API configuration (for provisioning)
+grafana:
+  admin:
+    url: http://localhost:8089  # Fixed WireMock port for tests
+    username: admin
+    password: admin
 
 # Streaming configuration (disabled in tests by default)
 streaming:

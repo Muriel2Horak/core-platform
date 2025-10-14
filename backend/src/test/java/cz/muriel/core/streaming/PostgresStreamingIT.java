@@ -4,11 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
+import cz.muriel.core.test.AbstractIntegrationTest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,21 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * constraint and deduplication - Work State TTL expiration - Outbox Final
  * atomic write in single transaction
  */
-@SpringBootTest @Testcontainers
-public class PostgresStreamingIT {
-
-  @Container @SuppressWarnings("resource")
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-      .withDatabaseName("testdb").withUsername("test").withPassword("test");
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgres::getJdbcUrl);
-    registry.add("spring.datasource.username", postgres::getUsername);
-    registry.add("spring.datasource.password", postgres::getPassword);
-    registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-    registry.add("spring.flyway.enabled", () -> "true");
-  }
+@SpringBootTest
+public class PostgresStreamingIT extends AbstractIntegrationTest {
 
   @Autowired
   private JdbcTemplate jdbcTemplate;

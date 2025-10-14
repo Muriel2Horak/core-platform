@@ -14,11 +14,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.kafka.ConfluentKafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
+import cz.muriel.core.test.AbstractKafkaIntegrationTest;
 
 import java.time.Duration;
 import java.util.*;
@@ -33,18 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * ordering with keying ({entity}#{entityId}) - Event ordering guarantee for
  * same entity
  */
-@SpringBootTest @Testcontainers
-public class KafkaStreamingIT {
-
-  // Testcontainers manages lifecycle automatically via @Container annotation
-  @Container @SuppressWarnings("resource")
-  static ConfluentKafkaContainer kafka = new ConfluentKafkaContainer("confluentinc/cp-kafka:7.6.0");
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-    registry.add("streaming.enabled", () -> "true");
-  }
+@SpringBootTest
+public class KafkaStreamingIT extends AbstractKafkaIntegrationTest {
 
   private AdminClient adminClient;
   private KafkaProducer<String, String> producer;
@@ -53,18 +40,20 @@ public class KafkaStreamingIT {
   @BeforeEach
   void setUp() {
     Properties adminProps = new Properties();
-    adminProps.put("bootstrap.servers", kafka.getBootstrapServers());
+    adminProps.put("bootstrap.servers", kafkaContainer.getBootstrapServers());
     adminClient = AdminClient.create(adminProps);
 
     Properties producerProps = new Properties();
-    producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+    producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+        kafkaContainer.getBootstrapServers());
     producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         StringSerializer.class.getName());
     producer = new KafkaProducer<>(producerProps);
 
     Properties consumerProps = new Properties();
-    consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers());
+    consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+        kafkaContainer.getBootstrapServers());
     consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
     consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,

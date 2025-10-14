@@ -6,8 +6,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,6 +28,10 @@ import java.util.stream.Collectors;
 public class StudioAdminController {
 
   private final MetamodelRegistry metamodelRegistry;
+
+  // S10-D: In-memory storage for proposals (production should use DB)
+  private final Map<String, Map<String, Object>> proposals = new LinkedHashMap<>();
+  private int proposalCounter = 1;
 
   /**
    * W0: Health check
@@ -147,8 +153,8 @@ public class StudioAdminController {
       String tableName = (String) draftData.get("table");
 
       if (entityName == null || entityName.isBlank()) {
-        errors.add(Map.of("field", "entity", "message", "Entity name is required", "severity",
-            "error"));
+        errors.add(
+            Map.of("field", "entity", "message", "Entity name is required", "severity", "error"));
       } else if (!entityName.matches("^[A-Z][a-zA-Z0-9]*$")) {
         errors.add(Map.of("field", "entity", "message",
             "Entity name must start with capital letter and contain only alphanumeric characters",
@@ -167,9 +173,8 @@ public class StudioAdminController {
       List<Map<String, Object>> fields = (List<Map<String, Object>>) draftData.get("fields");
 
       if (fields == null || fields.isEmpty()) {
-        errors.add(
-            Map.of("field", "fields", "message", "At least one field is required", "severity",
-                "error"));
+        errors.add(Map.of("field", "fields", "message", "At least one field is required",
+            "severity", "error"));
       } else {
         // Validate fields
         for (int i = 0; i < fields.size(); i++) {
@@ -208,7 +213,441 @@ public class StudioAdminController {
     }
   }
 
-  // TODO S10-D: POST /api/admin/studio/preview
-  // TODO S10-D: POST /api/admin/studio/proposals
-  // TODO S10-D: POST /api/admin/studio/proposals/{id}/approve
+  /**
+   * S10-D: Preview diff between current and draft
+   * 
+   * POST /api/admin/studio/preview
+   */
+  @PostMapping("/preview")
+  public ResponseEntity<Map<String, Object>> previewDiff(@RequestBody Map<String, Object> request) {
+    log.info("🔍 Previewing diff");
+
+    try {
+      String entityName = (String) request.get("entity");
+      @SuppressWarnings("unchecked")
+      Map<String, Object> draftData = (Map<String, Object>) request.get("draft");
+
+      // Get current entity
+      Optional<EntitySchema> currentSchema = metamodelRegistry.getSchema(entityName);
+
+      Map<String, Object> currentData = new LinkedHashMap<>();
+      if (currentSchema.isPresent()) {
+        EntitySchema s = currentSchema.get();
+        currentData.put("entity", s.getEntity());
+        currentData.put("table", s.getTable());
+        currentData.put("fields", s.getFields());
+      }
+
+      // Calculate diff
+      List<Map<String, Object>> changes = calculateDiff(currentData, draftData);
+
+      Map<String, Object> response = new LinkedHashMap<>();
+      response.put("status", "success");
+      response.put("current", currentData);
+      response.put("draft", draftData);
+      response.put("changes", changes);
+
+      log.info("✅ Preview generated with {} changes", changes.size());
+      return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+      log.error("❌ Preview failed: {}", e.getMessage(), e);
+      return ResponseEntity.internalServerError()
+          .body(Map.of("status", "error", "message", e.getMessage()));
+    }
+  }
+
+  /**
+   * S10-D: Create proposal (change request)
+   * 
+   * POST /api/admin/studio/proposals
+   */
+  @PostMapping("/proposals")
+  public ResponseEntity<Map<String, Object>> createProposal(
+      @RequestBody Map<String, Object> request, Authentication auth) {
+    log.info("📝 Creating proposal");
+
+    try {
+      String proposalId = "PROP-" + (proposalCounter++);
+      String author = auth != null ? auth.getName() : "system";
+      String description = (String) request.getOrDefault("description", "Metamodel change");
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> draftData = (Map<String, Object>) request.get("draft");
+
+      Map<String, Object> proposal = new LinkedHashMap<>();
+      proposal.put("id", proposalId);
+      proposal.put("author", author);
+      proposal.put("description", description);
+      proposal.put("draft", draftData);
+      proposal.put("status", "pending");
+      proposal.put("createdAt", LocalDateTime.now().toString());
+
+      proposals.put(proposalId, proposal);
+
+      log.info("✅ Proposal {} created by {}", proposalId, author);
+      return ResponseEntity.ok(proposal);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to create proposal: {}", e.getMessage(), e);
+      return ResponseEntity.internalServerError()
+          .body(Map.of("status", "error", "message", e.getMessage()));
+    }
+  }
+
+  /**
+   * S10-D: List proposals
+   * 
+   * GET /api/admin/studio/proposals
+   */
+  @GetMapping("/proposals")
+  public ResponseEntity<List<Map<String, Object>>> listProposals(
+      @RequestParam(required = false) String status) {
+    log.info("📋 Listing proposals (status={})", status);
+
+    List<Map<String, Object>> filtered = proposals.values().stream()
+        .filter(p -> status == null || status.equals(p.get("status"))).collect(Collectors.toList());
+
+    return ResponseEntity.ok(filtered);
+  }
+
+  /**
+   * S10-D: Approve proposal
+   * 
+   * POST /api/admin/studio/proposals/{id}/approve
+   */
+  @PostMapping("/proposals/{id}/approve")
+  public ResponseEntity<Map<String, Object>> approveProposal(@PathVariable String id,
+      @RequestBody Map<String, Object> request, Authentication auth) {
+    log.info("✅ Approving proposal: {}", id);
+
+    try {
+      Map<String, Object> proposal = proposals.get(id);
+      if (proposal == null) {
+        return ResponseEntity.notFound().build();
+      }
+
+      String approver = auth != null ? auth.getName() : "system";
+      String comment = (String) request.getOrDefault("comment", "Approved");
+
+      proposal.put("status", "approved");
+      proposal.put("approver", approver);
+      proposal.put("comment", comment);
+      proposal.put("approvedAt", LocalDateTime.now().toString());
+
+      // S10-D: Bump specVersion (simulated)
+      @SuppressWarnings("unchecked")
+      Map<String, Object> draft = (Map<String, Object>) proposal.get("draft");
+      Integer currentVersion = (Integer) draft.getOrDefault("specVersion", 1);
+      draft.put("specVersion", currentVersion + 1);
+
+      log.info("✅ Proposal {} approved by {} (specVersion → {})", id, approver, currentVersion + 1);
+      return ResponseEntity.ok(proposal);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to approve proposal: {}", e.getMessage(), e);
+      return ResponseEntity.internalServerError()
+          .body(Map.of("status", "error", "message", e.getMessage()));
+    }
+  }
+
+  /**
+   * S10-D: Reject proposal
+   * 
+   * POST /api/admin/studio/proposals/{id}/reject
+   */
+  @PostMapping("/proposals/{id}/reject")
+  public ResponseEntity<Map<String, Object>> rejectProposal(@PathVariable String id,
+      @RequestBody Map<String, Object> request, Authentication auth) {
+    log.info("❌ Rejecting proposal: {}", id);
+
+    try {
+      Map<String, Object> proposal = proposals.get(id);
+      if (proposal == null) {
+        return ResponseEntity.notFound().build();
+      }
+
+      String reviewer = auth != null ? auth.getName() : "system";
+      String comment = (String) request.getOrDefault("comment", "Rejected");
+
+      proposal.put("status", "rejected");
+      proposal.put("reviewer", reviewer);
+      proposal.put("comment", comment);
+      proposal.put("rejectedAt", LocalDateTime.now().toString());
+
+      log.info("❌ Proposal {} rejected by {}", id, reviewer);
+      return ResponseEntity.ok(proposal);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to reject proposal: {}", e.getMessage(), e);
+      return ResponseEntity.internalServerError()
+          .body(Map.of("status", "error", "message", e.getMessage()));
+    }
+  }
+
+  /**
+   * S10-D: Get proposal diff
+   * 
+   * GET /api/admin/studio/proposals/{id}/diff
+   */
+  @GetMapping("/proposals/{id}/diff")
+  public ResponseEntity<Map<String, Object>> getProposalDiff(@PathVariable String id) {
+    log.info("🔍 Getting diff for proposal: {}", id);
+
+    try {
+      Map<String, Object> proposal = proposals.get(id);
+      if (proposal == null) {
+        return ResponseEntity.notFound().build();
+      }
+
+      @SuppressWarnings("unchecked")
+      Map<String, Object> draft = (Map<String, Object>) proposal.get("draft");
+      String entityName = (String) draft.get("entity");
+
+      // Get current entity
+      Optional<EntitySchema> currentSchema = metamodelRegistry.getSchema(entityName);
+      Map<String, Object> currentData = new LinkedHashMap<>();
+      if (currentSchema.isPresent()) {
+        EntitySchema s = currentSchema.get();
+        currentData.put("entity", s.getEntity());
+        currentData.put("table", s.getTable());
+        currentData.put("fields", s.getFields());
+      }
+
+      List<Map<String, Object>> changes = calculateDiff(currentData, draft);
+
+      Map<String, Object> response = new LinkedHashMap<>();
+      response.put("proposalId", id);
+      response.put("current", currentData);
+      response.put("draft", draft);
+      response.put("changes", changes);
+
+      return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+      log.error("❌ Failed to get diff: {}", e.getMessage(), e);
+      return ResponseEntity.internalServerError()
+          .body(Map.of("status", "error", "message", e.getMessage()));
+    }
+  }
+
+  /**
+   * Calculate diff between current and draft
+   */
+  private List<Map<String, Object>> calculateDiff(Map<String, Object> current,
+      Map<String, Object> draft) {
+    List<Map<String, Object>> changes = new ArrayList<>();
+
+    // Compare entity name
+    if (!Objects.equals(current.get("entity"), draft.get("entity"))) {
+      changes.add(Map.of("type", "MODIFY", "field", "entity", "oldValue",
+          current.getOrDefault("entity", ""), "newValue", draft.getOrDefault("entity", "")));
+    }
+
+    // Compare table name
+    if (!Objects.equals(current.get("table"), draft.get("table"))) {
+      changes.add(Map.of("type", "MODIFY", "field", "table", "oldValue",
+          current.getOrDefault("table", ""), "newValue", draft.getOrDefault("table", "")));
+    }
+
+    // Compare fields (simplified)
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> currentFields = (List<Map<String, Object>>) current
+        .getOrDefault("fields", List.of());
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> draftFields = (List<Map<String, Object>>) draft.getOrDefault("fields",
+        List.of());
+
+    Set<String> currentFieldNames = currentFields.stream().map(f -> (String) f.get("name"))
+        .collect(Collectors.toSet());
+    Set<String> draftFieldNames = draftFields.stream().map(f -> (String) f.get("name"))
+        .collect(Collectors.toSet());
+
+    // Added fields
+    draftFieldNames.stream().filter(name -> !currentFieldNames.contains(name)).forEach(
+        name -> changes.add(Map.of("type", "ADD", "field", "fields." + name, "newValue", draftFields
+            .stream().filter(f -> name.equals(f.get("name"))).findFirst().orElse(Map.of()))));
+
+    // Removed fields
+    currentFieldNames.stream().filter(name -> !draftFieldNames.contains(name))
+        .forEach(name -> changes
+            .add(Map.of("type", "REMOVE", "field", "fields." + name, "oldValue", currentFields
+                .stream().filter(f -> name.equals(f.get("name"))).findFirst().orElse(Map.of()))));
+
+    return changes;
+  }
+
+  /**
+   * S10-E: Validate workflow steps schema
+   * 
+   * POST /api/admin/studio/workflow-steps/validate
+   * 
+   * Validates: - Step IDs are unique - Action codes are not empty - InputMap keys
+   * are valid - onSuccess/onError references exist - Retry policy values are
+   * reasonable
+   * 
+   * @param request { "steps": [...] }
+   * @return Validation result
+   */
+  @PostMapping("/workflow-steps/validate")
+  public ResponseEntity<Map<String, Object>> validateWorkflowSteps(
+      @RequestBody Map<String, Object> request, Authentication auth) {
+    log.info("📋 Validating workflow steps for user: {}", auth.getName());
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> steps = (List<Map<String, Object>>) request.getOrDefault("steps",
+        List.of());
+
+    List<Map<String, Object>> errors = new ArrayList<>();
+    Set<String> stepIds = new HashSet<>();
+
+    for (int i = 0; i < steps.size(); i++) {
+      Map<String, Object> step = steps.get(i);
+      String stepId = (String) step.get("id");
+      String actionCode = (String) step.get("actionCode");
+
+      // Validate step ID uniqueness
+      if (stepId == null || stepId.isBlank()) {
+        errors.add(Map.of("stepId", "step-" + i, "field", "id", "message", "Step ID is required"));
+      } else if (stepIds.contains(stepId)) {
+        errors.add(
+            Map.of("stepId", stepId, "field", "id", "message", "Duplicate step ID: " + stepId));
+      } else {
+        stepIds.add(stepId);
+      }
+
+      // Validate action code
+      if (actionCode == null || actionCode.isBlank()) {
+        errors.add(
+            Map.of("stepId", stepId, "field", "actionCode", "message", "Action code is required"));
+      }
+
+      // Validate inputMap keys (should not be empty)
+      @SuppressWarnings("unchecked")
+      Map<String, String> inputMap = (Map<String, String>) step.getOrDefault("inputMap", Map.of());
+      for (String key : inputMap.keySet()) {
+        if (key.isBlank()) {
+          errors.add(Map.of("stepId", stepId, "field", "inputMap", "message",
+              "InputMap key cannot be empty"));
+        }
+      }
+
+      // Validate retry policy
+      @SuppressWarnings("unchecked")
+      Map<String, Object> retry = (Map<String, Object>) step.get("retry");
+      if (retry != null) {
+        Integer maxAttempts = (Integer) retry.get("maxAttempts");
+        Integer initialDelayMs = (Integer) retry.get("initialDelayMs");
+        Integer maxDelayMs = (Integer) retry.get("maxDelayMs");
+
+        if (maxAttempts != null && (maxAttempts < 1 || maxAttempts > 10)) {
+          errors.add(Map.of("stepId", stepId, "field", "retry.maxAttempts", "message",
+              "Max attempts must be between 1 and 10"));
+        }
+        if (initialDelayMs != null && initialDelayMs < 0) {
+          errors.add(Map.of("stepId", stepId, "field", "retry.initialDelayMs", "message",
+              "Initial delay must be >= 0"));
+        }
+        if (maxDelayMs != null && maxDelayMs < 0) {
+          errors.add(Map.of("stepId", stepId, "field", "retry.maxDelayMs", "message",
+              "Max delay must be >= 0"));
+        }
+      }
+    }
+
+    // Validate onSuccess/onError references
+    for (Map<String, Object> step : steps) {
+      String stepId = (String) step.get("id");
+      String onSuccess = (String) step.get("onSuccess");
+      String onError = (String) step.get("onError");
+      String compensate = (String) step.get("compensate");
+
+      if (onSuccess != null && !onSuccess.isBlank() && !stepIds.contains(onSuccess)) {
+        errors.add(Map.of("stepId", stepId, "field", "onSuccess", "message",
+            "Referenced step not found: " + onSuccess));
+      }
+      if (onError != null && !onError.isBlank() && !stepIds.contains(onError)) {
+        errors.add(Map.of("stepId", stepId, "field", "onError", "message",
+            "Referenced step not found: " + onError));
+      }
+      if (compensate != null && !compensate.isBlank() && !stepIds.contains(compensate)) {
+        errors.add(Map.of("stepId", stepId, "field", "compensate", "message",
+            "Referenced step not found: " + compensate));
+      }
+    }
+
+    boolean valid = errors.isEmpty();
+
+    log.info("Workflow steps validation: {} errors found", errors.size());
+
+    return ResponseEntity.ok(Map.of("valid", valid, "errors", errors));
+  }
+
+  /**
+   * S10-E: Dry-run workflow steps with test context
+   * 
+   * POST /api/admin/studio/workflow-steps/dry-run
+   * 
+   * Simulates step execution with mock context. Validates: - InputMap expressions
+   * resolve correctly - Context variables are available - Flow control
+   * (onSuccess/onError) is correct
+   * 
+   * @param request { "steps": [...], "context": { "key": "value" } }
+   * @return Dry-run result
+   */
+  @PostMapping("/workflow-steps/dry-run")
+  public ResponseEntity<Map<String, Object>> dryRunWorkflowSteps(
+      @RequestBody Map<String, Object> request, Authentication auth) {
+    log.info("🧪 Dry-running workflow steps for user: {}", auth.getName());
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> steps = (List<Map<String, Object>>) request.getOrDefault("steps",
+        List.of());
+    @SuppressWarnings("unchecked")
+    Map<String, Object> context = (Map<String, Object>) request.getOrDefault("context", Map.of());
+
+    List<Map<String, Object>> results = new ArrayList<>();
+    boolean success = true;
+
+    for (Map<String, Object> step : steps) {
+      String stepId = (String) step.get("id");
+      String type = (String) step.get("type");
+      @SuppressWarnings("unchecked")
+      Map<String, String> inputMap = (Map<String, String>) step.getOrDefault("inputMap", Map.of());
+
+      try {
+        // Resolve inputMap expressions (simplified - just check if keys exist in
+        // context)
+        Map<String, Object> resolvedInputs = new HashMap<>();
+        for (Map.Entry<String, String> entry : inputMap.entrySet()) {
+          String key = entry.getKey();
+          String expr = entry.getValue();
+
+          // Simple variable resolution: "${varName}" -> context.get("varName")
+          if (expr.startsWith("${") && expr.endsWith("}")) {
+            String varName = expr.substring(2, expr.length() - 1);
+            if (!context.containsKey(varName)) {
+              throw new IllegalArgumentException("Context variable not found: " + varName);
+            }
+            resolvedInputs.put(key, context.get(varName));
+          } else {
+            resolvedInputs.put(key, expr);
+          }
+        }
+
+        // Mock output (in real implementation, would call executor)
+        Map<String, Object> output = Map.of("status", "MOCKED", "type", type, "inputs",
+            resolvedInputs);
+
+        results.add(Map.of("stepId", stepId, "status", "SUCCESS", "output", output));
+      } catch (Exception e) {
+        success = false;
+        results.add(Map.of("stepId", stepId, "status", "ERROR", "error", e.getMessage()));
+      }
+    }
+
+    log.info("Dry-run completed: {} steps, success={}", steps.size(), success);
+
+    return ResponseEntity.ok(Map.of("success", success, "steps", results));
+  }
 }

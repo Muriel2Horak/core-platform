@@ -5,6 +5,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.validator.AiSchemaValidator;
+import cz.muriel.core.metamodel.validator.WorkflowAiValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -28,6 +29,7 @@ public class MetamodelLoader {
   private final PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
   private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
   private final AiSchemaValidator aiValidator;
+  private final WorkflowAiValidator workflowValidator;
 
   /**
    * Load global metamodel configuration
@@ -151,6 +153,12 @@ public class MetamodelLoader {
     List<String> aiErrors = aiValidator.validateEntityAiConfig(schema);
     if (!aiErrors.isEmpty()) {
       errors.addAll(aiErrors);
+    }
+    
+    // Validate workflow for AI compatibility
+    List<String> workflowErrors = workflowValidator.validateWorkflow(schema);
+    if (!workflowErrors.isEmpty()) {
+      errors.addAll(workflowErrors);
     }
 
     if (!errors.isEmpty()) {

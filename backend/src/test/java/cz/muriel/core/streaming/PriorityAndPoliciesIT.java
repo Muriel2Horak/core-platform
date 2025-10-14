@@ -7,11 +7,8 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
+import cz.muriel.core.test.AbstractIntegrationTest;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -27,19 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * lifecycle: accepted → updating → applied → failed - Payload policies: PII
  * redaction, DIFF/SNAPSHOT, max size
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers
-public class PriorityAndPoliciesIT {
-
-  @Container @SuppressWarnings("resource")
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-      .withDatabaseName("testdb").withUsername("test").withPassword("test");
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgres::getJdbcUrl);
-    registry.add("spring.datasource.username", postgres::getUsername);
-    registry.add("spring.datasource.password", postgres::getPassword);
-  }
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class PriorityAndPoliciesIT extends AbstractIntegrationTest {
 
   @Autowired
   private JdbcTemplate jdbcTemplate;

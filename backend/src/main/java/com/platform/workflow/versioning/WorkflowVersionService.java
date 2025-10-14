@@ -173,13 +173,42 @@ public class WorkflowVersionService {
     return migrationId;
   }
 
+  /**
+   * Get migration history for a specific instance
+   */
+  public List<WorkflowMigration> getMigrationHistory(Long instanceId) {
+    return jdbcTemplate.query("""
+        SELECT m.id, m.workflow_instance_id, m.from_version_id, m.to_version_id,
+               m.migration_status, m.started_at, m.completed_at, m.error_message
+        FROM workflow_instance_migrations m
+        WHERE m.workflow_instance_id = ?
+        ORDER BY m.started_at DESC
+        """,
+        (rs, rowNum) -> new WorkflowMigration(rs.getLong("id"), rs.getLong("workflow_instance_id"),
+            rs.getLong("from_version_id"), rs.getLong("to_version_id"),
+            MigrationStatus.valueOf(rs.getString("migration_status")),
+            rs.getTimestamp("started_at").toInstant(),
+            rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toInstant()
+                : null,
+            rs.getString("error_message")),
+        instanceId);
+  }
+
   public enum MigrationStrategy {
     IMMEDIATE, // Migrate all instances now
     LAZY, // Migrate on next access
     MANUAL // Require manual intervention
   }
 
+  public enum MigrationStatus {
+    PENDING, IN_PROGRESS, COMPLETED, FAILED, ROLLED_BACK
+  }
+
   public record WorkflowVersion(Long id, String entityType, int version, String schemaDefinition,
       String createdBy, Instant createdAt, boolean isActive, String migrationNotes) {
+  }
+
+  public record WorkflowMigration(Long id, Long instanceId, Long fromVersion, Long toVersion,
+      MigrationStatus status, Instant startedAt, Instant completedAt, String errorMessage) {
   }
 }

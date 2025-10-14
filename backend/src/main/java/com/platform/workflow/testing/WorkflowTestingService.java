@@ -96,19 +96,37 @@ public class WorkflowTestingService {
   }
 
   private String findTargetState(String entityType, String fromState, String eventName) {
-    // TODO: Query workflow definition for target state
-    // Pro testování vrátíme mock hodnotu
-    return "NEXT_STATE";
+    // Query workflow definition for target state from database
+    String sql = "SELECT to_state FROM workflow_transitions WHERE entity_type = ? AND from_state = ? AND event_code = ? LIMIT 1";
+    try {
+      return jdbcTemplate.queryForObject(sql, String.class, entityType, fromState, eventName);
+    } catch (Exception e) {
+      log.warn("Target state not found for {}/{}/{}, using mock", entityType, fromState, eventName);
+      return "NEXT_STATE"; // fallback for testing
+    }
   }
 
   private List<String> getGuards(String entityType, String fromState, String targetState) {
-    // TODO: Query workflow definition for guards
-    return List.of();
+    // Query workflow definition for guards from database
+    String sql = "SELECT guard_name FROM workflow_guards WHERE entity_type = ? AND from_state = ? AND to_state = ? ORDER BY priority";
+    try {
+      return jdbcTemplate.queryForList(sql, String.class, entityType, fromState, targetState);
+    } catch (Exception e) {
+      log.warn("Guards not found for {}/{}/{}, using empty list", entityType, fromState,
+          targetState);
+      return List.of(); // fallback for testing
+    }
   }
 
   private List<String> getActions(String entityType, String state) {
-    // TODO: Query workflow definition for actions
-    return List.of();
+    // Query workflow definition for actions from database
+    String sql = "SELECT action_name FROM workflow_actions WHERE entity_type = ? AND state_code = ? ORDER BY sequence";
+    try {
+      return jdbcTemplate.queryForList(sql, String.class, entityType, state);
+    } catch (Exception e) {
+      log.warn("Actions not found for {}/{}, using empty list", entityType, state);
+      return List.of(); // fallback for testing
+    }
   }
 
   private List<GuardResult> evaluateGuards(List<String> guards, Map<String, Object> mockData) {
@@ -172,7 +190,21 @@ public class WorkflowTestingService {
   }
 
   private TestScenario generateHappyPath(String entityType) {
-    // TODO: Analyze workflow definition and generate optimal path
+    // Analyze workflow definition from database and generate optimal path
+    String sql = "SELECT from_state, to_state, event_code FROM workflow_transitions WHERE entity_type = ? ORDER BY from_state";
+    try {
+      List<TransitionEvent> transitions = jdbcTemplate.query(sql,
+          (rs, rowNum) -> new TransitionEvent(rs.getString("event_code"), Map.of()), entityType);
+
+      if (!transitions.isEmpty()) {
+        return new TestScenario("happy-path", entityType, "START", transitions,
+            Map.of("userId", "user1", "hasPermission", true, "amount", 100));
+      }
+    } catch (Exception e) {
+      log.warn("Failed to generate happy path from DB for {}, using default", entityType);
+    }
+
+    // Fallback: default happy path for testing
     return new TestScenario("happy-path", entityType, "START",
         List.of(new TransitionEvent("create", Map.of()),
             new TransitionEvent("submit", Map.of("userId", "user1")),

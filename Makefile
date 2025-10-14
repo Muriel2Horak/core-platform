@@ -1179,11 +1179,26 @@ test-backend-unit:
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
 		grep -v "DEBUG \[tenant:" | \
-		sed 's/\[INFO\]/  ℹ️ /g' | \
-		sed 's/\[ERROR\]/  ❌/g' | \
+		grep -v "Mockito is currently" | \
+		grep -v "OpenJDK 64-Bit" | \
+		grep -v "WARNING: A Java agent" | \
+		grep -v "WARNING: If a serviceability" | \
+		grep -v "WARNING: Dynamic loading" | \
+		grep -v "CREATE TABLE\|create table\|ALTER TABLE\|alter table" | \
+		grep -v "primary key\|foreign key\|references\|constraint" | \
+		grep -v "CREATE EXTENSION\|CREATE OR REPLACE\|CREATE INDEX" | \
+		grep -v "installed_rank\|flyway_schema" | \
+		grep -v "Spring Boot ::" | \
+		grep -v "^  .   ____\|^ /\\\\\|^( ( )\|^ \\\\/\|^  '\|^ =========" | \
+		grep -v "java.net.SocketException\|at java.base\|at io.netty" | \
+		grep -v "testcontainers.reuse.enable" | \
+		grep -E "(Running|Tests:|BUILD|Failures|Errors|Skipped|Time elapsed|\[INFO\]|\[ERROR\]|\[WARNING\]|Test.*(passed|failed))" | \
+		sed 's/\[INFO\]/ℹ️ /g' | \
+		sed 's/\[ERROR\]/❌/g' | \
+		sed 's/\[WARNING\]/⚠️ /g' | \
 		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
 		sed 's/BUILD FAILURE/❌ BUILD FAILURE/g' | \
-		sed 's/Tests run:/  📊 Tests:/g'
+		sed 's/Tests run:/📊 Tests:/g'
 
 # Alias for backward compatibility
 .PHONY: test-backend
@@ -1215,11 +1230,26 @@ test-backend-integration:
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
 		grep -v "DEBUG \[tenant:" | \
-		sed 's/\[INFO\]/  ℹ️ /g' | \
-		sed 's/\[ERROR\]/  ❌/g' | \
+		grep -v "Mockito is currently" | \
+		grep -v "OpenJDK 64-Bit" | \
+		grep -v "WARNING: A Java agent" | \
+		grep -v "WARNING: If a serviceability" | \
+		grep -v "WARNING: Dynamic loading" | \
+		grep -v "CREATE TABLE\|create table\|ALTER TABLE\|alter table" | \
+		grep -v "primary key\|foreign key\|references\|constraint" | \
+		grep -v "CREATE EXTENSION\|CREATE OR REPLACE\|CREATE INDEX" | \
+		grep -v "installed_rank\|flyway_schema" | \
+		grep -v "Spring Boot ::" | \
+		grep -v "^  .   ____\|^ /\\\\\|^( ( )\|^ \\\\/\|^  '\|^ =========" | \
+		grep -v "java.net.SocketException\|at java.base\|at io.netty" | \
+		grep -v "testcontainers.reuse.enable" | \
+		grep -E "(Running|Tests:|BUILD|Failures|Errors|Skipped|Time elapsed|\[INFO\]|\[ERROR\]|\[WARNING\]|Test.*(passed|failed))" | \
+		sed 's/\[INFO\]/ℹ️ /g' | \
+		sed 's/\[ERROR\]/❌/g' | \
+		sed 's/\[WARNING\]/⚠️ /g' | \
 		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
 		sed 's/BUILD FAILURE/❌ BUILD FAILURE/g' | \
-		sed 's/Tests run:/  📊 Tests:/g' || \
+		sed 's/Tests run:/📊 Tests:/g' || \
 		(echo "" && echo "❌ Integration tests failed - check artifacts/backend_integration_tests.log" && exit 1)
 	@echo "✅ Integration tests completed"
 

@@ -157,8 +157,11 @@ class WorkflowRuntimeServiceTest {
         .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship").toCode("SHIPPED")
             .slaMinutes(60).build()));
 
-    when(jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-        eq(entityType), eq(entityId), eq(tenantId))).thenReturn(List.of(30)); // 30 minutes SLA
+    @SuppressWarnings("unchecked")
+    org.springframework.jdbc.core.RowMapper<Integer> slaRowMapper = any(
+        org.springframework.jdbc.core.RowMapper.class);
+    when(jdbcTemplate.query(anyString(), slaRowMapper, eq(entityType), eq(entityId), eq(tenantId)))
+        .thenReturn(List.of(30)); // 30 minutes SLA
 
     // Act
     WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
@@ -196,8 +199,11 @@ class WorkflowRuntimeServiceTest {
     when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
     when(workflowService.getAllowedTransitions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
-    when(jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), any(),
-        any(), any())).thenReturn(List.of(60)); // 60 minutes SLA
+    @SuppressWarnings("unchecked")
+    org.springframework.jdbc.core.RowMapper<Integer> slaRowMapper2 = any(
+        org.springframework.jdbc.core.RowMapper.class);
+    when(jdbcTemplate.query(anyString(), slaRowMapper2, any(), any(), any()))
+        .thenReturn(List.of(60)); // 60 minutes SLA
 
     // Act
     WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
@@ -219,8 +225,11 @@ class WorkflowRuntimeServiceTest {
     String entityId = "order-123";
     String tenantId = "tenant-1";
 
-    when(jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-        eq(entityType), eq(entityId), eq(tenantId)))
+    @SuppressWarnings("unchecked")
+    org.springframework.jdbc.core.RowMapper<WorkflowModels.HistoryEntry> historyRowMapper = any(
+        org.springframework.jdbc.core.RowMapper.class);
+    when(jdbcTemplate.query(anyString(), historyRowMapper, eq(entityType), eq(entityId),
+        eq(tenantId)))
             .thenReturn(List.of(
                 WorkflowModels.HistoryEntry.builder()
                     .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED).fromState("PENDING")
@@ -270,8 +279,11 @@ class WorkflowRuntimeServiceTest {
             .slaMinutes(120).build()));
 
     UUID timerId = UUID.randomUUID();
-    when(jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-        eq(entityType), eq(entityId), eq(tenantId)))
+    @SuppressWarnings("unchecked")
+    org.springframework.jdbc.core.RowMapper<WorkflowModels.PendingTimer> timerRowMapper = any(
+        org.springframework.jdbc.core.RowMapper.class);
+    when(
+        jdbcTemplate.query(anyString(), timerRowMapper, eq(entityType), eq(entityId), eq(tenantId)))
             .thenReturn(List.of(WorkflowModels.PendingTimer.builder().id(timerId)
                 .type(WorkflowModels.TimerType.SLA_WARNING)
                 .scheduledAt(Instant.now().plusSeconds(3600)).action("notify").remainingMs(3600000L)

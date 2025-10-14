@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import cz.muriel.core.test.AbstractIntegrationTest;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +31,7 @@ import static org.hamcrest.Matchers.*;
  * Request) - PATCH non-existent entity (should return 404)
  */
 @SpringBootTest @AutoConfigureMockMvc @Transactional
-class EntityCrudControllerIT {
+class EntityCrudControllerIT extends AbstractIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;

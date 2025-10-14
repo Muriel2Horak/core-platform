@@ -9,7 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
+import cz.muriel.core.test.AbstractIntegrationTest;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,8 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests complete reporting workflow: - Query execution with Cube.js - Caching
  * behavior - RLS enforcement - Rate limiting - Circuit breaker (error handling)
  */
-@SpringBootTest @AutoConfigureMockMvc @Testcontainers @Transactional
-class ReportQueryControllerIT {
+@SpringBootTest @AutoConfigureMockMvc @Transactional
+class ReportQueryControllerIT extends AbstractIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;

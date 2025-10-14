@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.platform.workflow.versioning.WorkflowVersionService;
 import com.platform.workflow.versioning.WorkflowVersionService.MigrationStrategy;
 import com.platform.workflow.versioning.WorkflowVersionService.WorkflowVersion;
+import com.platform.workflow.versioning.WorkflowVersionService.WorkflowMigration;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -114,8 +115,15 @@ public class WorkflowVersionController {
   @GetMapping("/migrations/instance/{instanceId}") @Timed(value = "workflow.version.migration_history", description = "Time to get migration history")
   public ResponseEntity<List<Map<String, Object>>> getMigrationHistory(
       @PathVariable Long instanceId) {
-    // TODO: Implement migration history query
-    return ResponseEntity.ok(List.of());
+    List<WorkflowMigration> migrations = versionService.getMigrationHistory(instanceId);
+    List<Map<String, Object>> history = migrations.stream()
+        .map(m -> Map.of("id", (Object) m.id(), "instanceId", m.instanceId(), "fromVersion",
+            m.fromVersion(), "toVersion", m.toVersion(), "status", m.status().name(), "startedAt",
+            m.startedAt().toString(), "completedAt",
+            m.completedAt() != null ? m.completedAt().toString() : null, "errorMessage",
+            m.errorMessage() != null ? m.errorMessage() : ""))
+        .toList();
+    return ResponseEntity.ok(history);
   }
 
   // ===== Request DTOs =====

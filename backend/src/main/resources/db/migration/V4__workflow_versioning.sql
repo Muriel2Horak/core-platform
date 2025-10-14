@@ -19,7 +19,7 @@ CREATE INDEX idx_workflow_versions_active ON workflow_versions(entity_type, is_a
 
 -- Track instance-to-version mapping
 CREATE TABLE IF NOT EXISTS workflow_instance_versions (
-    workflow_instance_id BIGINT PRIMARY KEY REFERENCES workflow_instances(id) ON DELETE CASCADE,
+    workflow_instance_id UUID PRIMARY KEY REFERENCES workflow_instances(id) ON DELETE CASCADE,
     version_id BIGINT NOT NULL REFERENCES workflow_versions(id),
     migrated_from_version_id BIGINT REFERENCES workflow_versions(id),
     migrated_at TIMESTAMP,

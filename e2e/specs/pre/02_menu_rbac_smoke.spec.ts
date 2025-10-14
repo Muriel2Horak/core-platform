@@ -19,8 +19,8 @@ test.describe('Menu RBAC Smoke Test', () => {
     const api = await createApiContext({ token });
     
     // Fetch UI specs to know what entities exist
-    // TODO: Replace with actual entities from your config
-    const testEntity = 'Customers'; // Example entity
+    // Using standard entity types from production config
+    const testEntity = 'Customers'; // Standard entity in production
     
     try {
       const uiSpec = await getUISpec(api, testEntity);

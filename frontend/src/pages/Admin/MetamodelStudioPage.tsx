@@ -17,6 +17,8 @@ import { useAuth } from '../../components/AuthProvider.jsx';
 import { ModelTree } from '../../components/Studio/ModelTree';
 import { EntityDetail } from '../../components/Studio/EntityDetail';
 import { EntityEditor } from '../../components/Studio/EntityEditor';
+import { DiffPanel } from '../../components/Studio/DiffPanel';
+import { WorkflowStepsEditor } from '../../components/Studio/WorkflowStepsEditor';
 
 interface Entity {
   name: string;
@@ -48,6 +50,8 @@ export const MetamodelStudioPage = () => {
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [draft, setDraft] = useState<any>(null);
+  const [workflowSteps, setWorkflowSteps] = useState<any[]>([]);
 
   // RBAC check - Cast user to any to avoid TS issues with roles property
   const hasAccess = (user as any)?.roles?.includes('CORE_ADMIN_STUDIO');
@@ -77,14 +81,62 @@ export const MetamodelStudioPage = () => {
     setActiveTab(newValue);
   };
 
-  const handleSaveDraft = (draft: any) => {
-    console.log('💾 Saving draft:', draft);
-    setSuccessMessage('Draft saved locally! (S10-D will add Propose/Approve)');
+  const handleSaveDraft = (draftData: any) => {
+    console.log('💾 Saving draft:', draftData);
+    setDraft(draftData);
+    setSuccessMessage('Draft saved! Preview diff to see changes.');
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const handleValidate = (draft: any) => {
-    console.log('✓ Validated:', draft);
+  const handleValidate = (draftData: any) => {
+    console.log('✓ Validated:', draftData);
+  };
+
+  const handlePropose = (proposalId: string) => {
+    setSuccessMessage(`Proposal ${proposalId} created! Check Proposals tab.`);
+    setTimeout(() => setSuccessMessage(null), 5000);
+  };
+
+  const handlePublish = () => {
+    setSuccessMessage('Hot reload successful! Metamodel updated.');
+    setDraft(null); // Clear draft after publish
+    setTimeout(() => setSuccessMessage(null), 5000);
+  };
+
+  const handleValidateWorkflowSteps = async (steps: any[]) => {
+    try {
+      const response = await fetch('/api/admin/studio/workflow-steps/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ steps }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      return { valid: false, errors: [{ stepId: '', field: '', message: err.message }] };
+    }
+  };
+
+  const handleDryRunWorkflowSteps = async (steps: any[], context: any) => {
+    try {
+      const response = await fetch('/api/admin/studio/workflow-steps/dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ steps, context }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      return { success: false, steps: [{ stepId: '', status: 'ERROR', error: err.message }] };
+    }
   };
 
   return (
@@ -127,94 +179,112 @@ export const MetamodelStudioPage = () => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', background: '#ffffff' }}>
         <Tabs value={activeTab} onChange={handleTabChange}>
           <Tab label="📦 Entities" value="entities" />
-          <Tab label="🔗 Relations" value="relations" />
-          <Tab label="✓ Validations" value="validations" />
-          <Tab label="⚡ Workflow Steps" value="workflow-steps" disabled />
+          <Tab label="🔗 Relations" value="relations" disabled />
+          <Tab label="✓ Validations" value="validations" disabled />
+          <Tab label="⚡ Workflow Steps" value="workflow-steps" />
         </Tabs>
       </Box>
 
-      {/* Main Content - 3 Column Layout */}
+      {/* Main Content - 3 Column Layout OR Workflow Steps Editor */}
       <Box sx={{ flex: 1, overflow: 'hidden', p: 2, background: '#fafafa' }}>
-        <Grid container spacing={2} sx={{ height: '100%' }}>
-          {/* Left Panel: ModelTree */}
-          <Grid item xs={12} md={3}>
-            <Paper
-              elevation={2}
-              sx={{
-                height: '100%',
-                p: 2,
-                overflow: 'auto',
-                background: 'linear-gradient(to bottom, #f5f5f5, #ffffff)',
-              }}
-            >
-              <Typography variant="h6" gutterBottom>
-                📂 Model Tree
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <ModelTree
-                onSelectEntity={setSelectedEntity}
-                selectedEntity={selectedEntity}
-              />
-            </Paper>
-          </Grid>
-
-          {/* Center Panel: Editor / Detail */}
-          <Grid item xs={12} md={6}>
-            <Paper
-              elevation={2}
-              sx={{
-                height: '100%',
-                p: 2,
-                overflow: 'auto',
-              }}
-            >
-              <Typography variant="h6" gutterBottom>
-                {editMode ? '✏️ Entity Editor' : '📋 Entity Detail (Read-only)'}
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
-              {successMessage && (
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  {successMessage}
-                </Alert>
-              )}
-              {editMode ? (
-                <EntityEditor
-                  entity={selectedEntity}
-                  onSave={handleSaveDraft}
-                  onValidate={handleValidate}
+        {activeTab === 'workflow-steps' ? (
+          /* Full-width Workflow Steps Editor */
+          <Paper
+            elevation={2}
+            sx={{
+              height: '100%',
+              p: 3,
+              overflow: 'auto',
+            }}
+          >
+            <WorkflowStepsEditor
+              steps={workflowSteps}
+              onChange={setWorkflowSteps}
+              onValidate={handleValidateWorkflowSteps}
+              onDryRun={handleDryRunWorkflowSteps}
+            />
+          </Paper>
+        ) : (
+          <Grid container spacing={2} sx={{ height: '100%' }}>
+            {/* Left Panel: ModelTree */}
+            <Grid item xs={12} md={3}>
+              <Paper
+                elevation={2}
+                sx={{
+                  height: '100%',
+                  p: 2,
+                  overflow: 'auto',
+                  background: 'linear-gradient(to bottom, #f5f5f5, #ffffff)',
+                }}
+              >
+                <Typography variant="h6" gutterBottom>
+                  📂 Model Tree
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <ModelTree
+                  onSelectEntity={setSelectedEntity}
+                  selectedEntity={selectedEntity}
                 />
-              ) : (
-                <EntityDetail entity={selectedEntity} />
-              )}
-            </Paper>
-          </Grid>
+              </Paper>
+            </Grid>
 
-          {/* Right Panel: Diff/Validation */}
-          <Grid item xs={12} md={3}>
-            <Paper
-              elevation={2}
-              sx={{
-                height: '100%',
-                p: 2,
-                overflow: 'auto',
-                background: 'linear-gradient(to bottom, #fffbf0, #ffffff)',
-              }}
-            >
-              <Typography variant="h6" gutterBottom>
-                🔍 Diff & Validation
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Alert severity="info">
-                S10-D: Diff viewer, Validate/Propose/Approve buttons
-              </Alert>
-            </Paper>
+            {/* Center Panel: Editor / Detail */}
+            <Grid item xs={12} md={6}>
+              <Paper
+                elevation={2}
+                sx={{
+                  height: '100%',
+                  p: 2,
+                  overflow: 'auto',
+                }}
+              >
+                <Typography variant="h6" gutterBottom>
+                  {editMode ? '✏️ Entity Editor' : '📋 Entity Detail (Read-only)'}
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
+                )}
+                {successMessage && (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    {successMessage}
+                  </Alert>
+                )}
+                {editMode ? (
+                  <EntityEditor
+                    entity={selectedEntity}
+                    onSave={handleSaveDraft}
+                    onValidate={handleValidate}
+                  />
+                ) : (
+                  <EntityDetail entity={selectedEntity} />
+                )}
+              </Paper>
+            </Grid>
+
+            {/* Right Panel: Diff/Validation */}
+            <Grid item xs={12} md={3}>
+              <Paper
+                elevation={2}
+                sx={{
+                  height: '100%',
+                  p: 2,
+                  overflow: 'auto',
+                  background: 'linear-gradient(to bottom, #fffbf0, #ffffff)',
+                }}
+              >
+                <DiffPanel
+                  entity={selectedEntity}
+                  draft={draft}
+                  onPropose={handlePropose}
+                  onPublish={handlePublish}
+                />
+              </Paper>
+            </Grid>
           </Grid>
-        </Grid>
+        )}
       </Box>
     </Box>
   );

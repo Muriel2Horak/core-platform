@@ -3,6 +3,8 @@ package cz.muriel.core.workflow;
 import cz.muriel.core.metamodel.schema.EntitySchema;
 import cz.muriel.core.metamodel.schema.StateConfig;
 import cz.muriel.core.metamodel.schema.TransitionConfig;
+import cz.muriel.core.test.AbstractIntegrationTest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,12 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.*;
@@ -35,20 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * @since 2025-10-14
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureMockMvc @Testcontainers
-class WorkflowApiIT {
-
-  @Container @SuppressWarnings("resource")
-  static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-      .withDatabaseName("testdb").withUsername("test").withPassword("test");
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgres::getJdbcUrl);
-    registry.add("spring.datasource.username", postgres::getUsername);
-    registry.add("spring.datasource.password", postgres::getPassword);
-    registry.add("spring.flyway.enabled", () -> "true");
-  }
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureMockMvc
+class WorkflowApiIT extends AbstractIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;

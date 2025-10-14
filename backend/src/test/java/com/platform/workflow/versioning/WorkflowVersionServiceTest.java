@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.workflow.versioning.WorkflowVersionService.MigrationStrategy;
 import com.platform.workflow.versioning.WorkflowVersionService.WorkflowVersion;
+
+import cz.muriel.core.test.AbstractIntegrationTest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -24,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * activation (deactivates others) - Version retrieval (active, specific, all) -
  * Instance migration - Bulk migration initiation
  */
-@SpringBootTest @ActiveProfiles("test") @Transactional
-class WorkflowVersionServiceTest {
+@SpringBootTest @Transactional
+class WorkflowVersionServiceTest extends AbstractIntegrationTest {
 
   @Autowired
   private WorkflowVersionService versionService;
@@ -51,8 +53,8 @@ class WorkflowVersionServiceTest {
         .readTree("{\"states\": [\"DRAFT\", \"SUBMITTED\", \"APPROVED\"]}");
 
     // When
-    Long v1Id = versionService.createVersion("ORDER", schema1, "admin", "Initial version");
-    Long v2Id = versionService.createVersion("ORDER", schema2, "admin", "Added APPROVED state");
+    versionService.createVersion("ORDER", schema1, "admin", "Initial version");
+    versionService.createVersion("ORDER", schema2, "admin", "Added APPROVED state");
 
     // Then
     Optional<WorkflowVersion> v1 = versionService.getVersion("ORDER", 1);
@@ -216,8 +218,7 @@ class WorkflowVersionServiceTest {
         """);
 
     // When
-    Long versionId = versionService.createVersion("ORDER", complexSchema, "admin",
-        "Complex workflow");
+    versionService.createVersion("ORDER", complexSchema, "admin", "Complex workflow");
 
     // Then
     Optional<WorkflowVersion> version = versionService.getVersion("ORDER", 1);

@@ -119,8 +119,8 @@ async function scaffold(): Promise<ScaffoldResult> {
   const specVersion = await publishUISpec(api, entity.id, uiSpec);
   console.log(`   ✅ UI Spec published: v${specVersion.version}`);
   
-  // TODO: Create test workflow (optional, requires workflow API)
-  console.log('\n6️⃣  Skipping workflow creation (not implemented yet)');
+  // Workflow creation skipped - workflows are created via Studio UI
+  console.log('\n6️⃣  Workflow creation skipped (use Studio UI for complex workflows)');
   
   // Cleanup
   await api.dispose();

@@ -13,7 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
+
+import cz.muriel.core.test.AbstractIntegrationTest;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -31,8 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * openapi.json as CI artifact
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-public class OpenApiContractIT {
+public class OpenApiContractIT extends AbstractIntegrationTest {
 
   @Autowired
   private TestRestTemplate restTemplate;

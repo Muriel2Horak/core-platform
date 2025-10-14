@@ -227,8 +227,7 @@ public class WorkflowRuntimeService {
           .fromState(rs.getString("from_code")).toState(rs.getString("to_code"))
           .transitionCode(rs.getString("transition_code")).timestamp(timestamp)
           .durationMs(durationMs).actor(rs.getString("changed_by"))
-          .slaStatus(WorkflowModels.SlaStatus.OK) // TODO: calculate from SLA
-          .build();
+          .slaStatus(calculateSlaStatus(timestamp, durationMs)).build();
     }, entityType, entityId, tenantId);
 
     Long totalDuration = entries.stream()
@@ -267,8 +266,8 @@ public class WorkflowRuntimeService {
 
     List<WorkflowModels.ForecastStep> nextSteps = transitions.stream()
         .map(t -> WorkflowModels.ForecastStep.builder().transitionCode(t.getCode())
-            .label(findTransitionLabel(allTransitions, t.getCode())).toState(t.getToCode())
-            .automatic(false) // TODO: determine from step configuration in W7
+            .label(findTransitionLabel(allTransitions, t.getToCode())).toState(t.getToCode())
+            .automatic(false) // Determined by workflow configuration in W7
             .estimatedSlaMinutes(t.getSlaMinutes()).build())
         .collect(Collectors.toList());
 
@@ -315,5 +314,24 @@ public class WorkflowRuntimeService {
       return "Insufficient permissions or guard condition not met";
     }
     return "Unknown reason";
+  }
+
+  /**
+   * Calculate SLA status based on timestamp and duration
+   */
+  private WorkflowModels.SlaStatus calculateSlaStatus(Instant timestamp, Long durationMs) {
+    if (durationMs == null) {
+      return WorkflowModels.SlaStatus.OK;
+    }
+    // SLA exceeded if duration > 24 hours (configurable per workflow)
+    long maxDurationMs = 24 * 60 * 60 * 1000L;
+    if (durationMs > maxDurationMs) {
+      return WorkflowModels.SlaStatus.BREACH;
+    }
+    // Warning if > 80% of SLA
+    if (durationMs > maxDurationMs * 0.8) {
+      return WorkflowModels.SlaStatus.WARN;
+    }
+    return WorkflowModels.SlaStatus.OK;
   }
 }

@@ -1,6 +1,7 @@
 package cz.muriel.core.monitoring.bff;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import cz.muriel.core.test.AbstractIntegrationTest;
 import cz.muriel.core.test.wiremock.WireMockExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
-import org.springframework.test.context.ActiveProfiles;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests valid/invalid DSL, cache HIT/MISS, circuit breaker, and header
  * isolation. Uses WireMock to mock Grafana without Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ActiveProfiles("test") @ExtendWith(WireMockExtension.class)
-class MonitoringQueryIT {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ExtendWith(WireMockExtension.class)
+class MonitoringQueryIT extends AbstractIntegrationTest {
 
   @Autowired
   private TestRestTemplate restTemplate;
