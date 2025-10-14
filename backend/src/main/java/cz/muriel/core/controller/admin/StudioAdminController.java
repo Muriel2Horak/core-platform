@@ -85,8 +85,8 @@ public class StudioAdminController {
 
     } catch (Exception e) {
       log.error("❌ Failed to export entities: {}", e.getMessage(), e);
-      return ResponseEntity.internalServerError()
-          .body(Map.of("status", "error", "message", "Failed to export entities: " + e.getMessage()));
+      return ResponseEntity.internalServerError().body(
+          Map.of("status", "error", "message", "Failed to export entities: " + e.getMessage()));
     }
   }
 
@@ -127,8 +127,87 @@ public class StudioAdminController {
     return ResponseEntity.ok(entityDto);
   }
 
-  // TODO S10-C: PUT /api/admin/studio/entities/{entity}
-  // TODO S10-C: POST /api/admin/studio/validate
+  /**
+   * S10-C: Validate entity draft
+   * 
+   * POST /api/admin/studio/validate
+   * 
+   * Validates entity schema without persisting
+   */
+  @PostMapping("/validate")
+  public ResponseEntity<Map<String, Object>> validateEntity(
+      @RequestBody Map<String, Object> draftData) {
+    log.info("✓ Validating entity draft");
+
+    List<Map<String, Object>> errors = new ArrayList<>();
+
+    try {
+      // Basic validation rules
+      String entityName = (String) draftData.get("entity");
+      String tableName = (String) draftData.get("table");
+
+      if (entityName == null || entityName.isBlank()) {
+        errors.add(Map.of("field", "entity", "message", "Entity name is required", "severity",
+            "error"));
+      } else if (!entityName.matches("^[A-Z][a-zA-Z0-9]*$")) {
+        errors.add(Map.of("field", "entity", "message",
+            "Entity name must start with capital letter and contain only alphanumeric characters",
+            "severity", "error"));
+      }
+
+      if (tableName == null || tableName.isBlank()) {
+        errors.add(
+            Map.of("field", "table", "message", "Table name is required", "severity", "error"));
+      } else if (!tableName.matches("^[a-z][a-z0-9_]*$")) {
+        errors.add(Map.of("field", "table", "message",
+            "Table name must be lowercase with underscores", "severity", "error"));
+      }
+
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> fields = (List<Map<String, Object>>) draftData.get("fields");
+
+      if (fields == null || fields.isEmpty()) {
+        errors.add(
+            Map.of("field", "fields", "message", "At least one field is required", "severity",
+                "error"));
+      } else {
+        // Validate fields
+        for (int i = 0; i < fields.size(); i++) {
+          Map<String, Object> field = fields.get(i);
+          String fieldName = (String) field.get("name");
+          String fieldType = (String) field.get("type");
+
+          if (fieldName == null || fieldName.isBlank()) {
+            errors.add(Map.of("field", "fields[" + i + "].name", "message",
+                "Field name is required", "severity", "error"));
+          }
+
+          if (fieldType == null || fieldType.isBlank()) {
+            errors.add(Map.of("field", "fields[" + i + "].type", "message",
+                "Field type is required", "severity", "error"));
+          }
+        }
+      }
+
+      Map<String, Object> response = new LinkedHashMap<>();
+      response.put("status", errors.isEmpty() ? "valid" : "invalid");
+      response.put("errors", errors);
+
+      if (!errors.isEmpty()) {
+        log.warn("⚠️ Validation failed with {} errors", errors.size());
+      } else {
+        log.info("✅ Validation passed");
+      }
+
+      return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+      log.error("❌ Validation error: {}", e.getMessage(), e);
+      return ResponseEntity.internalServerError()
+          .body(Map.of("status", "error", "message", e.getMessage()));
+    }
+  }
+
   // TODO S10-D: POST /api/admin/studio/preview
   // TODO S10-D: POST /api/admin/studio/proposals
   // TODO S10-D: POST /api/admin/studio/proposals/{id}/approve

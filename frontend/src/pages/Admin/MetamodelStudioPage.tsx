@@ -8,10 +8,15 @@ import {
   Tabs,
   Tab,
   Divider,
+  Button,
+  Stack,
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useAuth } from '../../components/AuthProvider.jsx';
 import { ModelTree } from '../../components/Studio/ModelTree';
 import { EntityDetail } from '../../components/Studio/EntityDetail';
+import { EntityEditor } from '../../components/Studio/EntityEditor';
 
 interface Entity {
   name: string;
@@ -41,6 +46,8 @@ export const MetamodelStudioPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('entities');
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // RBAC check - Cast user to any to avoid TS issues with roles property
   const hasAccess = (user as any)?.roles?.includes('CORE_ADMIN_STUDIO');
@@ -70,16 +77,50 @@ export const MetamodelStudioPage = () => {
     setActiveTab(newValue);
   };
 
+  const handleSaveDraft = (draft: any) => {
+    console.log('💾 Saving draft:', draft);
+    setSuccessMessage('Draft saved locally! (S10-D will add Propose/Approve)');
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const handleValidate = (draft: any) => {
+    console.log('✓ Validated:', draft);
+  };
+
   return (
     <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', background: '#f5f5f5' }}>
-        <Typography variant="h4" gutterBottom>
-          🎨 Metamodel Studio
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Admin GUI pro správu metamodelu, validací a workflow kroků
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              🎨 Metamodel Studio
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Admin GUI pro správu metamodelu, validací a workflow kroků
+            </Typography>
+          </Box>
+          {selectedEntity && (
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant={editMode ? 'outlined' : 'contained'}
+                startIcon={<VisibilityIcon />}
+                size="small"
+                onClick={() => setEditMode(false)}
+              >
+                View
+              </Button>
+              <Button
+                variant={editMode ? 'contained' : 'outlined'}
+                startIcon={<EditIcon />}
+                size="small"
+                onClick={() => setEditMode(true)}
+              >
+                Edit
+              </Button>
+            </Stack>
+          )}
+        </Box>
       </Box>
 
       {/* Navigation Tabs */}
@@ -117,7 +158,7 @@ export const MetamodelStudioPage = () => {
             </Paper>
           </Grid>
 
-          {/* Center Panel: Editor */}
+          {/* Center Panel: Editor / Detail */}
           <Grid item xs={12} md={6}>
             <Paper
               elevation={2}
@@ -128,7 +169,7 @@ export const MetamodelStudioPage = () => {
               }}
             >
               <Typography variant="h6" gutterBottom>
-                ✏️ Entity Detail (Read-only)
+                {editMode ? '✏️ Entity Editor' : '📋 Entity Detail (Read-only)'}
               </Typography>
               <Divider sx={{ mb: 2 }} />
               {error && (
@@ -136,7 +177,20 @@ export const MetamodelStudioPage = () => {
                   {error}
                 </Alert>
               )}
-              <EntityDetail entity={selectedEntity} />
+              {successMessage && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {successMessage}
+                </Alert>
+              )}
+              {editMode ? (
+                <EntityEditor
+                  entity={selectedEntity}
+                  onSave={handleSaveDraft}
+                  onValidate={handleValidate}
+                />
+              ) : (
+                <EntityDetail entity={selectedEntity} />
+              )}
             </Paper>
           </Grid>
 
