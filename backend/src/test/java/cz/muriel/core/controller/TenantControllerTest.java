@@ -25,7 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Problems: - HTTP status mismatches (401→302, 403→404, 200→500) - Long startup
  * time (2+ minutes due to testcontainers)
  * 
- * FIXME: Fix security mock configuration or convert to @WebMvcTest with proper mocks
+ * FIXME: Fix security mock configuration or convert to @WebMvcTest with proper
+ * mocks
  */
 @AutoConfigureMockMvc @Disabled("Complex security configuration - HTTP status code mismatches. Needs security mock refactoring.")
 class TenantControllerTest extends AbstractIntegrationTest {

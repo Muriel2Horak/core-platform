@@ -142,8 +142,8 @@ public class McpController {
   /**
    * Extract user capabilities for a route
    * 
-   * Returns basic capabilities based on route metadata.
-   * For fine-grained RBAC, extend this to query tenant-specific permissions.
+   * Returns basic capabilities based on route metadata. For fine-grained RBAC,
+   * extend this to query tenant-specific permissions.
    * 
    * @param userId User ID
    * @param routeId Route ID
@@ -151,7 +151,8 @@ public class McpController {
    */
   private Map<String, Object> getUserCapabilitiesFromRoute(String userId, String routeId) {
     // Conservative permissions for now
-    // To extend: Query tenant-specific RBAC rules from metamodel or permission service
+    // To extend: Query tenant-specific RBAC rules from metamodel or permission
+    // service
 
     boolean canView = routeId != null && !routeId.isEmpty(); // Basic check
     boolean canEdit = false; // Conservative default

@@ -163,19 +163,14 @@ public class AdminAiConfigController {
    */
   private void publishConfigChangeEvent(GlobalAiConfig aiConfig) {
     try {
-      Map<String, Object> event = Map.of(
-          "eventId", UUID.randomUUID().toString(),
-          "eventType", "AI_CONFIG_CHANGED",
-          "timestamp", Instant.now().toString(),
-          "config", Map.of(
-              "enabled", aiConfig.getEnabled() != null ? aiConfig.getEnabled() : false,
-              "mode", aiConfig.getMode() != null ? aiConfig.getMode().toString() : "META_ONLY"
-          )
-      );
+      Map<String, Object> event = Map.of("eventId", UUID.randomUUID().toString(), "eventType",
+          "AI_CONFIG_CHANGED", "timestamp", Instant.now().toString(), "config",
+          Map.of("enabled", aiConfig.getEnabled() != null ? aiConfig.getEnabled() : false, "mode",
+              aiConfig.getMode() != null ? aiConfig.getMode().toString() : "META_ONLY"));
 
       String eventJson = objectMapper.writeValueAsString(event);
       String topic = "platform.config.changes";
-      
+
       kafkaTemplate.send(topic, "ai-config", eventJson).whenComplete((result, ex) -> {
         if (ex != null) {
           log.error("❌ Failed to publish AI config change event to Kafka", ex);

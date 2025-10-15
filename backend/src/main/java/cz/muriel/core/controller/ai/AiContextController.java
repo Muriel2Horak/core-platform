@@ -69,9 +69,11 @@ public class AiContextController {
       // Current implementation only has routeId, which doesn't contain entity ID
       // To implement: Add entityType and entityId parameters, then check:
       // if (editLockService.isLocked(tenantId, entityType, entityId)) {
-      //   throw new ResponseStatusException(HttpStatus.LOCKED, "Entity is being edited");
+      // throw new ResponseStatusException(HttpStatus.LOCKED, "Entity is being
+      // edited");
       // }
-      log.warn("⚠️ Strict reads requested but requires entityType/entityId parameters (not implemented yet)");
+      log.warn(
+          "⚠️ Strict reads requested but requires entityType/entityId parameters (not implemented yet)");
     }
 
     try {
