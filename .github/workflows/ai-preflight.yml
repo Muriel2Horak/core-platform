@@ -1,0 +1,338 @@
+name: AI Preflight Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ai-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ai-schema-validation:
+    name: Validate AI Schema
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Validate AI schema classes
+        working-directory: backend
+        run: |
+          echo "🔍 Validating AI schema classes..."
+          ./mvnw test -Dtest=AiSchemaValidatorTest
+          echo "✅ AI schema validation passed"
+
+      - name: Validate metamodel AI configuration
+        working-directory: backend
+        run: |
+          echo "🔍 Checking metamodel YAML files for AI configuration..."
+          
+          # Check if global-config.yaml has AI section
+          if grep -q "^ai:" src/main/resources/metamodel/global-config.yaml; then
+            echo "✅ global-config.yaml has AI section"
+          else
+            echo "⚠️ Warning: global-config.yaml missing AI section"
+          fi
+          
+          # Count entity YAML files with AI configuration
+          AI_ENTITIES=$(grep -l "^ai:" src/main/resources/metamodel/*.yaml 2>/dev/null || echo "")
+          if [ -n "$AI_ENTITIES" ]; then
+            echo "✅ Found entity YAML files with AI configuration:"
+            echo "$AI_ENTITIES"
+          else
+            echo "ℹ️ No entity YAML files with AI configuration found (optional)"
+          fi
+
+  ai-endpoints-smoke:
+    name: AI Endpoints Smoke Test
+    runs-on: ubuntu-latest
+    needs: ai-schema-validation
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build backend
+        working-directory: backend
+        run: |
+          echo "🔨 Building backend..."
+          ./mvnw clean package -DskipTests
+          echo "✅ Backend built"
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          echo "🚀 Starting backend..."
+          java -jar target/*.jar --spring.profiles.active=test &
+          BACKEND_PID=$!
+          echo "BACKEND_PID=$BACKEND_PID" >> $GITHUB_ENV
+          echo "✅ Backend started (PID: $BACKEND_PID)"
+
+      - name: Wait for backend readiness
+        run: |
+          echo "⏳ Waiting for backend to be ready..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+              echo "✅ Backend is ready";
+              break;
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Backend not ready in time"
+              exit 1
+            fi
+            echo "⏳ Waiting... ($i/30)"
+            sleep 2
+          done
+
+      - name: Test AI context endpoint
+        run: |
+          echo "🧪 Testing /api/ai/context endpoint..."
+          
+          # Test with AI disabled (should return 404)
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/ai/context?routeId=test.route)
+          
+          if [ "$RESPONSE" = "404" ]; then
+            echo "✅ AI context endpoint returns 404 when disabled (expected)"
+          elif [ "$RESPONSE" = "200" ]; then
+            echo "⚠️ AI is enabled, testing META_ONLY mode..."
+            
+            # Fetch actual response
+            CONTEXT=$(curl -s http://localhost:8080/api/ai/context?routeId=users.list)
+            
+            # Check for prohibited fields
+            if echo "$CONTEXT" | grep -q '"value"\s*:'; then
+              echo "❌ FAIL: Found 'value' field in response (META_ONLY violation)"
+              echo "$CONTEXT" | jq .
+              exit 1
+            fi
+            
+            if echo "$CONTEXT" | grep -qE '"rows"\s*:\s*\[(?!\s*\])'; then
+              echo "❌ FAIL: Found 'rows' with data in response (META_ONLY violation)"
+              echo "$CONTEXT" | jq .
+              exit 1
+            fi
+            
+            echo "✅ META_ONLY mode verified (no data values)"
+          else
+            echo "⚠️ Unexpected response: $RESPONSE"
+          fi
+
+      - name: Test MCP endpoints
+        run: |
+          echo "🧪 Testing MCP endpoints..."
+          
+          # Test ui_context
+          UI_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/api/ai/mcp/ui_context/get_current_view \
+            -H "Content-Type: application/json" \
+            -d '{"routeId": "test.route"}')
+          echo "📊 ui_context response: $UI_RESPONSE"
+          
+          # Test wf_context
+          WF_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/api/ai/mcp/wf_context/get_workflow \
+            -H "Content-Type: application/json" \
+            -d '{"entity": "test"}')
+          echo "⚡ wf_context response: $WF_RESPONSE"
+          
+          # Test data_context (should be 501)
+          DATA_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8080/api/ai/mcp/data_context/query \
+            -H "Content-Type: application/json" \
+            -d '{"entity": "test"}')
+          
+          if [ "$DATA_RESPONSE" = "501" ]; then
+            echo "✅ data_context correctly returns 501 NOT_IMPLEMENTED"
+          else
+            echo "❌ data_context should return 501, got: $DATA_RESPONSE"
+            exit 1
+          fi
+
+      - name: Test AI metrics
+        run: |
+          echo "📊 Testing AI metrics..."
+          
+          METRICS=$(curl -s http://localhost:8080/actuator/prometheus)
+          
+          # Check if AI metrics are registered
+          if echo "$METRICS" | grep -q "ai_requests_total"; then
+            echo "✅ Found ai_requests_total metric"
+          else
+            echo "ℹ️ ai_requests_total metric not found (may not be used yet)"
+          fi
+          
+          if echo "$METRICS" | grep -q "mcp_calls_total"; then
+            echo "✅ Found mcp_calls_total metric"
+          else
+            echo "ℹ️ mcp_calls_total metric not found (may not be used yet)"
+          fi
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -n "$BACKEND_PID" ]; then
+            echo "🛑 Stopping backend (PID: $BACKEND_PID)..."
+            kill $BACKEND_PID || true
+            echo "✅ Backend stopped"
+          fi
+
+  ai-grafana-dashboards:
+    name: Validate Grafana Dashboards
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check AI dashboards exist
+        run: |
+          echo "🔍 Checking Grafana AI dashboards..."
+          
+          if [ -f "docker/grafana/provisioning/dashboards/ai-overview.json" ]; then
+            echo "✅ ai-overview.json exists"
+          else
+            echo "❌ ai-overview.json not found"
+            exit 1
+          fi
+          
+          if [ -f "docker/grafana/provisioning/dashboards/ai-ops.json" ]; then
+            echo "✅ ai-ops.json exists"
+          else
+            echo "❌ ai-ops.json not found"
+            exit 1
+          fi
+
+      - name: Validate dashboard JSON
+        run: |
+          echo "🔍 Validating dashboard JSON syntax..."
+          
+          if jq empty docker/grafana/provisioning/dashboards/ai-overview.json 2>/dev/null; then
+            echo "✅ ai-overview.json is valid JSON"
+          else
+            echo "❌ ai-overview.json is invalid JSON"
+            exit 1
+          fi
+          
+          if jq empty docker/grafana/provisioning/dashboards/ai-ops.json 2>/dev/null; then
+            echo "✅ ai-ops.json is valid JSON"
+          else
+            echo "❌ ai-ops.json is invalid JSON"
+            exit 1
+          fi
+
+      - name: Check dashboard contains AI metrics
+        run: |
+          echo "🔍 Checking dashboard contains AI metrics..."
+          
+          # Check ai-overview.json
+          if grep -q "ai_requests_total" docker/grafana/provisioning/dashboards/ai-overview.json; then
+            echo "✅ ai-overview.json contains ai_requests_total"
+          else
+            echo "⚠️ ai-overview.json missing ai_requests_total"
+          fi
+          
+          # Check ai-ops.json
+          if grep -q "mcp_calls_total" docker/grafana/provisioning/dashboards/ai-ops.json; then
+            echo "✅ ai-ops.json contains mcp_calls_total"
+          else
+            echo "⚠️ ai-ops.json missing mcp_calls_total"
+          fi
+
+  ai-integration-tests:
+    name: Run AI Integration Tests
+    runs-on: ubuntu-latest
+    needs: ai-schema-validation
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run AI integration tests
+        working-directory: backend
+        run: |
+          echo "🧪 Running AI integration tests..."
+          ./mvnw test -Dtest=*Ai*IT
+          echo "✅ AI integration tests passed"
+
+  summary:
+    name: AI Preflight Summary
+    runs-on: ubuntu-latest
+    needs: [ai-schema-validation, ai-endpoints-smoke, ai-grafana-dashboards, ai-integration-tests]
+    if: always()
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "📊 AI Preflight Checks Summary"
+          echo "=============================="
+          echo "✅ AI Schema Validation: ${{ needs.ai-schema-validation.result }}"
+          echo "✅ AI Endpoints Smoke: ${{ needs.ai-endpoints-smoke.result }}"
+          echo "✅ Grafana Dashboards: ${{ needs.ai-grafana-dashboards.result }}"
+          echo "✅ Integration Tests: ${{ needs.ai-integration-tests.result }}"
+          
+          if [ "${{ needs.ai-schema-validation.result }}" = "success" ] && \
+             [ "${{ needs.ai-endpoints-smoke.result }}" = "success" ] && \
+             [ "${{ needs.ai-grafana-dashboards.result }}" = "success" ] && \
+             [ "${{ needs.ai-integration-tests.result }}" = "success" ]; then
+            echo "✅ All AI preflight checks passed!"
+            exit 0
+          else
+            echo "❌ Some AI preflight checks failed"
+            exit 1
+          fi
