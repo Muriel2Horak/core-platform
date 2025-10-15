@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * KeycloakEventProjectionService - Označuje eventy jako zpracované - Pravidelně
  * čistí staré zpracované eventy
  */
-@Service @Slf4j @RequiredArgsConstructor @ConditionalOnProperty(name = "app.change-events.listener-enabled", havingValue = "true", matchIfMissing = true)
+@Service @Slf4j @RequiredArgsConstructor @ConditionalOnProperty(name = "keycloak.datasource.enabled", havingValue = "true", matchIfMissing = false)
 public class ChangeEventPollingService {
 
   private final ChangeEventRepository changeEventRepository;

@@ -25,8 +25,8 @@ import java.util.Map;
  * marked as @Primary to be the default EntityManagerFactory.
  */
 @Configuration @EnableTransactionManagement @EnableJpaRepositories(basePackages = {
-    "cz.muriel.core.repository", "cz.muriel.core.locks",
-    "cz.muriel.core.reporting.repo" }, excludeFilters = @org.springframework.context.annotation.ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "cz\\.muriel\\.core\\.repository\\.keycloak\\..*"), entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
+    "cz.muriel.core.repository", "cz.muriel.core.locks", "cz.muriel.core.reporting.repo",
+    "cz.muriel.core.monitoring.grafana.repository" }, excludeFilters = @org.springframework.context.annotation.ComponentScan.Filter(type = org.springframework.context.annotation.FilterType.REGEX, pattern = "cz\\.muriel\\.core\\.repository\\.keycloak\\..*"), entityManagerFactoryRef = "entityManagerFactory", transactionManagerRef = "transactionManager")
 public class PrimaryJpaConfig {
 
   @Primary @Bean(name = "dataSourceProperties") @ConfigurationProperties("spring.datasource")
@@ -50,7 +50,8 @@ public class PrimaryJpaConfig {
     properties.put("hibernate.format_sql", true);
 
     return builder.dataSource(dataSource)
-        .packages("cz.muriel.core.entity", "cz.muriel.core.locks", "cz.muriel.core.reporting.model")
+        .packages("cz.muriel.core.entity", "cz.muriel.core.locks", "cz.muriel.core.reporting.model",
+            "cz.muriel.core.monitoring.grafana.entity")
         .persistenceUnit("default").properties(properties).build();
   }
 
