@@ -142,8 +142,8 @@ public class McpController {
   /**
    * Extract user capabilities for a route
    * 
-   * Currently returns basic capabilities based on route metadata.
-   * TODO: Integrate with dedicated PermissionService for fine-grained RBAC
+   * Currently returns basic capabilities based on route metadata. TODO: Integrate
+   * with dedicated PermissionService for fine-grained RBAC
    * 
    * @param userId User ID
    * @param routeId Route ID
@@ -152,19 +152,16 @@ public class McpController {
   private Map<String, Object> getUserCapabilitiesFromRoute(String userId, String routeId) {
     // For now, return conservative permissions
     // In production, this should query PermissionService/RBAC system
-    
+
     boolean canView = routeId != null && !routeId.isEmpty(); // Basic check
     boolean canEdit = false; // Conservative default
-    
-    log.debug("🔐 Basic capabilities for user={}, route={}: view={}, edit={}", 
-      userId, routeId, canView, canEdit);
-    
-    return Map.of(
-      "canView", canView,
-      "canEdit", canEdit,
-      "canExecute", java.util.Collections.emptyList(),
-      "note", "Basic implementation - integrate PermissionService for full RBAC"
-    );
+
+    log.debug("🔐 Basic capabilities for user={}, route={}: view={}, edit={}", userId, routeId,
+        canView, canEdit);
+
+    return Map.of("canView", canView, "canEdit", canEdit, "canExecute",
+        java.util.Collections.emptyList(), "note",
+        "Basic implementation - integrate PermissionService for full RBAC");
   }
 
   /**

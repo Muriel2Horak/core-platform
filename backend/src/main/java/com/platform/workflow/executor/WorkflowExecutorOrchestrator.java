@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 🔄 W7: Workflow Execution Service
+ * 🔄 W7: Workflow Executor Orchestration Service
  * 
  * Orchestrates executor invocation with: - Async execution - Retry logic with
  * exponential backoff - Compensation on failure - Metrics tracking
@@ -19,9 +19,9 @@ import java.util.concurrent.CompletableFuture;
  * @since 2025-01-14
  */
 @Service
-public class WorkflowExecutionService {
+public class WorkflowExecutorOrchestrator {
 
-  private static final Logger log = LoggerFactory.getLogger(WorkflowExecutionService.class);
+  private static final Logger log = LoggerFactory.getLogger(WorkflowExecutorOrchestrator.class);
 
   private final WorkflowExecutorRegistry registry;
   private final Timer executionTimer;
@@ -30,7 +30,7 @@ public class WorkflowExecutionService {
   private final Counter retryCounter;
   private final Counter compensationCounter;
 
-  public WorkflowExecutionService(WorkflowExecutorRegistry registry, MeterRegistry meterRegistry) {
+  public WorkflowExecutorOrchestrator(WorkflowExecutorRegistry registry, MeterRegistry meterRegistry) {
     this.registry = registry;
     this.executionTimer = Timer.builder("workflow.executor.duration")
         .description("Executor execution duration").tag("type", "execution")

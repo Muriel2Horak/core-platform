@@ -129,25 +129,21 @@ public class AiContextController {
    */
   private UUID getTenantIdFromSecurityContext() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    
+
     if (auth == null || !auth.isAuthenticated()) {
       log.error("❌ No authentication in security context");
-      throw new ResponseStatusException(
-        HttpStatus.UNAUTHORIZED,
-        "Authentication required - tenant ID not available"
-      );
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+          "Authentication required - tenant ID not available");
     }
 
     // Extract from JWT claims
     if (auth.getPrincipal() instanceof Jwt jwt) {
       String tenantIdStr = jwt.getClaimAsString("tenant_id");
-      
+
       if (tenantIdStr == null || tenantIdStr.isBlank()) {
         log.error("❌ No tenant_id claim in JWT for user: {}", auth.getName());
-        throw new ResponseStatusException(
-          HttpStatus.FORBIDDEN,
-          "Tenant ID not found in security context - missing tenant_id claim"
-        );
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            "Tenant ID not found in security context - missing tenant_id claim");
       }
 
       try {
@@ -156,18 +152,14 @@ public class AiContextController {
         return tenantId;
       } catch (IllegalArgumentException e) {
         log.error("❌ Invalid tenant_id format in JWT: {}", tenantIdStr);
-        throw new ResponseStatusException(
-          HttpStatus.BAD_REQUEST,
-          "Invalid tenant ID format in security context"
-        );
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            "Invalid tenant ID format in security context");
       }
     }
 
     // Fallback: try to get from authentication details
     log.warn("⚠️ Authentication principal is not JWT, attempting fallback");
-    throw new ResponseStatusException(
-      HttpStatus.UNAUTHORIZED,
-      "Unable to extract tenant ID from security context - JWT expected"
-    );
+    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+        "Unable to extract tenant ID from security context - JWT expected");
   }
 }

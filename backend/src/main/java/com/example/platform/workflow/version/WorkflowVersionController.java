@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 🔄 W9: Workflow Versioning REST API
@@ -132,7 +133,7 @@ public class WorkflowVersionController {
       String notes) {
   }
 
-  public record MigrateInstanceRequest(Long instanceId, Long toVersionId,
+  public record MigrateInstanceRequest(UUID instanceId, Long toVersionId,
       MigrationStrategy strategy) {
   }
 

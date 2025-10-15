@@ -6,9 +6,11 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * 🔄 W9: Workflow Version Service
@@ -44,11 +46,11 @@ public class WorkflowVersionService {
     Long versionId = jdbcTemplate.queryForObject(
         """
             INSERT INTO workflow_versions (entity_type, version, schema_definition, created_by, migration_notes, created_at)
-            VALUES (?, ?, ?::jsonb, ?, ?, ?)
+            VALUES (?, ?, CAST(? AS jsonb), ?, ?, ?)
             RETURNING id
             """,
         Long.class, entityType, nextVersion, schemaDefinition.toString(), createdBy, notes,
-        Instant.now());
+        Timestamp.from(Instant.now()));
 
     log.info("Created workflow version: entity={}, version={}, id={}", entityType, nextVersion,
         versionId);
@@ -133,7 +135,7 @@ public class WorkflowVersionService {
   /**
    * Migrate instance to new version
    */
-  public void migrateInstance(Long instanceId, Long toVersionId, MigrationStrategy strategy) {
+  public void migrateInstance(UUID instanceId, Long toVersionId, MigrationStrategy strategy) {
     // Get current version
     Long currentVersionId = jdbcTemplate.queryForObject(
         "SELECT version_id FROM workflow_instance_versions WHERE workflow_instance_id = ?",
@@ -149,7 +151,7 @@ public class WorkflowVersionService {
         UPDATE workflow_instance_versions
         SET version_id = ?, migrated_from_version_id = ?, migrated_at = ?
         WHERE workflow_instance_id = ?
-        """, toVersionId, currentVersionId, Instant.now(), instanceId);
+        """, toVersionId, currentVersionId, Timestamp.from(Instant.now()), instanceId);
 
     log.info("Migrated instance {} from version {} to {} using strategy {}", instanceId,
         currentVersionId, toVersionId, strategy);
@@ -165,7 +167,7 @@ public class WorkflowVersionService {
         (from_version_id, to_version_id, migration_strategy, created_by, started_at)
         VALUES (?, ?, ?, ?, ?)
         RETURNING id
-        """, Long.class, fromVersionId, toVersionId, strategy.name(), createdBy, Instant.now());
+        """, Long.class, fromVersionId, toVersionId, strategy.name(), createdBy, Timestamp.from(Instant.now()));
 
     log.info("Started migration {}: {} → {} using {}", migrationId, fromVersionId, toVersionId,
         strategy);
