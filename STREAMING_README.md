@@ -464,6 +464,72 @@ Workflow: `.github/workflows/streaming-tests.yml`
 - Kafka: SASL/PLAIN (produkce), PLAINTEXT (dev)
 - Grafana: OAuth2 s Keycloak (produkce)
 
+## 🤖 AI Hooks (META_ONLY)
+
+**Since:** 2025-10-14
+
+Streamingová infrastruktura je integrována s AI hooks pro in-app agenty:
+
+### AI Context Export
+
+```bash
+# Get workflow context for streaming entities
+curl http://localhost:8080/api/ai/mcp/wf_context/get_workflow \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"entity": "WorkflowDraft"}'
+```
+
+Returns:
+- Workflow states (draft, pending, approved, etc.)
+- Actions with `howto` steps
+- Streaming priority annotations (`CRITICAL`, `HIGH`, `NORMAL`, `BULK`)
+
+### Streaming-Specific Metadata
+
+Entity schemas contain streaming config:
+
+```yaml
+# workflow-draft.yaml
+streaming:
+  enabled: true
+  priority: normal
+  strictReads: true
+  
+transitions:
+  - code: submit
+    streamingPriority: HIGH  # Affects queue priority
+    howto:
+      - "Validate draft completeness"
+      - "Click Submit button"
+      - "Command queued with HIGH priority"
+```
+
+### Strict Reads Integration
+
+AI context respects `strictReads`:
+
+```bash
+# Strict mode: returns 423 if entity is UPDATING
+curl "http://localhost:8080/api/ai/context?routeId=workflow-draft.edit&strict=true"
+
+# Non-strict: returns 200 + state.updating=true
+curl "http://localhost:8080/api/ai/context?routeId=workflow-draft.edit&strict=false"
+```
+
+### Telemetry
+
+AI metrics for streaming actions:
+
+```promql
+# AI requests for streaming entities
+ai_requests_total{route=~"workflow-.*"}
+
+# Help requests for streaming workflows
+ai_help_requests_total{route=~"workflow-.*"}
+```
+
+**See:** `docs/AI_GUIDE.md` for complete AI documentation
+
 ## 📚 Reference
 
 - **Outbox Pattern**: https://microservices.io/patterns/data/transactional-outbox.html
@@ -471,6 +537,7 @@ Workflow: `.github/workflows/streaming-tests.yml`
 - **Prometheus Metrics**: http://localhost:8080/actuator/prometheus
 - **Kafka UI**: http://localhost:8090
 - **Grafana**: http://localhost:3001
+- **AI Guide**: `docs/AI_GUIDE.md`
 
 ## 🐛 Known Issues
 
