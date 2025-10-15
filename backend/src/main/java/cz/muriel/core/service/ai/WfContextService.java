@@ -14,18 +14,16 @@ import java.util.stream.Collectors;
 /**
  * Workflow Context Service for AI agents
  * 
- * Exports workflow metadata (states, actions, how-to) without data.
- * META_ONLY mode - no actual values, only process structure.
+ * Exports workflow metadata (states, actions, how-to) without data. META_ONLY
+ * mode - no actual values, only process structure.
  * 
  * @since 2025-10-14
  */
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j @Service @RequiredArgsConstructor
 public class WfContextService {
-  
+
   private final MetamodelRegistry metamodelRegistry;
-  
+
   /**
    * Get workflow metadata for entity
    * 
@@ -35,10 +33,10 @@ public class WfContextService {
   public Map<String, Object> getWorkflowForEntity(String entityName) {
     EntitySchema schema = metamodelRegistry.getSchema(entityName)
         .orElseThrow(() -> new IllegalArgumentException("Entity not found: " + entityName));
-    
+
     return buildWorkflowContext(schema);
   }
-  
+
   /**
    * Get workflow metadata by route ID
    * 
@@ -50,31 +48,29 @@ public class WfContextService {
     String entityName = extractEntityFromRoute(routeId);
     return getWorkflowForEntity(entityName);
   }
-  
+
   /**
    * Build workflow context from entity schema
    */
   private Map<String, Object> buildWorkflowContext(EntitySchema schema) {
     Map<String, Object> context = new LinkedHashMap<>();
-    
+
     context.put("entity", schema.getEntity());
-    
+
     // States
     if (schema.getStates() != null && !schema.getStates().isEmpty()) {
-      List<Map<String, Object>> states = schema.getStates().stream()
-          .map(this::serializeState)
+      List<Map<String, Object>> states = schema.getStates().stream().map(this::serializeState)
           .collect(Collectors.toList());
       context.put("states", states);
     }
-    
+
     // Actions (transitions)
     if (schema.getTransitions() != null && !schema.getTransitions().isEmpty()) {
       List<Map<String, Object>> actions = schema.getTransitions().stream()
-          .map(this::serializeAction)
-          .collect(Collectors.toList());
+          .map(this::serializeAction).collect(Collectors.toList());
       context.put("actions", actions);
     }
-    
+
     // Extract how-to steps from all actions
     if (schema.getTransitions() != null) {
       Map<String, List<String>> howtos = new LinkedHashMap<>();
@@ -87,10 +83,10 @@ public class WfContextService {
         context.put("howto", howtos);
       }
     }
-    
+
     return context;
   }
-  
+
   /**
    * Serialize state for AI context
    */
@@ -106,18 +102,18 @@ public class WfContextService {
     }
     return result;
   }
-  
+
   /**
    * Serialize action/transition for AI context
    */
   private Map<String, Object> serializeAction(TransitionConfig transition) {
     Map<String, Object> result = new LinkedHashMap<>();
-    
+
     result.put("id", transition.getCode());
     result.put("label", transition.getLabel());
     result.put("from", transition.getFrom());
     result.put("to", transition.getTo());
-    
+
     if (transition.getHelp() != null) {
       result.put("help", transition.getHelp());
     }
@@ -148,32 +144,30 @@ public class WfContextService {
     if (transition.getStreamingPriority() != null) {
       result.put("streamingPriority", transition.getStreamingPriority());
     }
-    
+
     return result;
   }
-  
+
   /**
    * Extract entity name from route ID
    * 
-   * Examples:
-   * - users.detail -> User
-   * - proposals.review -> Proposal
-   * - workflow-draft.edit -> WorkflowDraft
+   * Examples: - users.detail -> User - proposals.review -> Proposal -
+   * workflow-draft.edit -> WorkflowDraft
    */
   private String extractEntityFromRoute(String routeId) {
     if (routeId == null || routeId.isEmpty()) {
       throw new IllegalArgumentException("Route ID cannot be empty");
     }
-    
+
     String[] parts = routeId.split("\\.");
     String entityPart = parts[0];
-    
+
     // Convert plural to singular and capitalize
     // Simple heuristic: remove trailing 's' if present
     if (entityPart.endsWith("s")) {
       entityPart = entityPart.substring(0, entityPart.length() - 1);
     }
-    
+
     // Capitalize first letter
     return Character.toUpperCase(entityPart.charAt(0)) + entityPart.substring(1);
   }

@@ -12,22 +12,22 @@ import java.util.Map;
  */
 @Data
 public class AiTool {
-  
+
   /**
    * Tool name/identifier (e.g., "ui_context.get_current_view")
    */
   private String name;
-  
+
   /**
    * Human-readable description
    */
   private String description;
-  
+
   /**
    * Input schema (JSON Schema)
    */
   private Map<String, Object> inputSchema;
-  
+
   /**
    * Output schema (JSON Schema)
    */

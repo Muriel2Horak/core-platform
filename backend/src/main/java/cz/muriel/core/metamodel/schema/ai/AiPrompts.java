@@ -12,12 +12,12 @@ import java.util.Map;
  */
 @Data
 public class AiPrompts {
-  
+
   /**
    * System prompt for user-facing agent
    */
   private Map<String, String> userAgent;
-  
+
   /**
    * System prompt for developer/ops agent
    */

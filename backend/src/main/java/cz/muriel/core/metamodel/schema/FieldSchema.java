@@ -42,23 +42,23 @@ public class FieldSchema {
 
   // For cascade operations
   private List<String> cascade; // ALL, PERSIST, MERGE, REMOVE, REFRESH, DETACH
-  
+
   // ✨ AI annotations (since 2025-10-14)
   /**
-   * Is this field containing PII (Personally Identifiable Information)?
-   * If true, field will be masked/redacted in AI context
+   * Is this field containing PII (Personally Identifiable Information)? If true,
+   * field will be masked/redacted in AI context
    */
   private Boolean pii;
-  
+
   /**
-   * Is help/description safe to expose to AI without data?
-   * If true, field description/label can be used for AI assistance
+   * Is help/description safe to expose to AI without data? If true, field
+   * description/label can be used for AI assistance
    */
   private Boolean helpSafe;
-  
+
   /**
-   * Mask pattern for redacted mode (e.g., "u***@d***.cz")
-   * Optional, used when visibility = REDACTED
+   * Mask pattern for redacted mode (e.g., "u***@d***.cz") Optional, used when
+   * visibility = REDACTED
    */
   private String mask;
 }

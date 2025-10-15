@@ -34,7 +34,7 @@ public class EntitySchema {
 
   // 📊 NEW: Streaming configuration
   private StreamingEntityConfig streaming;
-  
+
   // 🤖 AI configuration (since 2025-10-14)
   private AiConfig ai;
 }

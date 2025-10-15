@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class GlobalMetamodelConfig {
   private StreamingGlobalConfig streaming = new StreamingGlobalConfig();
-  
+
   // 🤖 AI global configuration (since 2025-10-14)
   private GlobalAiConfig ai = new GlobalAiConfig();
 }

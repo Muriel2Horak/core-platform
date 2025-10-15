@@ -20,38 +20,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * @since 2025-10-14
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
+@SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
 class AiContextControllerIT {
-  
+
   @Autowired
   private MockMvc mockMvc;
-  
+
   @Autowired
   private GlobalMetamodelConfig globalConfig;
-  
+
   @Test
   void testAiContextHealth() throws Exception {
-    mockMvc.perform(get("/api/ai/health"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").exists())
-        .andExpect(jsonPath("$.mode").exists());
+    mockMvc.perform(get("/api/ai/health")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").exists()).andExpect(jsonPath("$.mode").exists());
   }
-  
+
   @Test
   void testAiContext_WhenDisabled() throws Exception {
     // Ensure AI is disabled
     if (globalConfig.getAi() != null) {
       globalConfig.getAi().setEnabled(false);
     }
-    
-    mockMvc.perform(get("/api/ai/context")
-            .param("routeId", "users.detail"))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("AI_DISABLED"));
+
+    mockMvc.perform(get("/api/ai/context").param("routeId", "users.detail"))
+        .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("AI_DISABLED"));
   }
-  
+
   @Test
   void testAiContext_MetaOnly_NoValues() throws Exception {
     // Enable AI with META_ONLY mode
@@ -60,11 +54,9 @@ class AiContextControllerIT {
     }
     globalConfig.getAi().setEnabled(true);
     globalConfig.getAi().setMode(AiVisibilityMode.META_ONLY);
-    
-    mockMvc.perform(get("/api/ai/context")
-            .param("routeId", "users.detail"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.metadata").exists())
+
+    mockMvc.perform(get("/api/ai/context").param("routeId", "users.detail"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.metadata").exists())
         .andExpect(jsonPath("$.metadata.policy.visibility").value("META_ONLY"))
         // Ensure no 'value' or 'data' fields in response
         .andExpect(jsonPath("$..value").doesNotExist())

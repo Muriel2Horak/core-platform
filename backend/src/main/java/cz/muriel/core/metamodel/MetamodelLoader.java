@@ -18,9 +18,7 @@ import java.util.*;
 /**
  * Loads metamodel YAML files from classpath
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
+@Slf4j @Component @RequiredArgsConstructor
 public class MetamodelLoader {
 
   private static final String METAMODEL_LOCATION = "classpath:metamodel/*.yaml";
@@ -45,15 +43,15 @@ public class MetamodelLoader {
       try (InputStream is = resource.getInputStream()) {
         GlobalMetamodelConfig config = yamlMapper.readValue(is, GlobalMetamodelConfig.class);
         log.info("Loaded global metamodel config: streaming.enabled={}, ai.enabled={}",
-            config.getStreaming().isEnabled(), 
+            config.getStreaming().isEnabled(),
             config.getAi() != null ? config.getAi().getEnabled() : false);
-        
+
         // Validate AI config
         List<String> aiErrors = aiValidator.validateGlobalAiConfig(config);
         if (!aiErrors.isEmpty()) {
           throw new IllegalArgumentException("Invalid AI config: " + String.join(", ", aiErrors));
         }
-        
+
         return config;
       }
     } catch (Exception e) {
@@ -148,13 +146,13 @@ public class MetamodelLoader {
         }
       }
     }
-    
+
     // Validate AI configuration
     List<String> aiErrors = aiValidator.validateEntityAiConfig(schema);
     if (!aiErrors.isEmpty()) {
       errors.addAll(aiErrors);
     }
-    
+
     // Validate workflow for AI compatibility
     List<String> workflowErrors = workflowValidator.validateWorkflow(schema);
     if (!workflowErrors.isEmpty()) {

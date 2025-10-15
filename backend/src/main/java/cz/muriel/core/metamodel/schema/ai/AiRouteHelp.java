@@ -11,16 +11,16 @@ import lombok.Data;
  */
 @Data
 public class AiRouteHelp {
-  
+
   /**
-   * Override visibility mode for this specific route
-   * If null, uses entity/global default
+   * Override visibility mode for this specific route If null, uses entity/global
+   * default
    */
   private AiVisibilityMode visibility;
-  
+
   /**
-   * Are examples allowed for this route?
-   * If true, AI can generate example data (still respects visibility mode)
+   * Are examples allowed for this route? If true, AI can generate example data
+   * (still respects visibility mode)
    */
   private Boolean examplesAllowed = false;
 }

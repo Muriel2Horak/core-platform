@@ -10,28 +10,28 @@ import java.util.List;
  */
 @Data
 public class GlobalAiConfig {
-  
+
   /**
-   * Is AI feature enabled globally?
-   * Master kill-switch. If false, all AI endpoints return 404/disabled
+   * Is AI feature enabled globally? Master kill-switch. If false, all AI
+   * endpoints return 404/disabled
    */
   private Boolean enabled = false;
-  
+
   /**
    * Global AI mode
    */
   private AiVisibilityMode mode = AiVisibilityMode.META_ONLY;
-  
+
   /**
    * Global AI policies
    */
   private AiPolicies policies = new AiPolicies();
-  
+
   /**
    * Global AI prompts
    */
   private AiPrompts prompts = new AiPrompts();
-  
+
   /**
    * Global AI tools
    */

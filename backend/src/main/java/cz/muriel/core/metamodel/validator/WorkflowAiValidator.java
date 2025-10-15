@@ -14,33 +14,32 @@ import java.util.Set;
 /**
  * Validator for workflow configuration
  * 
- * Ensures workflow states and transitions are properly configured
- * for AI assistance.
+ * Ensures workflow states and transitions are properly configured for AI
+ * assistance.
  * 
  * @since 2025-10-14
  */
-@Slf4j
-@Component
+@Slf4j @Component
 public class WorkflowAiValidator {
-  
+
   /**
    * Validate workflow configuration for AI compatibility
    */
   public List<String> validateWorkflow(EntitySchema schema) {
     List<String> errors = new ArrayList<>();
-    
+
     if (schema == null) {
       return errors;
     }
-    
+
     String entityName = schema.getEntity();
-    
+
     // If no workflow defined, that's OK
-    if ((schema.getStates() == null || schema.getStates().isEmpty()) &&
-        (schema.getTransitions() == null || schema.getTransitions().isEmpty())) {
+    if ((schema.getStates() == null || schema.getStates().isEmpty())
+        && (schema.getTransitions() == null || schema.getTransitions().isEmpty())) {
       return errors;
     }
-    
+
     // Validate states
     if (schema.getStates() != null) {
       Set<String> stateIds = new HashSet<>();
@@ -50,7 +49,7 @@ public class WorkflowAiValidator {
           errors.add(entityName + ": duplicate state ID: " + state.getCode());
         }
         stateIds.add(state.getCode());
-        
+
         // Required fields
         if (state.getCode() == null || state.getCode().isBlank()) {
           errors.add(entityName + ": state must have code/id");
@@ -60,7 +59,7 @@ public class WorkflowAiValidator {
         }
       }
     }
-    
+
     // Validate transitions/actions
     if (schema.getTransitions() != null) {
       Set<String> actionIds = new HashSet<>();
@@ -70,7 +69,7 @@ public class WorkflowAiValidator {
           errors.add(entityName + ": duplicate action ID: " + transition.getCode());
         }
         actionIds.add(transition.getCode());
-        
+
         // Required fields
         if (transition.getCode() == null || transition.getCode().isBlank()) {
           errors.add(entityName + ": action must have code/id");
@@ -78,19 +77,21 @@ public class WorkflowAiValidator {
         if (transition.getLabel() == null || transition.getLabel().isBlank()) {
           errors.add(entityName + ": action " + transition.getCode() + " must have label");
         }
-        
+
         // How-to validation
         if (transition.getHowto() != null) {
           if (transition.getHowto().size() < 1) {
-            errors.add(entityName + "." + transition.getCode() + ": howto must have at least 1 step");
+            errors
+                .add(entityName + "." + transition.getCode() + ": howto must have at least 1 step");
           }
           if (transition.getHowto().size() > 10) {
-            errors.add(entityName + "." + transition.getCode() + ": howto should have max 10 steps (recommended 3-7)");
+            errors.add(entityName + "." + transition.getCode()
+                + ": howto should have max 10 steps (recommended 3-7)");
           }
         }
       }
     }
-    
+
     return errors;
   }
 }

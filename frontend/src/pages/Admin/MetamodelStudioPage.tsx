@@ -19,6 +19,7 @@ import { EntityDetail } from '../../components/Studio/EntityDetail';
 import { EntityEditor } from '../../components/Studio/EntityEditor';
 import { DiffPanel } from '../../components/Studio/DiffPanel';
 import { WorkflowStepsEditor } from '../../components/Studio/WorkflowStepsEditor';
+import { AiConfigEditor } from '../../components/Studio/AiConfigEditor';
 
 interface Entity {
   name: string;
@@ -182,10 +183,11 @@ export const MetamodelStudioPage = () => {
           <Tab label="🔗 Relations" value="relations" disabled />
           <Tab label="✓ Validations" value="validations" disabled />
           <Tab label="⚡ Workflow Steps" value="workflow-steps" />
+          <Tab label="🤖 AI Config" value="ai-config" />
         </Tabs>
       </Box>
 
-      {/* Main Content - 3 Column Layout OR Workflow Steps Editor */}
+      {/* Main Content - 3 Column Layout OR Workflow Steps Editor OR AI Config Editor */}
       <Box sx={{ flex: 1, overflow: 'hidden', p: 2, background: '#fafafa' }}>
         {activeTab === 'workflow-steps' ? (
           /* Full-width Workflow Steps Editor */
@@ -202,6 +204,27 @@ export const MetamodelStudioPage = () => {
               onChange={setWorkflowSteps}
               onValidate={handleValidateWorkflowSteps}
               onDryRun={handleDryRunWorkflowSteps}
+            />
+          </Paper>
+        ) : activeTab === 'ai-config' ? (
+          /* Full-width AI Config Editor */
+          <Paper
+            elevation={2}
+            sx={{
+              height: '100%',
+              p: 3,
+              overflow: 'auto',
+            }}
+          >
+            <AiConfigEditor
+              onSave={(config) => {
+                console.log('AI config saved:', config);
+                setSuccessMessage('AI configuration saved successfully!');
+                setTimeout(() => setSuccessMessage(null), 3000);
+              }}
+              readOnly={!(user as any)?.roles?.some((r: string) =>
+                ['PLATFORM_ADMIN', 'OPS'].includes(r)
+              )}
             />
           </Paper>
         ) : (
