@@ -30,6 +30,11 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * Uses WireMock for Cube.js API stubbing and per-test CircuitBreakerRegistry
  * for deterministic state management.
+ * 
+ * ⚠️ @DirtiesContext AFTER_EACH_TEST_METHOD is required here because:
+ * - CircuitBreaker state is global and affects other tests
+ * - WireMock server needs clean state per test
+ * - Each test needs fresh CircuitBreakerRegistry
  */
 @SpringBootTest @ActiveProfiles("test") @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class CubeQueryServiceIT extends AbstractIntegrationTest {
