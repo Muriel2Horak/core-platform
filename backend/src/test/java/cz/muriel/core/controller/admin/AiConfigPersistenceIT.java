@@ -28,14 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Integration tests for AI Config Persistence
  * 
- * Tests:
- * - YAML persistence after config update
- * - Atomic write with backup
- * - Hot reload after update
+ * Tests: - YAML persistence after config update - Atomic write with backup -
+ * Hot reload after update
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@DisplayName("AI Config Persistence IT")
+@SpringBootTest @AutoConfigureMockMvc @DisplayName("AI Config Persistence IT")
 class AiConfigPersistenceIT {
 
   @Autowired
@@ -83,8 +79,7 @@ class AiConfigPersistenceIT {
     }
   }
 
-  @Test
-  @WithMockUser(roles = "PLATFORM_ADMIN")
+  @Test @WithMockUser(roles = "PLATFORM_ADMIN")
   void testPersistAiConfig_success() throws Exception {
     // Given: New AI config
     GlobalAiConfig newConfig = new GlobalAiConfig();
@@ -99,11 +94,9 @@ class AiConfigPersistenceIT {
         """;
 
     // When: Update config via REST API
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("success"))
+    mockMvc
+        .perform(put("/api/admin/ai/config").contentType(MediaType.APPLICATION_JSON).content(json))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("success"))
         .andExpect(jsonPath("$.message").exists());
 
     // Then: Config should be persisted to YAML
@@ -116,8 +109,7 @@ class AiConfigPersistenceIT {
     assertThat(persisted.getAi().getMode()).isEqualTo(AiVisibilityMode.META_ONLY);
   }
 
-  @Test
-  @WithMockUser(roles = "PLATFORM_ADMIN")
+  @Test @WithMockUser(roles = "PLATFORM_ADMIN")
   void testPersistAiConfig_enforcesMetaOnly() throws Exception {
     // Given: Config with FULL mode (not allowed)
     String json = """
@@ -128,9 +120,8 @@ class AiConfigPersistenceIT {
         """;
 
     // When: Update config
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
+    mockMvc
+        .perform(put("/api/admin/ai/config").contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isOk());
 
     // Then: Mode should be forced to META_ONLY
@@ -138,8 +129,7 @@ class AiConfigPersistenceIT {
     assertThat(persisted.getAi().getMode()).isEqualTo(AiVisibilityMode.META_ONLY);
   }
 
-  @Test
-  @WithMockUser(roles = "TENANT_ADMIN")
+  @Test @WithMockUser(roles = "TENANT_ADMIN")
   void testPersistAiConfig_forbidden() throws Exception {
     // Given: TenantAdmin tries to update
     String json = """
@@ -150,14 +140,12 @@ class AiConfigPersistenceIT {
         """;
 
     // When/Then: Should be forbidden
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
+    mockMvc
+        .perform(put("/api/admin/ai/config").contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isForbidden());
   }
 
-  @Test
-  @WithMockUser(roles = "PLATFORM_ADMIN")
+  @Test @WithMockUser(roles = "PLATFORM_ADMIN")
   void testDisableAiConfig() throws Exception {
     // Given: Disable AI
     String json = """
@@ -168,9 +156,8 @@ class AiConfigPersistenceIT {
         """;
 
     // When: Update config
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
+    mockMvc
+        .perform(put("/api/admin/ai/config").contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isOk());
 
     // Then: Should be disabled in YAML
@@ -178,8 +165,7 @@ class AiConfigPersistenceIT {
     assertThat(persisted.getAi().getEnabled()).isFalse();
 
     // And: Status endpoint should reflect disabled state
-    mockMvc.perform(get("/api/admin/ai/status"))
-        .andExpect(status().isOk())
+    mockMvc.perform(get("/api/admin/ai/status")).andExpect(status().isOk())
         .andExpect(jsonPath("$.enabled").value(false))
         .andExpect(jsonPath("$.status").value("disabled"));
   }
@@ -225,9 +211,7 @@ class AiConfigPersistenceIT {
     assertThat(readBack.getAi().getMode()).isEqualTo(AiVisibilityMode.META_ONLY);
   }
 
-  @Test
-  @WithMockUser(roles = "PLATFORM_ADMIN")
-  @DisplayName("Update AI config should trigger hot reload")
+  @Test @WithMockUser(roles = "PLATFORM_ADMIN") @DisplayName("Update AI config should trigger hot reload")
   void testUpdateAiConfig_triggersHotReload() throws Exception {
     // Given: Initial schema count
     int initialSchemaCount = metamodelRegistry.getAllSchemas().size();
@@ -240,12 +224,11 @@ class AiConfigPersistenceIT {
         """;
 
     // When: Update AI config
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("success"))
-        .andExpect(jsonPath("$.message").value("AI config updated, persisted, and metamodel reloaded successfully"));
+    mockMvc
+        .perform(put("/api/admin/ai/config").contentType(MediaType.APPLICATION_JSON).content(json))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("success"))
+        .andExpect(jsonPath("$.message")
+            .value("AI config updated, persisted, and metamodel reloaded successfully"));
 
     // Then: Schema count should be preserved (hot reload successful)
     int afterSchemaCount = metamodelRegistry.getAllSchemas().size();

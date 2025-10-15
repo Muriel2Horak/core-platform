@@ -68,11 +68,9 @@ public class AdminAiConfigController {
    * 
    * Accessible by: PLATFORM_ADMIN, OPS only
    * 
-   * Process:
-   * 1. Validate config (enforce META_ONLY mode)
-   * 2. Update in-memory config
-   * 3. Persist to global-config.yaml
-   * 4. Hot reload metamodel (triggers GlobalMetamodelConfig reload)
+   * Process: 1. Validate config (enforce META_ONLY mode) 2. Update in-memory
+   * config 3. Persist to global-config.yaml 4. Hot reload metamodel (triggers
+   * GlobalMetamodelConfig reload)
    */
   @PutMapping("/config") @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'OPS')")
   public ResponseEntity<Map<String, String>> updateAiConfig(@RequestBody GlobalAiConfig aiConfig) {
@@ -112,12 +110,11 @@ public class AdminAiConfigController {
 
       // TODO (future): Publish config change event to Kafka
 
-      log.info("✅ AI config updated, persisted, and reloaded: enabled={}, mode={}", 
+      log.info("✅ AI config updated, persisted, and reloaded: enabled={}, mode={}",
           aiConfig.getEnabled(), aiConfig.getMode());
-      
-      return ResponseEntity.ok(Map.of(
-          "status", "success", 
-          "message", "AI config updated, persisted, and metamodel reloaded successfully"));
+
+      return ResponseEntity.ok(Map.of("status", "success", "message",
+          "AI config updated, persisted, and metamodel reloaded successfully"));
 
     } catch (Exception e) {
       log.error("❌ Failed to update AI config", e);

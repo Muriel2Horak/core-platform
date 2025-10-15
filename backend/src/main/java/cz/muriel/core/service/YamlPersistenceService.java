@@ -19,21 +19,15 @@ import java.nio.file.StandardCopyOption;
 /**
  * YAML Persistence Service
  * 
- * Provides functionality to persist GlobalMetamodelConfig to YAML file.
- * Used primarily for saving AI configuration changes from Admin UI.
+ * Provides functionality to persist GlobalMetamodelConfig to YAML file. Used
+ * primarily for saving AI configuration changes from Admin UI.
  * 
- * Features:
- * - Atomic write with backup
- * - Validation after write
- * - Rollback on error
+ * Features: - Atomic write with backup - Validation after write - Rollback on
+ * error
  * 
- * Usage:
- * ```java
- * yamlPersistenceService.persistGlobalConfig(globalConfig);
- * ```
+ * Usage: ```java yamlPersistenceService.persistGlobalConfig(globalConfig); ```
  */
-@Slf4j
-@Service
+@Slf4j @Service
 public class YamlPersistenceService {
 
   private final ObjectMapper yamlMapper;
@@ -42,29 +36,25 @@ public class YamlPersistenceService {
   public YamlPersistenceService(
       @Value("${metamodel.config.path:backend/src/main/resources/metamodel/global-config.yaml}") String configPath) {
     this.configPath = configPath;
-    
+
     // Configure YAML mapper
     YAMLFactory yamlFactory = YAMLFactory.builder()
         .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER)
-        .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES)
-        .build();
-    
+        .enable(YAMLGenerator.Feature.MINIMIZE_QUOTES).build();
+
     this.yamlMapper = new ObjectMapper(yamlFactory);
     this.yamlMapper.enable(SerializationFeature.INDENT_OUTPUT);
     this.yamlMapper.findAndRegisterModules(); // Register Java 8 time module
-    
+
     log.info("✅ YamlPersistenceService initialized with config path: {}", configPath);
   }
 
   /**
    * Persist GlobalMetamodelConfig to YAML file
    * 
-   * Process:
-   * 1. Create backup of existing file
-   * 2. Write new config to temp file
-   * 3. Validate temp file can be read back
-   * 4. Atomic move temp file to target
-   * 5. Delete backup on success, restore on error
+   * Process: 1. Create backup of existing file 2. Write new config to temp file
+   * 3. Validate temp file can be read back 4. Atomic move temp file to target 5.
+   * Delete backup on success, restore on error
    * 
    * @param config GlobalMetamodelConfig to persist
    * @throws IOException if write fails
@@ -89,15 +79,17 @@ public class YamlPersistenceService {
 
       // Step 3: Validate temp file
       log.debug("🔍 Validating temp file...");
-      GlobalMetamodelConfig validated = yamlMapper.readValue(tempPath.toFile(), GlobalMetamodelConfig.class);
-      
+      GlobalMetamodelConfig validated = yamlMapper.readValue(tempPath.toFile(),
+          GlobalMetamodelConfig.class);
+
       if (validated == null || validated.getAi() == null) {
         throw new IOException("Validation failed: AI config is null after write");
       }
 
       // Step 4: Atomic move
       log.debug("🔄 Moving temp file to target (atomic)...");
-      Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+      Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING,
+          StandardCopyOption.ATOMIC_MOVE);
 
       // Step 5: Delete backup on success
       if (Files.exists(backupPath)) {
@@ -105,9 +97,8 @@ public class YamlPersistenceService {
         Files.delete(backupPath);
       }
 
-      log.info("✅ Global config persisted successfully: enabled={}, mode={}", 
-          validated.getAi().getEnabled(), 
-          validated.getAi().getMode());
+      log.info("✅ Global config persisted successfully: enabled={}, mode={}",
+          validated.getAi().getEnabled(), validated.getAi().getMode());
 
     } catch (Exception e) {
       log.error("❌ Failed to persist global config", e);
@@ -136,14 +127,14 @@ public class YamlPersistenceService {
    */
   public GlobalMetamodelConfig readGlobalConfig() throws IOException {
     log.debug("📖 Reading global config from: {}", configPath);
-    
+
     File configFile = new File(configPath);
     if (!configFile.exists()) {
       throw new IOException("Config file not found: " + configPath);
     }
 
     GlobalMetamodelConfig config = yamlMapper.readValue(configFile, GlobalMetamodelConfig.class);
-    
+
     log.debug("✅ Global config read successfully");
     return config;
   }
