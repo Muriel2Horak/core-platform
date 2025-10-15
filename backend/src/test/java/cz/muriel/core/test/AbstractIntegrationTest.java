@@ -3,7 +3,6 @@ package cz.muriel.core.test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -18,6 +17,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -44,7 +44,6 @@ import java.util.UUID;
 @SpringBootTest
 @ActiveProfiles("test")
 @Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS) // Reuse containers across all tests in class
 @Import(MockTestConfig.class)
 public abstract class AbstractIntegrationTest {
 
@@ -76,13 +75,7 @@ public abstract class AbstractIntegrationTest {
   // ==================== PER-TEST ISOLATION ====================
 
   /**
-   * Unique schema name for this test (e.g., "s_a1b2c3d4").
-   * Each test gets its own isolated schema in shared PostgreSQL.
-   */
-  protected String schemaName;
-
-  /**
-   * Unique topic suffix for this test (e.g., "base_topic_s_a1b2c3d4").
+   * Unique topic suffix for this test (e.g., "test_a1b2c3d4").
    * Use this to create isolated Kafka topics per test.
    */
   protected String topicSuffix;
@@ -90,34 +83,48 @@ public abstract class AbstractIntegrationTest {
   @Autowired
   private JdbcTemplate jdbcTemplate;
 
+  @Autowired(required = false)
+  private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+
   @BeforeEach
   void setupTestIsolation(TestInfo testInfo) {
-    // Generate unique 8-char schema name: s_<uuid>
+    // Generate unique 8-char ID for Kafka topic isolation
     String uuid = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
-    schemaName = "s_" + uuid;
-    topicSuffix = schemaName;
+    topicSuffix = "test_" + uuid;
 
-    // Create isolated schema in shared PostgreSQL
-    jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
-    // Set search_path for this test's schema
-    jdbcTemplate.execute("SET search_path TO " + schemaName + ", public");
-
-    // Copy all tables from public to test schema (structure only, no data)
-    jdbcTemplate.queryForList(
-        "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE 'flyway%'",
-        String.class)
-        .forEach(table -> jdbcTemplate.execute(
-            "CREATE TABLE " + schemaName + "." + table + " (LIKE public." + table + " INCLUDING ALL)"));
-
-    System.out.printf("✅ Test isolation ready: schema=%s, topic_suffix=%s, test=%s%n",
-        schemaName, topicSuffix, testInfo.getDisplayName());
+    System.out.printf("✅ Test starting: %s (topic_suffix=%s)%n",
+        testInfo.getDisplayName(), topicSuffix);
   }
 
   @AfterEach
   void cleanupTestIsolation() {
-    // Drop test schema (CASCADE removes all tables)
-    jdbcTemplate.execute("DROP SCHEMA IF EXISTS " + schemaName + " CASCADE");
-    System.out.printf("🧹 Cleaned up schema: %s%n", schemaName);
+    // Truncate all tables in public schema (faster than DROP/CREATE schemas)
+    // Skip Flyway history tables
+    List<String> tables = jdbcTemplate.queryForList(
+        "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE 'flyway%'",
+        String.class);
+    
+    if (!tables.isEmpty()) {
+      String truncateList = String.join(", ", tables);
+      try {
+        jdbcTemplate.execute("TRUNCATE TABLE " + truncateList + " RESTART IDENTITY CASCADE");
+      } catch (Exception e) {
+        // Some tables might not exist yet (first test) or concurrent truncate
+        System.err.printf("⚠️  TRUNCATE failed: %s%n", e.getMessage());
+      }
+    }
+    
+    // Clear Redis (shared across tests)
+    if (redisTemplate != null && redisTemplate.getConnectionFactory() != null) {
+      try {
+        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
+      } catch (Exception e) {
+        // Ignore Redis cleanup failures
+        System.err.printf("⚠️  Redis cleanup failed: %s%n", e.getMessage());
+      }
+    }
+    
+    System.out.printf("🧹 Cleaned up tables and Redis%n");
   }
 
   // ==================== DYNAMIC PROPERTIES ====================
