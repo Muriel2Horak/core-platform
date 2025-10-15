@@ -23,8 +23,8 @@ parse_maven_realtime() {
         local test_class="${BASH_REMATCH[1]}"
         # Print with color: test number and class name
         echo -e "\033[1;36m→ Test ${TEST_COUNT}/${TEST_TOTAL}:\033[0m \033[0;33m${test_class}\033[0m"
-        # Update progress only every 5 tests to reduce redraw frequency
-        if [ "$STEP_NUM" -gt 0 ] && (( TEST_COUNT % 5 == 0 || TEST_COUNT == 1 )); then
+        # Update progress only every 10 tests to reduce redraw frequency
+        if [ "$STEP_NUM" -gt 0 ] && (( TEST_COUNT % 10 == 0 || TEST_COUNT == 1 )); then
             bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
         fi
     fi

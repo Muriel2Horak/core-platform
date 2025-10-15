@@ -602,7 +602,7 @@ _rebuild_clean_inner:
 
 # Clean with Build Doctor (FULL E2E TESTING)
 clean:
-	@scripts/build/wrapper.sh $(MAKE) _clean_inner 2>&1 | tee -a $(LOG_FILE)
+	@RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner 2>&1 | tee -a $(LOG_FILE)
 
 _clean_inner:
 	@# Build dynamic step list and initialize tracker

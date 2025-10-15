@@ -154,10 +154,9 @@ draw_panel() {
     local elapsed=$(($(date +%s) - START_TIME))
     local elapsed_fmt=$(printf "%dm %02ds" $((elapsed / 60)) $((elapsed % 60)))
     
-    # Save cursor position, move to top, draw panel, restore cursor
-    # This keeps the panel at top while output scrolls below
-    tput sc  # Save cursor position
-    tput cup 0 0  # Move to top-left
+    # Clear screen and redraw panel from top
+    # Simple approach: let it scroll naturally with output
+    clear
     
     echo -e "${BOLD}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}║  🏗️  $(printf '%-66s' "$PIPELINE_NAME")║${NC}"
@@ -231,12 +230,7 @@ draw_panel() {
     
     echo -e "║  ${BOLD}Overall:${NC} $overall_bar ${CYAN}$overall_text${NC}  │  ${BLUE}$elapsed_text${NC}$(printf '%29s' '')║"
     echo -e "${BOLD}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
-    
-    # Clear rest of panel area (in case it shrunk)
-    tput el
-    
-    # Restore cursor position (back to output area)
-    tput rc
+    echo ""  # Add blank line after panel
 }
 
 # Show error summary below panel (panel stays visible)
