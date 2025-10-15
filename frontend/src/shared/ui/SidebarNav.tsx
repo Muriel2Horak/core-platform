@@ -106,111 +106,154 @@ export const defaultMenuItems: SidebarNavItem[] = [
     href: '/user-directory',
     description: 'Vyhledávání uživatelů',
   },
-  {
-    id: 'reports',
-    label: 'Reporting',
-    icon: <AssessmentIcon />,
-    href: '/reports',
-    description: 'Analytické reporty a metriky',
-  },
   
-  // 👥 Administrace - parent položka s vnořeným menu
+  // 📊 Analytics & Monitoring - vše co jsou reporty a metriky
   {
-    id: 'administration',
-    label: 'Administrace',
-    icon: <SettingsIcon />,
-    href: '#',  // Jen expandable kontejner, ne odkaz
-    description: 'Správa systému',
-    requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+    id: 'analytics-monitoring',
+    label: 'Analytics & Monitoring',
+    icon: <AssessmentIcon />,
+    href: '#',
+    description: 'Reporty, metriky a monitoring',
     children: [
-      // Správa Keycloak - druhá úroveň
       {
-        id: 'keycloak-admin',
-        label: 'Správa Keycloak',
-        icon: <SecurityIcon />,
-        href: '#',  // Jen expandable kontejner
-        description: 'Správa identit a přístupů',
-        requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
-        children: [
-          {
-            id: 'core-admin-users',
-            label: 'Uživatelé',
-            icon: <PeopleIcon />,
-            href: '/core-admin/users',
-            description: 'Správa uživatelů',
-            requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
-          },
-          {
-            id: 'core-admin-roles',
-            label: 'Role',
-            icon: <SecurityIcon />,
-            href: '/core-admin/roles',
-            description: 'Správa rolí',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-          {
-            id: 'core-admin-groups',
-            label: 'Skupiny',
-            icon: <PeopleIcon />,
-            href: '/core-admin/groups',
-            description: 'Správa skupin',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-          {
-            id: 'core-admin-tenants',
-            label: 'Tenanti',
-            icon: <BusinessIcon />,
-            href: '/core-admin/tenants',
-            description: 'Multi-tenant správa',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-          {
-            id: 'core-admin-keycloak-sync',
-            label: 'Synchronizace',
-            icon: <SyncIcon />,
-            href: '/core-admin/keycloak-sync',
-            description: 'Synchronizace z Keycloak',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-          {
-            id: 'core-admin-sync-history',
-            label: 'Historie Sync',
-            icon: <HistoryIcon />,
-            href: '/core-admin/sync-history',
-            description: 'Historie synchronizací',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-        ],
+        id: 'reports',
+        label: 'Reports',
+        icon: <AssessmentIcon />,
+        href: '/reports',
+        description: 'Grafana dashboards s business metrikami',
       },
-      
-      // Monitoring - druhá úroveň
       {
-        id: 'monitoring-section',
-        label: 'Monitoring',
+        id: 'reporting-explorer',
+        label: 'Reporting Explorer',
+        icon: <TableChartIcon />,
+        href: '/reporting',
+        description: 'Pokročilá analýza dat s grid',
+      },
+      {
+        id: 'system-monitoring',
+        label: 'System Monitoring',
         icon: <AssessmentIcon />,
         href: '/core-admin/monitoring',
-        description: 'Sledování výkonu',
+        description: 'Technické metriky systému',
         requiredRoles: ['CORE_ROLE_ADMIN'],
       },
-      
-      // Bezpečnost - druhá úroveň
       {
-        id: 'security-section',
-        label: 'Bezpečnost',
+        id: 'streaming-dashboard',
+        label: 'Streaming Dashboard',
+        icon: <AssessmentIcon />,
+        href: '/core-admin/streaming',
+        description: 'Real-time Kafka metriky',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+        badge: 'BETA',
+        badgeColor: 'warning',
+      },
+      {
+        id: 'audit-log',
+        label: 'Audit Log',
+        icon: <BugReportIcon />,
+        href: '/core-admin/audit',
+        description: 'Auditní záznamy systému',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      {
+        id: 'security-monitoring',
+        label: 'Security',
         icon: <ShieldIcon />,
         href: '/core-admin/security',
-        description: 'Zabezpečení systému',
+        description: 'Bezpečnostní události',
         requiredRoles: ['CORE_ROLE_ADMIN'],
-        children: [
-          {
-            id: 'core-admin-audit',
-            label: 'Audit',
-            icon: <BugReportIcon />,
-            href: '/core-admin/audit',
-            description: 'Auditní logy',
-            requiredRoles: ['CORE_ROLE_ADMIN'],
-          },
-        ],
+      },
+    ],
+  },
+  
+  // ⚙️ Správa Systému - ploché, bez subsekce "Keycloak"
+  {
+    id: 'system-management',
+    label: 'Správa Systému',
+    icon: <SettingsIcon />,
+    href: '#',
+    description: 'Administrace systému',
+    requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+    children: [
+      {
+        id: 'core-admin-users',
+        label: 'Uživatelé',
+        icon: <PeopleIcon />,
+        href: '/core-admin/users',
+        description: 'Správa uživatelů',
+        requiredRoles: ['CORE_ROLE_USER_MANAGER', 'CORE_ROLE_ADMIN'],
+      },
+      {
+        id: 'core-admin-roles',
+        label: 'Role',
+        icon: <SecurityIcon />,
+        href: '/core-admin/roles',
+        description: 'Správa rolí',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      {
+        id: 'core-admin-groups',
+        label: 'Skupiny',
+        icon: <PeopleIcon />,
+        href: '/core-admin/groups',
+        description: 'Správa skupin',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      {
+        id: 'core-admin-tenants',
+        label: 'Tenanti',
+        icon: <BusinessIcon />,
+        href: '/core-admin/tenants',
+        description: 'Multi-tenant správa',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      {
+        id: 'core-admin-keycloak-sync',
+        label: 'Keycloak Sync',
+        icon: <SyncIcon />,
+        href: '/core-admin/keycloak-sync',
+        description: 'Synchronizace z Keycloak',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+      {
+        id: 'core-admin-sync-history',
+        label: 'Historie Sync',
+        icon: <HistoryIcon />,
+        href: '/core-admin/sync-history',
+        description: 'Historie synchronizací',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+      },
+    ],
+  },
+  
+  // 🎨 Studio & Design - vývojářské nástroje
+  {
+    id: 'studio-design',
+    label: 'Studio & Design',
+    icon: <SettingsIcon />,
+    href: '#',
+    description: 'Nástroje pro návrh a vývoj',
+    requiredRoles: ['CORE_ROLE_ADMIN'],
+    children: [
+      {
+        id: 'metamodel-studio',
+        label: 'Metamodel Studio',
+        icon: <SettingsIcon />,
+        href: '/core-admin/studio',
+        description: 'Editor entit a AI konfigurace',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+        badge: 'NEW',
+        badgeColor: 'success',
+      },
+      {
+        id: 'workflow-designer',
+        label: 'Workflow Designer',
+        icon: <ViewKanbanIcon />,
+        href: '/core-admin/workflows',
+        description: 'Návrh workflow procesů',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+        badge: 'NEW',
+        badgeColor: 'success',
       },
     ],
   },
@@ -220,7 +263,7 @@ export const defaultMenuItems: SidebarNavItem[] = [
     id: 'tenant-administration',
     label: 'Tenant Administrace',
     icon: <BusinessIcon />,
-    href: '#',  // Jen expandable kontejner
+    href: '#',
     description: 'Správa tenantu',
     requiredRoles: ['CORE_ROLE_TENANT_ADMIN'],
     children: [
@@ -267,24 +310,33 @@ export const defaultMenuItems: SidebarNavItem[] = [
     ],
   },
   
-  // 🆕 DEMO položky na root úrovni
+  // 💡 Examples & Demos - oddělené DEMO položky
   {
-    id: 'examples-table',
-    label: 'DataTable',
+    id: 'examples-demos',
+    label: 'Examples & Demos',
     icon: <TableChartIcon />,
-    href: '/examples/data-table',
-    description: 'Ukázka TanStack Table',
-    badge: 'DEMO',
-    badgeColor: 'info',
-  },
-  {
-    id: 'examples-kanban',
-    label: 'Kanban',
-    icon: <ViewKanbanIcon />,
-    href: '/examples/kanban',
-    description: 'Ukázka Kanban board',
-    badge: 'DEMO',
-    badgeColor: 'info',
+    href: '#',
+    description: 'Ukázkové komponenty',
+    children: [
+      {
+        id: 'examples-table',
+        label: 'DataTable Demo',
+        icon: <TableChartIcon />,
+        href: '/examples/data-table',
+        description: 'Ukázka TanStack Table',
+        badge: 'DEMO',
+        badgeColor: 'info',
+      },
+      {
+        id: 'examples-kanban',
+        label: 'Kanban Demo',
+        icon: <ViewKanbanIcon />,
+        href: '/examples/kanban',
+        description: 'Ukázka Kanban board',
+        badge: 'DEMO',
+        badgeColor: 'info',
+      },
+    ],
   },
 ];
 
@@ -298,7 +350,9 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   userRoles = [],
   collapsed = false,
 }) => {
-  const [expandedItems, setExpandedItems] = React.useState<Set<string>>(new Set(['administration', 'keycloak-admin']));
+  const [expandedItems, setExpandedItems] = React.useState<Set<string>>(
+    new Set(['analytics-monitoring', 'system-management', 'studio-design'])
+  );
 
   // 🔍 Filter items based on user roles
   const filteredItems = items.filter(menuItem => {
