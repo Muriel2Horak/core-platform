@@ -17,53 +17,41 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * Step F: Admin nastavení - backend tests
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@DisplayName("AdminAiConfigController IT")
+@SpringBootTest @AutoConfigureMockMvc @DisplayName("AdminAiConfigController IT")
 class AdminAiConfigControllerIT {
 
   @Autowired
   private MockMvc mockMvc;
 
-  @Test
-  @DisplayName("GET /api/admin/ai/config - should return AI config for PLATFORM_ADMIN")
-  @WithMockUser(roles = {"PLATFORM_ADMIN"})
+  @Test @DisplayName("GET /api/admin/ai/config - should return AI config for PLATFORM_ADMIN") @WithMockUser(roles = {
+      "PLATFORM_ADMIN" })
   void getAiConfig_platformAdmin_returnsConfig() throws Exception {
-    mockMvc.perform(get("/api/admin/ai/config"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.enabled").exists())
-        .andExpect(jsonPath("$.mode").exists());
+    mockMvc.perform(get("/api/admin/ai/config")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.enabled").exists()).andExpect(jsonPath("$.mode").exists());
   }
 
-  @Test
-  @DisplayName("GET /api/admin/ai/config - should return AI config for OPS")
-  @WithMockUser(roles = {"OPS"})
+  @Test @DisplayName("GET /api/admin/ai/config - should return AI config for OPS") @WithMockUser(roles = {
+      "OPS" })
   void getAiConfig_ops_returnsConfig() throws Exception {
-    mockMvc.perform(get("/api/admin/ai/config"))
-        .andExpect(status().isOk())
+    mockMvc.perform(get("/api/admin/ai/config")).andExpect(status().isOk())
         .andExpect(jsonPath("$.enabled").exists());
   }
 
-  @Test
-  @DisplayName("GET /api/admin/ai/config - should return AI config for TENANT_ADMIN (read-only)")
-  @WithMockUser(roles = {"TENANT_ADMIN"})
+  @Test @DisplayName("GET /api/admin/ai/config - should return AI config for TENANT_ADMIN (read-only)") @WithMockUser(roles = {
+      "TENANT_ADMIN" })
   void getAiConfig_tenantAdmin_returnsConfig() throws Exception {
-    mockMvc.perform(get("/api/admin/ai/config"))
-        .andExpect(status().isOk())
+    mockMvc.perform(get("/api/admin/ai/config")).andExpect(status().isOk())
         .andExpect(jsonPath("$.enabled").exists());
   }
 
-  @Test
-  @DisplayName("GET /api/admin/ai/config - should deny access for regular user")
-  @WithMockUser(roles = {"USER"})
+  @Test @DisplayName("GET /api/admin/ai/config - should deny access for regular user") @WithMockUser(roles = {
+      "USER" })
   void getAiConfig_regularUser_deniesAccess() throws Exception {
-    mockMvc.perform(get("/api/admin/ai/config"))
-        .andExpect(status().isForbidden());
+    mockMvc.perform(get("/api/admin/ai/config")).andExpect(status().isForbidden());
   }
 
-  @Test
-  @DisplayName("PUT /api/admin/ai/config - should validate config for PLATFORM_ADMIN")
-  @WithMockUser(roles = {"PLATFORM_ADMIN"})
+  @Test @DisplayName("PUT /api/admin/ai/config - should validate config for PLATFORM_ADMIN") @WithMockUser(roles = {
+      "PLATFORM_ADMIN" })
   void updateAiConfig_platformAdmin_validatesConfig() throws Exception {
     String configJson = """
         {
@@ -72,16 +60,12 @@ class AdminAiConfigControllerIT {
         }
         """;
 
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType("application/json")
-            .content(configJson))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("validated"));
+    mockMvc.perform(put("/api/admin/ai/config").contentType("application/json").content(configJson))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("validated"));
   }
 
-  @Test
-  @DisplayName("PUT /api/admin/ai/config - should validate config for OPS")
-  @WithMockUser(roles = {"OPS"})
+  @Test @DisplayName("PUT /api/admin/ai/config - should validate config for OPS") @WithMockUser(roles = {
+      "OPS" })
   void updateAiConfig_ops_validatesConfig() throws Exception {
     String configJson = """
         {
@@ -90,16 +74,12 @@ class AdminAiConfigControllerIT {
         }
         """;
 
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType("application/json")
-            .content(configJson))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("validated"));
+    mockMvc.perform(put("/api/admin/ai/config").contentType("application/json").content(configJson))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("validated"));
   }
 
-  @Test
-  @DisplayName("PUT /api/admin/ai/config - should deny write access for TENANT_ADMIN")
-  @WithMockUser(roles = {"TENANT_ADMIN"})
+  @Test @DisplayName("PUT /api/admin/ai/config - should deny write access for TENANT_ADMIN") @WithMockUser(roles = {
+      "TENANT_ADMIN" })
   void updateAiConfig_tenantAdmin_deniesAccess() throws Exception {
     String configJson = """
         {
@@ -108,27 +88,20 @@ class AdminAiConfigControllerIT {
         }
         """;
 
-    mockMvc.perform(put("/api/admin/ai/config")
-            .contentType("application/json")
-            .content(configJson))
+    mockMvc.perform(put("/api/admin/ai/config").contentType("application/json").content(configJson))
         .andExpect(status().isForbidden());
   }
 
-  @Test
-  @DisplayName("GET /api/admin/ai/status - should return AI status for authenticated user")
-  @WithMockUser(roles = {"USER"})
+  @Test @DisplayName("GET /api/admin/ai/status - should return AI status for authenticated user") @WithMockUser(roles = {
+      "USER" })
   void getAiStatus_authenticatedUser_returnsStatus() throws Exception {
-    mockMvc.perform(get("/api/admin/ai/status"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.enabled").exists())
-        .andExpect(jsonPath("$.mode").exists())
+    mockMvc.perform(get("/api/admin/ai/status")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.enabled").exists()).andExpect(jsonPath("$.mode").exists())
         .andExpect(jsonPath("$.status").exists());
   }
 
-  @Test
-  @DisplayName("GET /api/admin/ai/status - should deny access for unauthenticated user")
+  @Test @DisplayName("GET /api/admin/ai/status - should deny access for unauthenticated user")
   void getAiStatus_unauthenticated_deniesAccess() throws Exception {
-    mockMvc.perform(get("/api/admin/ai/status"))
-        .andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/api/admin/ai/status")).andExpect(status().isUnauthorized());
   }
 }
