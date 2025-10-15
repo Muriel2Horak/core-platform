@@ -23,17 +23,22 @@ parse_maven_realtime() {
         local test_class="${BASH_REMATCH[1]}"
         # Print with color: test number and class name
         echo -e "\033[1;36m→ Test ${TEST_COUNT}/${TEST_TOTAL}:\033[0m \033[0;33m${test_class}\033[0m"
-        # Update progress if running from make
-        if [ "$STEP_NUM" -gt 0 ]; then
+        # Update progress only every 5 tests to reduce redraw frequency
+        if [ "$STEP_NUM" -gt 0 ] && (( TEST_COUNT % 5 == 0 || TEST_COUNT == 1 )); then
             bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
         fi
     fi
     
-    # Detect test summary to get exact total: "Tests run: 145, Failures: 2, ..."
-    if [[ "$line" =~ Tests\ run:\ ([0-9]+) ]]; then
-        TEST_TOTAL=${BASH_REMATCH[1]}
-        if [ "$STEP_NUM" -gt 0 ]; then
-            bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
+    # Detect FINAL test summary to get exact total (only from final summary, not individual tests)
+    # Final summary looks like: "[INFO] Tests run: 215, Failures: 0, Errors: 0, Skipped: 0"
+    if [[ "$line" =~ ^\[INFO\]\ Tests\ run:\ ([0-9]+),\ Failures:\ ([0-9]+) ]]; then
+        local total="${BASH_REMATCH[1]}"
+        # Only update if this is likely the final summary (not individual test)
+        if [ "$total" -gt "$TEST_TOTAL" ]; then
+            TEST_TOTAL=$total
+            if [ "$STEP_NUM" -gt 0 ]; then
+                bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
+            fi
         fi
     fi
 }
@@ -97,16 +102,16 @@ if [ "$STEP_NUM" -gt 0 ]; then
 fi
 
 while IFS= read -r line; do
-    # Parse based on component type FIRST (to update counters)
+    # Parse based on component type FIRST (to update counters and print formatted output)
     if [ "$COMPONENT" = "backend" ]; then
         parse_maven_realtime "$line"
     elif [ "$COMPONENT" = "frontend" ]; then
         parse_vitest_realtime "$line"
     fi
     
-    # Filter output: only show important lines
-    # Show test execution, errors and results - hide warnings/setup noise
-    if [[ "$line" =~ ^\[INFO\]\ Running\ |^\[ERROR\]|Tests\ run:|BUILD\ SUCCESS|BUILD\ FAILURE|FAILED ]]; then
+    # Filter output: only show errors and final results
+    # Hide [INFO] Running (parser prints it formatted), hide warnings/DEBUG logs
+    if [[ "$line" =~ ^\[ERROR\]|^\[INFO\]\ Tests\ run:|^\[INFO\]\ BUILD\ (SUCCESS|FAILURE)|FAILED ]]; then
         echo "$line"
     fi
 done
