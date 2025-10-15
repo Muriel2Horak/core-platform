@@ -39,6 +39,14 @@ spring:
     url: jdbc:postgresql://localhost:5432/testdb
     username: test
     password: test
+    # Tight timeouts for fail-fast detection in parallel tests
+    hikari:
+      maximum-pool-size: 6          # Limit connections (tests use small pool)
+      minimum-idle: 2
+      connection-timeout: 5000      # 5s max to get connection
+      validation-timeout: 3000      # 3s max for connection validation
+      idle-timeout: 30000           # 30s max idle time
+      max-lifetime: 60000           # 60s max connection lifetime
   
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -63,6 +71,17 @@ spring:
   # Kafka disabled in tests
   kafka:
     bootstrap-servers: 127.0.0.1:0
+    consumer:
+      # Tight timeouts for fail-fast detection
+      max-poll-interval-ms: 15000   # 15s max between polls (fail fast)
+      session-timeout-ms: 10000     # 10s max session timeout
+      request-timeout-ms: 10000     # 10s max request timeout
+      heartbeat-interval-ms: 3000   # 3s heartbeat
+      auto-offset-reset: earliest   # Start from beginning in tests
+    producer:
+      # Fail fast on producer errors
+      max-block-ms: 5000             # 5s max blocking on send()
+      request-timeout-ms: 10000      # 10s max request timeout
 
 # Application configuration for tests
 app:
