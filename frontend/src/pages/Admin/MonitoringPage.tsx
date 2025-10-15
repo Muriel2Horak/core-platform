@@ -1,9 +1,11 @@
 import { Box, Container, Typography, Grid, Button, Tabs, Tab } from '@mui/material';
 import { Assessment, OpenInNew, Dashboard as DashboardIcon } from '@mui/icons-material';
 import { useState } from 'react';
-import { GrafanaEmbed } from '../../components/Monitoring';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
+import { SystemMonitoringScene } from '../../components/Grafana/SystemMonitoringScene';
+import { SecurityScene } from '../../components/Grafana/SecurityScene';
+import { AuditScene } from '../../components/Grafana/AuditScene';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -79,19 +81,7 @@ export const MonitoringPage = () => {
       <TabPanel value={tabValue} index={0}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                🚀 Application Overview
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Celkový přehled aktivity aplikace, logů a událostí
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="app-overview-dashboard"
-                height="800px"
-                theme="light"
-              />
-            </GlassPaper>
+            <SystemMonitoringScene height={800} timeRange={{ from: 'now-6h', to: 'now' }} />
           </Grid>
         </Grid>
       </TabPanel>
@@ -100,19 +90,7 @@ export const MonitoringPage = () => {
       <TabPanel value={tabValue} index={1}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                ⚡ Performance Monitoring
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Výkon aplikace, odezvy API a využití zdrojů
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="performance-dashboard"
-                height="800px"
-                theme="light"
-              />
-            </GlassPaper>
+            <SystemMonitoringScene height={800} timeRange={{ from: 'now-1h', to: 'now' }} />
           </Grid>
         </Grid>
       </TabPanel>
@@ -121,19 +99,7 @@ export const MonitoringPage = () => {
       <TabPanel value={tabValue} index={2}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                🔒 Security Monitoring
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Bezpečnostní události, neúspěšné přihlášení a hrozby
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="security-dashboard"
-                height="800px"
-                theme="light"
-              />
-            </GlassPaper>
+            <SecurityScene height={800} timeRange={{ from: 'now-24h', to: 'now' }} />
           </Grid>
         </Grid>
       </TabPanel>
@@ -142,19 +108,7 @@ export const MonitoringPage = () => {
       <TabPanel value={tabValue} index={3}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                📝 Audit Trail
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Audit log všech důležitých událostí a změn v systému
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="audit-dashboard"
-                height="800px"
-                theme="light"
-              />
-            </GlassPaper>
+            <AuditScene height={800} timeRange={{ from: 'now-7d', to: 'now' }} />
           </Grid>
         </Grid>
       </TabPanel>
@@ -162,41 +116,8 @@ export const MonitoringPage = () => {
       {/* Tab 4: Infrastructure */}
       <TabPanel value={tabValue} index={4}>
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                📊 Loki Overview
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="loki-overview"
-                height="400px"
-                theme="light"
-              />
-            </GlassPaper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                🖥️ Infrastructure Overview
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="infra-overview"
-                height="400px"
-                theme="light"
-              />
-            </GlassPaper>
-          </Grid>
           <Grid item xs={12}>
-            <GlassPaper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                💚 Core Platform Status
-              </Typography>
-              <GrafanaEmbed
-                dashboardUid="core-platform-status"
-                height="400px"
-                theme="light"
-              />
-            </GlassPaper>
+            <SystemMonitoringScene height={800} timeRange={{ from: 'now-24h', to: 'now' }} />
           </Grid>
         </Grid>
       </TabPanel>

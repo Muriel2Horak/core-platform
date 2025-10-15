@@ -5,16 +5,13 @@ import {
   CardContent,
   Grid,
   Typography,
-  Tab,
-  Tabs,
   Alert,
   CircularProgress,
   Button,
 } from '@mui/material';
 import { Warning, CheckCircle, Error as ErrorIcon, OpenInNew, Stream } from '@mui/icons-material';
-import { GrafanaEmbed } from '../../components/Monitoring';
-import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
+import { StreamingScene } from '../../components/Grafana/StreamingScene';
 import axios from 'axios';
 
 interface StreamingMetrics {
@@ -24,29 +21,7 @@ interface StreamingMetrics {
   dlqMessages: number;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`streaming-tabpanel-${index}`}
-      aria-labelledby={`streaming-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 const StreamingDashboardPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState(0);
   const [metrics, setMetrics] = useState<StreamingMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,10 +57,6 @@ const StreamingDashboardPage: React.FC = () => {
     const protocol = 'https:';
     const host = window.location.host;
     window.open(`${protocol}//${host}/monitoring`, '_blank');
-  };
-
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
   };
 
   const renderMetricCard = (title: string, value: number | string, status: 'success' | 'warning' | 'error') => {
@@ -184,68 +155,8 @@ const StreamingDashboardPage: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Grafana Dashboards with Tabs */}
-      <GlassPaper sx={{ mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} aria-label="streaming monitoring tabs">
-          <Tab label="📊 Overview" />
-          <Tab label="🔍 Entities" />
-          <Tab label="⚙️ Operations" />
-        </Tabs>
-      </GlassPaper>
-
-      {/* Tab 0: Overview Dashboard */}
-      <TabPanel value={activeTab} index={0}>
-        <GlassPaper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            📊 Streaming Overview
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Celkový přehled front, outbox, throughput a latence
-          </Typography>
-          <GrafanaEmbed
-            dashboardUid="streaming-overview"
-            height="800px"
-            theme="light"
-            timeRange="now-1h"
-          />
-        </GlassPaper>
-      </TabPanel>
-
-      {/* Tab 1: Entities Dashboard */}
-      <TabPanel value={activeTab} index={1}>
-        <GlassPaper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            🔍 Per-Entity Metrics
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Detail metrik pro jednotlivé entity (user, group, role, ...)
-          </Typography>
-          <GrafanaEmbed
-            dashboardUid="streaming-entities"
-            height="800px"
-            theme="light"
-            timeRange="now-1h"
-          />
-        </GlassPaper>
-      </TabPanel>
-
-      {/* Tab 2: Operations Dashboard */}
-      <TabPanel value={activeTab} index={2}>
-        <GlassPaper sx={{ p: 2 }}>
-          <Typography variant="h6" gutterBottom>
-            ⚙️ Operational Monitoring
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Work state, locky, DLQ zprávy a priority front
-          </Typography>
-          <GrafanaEmbed
-            dashboardUid="streaming-ops"
-            height="800px"
-            theme="light"
-            timeRange="now-1h"
-          />
-        </GlassPaper>
-      </TabPanel>
+      {/* Streaming Monitoring Dashboard */}
+      <StreamingScene height={900} timeRange={{ from: 'now-1h', to: 'now' }} />
     </Box>
   );
 };
