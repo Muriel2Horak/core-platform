@@ -3,6 +3,7 @@ package cz.muriel.core.controller.admin;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
 import cz.muriel.core.metamodel.schema.ai.AiVisibilityMode;
+import cz.muriel.core.service.YamlPersistenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class AdminAiConfigController {
 
   private final GlobalMetamodelConfig globalConfig;
+  private final YamlPersistenceService yamlPersistenceService;
 
   /**
    * Get global AI configuration
@@ -64,10 +66,11 @@ public class AdminAiConfigController {
    * 
    * Accessible by: PLATFORM_ADMIN, OPS only
    * 
-   * NOTE: In this version, this endpoint only validates the config. Actual
-   * persistence to global-config.yaml is not implemented yet. Future versions
-   * will: 1. Persist to global-config.yaml 2. Trigger hot reload of metamodel 3.
-   * Publish config change event to Kafka
+   * Process:
+   * 1. Validate config (enforce META_ONLY mode)
+   * 2. Update in-memory config
+   * 3. Persist to global-config.yaml
+   * 4. Hot reload will be triggered in next phase
    */
   @PutMapping("/config") @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'OPS')")
   public ResponseEntity<Map<String, String>> updateAiConfig(@RequestBody GlobalAiConfig aiConfig) {
@@ -81,14 +84,29 @@ public class AdminAiConfigController {
         aiConfig.setMode(AiVisibilityMode.META_ONLY);
       }
 
-      // TODO: Persist to global-config.yaml
-      // TODO: Trigger metamodel hot reload
-      // TODO: Publish config change event
+      // Update in-memory config
+      globalConfig.setAi(aiConfig);
 
-      log.info("✅ AI config validated (persistence not implemented yet)");
-      return ResponseEntity.ok(Map.of("status", "validated", "message",
-          "AI config validated successfully. Persistence not implemented yet.", "note",
-          "Future versions will persist to global-config.yaml and trigger hot reload"));
+      // Persist to YAML
+      try {
+        yamlPersistenceService.persistGlobalConfig(globalConfig);
+        log.info("✅ AI config persisted to YAML successfully");
+      } catch (Exception e) {
+        log.error("❌ Failed to persist AI config to YAML", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "Failed to persist config: " + e.getMessage()));
+      }
+
+      // TODO (next phase): Trigger hot reload
+      // TODO (next phase): Publish config change event to Kafka
+
+      log.info("✅ AI config updated and persisted: enabled={}, mode={}", 
+          aiConfig.getEnabled(), aiConfig.getMode());
+      
+      return ResponseEntity.ok(Map.of(
+          "status", "success", 
+          "message", "AI config updated and persisted successfully",
+          "note", "Hot reload will be triggered in next phase"));
 
     } catch (Exception e) {
       log.error("❌ Failed to update AI config", e);
