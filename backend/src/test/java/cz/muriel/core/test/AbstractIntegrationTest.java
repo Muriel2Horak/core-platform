@@ -59,7 +59,7 @@ public abstract class AbstractIntegrationTest {
   protected static final KafkaContainer kafkaContainer = new KafkaContainer(
       DockerImageName.parse("confluentinc/cp-kafka:7.6.1")).withKraft() // Use KRaft mode (no
                                                                         // Zookeeper)
-          .withReuse(true);
+          .withStartupAttempts(3);
 
   // ==================== PER-TEST ISOLATION ====================
 
