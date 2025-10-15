@@ -3,6 +3,7 @@
 
 # State file for progress tracking (shared across processes)
 STATE_FILE="${BUILD_PROGRESS_STATE:-/tmp/make-progress-shared}"
+PANEL_INITIALIZED_FLAG="/tmp/make-progress-panel-initialized"
 # No trap - we want state to persist across invocations
 
 # Colors
@@ -28,6 +29,9 @@ init_progress() {
     shift
     local step_names=("$@")  # All remaining args are step names
     local total_steps=${#step_names[@]}
+    
+    # Clean up any previous panel state
+    rm -f "$PANEL_INITIALIZED_FLAG"
     
     # Start state file
     cat > "$STATE_FILE" <<EOF
@@ -154,9 +158,12 @@ draw_panel() {
     local elapsed=$(($(date +%s) - START_TIME))
     local elapsed_fmt=$(printf "%dm %02ds" $((elapsed / 60)) $((elapsed % 60)))
     
-    # Clear screen and redraw panel from top
-    # Simple approach: let it scroll naturally with output
-    clear
+    # Simple approach: clear screen only first time, then let panel scroll with output
+    # This is more reliable than tput scrolling regions in pipes/redirects
+    if [ ! -f "$PANEL_INITIALIZED_FLAG" ]; then
+        clear
+        touch "$PANEL_INITIALIZED_FLAG"
+    fi
     
     echo -e "${BOLD}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}║  🏗️  $(printf '%-66s' "$PIPELINE_NAME")║${NC}"
@@ -230,7 +237,7 @@ draw_panel() {
     
     echo -e "║  ${BOLD}Overall:${NC} $overall_bar ${CYAN}$overall_text${NC}  │  ${BLUE}$elapsed_text${NC}$(printf '%29s' '')║"
     echo -e "${BOLD}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
-    echo ""  # Add blank line after panel
+    echo ""  # Blank line after panel
 }
 
 # Show error summary below panel (panel stays visible)
@@ -297,6 +304,15 @@ show_error() {
     echo ""
 }
 
+# Cleanup - restore normal terminal state
+cleanup_progress() {
+    # Remove flag file
+    rm -f "$PANEL_INITIALIZED_FLAG"
+    
+    # Final draw to show completed state
+    draw_panel
+}
+
 # Main command dispatcher
 case "${1:-}" in
     init)
@@ -320,8 +336,11 @@ case "${1:-}" in
     draw)
         draw_panel
         ;;
+    cleanup)
+        cleanup_progress
+        ;;
     *)
-        echo "Usage: $0 {init|update|progress|error|draw} [args...]"
+        echo "Usage: $0 {init|update|progress|error|draw|cleanup} [args...]"
         echo ""
         echo "Examples:"
         echo "  $0 init \"MAKE CLEAN\" \"Cleanup\" \"Tests\" \"Build\" \"Deploy\""

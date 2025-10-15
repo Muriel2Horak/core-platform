@@ -2,6 +2,9 @@
 # Build Doctor Wrapper - zachycuje chyby, měří čas, spouští triage
 set -Eeuo pipefail
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,6 +21,11 @@ cleanup() {
     local exit_code=$?
     END_TIME=$(date +%s)
     DURATION=$((END_TIME - START_TIME))
+    
+    # Cleanup progress panel if it was used
+    if [ -f "${BUILD_PROGRESS_STATE:-/tmp/make-progress-shared}" ]; then
+        "${SCRIPT_DIR}/build-progress-tracker.sh" cleanup 2>/dev/null || true
+    fi
     
     if [ $exit_code -ne 0 ]; then
         echo ""
