@@ -20,6 +20,7 @@ import { EntityEditor } from '../../components/Studio/EntityEditor';
 import { DiffPanel } from '../../components/Studio/DiffPanel';
 import { WorkflowStepsEditor } from '../../components/Studio/WorkflowStepsEditor';
 import { AiConfigEditor } from '../../components/Studio/AiConfigEditor';
+import { AiHelpWidget } from '../../components/AiHelpWidget';
 
 interface Entity {
   name: string;
@@ -48,6 +49,7 @@ export const MetamodelStudioPage = () => {
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('entities');
+  const routeId = 'admin.studio.metamodel';
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export const MetamodelStudioPage = () => {
   };
 
   return (
-    <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }} data-route-id={routeId}>
       {/* Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', background: '#f5f5f5' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -153,26 +155,29 @@ export const MetamodelStudioPage = () => {
               Admin GUI pro správu metamodelu, validací a workflow kroků
             </Typography>
           </Box>
-          {selectedEntity && (
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant={editMode ? 'outlined' : 'contained'}
-                startIcon={<VisibilityIcon />}
-                size="small"
-                onClick={() => setEditMode(false)}
-              >
-                View
-              </Button>
-              <Button
-                variant={editMode ? 'contained' : 'outlined'}
-                startIcon={<EditIcon />}
-                size="small"
-                onClick={() => setEditMode(true)}
-              >
-                Edit
-              </Button>
-            </Stack>
-          )}
+          <Box display="flex" gap={1}>
+            <AiHelpWidget routeId={routeId} />
+            {selectedEntity && (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant={editMode ? 'outlined' : 'contained'}
+                  startIcon={<VisibilityIcon />}
+                  size="small"
+                  onClick={() => setEditMode(false)}
+                >
+                  View
+                </Button>
+                <Button
+                  variant={editMode ? 'contained' : 'outlined'}
+                  startIcon={<EditIcon />}
+                  size="small"
+                  onClick={() => setEditMode(true)}
+                >
+                  Edit
+                </Button>
+              </Stack>
+            )}
+          </Box>
         </Box>
       </Box>
 

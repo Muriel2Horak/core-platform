@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { Container, Typography, Box, Drawer, Tabs, Tab } from '@mui/material';
 import { AccountTree as WorkflowIcon } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
+import { AiHelpWidget } from '../../components/AiHelpWidget';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -49,6 +50,7 @@ export const WorkflowDesignerPage = () => {
   const [simulationResult, setSimulationResult] = useState<any>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
+  const routeId = 'admin.workflow.designer';
 
   // W3: Proposal state
   const [showProposalDialog, setShowProposalDialog] = useState(false);
@@ -269,14 +271,17 @@ export const WorkflowDesignerPage = () => {
   }, [entity]);
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4, height: 'calc(100vh - 100px)' }}>
+    <Container maxWidth="xl" sx={{ py: 4, height: 'calc(100vh - 100px)' }} data-route-id={routeId}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <WorkflowIcon fontSize="large" color="primary" />
-        <Box>
+        <Box flex={1}>
           <Typography variant="h4">Workflow Designer</Typography>
           <Typography variant="body2" color="text.secondary">
             Vizuální editor stavových automatů s auto-layoutem
           </Typography>
+        </Box>
+        <Box>
+          <AiHelpWidget routeId={routeId} />
         </Box>
       </Box>
 

@@ -3,6 +3,7 @@ import { Assessment, OpenInNew, Dashboard as DashboardIcon } from '@mui/icons-ma
 import { useState } from 'react';
 import { GrafanaEmbed } from '../../components/Monitoring';
 import { GlassPaper } from '../../shared/ui';
+import { AiHelpWidget } from '../../components/AiHelpWidget';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -27,6 +28,7 @@ function TabPanel(props: TabPanelProps) {
 
 export const MonitoringPage = () => {
   const [tabValue, setTabValue] = useState(0);
+  const routeId = 'admin.monitoring';
 
   const openFullGrafana = () => {
     // ✅ OPRAVA: Vždy HTTPS
@@ -40,7 +42,7 @@ export const MonitoringPage = () => {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }} data-route-id={routeId}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Assessment fontSize="large" color="primary" />
@@ -51,13 +53,16 @@ export const MonitoringPage = () => {
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<OpenInNew />}
-          onClick={openFullGrafana}
-        >
-          Otevřít v Grafaně
-        </Button>
+        <Box display="flex" gap={1}>
+          <AiHelpWidget routeId={routeId} />
+          <Button
+            variant="contained"
+            startIcon={<OpenInNew />}
+            onClick={openFullGrafana}
+          >
+            Otevřít v Grafaně
+          </Button>
+        </Box>
       </Box>
 
       <GlassPaper sx={{ mb: 3 }}>

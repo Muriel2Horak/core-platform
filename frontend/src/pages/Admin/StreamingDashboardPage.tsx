@@ -14,6 +14,7 @@ import {
 import { Warning, CheckCircle, Error as ErrorIcon, OpenInNew, Stream } from '@mui/icons-material';
 import { GrafanaEmbed } from '../../components/Monitoring';
 import { GlassPaper } from '../../shared/ui';
+import { AiHelpWidget } from '../../components/AiHelpWidget';
 import axios from 'axios';
 
 interface StreamingMetrics {
@@ -49,6 +50,7 @@ const StreamingDashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<StreamingMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const routeId = 'admin.streaming.dashboard';
 
   useEffect(() => {
     fetchMetrics();
@@ -121,7 +123,7 @@ const StreamingDashboardPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ p: 3 }} data-route-id={routeId}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Stream fontSize="large" color="primary" />
@@ -132,13 +134,16 @@ const StreamingDashboardPage: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<OpenInNew />}
-          onClick={openFullGrafana}
-        >
-          Otevřít v Grafaně
-        </Button>
+        <Box display="flex" gap={1}>
+          <AiHelpWidget routeId={routeId} />
+          <Button
+            variant="contained"
+            startIcon={<OpenInNew />}
+            onClick={openFullGrafana}
+          >
+            Otevřít v Grafaně
+          </Button>
+        </Box>
       </Box>
 
       {error && (
