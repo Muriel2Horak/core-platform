@@ -6,10 +6,10 @@ import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -17,27 +17,27 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
- * 🏗️ Base class for integration tests with shared Testcontainers and per-test isolation.
+ * 🏗️ Base class for integration tests with shared Testcontainers and per-test
+ * isolation.
  * 
- * **Shared Containers** (1 per JVM for speed):
- * - PostgreSQL 16-alpine
- * - Redis 7-alpine
- * - Kafka 7.6.1 (Confluent Platform)
+ * **Shared Containers** (1 per JVM for speed): - PostgreSQL 16-alpine - Redis
+ * 7-alpine - Kafka 7.6.1 (Confluent Platform)
  * 
- * **Per-Test Isolation** (parallel execution safe):
- * - Unique DB schema: s_<8-char-uuid>
- * - Unique Kafka topics: base_topic_<schema>
- * - Unique consumer groups: test_<schema>
+ * **Per-Test Isolation** (parallel execution safe): - Unique Kafka topics:
+ * base_topic_<8-char-uuid> - Unique Redis key prefix: test_<8-char-uuid>: - DB
+ * transactions auto-rollback (@Transactional on tests)
  * 
  * **Usage:**
+ * 
  * <pre>{@code
  * @SpringBootTest(webEnvironment = RANDOM_PORT)
  * class MyIT extends AbstractIntegrationTest {
- *   // Access schemaName, topicSuffix for test isolation
+ *   // Access topicSuffix for Kafka isolation
+ *   // DB auto-rollbacks, no manual cleanup needed
+ *   // Use redisKeyPrefix() for Redis keys
  * }
  * }</pre>
  */
@@ -45,43 +45,33 @@ import java.util.UUID;
 @ActiveProfiles("test")
 @Testcontainers
 @Import(MockTestConfig.class)
+@Transactional // Auto-rollback DB changes after each test (no TRUNCATE deadlocks!)
 public abstract class AbstractIntegrationTest {
 
   // ==================== SHARED CONTAINERS (1 per JVM) ====================
 
-  @Container
-  @SuppressWarnings("resource") // Testcontainers manages lifecycle
+  @Container @SuppressWarnings("resource") // Testcontainers manages lifecycle
   protected static final PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>(
-      "postgres:16-alpine")
-          .withDatabaseName("testdb")
-          .withUsername("test")
-          .withPassword("test")
+      "postgres:16-alpine").withDatabaseName("testdb").withUsername("test").withPassword("test")
           .withReuse(true); // Reuse across tests for speed
 
-  @Container
-  @SuppressWarnings("resource")
+  @Container @SuppressWarnings("resource")
   protected static final GenericContainer<?> redisContainer = new GenericContainer<>(
-      DockerImageName.parse("redis:7-alpine"))
-          .withExposedPorts(6379)
-          .withReuse(true);
+      DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379).withReuse(true);
 
-  @Container
-  @SuppressWarnings("resource")
+  @Container @SuppressWarnings("resource")
   protected static final KafkaContainer kafkaContainer = new KafkaContainer(
-      DockerImageName.parse("confluentinc/cp-kafka:7.6.1"))
-          .withKraft() // Use KRaft mode (no Zookeeper)
+      DockerImageName.parse("confluentinc/cp-kafka:7.6.1")).withKraft() // Use KRaft mode (no
+                                                                        // Zookeeper)
           .withReuse(true);
 
   // ==================== PER-TEST ISOLATION ====================
 
   /**
-   * Unique topic suffix for this test (e.g., "test_a1b2c3d4").
-   * Use this to create isolated Kafka topics per test.
+   * Unique topic suffix for this test (e.g., "test_a1b2c3d4"). Use this to create
+   * isolated Kafka topics per test.
    */
   protected String topicSuffix;
-
-  @Autowired
-  private JdbcTemplate jdbcTemplate;
 
   @Autowired(required = false)
   private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
@@ -92,39 +82,40 @@ public abstract class AbstractIntegrationTest {
     String uuid = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     topicSuffix = "test_" + uuid;
 
-    System.out.printf("✅ Test starting: %s (topic_suffix=%s)%n",
-        testInfo.getDisplayName(), topicSuffix);
+    System.out.printf("✅ Test starting: %s (topic_suffix=%s)%n", testInfo.getDisplayName(),
+        topicSuffix);
   }
 
   @AfterEach
   void cleanupTestIsolation() {
-    // Truncate all tables in public schema (faster than DROP/CREATE schemas)
-    // Skip Flyway history tables
-    List<String> tables = jdbcTemplate.queryForList(
-        "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE 'flyway%'",
-        String.class);
-    
-    if (!tables.isEmpty()) {
-      String truncateList = String.join(", ", tables);
-      try {
-        jdbcTemplate.execute("TRUNCATE TABLE " + truncateList + " RESTART IDENTITY CASCADE");
-      } catch (Exception e) {
-        // Some tables might not exist yet (first test) or concurrent truncate
-        System.err.printf("⚠️  TRUNCATE failed: %s%n", e.getMessage());
-      }
-    }
-    
-    // Clear Redis (shared across tests)
+    // DB cleanup: @Transactional auto-rollback (no TRUNCATE → no deadlocks!)
+
+    // Redis cleanup: delete keys with our prefix only
     if (redisTemplate != null && redisTemplate.getConnectionFactory() != null) {
       try {
-        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
+        String pattern = redisKeyPrefix() + "*";
+        var connection = redisTemplate.getConnectionFactory().getConnection();
+        var keys = connection.keyCommands().keys(pattern.getBytes());
+        if (keys != null && !keys.isEmpty()) {
+          connection.keyCommands().del(keys.toArray(new byte[0][]));
+          System.out.printf("🧹 Deleted %d Redis keys with prefix: %s%n", keys.size(),
+              redisKeyPrefix());
+        }
       } catch (Exception e) {
-        // Ignore Redis cleanup failures
+        // Ignore Redis cleanup failures (non-critical)
         System.err.printf("⚠️  Redis cleanup failed: %s%n", e.getMessage());
       }
     }
-    
-    System.out.printf("🧹 Cleaned up tables and Redis%n");
+  }
+
+  /**
+   * Returns unique Redis key prefix for this test. Use this to avoid key collisions
+   * in parallel tests.
+   * 
+   * Example: {@code redisTemplate.opsForValue().set(redisKeyPrefix() + "mykey", value)}
+   */
+  protected String redisKeyPrefix() {
+    return topicSuffix + ":";
   }
 
   // ==================== DYNAMIC PROPERTIES ====================
@@ -132,8 +123,8 @@ public abstract class AbstractIntegrationTest {
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
     // PostgreSQL - shared container
-    registry.add("spring.datasource.url", () -> 
-        postgresContainer.getJdbcUrl() + "?currentSchema=public");
+    registry.add("spring.datasource.url",
+        () -> postgresContainer.getJdbcUrl() + "?currentSchema=public");
     registry.add("spring.datasource.username", postgresContainer::getUsername);
     registry.add("spring.datasource.password", postgresContainer::getPassword);
 

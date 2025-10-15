@@ -3,6 +3,8 @@ package cz.muriel.core.monitoring.bff.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
@@ -24,8 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for MonitoringProxyService with WireMock.
+ * 
+ * NOTE: Uses SAME_THREAD execution mode because WireMock uses fixed port 8089.
+ * Parallel execution causes port conflicts.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ExtendWith(WireMockExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ExtendWith(WireMockExtension.class)
+@Execution(ExecutionMode.SAME_THREAD)
 class MonitoringProxyServiceTest extends AbstractIntegrationTest {
 
   @Autowired

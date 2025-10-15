@@ -25,8 +25,8 @@ import static org.awaitility.Awaitility.await;
  * TTL values reduced for faster tests: lockTtlMs=200, heartbeatIntervalMs=50
  * (see application-test.yml)
  * 
- * ✅ @DirtiesContext AFTER_CLASS is acceptable (not AFTER_EACH_METHOD)
- * ✅ Uses Awaitility.await() for async assertions instead of Thread.sleep
+ * ✅ @DirtiesContext AFTER_CLASS is acceptable (not AFTER_EACH_METHOD) ✅ Uses
+ * Awaitility.await() for async assertions instead of Thread.sleep
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ActiveProfiles("test") @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class PresenceNrtIT extends AbstractIntegrationTest {

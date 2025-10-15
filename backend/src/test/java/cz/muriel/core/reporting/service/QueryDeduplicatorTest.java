@@ -2,6 +2,8 @@ package cz.muriel.core.reporting.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,7 +18,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit tests for QueryDeduplicator. Tests Single-Flight pattern for duplicate
  * query detection.
+ * 
+ * NOTE: Uses SAME_THREAD execution mode because tests rely on precise timing
+ * (Thread.sleep, race conditions). Parallel execution breaks timing assumptions.
  */
+@Execution(ExecutionMode.SAME_THREAD)
 class QueryDeduplicatorTest {
 
   private QueryDeduplicator queryDeduplicator;

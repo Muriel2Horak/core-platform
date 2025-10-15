@@ -5,6 +5,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -18,8 +20,12 @@ import static org.awaitility.Awaitility.await;
  * Integration tests for PresenceService with real Redis
  * 
  * Uses Redis container from AbstractIntegrationTest
+ * 
+ * NOTE: Uses SAME_THREAD execution mode because tests verify Redis lock atomicity
+ * and race conditions. Parallel execution interferes with timing-sensitive assertions.
  */
 @SpringBootTest
+@Execution(ExecutionMode.SAME_THREAD)
 class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired
@@ -28,7 +34,9 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @Autowired
   private RedisTemplate<String, Object> redisTemplate;
 
-  private static final String TENANT_ID = "test-tenant";
+  // Use dynamic tenant ID for parallel test isolation
+  private String tenantId;
+
   private static final String ENTITY = "Order";
   private static final String ID = "123";
   private static final String USER_1 = "user1";
@@ -36,26 +44,24 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    // Clean up Redis before each test
-    try (var connection = redisTemplate.getConnectionFactory().getConnection()) {
-      connection.serverCommands().flushAll();
-    }
+    // Use unique tenant ID per test (inherited topicSuffix from AbstractIntegrationTest)
+    tenantId = topicSuffix;
   }
 
   @AfterEach
   void tearDown() {
     // Ensure cleanup
-    presenceService.unsubscribe(USER_1, TENANT_ID, ENTITY, ID);
-    presenceService.unsubscribe(USER_2, TENANT_ID, ENTITY, ID);
+    presenceService.unsubscribe(USER_1, tenantId, ENTITY, ID);
+    presenceService.unsubscribe(USER_2, tenantId, ENTITY, ID);
   }
 
   @Test
   void shouldTrackUserPresence() {
     // Subscribe user 1
-    presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
+    presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
 
     // Get presence
-    Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+    Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
 
     // Verify
     assertThat(users).contains(USER_1);
@@ -64,11 +70,11 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldTrackMultipleUsers() {
     // Subscribe both users
-    presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
-    presenceService.subscribe(USER_2, TENANT_ID, ENTITY, ID);
+    presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
+    presenceService.subscribe(USER_2, tenantId, ENTITY, ID);
 
     // Get presence
-    Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+    Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
 
     // Verify both users
     assertThat(users).containsExactlyInAnyOrder(USER_1, USER_2);
@@ -77,11 +83,11 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldRemoveUserOnUnsubscribe() {
     // Subscribe and unsubscribe
-    presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
-    presenceService.unsubscribe(USER_1, TENANT_ID, ENTITY, ID);
+    presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
+    presenceService.unsubscribe(USER_1, tenantId, ENTITY, ID);
 
     // Get presence
-    Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+    Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
 
     // Verify user removed
     assertThat(users).doesNotContain(USER_1);
@@ -93,11 +99,11 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @Test @Disabled("Slow test - waits 62s for TTL expiration. Enable for manual testing.")
   void shouldExpirePresenceAfterTTL() {
     // Subscribe user
-    presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
+    presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
 
     // Wait for TTL expiration (60s + 1s buffer)
     await().atMost(java.time.Duration.ofSeconds(62)).untilAsserted(() -> {
-      Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+      Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
       assertThat(users).isEmpty();
     });
   }
@@ -108,20 +114,20 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @Test @Disabled("Slow test - waits 81s testing heartbeat refresh. Enable for manual testing.")
   void shouldRefreshTTLOnHeartbeat() {
     // Subscribe user
-    presenceService.subscribe(USER_1, TENANT_ID, ENTITY, ID);
+    presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
 
     // Wait 40s and send heartbeat
     await().pollDelay(java.time.Duration.ofSeconds(40)).atMost(java.time.Duration.ofSeconds(41))
         .untilAsserted(() -> {
-          presenceService.heartbeat(USER_1, TENANT_ID, ENTITY, ID);
-          Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+          presenceService.heartbeat(USER_1, tenantId, ENTITY, ID);
+          Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
           assertThat(users).contains(USER_1); // Still present after 40s
         });
 
     // Wait another 40s (80s total, would expire without heartbeat)
     await().pollDelay(java.time.Duration.ofSeconds(40)).atMost(java.time.Duration.ofSeconds(41))
         .untilAsserted(() -> {
-          Set<Object> users = presenceService.getPresence(TENANT_ID, ENTITY, ID);
+          Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
           assertThat(users).contains(USER_1); // Still present due to heartbeat
         });
   }
@@ -131,15 +137,15 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     String field = "totalAmount";
 
     // User 1 acquires lock
-    boolean acquired1 = presenceService.acquireLock(USER_1, TENANT_ID, ENTITY, ID, field);
+    boolean acquired1 = presenceService.acquireLock(USER_1, tenantId, ENTITY, ID, field);
     assertThat(acquired1).isTrue();
 
     // User 2 tries to acquire same lock
-    boolean acquired2 = presenceService.acquireLock(USER_2, TENANT_ID, ENTITY, ID, field);
+    boolean acquired2 = presenceService.acquireLock(USER_2, tenantId, ENTITY, ID, field);
     assertThat(acquired2).isFalse();
 
     // Verify lock owner
-    String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
+    String owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);
     assertThat(owner).isEqualTo(USER_1);
   }
 
@@ -148,16 +154,16 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     String field = "totalAmount";
 
     // User 1 acquires lock
-    presenceService.acquireLock(USER_1, TENANT_ID, ENTITY, ID, field);
+    presenceService.acquireLock(USER_1, tenantId, ENTITY, ID, field);
 
     // User 2 tries to release (should fail)
-    presenceService.releaseLock(USER_2, TENANT_ID, ENTITY, ID, field);
-    String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
+    presenceService.releaseLock(USER_2, tenantId, ENTITY, ID, field);
+    String owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);
     assertThat(owner).isEqualTo(USER_1); // Still locked by user 1
 
     // User 1 releases
-    presenceService.releaseLock(USER_1, TENANT_ID, ENTITY, ID, field);
-    owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
+    presenceService.releaseLock(USER_1, tenantId, ENTITY, ID, field);
+    owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);
     assertThat(owner).isNull(); // Lock released
   }
 
@@ -169,11 +175,11 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     String field = "totalAmount";
 
     // Acquire lock
-    presenceService.acquireLock(USER_1, TENANT_ID, ENTITY, ID, field);
+    presenceService.acquireLock(USER_1, tenantId, ENTITY, ID, field);
 
     // Wait for TTL expiration (120s + 1s buffer)
     await().atMost(java.time.Duration.ofSeconds(122)).untilAsserted(() -> {
-      String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
+      String owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);
       assertThat(owner).isNull();
     });
   }
@@ -186,13 +192,13 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     String field = "totalAmount";
 
     // Acquire lock
-    presenceService.acquireLock(USER_1, TENANT_ID, ENTITY, ID, field);
+    presenceService.acquireLock(USER_1, tenantId, ENTITY, ID, field);
 
     // Wait 80s and refresh
     await().pollDelay(java.time.Duration.ofSeconds(80)).atMost(java.time.Duration.ofSeconds(81))
         .untilAsserted(() -> {
-          presenceService.refreshLock(USER_1, TENANT_ID, ENTITY, ID, field);
-          String owner = presenceService.getLockOwner(TENANT_ID, ENTITY, ID, field);
+          presenceService.refreshLock(USER_1, tenantId, ENTITY, ID, field);
+          String owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);
           assertThat(owner).isEqualTo(USER_1); // Still locked
         });
   }
@@ -200,38 +206,38 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   @Test
   void shouldSetStaleFlag() {
     // Mark as stale
-    presenceService.setStale(TENANT_ID, ENTITY, ID, true, USER_1);
+    presenceService.setStale(tenantId, ENTITY, ID, true, USER_1);
 
     // Verify stale
-    boolean isStale = presenceService.isStale(TENANT_ID, ENTITY, ID);
+    boolean isStale = presenceService.isStale(tenantId, ENTITY, ID);
     assertThat(isStale).isTrue();
 
-    String busyBy = presenceService.getBusyBy(TENANT_ID, ENTITY, ID);
+    String busyBy = presenceService.getBusyBy(tenantId, ENTITY, ID);
     assertThat(busyBy).isEqualTo(USER_1);
   }
 
   @Test
   void shouldClearStaleFlag() {
     // Mark as stale
-    presenceService.setStale(TENANT_ID, ENTITY, ID, true, USER_1);
+    presenceService.setStale(tenantId, ENTITY, ID, true, USER_1);
 
     // Clear stale
-    presenceService.setStale(TENANT_ID, ENTITY, ID, false, null);
+    presenceService.setStale(tenantId, ENTITY, ID, false, null);
 
     // Verify not stale
-    boolean isStale = presenceService.isStale(TENANT_ID, ENTITY, ID);
+    boolean isStale = presenceService.isStale(tenantId, ENTITY, ID);
     assertThat(isStale).isFalse();
 
-    String busyBy = presenceService.getBusyBy(TENANT_ID, ENTITY, ID);
+    String busyBy = presenceService.getBusyBy(tenantId, ENTITY, ID);
     assertThat(busyBy).isNull();
   }
 
   @Test
   void shouldIncrementVersion() {
     // Increment version 3 times
-    Long v1 = presenceService.incrementVersion(TENANT_ID, ENTITY, ID);
-    Long v2 = presenceService.incrementVersion(TENANT_ID, ENTITY, ID);
-    Long v3 = presenceService.incrementVersion(TENANT_ID, ENTITY, ID);
+    Long v1 = presenceService.incrementVersion(tenantId, ENTITY, ID);
+    Long v2 = presenceService.incrementVersion(tenantId, ENTITY, ID);
+    Long v3 = presenceService.incrementVersion(tenantId, ENTITY, ID);
 
     // Verify versions
     assertThat(v1).isEqualTo(1);
@@ -239,21 +245,21 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(v3).isEqualTo(3);
 
     // Verify getVersion
-    Long current = presenceService.getVersion(TENANT_ID, ENTITY, ID);
+    Long current = presenceService.getVersion(tenantId, ENTITY, ID);
     assertThat(current).isEqualTo(3);
   }
 
   @Test
   void shouldIsolateTenantsAndEntities() {
     // Subscribe user1 to different entities
-    presenceService.subscribe(USER_1, TENANT_ID, "Order", "1");
-    presenceService.subscribe(USER_1, TENANT_ID, "Order", "2");
-    presenceService.subscribe(USER_1, TENANT_ID, "Product", "1");
+    presenceService.subscribe(USER_1, tenantId, "Order", "1");
+    presenceService.subscribe(USER_1, tenantId, "Order", "2");
+    presenceService.subscribe(USER_1, tenantId, "Product", "1");
 
     // Verify isolation
-    assertThat(presenceService.getPresence(TENANT_ID, "Order", "1")).contains(USER_1);
-    assertThat(presenceService.getPresence(TENANT_ID, "Order", "2")).contains(USER_1);
-    assertThat(presenceService.getPresence(TENANT_ID, "Product", "1")).contains(USER_1);
-    assertThat(presenceService.getPresence(TENANT_ID, "Order", "999")).isEmpty();
+    assertThat(presenceService.getPresence(tenantId, "Order", "1")).contains(USER_1);
+    assertThat(presenceService.getPresence(tenantId, "Order", "2")).contains(USER_1);
+    assertThat(presenceService.getPresence(tenantId, "Product", "1")).contains(USER_1);
+    assertThat(presenceService.getPresence(tenantId, "Order", "999")).isEmpty();
   }
 }
