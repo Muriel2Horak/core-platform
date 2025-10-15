@@ -34,6 +34,8 @@
 		<maven.compiler.target>17</maven.compiler.target>
 		<!-- Enforcer control - set to true only during refactoring -->
 		<enforcer.skip>false</enforcer.skip>
+		<!-- Test parallelism - configurable via -Dsurefire.threads=N -->
+		<surefire.threads>8</surefire.threads>
 	</properties>
 
 	<!-- Dependency Management - Force convergence for conflicting transitive dependencies -->
@@ -528,10 +530,11 @@
 				</executions>
 			</plugin>
 
-			<!-- Surefire plugin - Unit tests -->
+			<!-- Surefire plugin - Unit tests with parallel execution -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.2.5</version>
 				<configuration>
 					<includes>
 						<include>**/*Test.java</include>
@@ -539,28 +542,38 @@
 					<excludes>
 						<exclude>**/*IT.java</exclude>
 					</excludes>
-					<!-- Use forking for better isolation -->
-					<forkCount>1</forkCount>
-					<reuseForks>false</reuseForks>
-					<!-- Parallel execution -->
-					<parallel>methods</parallel>
-					<threadCount>2</threadCount>
+					<!-- Parallel execution: 1.5 threads per CPU core -->
+					<forkCount>1.5C</forkCount>
+					<reuseForks>true</reuseForks>
+					<parallel>classesAndMethods</parallel>
+					<threadCount>${surefire.threads}</threadCount>
+					<!-- JVM args for better performance -->
+					<argLine>@{argLine} -Xms256m -Xmx1g -XX:+UseZGC</argLine>
+					<!-- Propagate JUnit 5 parallel properties -->
+					<systemPropertyVariables>
+						<junit.jupiter.execution.parallel.enabled>true</junit.jupiter.execution.parallel.enabled>
+						<junit.jupiter.execution.parallel.mode.default>concurrent</junit.jupiter.execution.parallel.mode.default>
+						<junit.jupiter.execution.parallel.mode.classes.default>concurrent</junit.jupiter.execution.parallel.mode.classes.default>
+					</systemPropertyVariables>
 				</configuration>
 			</plugin>
 
-			<!-- Failsafe plugin - Integration tests -->
+			<!-- Failsafe plugin - Integration tests with parallel execution -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
-				<version>3.5.2</version>
+				<version>3.2.5</version>
 				<configuration>
 					<includes>
 						<include>**/*IT.java</include>
 					</includes>
+					<!-- Parallel execution: 1 thread per CPU core for ITs -->
+					<forkCount>1C</forkCount>
+					<reuseForks>true</reuseForks>
 					<!-- Increase timeout for Testcontainers -->
 					<forkedProcessTimeoutInSeconds>600</forkedProcessTimeoutInSeconds>
-					<forkCount>1</forkCount>
-					<reuseForks>false</reuseForks>
+					<!-- JVM args for ITs -->
+					<argLine>@{argLine} -Xms512m -Xmx2g -XX:+UseZGC</argLine>
 				</configuration>
 				<executions>
 					<execution>
@@ -812,6 +825,15 @@
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+
+		<!-- Profile for CI/CD - faster parallel execution -->
+		<profile>
+			<id>ci-fast</id>
+			<properties>
+				<!-- Override thread count in CI - use env var or default to 8 -->
+				<surefire.threads>${env.CPU_THREADS}</surefire.threads>
+			</properties>
 		</profile>
 	</profiles>
 
