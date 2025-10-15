@@ -89,7 +89,8 @@ class WorkflowExecutorOrchestratorTest {
     var executor = new CompensatableExecutor();
     registry.register(executor);
 
-    orchestrator.compensateAction("order", "123", "compensate-action", Map.of("originalData", "value"))
+    orchestrator
+        .compensateAction("order", "123", "compensate-action", Map.of("originalData", "value"))
         .get();
 
     assertThat(executor.compensated).isTrue();

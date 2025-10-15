@@ -64,11 +64,14 @@ public class AiContextController {
     }
 
     // Strict reads check: reject if entity is being updated
-    if (Boolean.TRUE.equals(strict)) {
-      // Note: This is a placeholder for future entity lock service integration
-      // TODO: Integrate with EntityLockService when available
-      log.debug("⚠️ Strict reads requested but entity lock service not yet implemented");
-      // For now, we proceed - strict mode will be enforced once lock service is ready
+    if (strict) {
+      // Note: Strict mode requires entityType and entityId parameters
+      // Current implementation only has routeId, which doesn't contain entity ID
+      // To implement: Add entityType and entityId parameters, then check:
+      // if (editLockService.isLocked(tenantId, entityType, entityId)) {
+      //   throw new ResponseStatusException(HttpStatus.LOCKED, "Entity is being edited");
+      // }
+      log.warn("⚠️ Strict reads requested but requires entityType/entityId parameters (not implemented yet)");
     }
 
     try {

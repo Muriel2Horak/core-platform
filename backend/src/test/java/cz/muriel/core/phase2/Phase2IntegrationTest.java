@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 
  * Tests for WebSocket, Workflow, Documents and Search functionality
  * 
- * ⚠️ DISABLED: Requires full Keycloak setup (KeycloakAdminService) TODO: Create
- * TestKeycloakConfig with mocks or run these tests separately
+ * ⚠️ DISABLED: Requires full Keycloak setup (KeycloakAdminService) 
+ * FIXME: Create TestKeycloakConfig with mocks or run these tests separately
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers @Disabled("Requires full Keycloak environment - KeycloakAdminService autowiring fails in test context")
 public class Phase2IntegrationTest {

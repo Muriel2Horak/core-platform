@@ -30,7 +30,8 @@ public class WorkflowExecutorOrchestrator {
   private final Counter retryCounter;
   private final Counter compensationCounter;
 
-  public WorkflowExecutorOrchestrator(WorkflowExecutorRegistry registry, MeterRegistry meterRegistry) {
+  public WorkflowExecutorOrchestrator(WorkflowExecutorRegistry registry,
+      MeterRegistry meterRegistry) {
     this.registry = registry;
     this.executionTimer = Timer.builder("workflow.executor.duration")
         .description("Executor execution duration").tag("type", "execution")
