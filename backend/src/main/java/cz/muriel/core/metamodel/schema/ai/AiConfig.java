@@ -2,7 +2,6 @@ package cz.muriel.core.metamodel.schema.ai;
 
 import lombok.Data;
 import java.util.List;
-import java.util.Map;
 
 /**
  * AI configuration for entity/global metamodel

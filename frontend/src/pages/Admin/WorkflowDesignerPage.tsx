@@ -1,5 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
-import { Container, Typography, Box, Drawer, Tabs, Tab } from '@mui/material';
+import { useCallback, useState } from 'react';
+import { Container, Typography, Box, Drawer } from '@mui/material';
 import { AccountTree as WorkflowIcon } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
@@ -8,12 +8,10 @@ import ReactFlow, {
   Controls, 
   MiniMap,
   Node,
-  Edge,
   addEdge,
   Connection,
   useNodesState,
   useEdgesState,
-  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import axios from 'axios';
@@ -80,7 +78,6 @@ export const WorkflowDesignerPage = () => {
   const {
     connected: collabConnected,
     users: onlineUsers,
-    cursors: remoteCursors,
     sendNodeUpdate,
     sendEdgeUpdate,
     sendNodeDelete,

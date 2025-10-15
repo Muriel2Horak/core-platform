@@ -26,6 +26,8 @@ import java.util.UUID;
 @Slf4j @Service @RequiredArgsConstructor
 public class ContextAssembler {
 
+  // Reserved for future schema enrichment
+  @SuppressWarnings("unused")
   private final MetamodelRegistry metamodelRegistry;
   private final UiContextService uiContextService;
   private final WfContextService wfContextService;

@@ -164,11 +164,11 @@ class WorkflowRuntimeServiceTest {
                         .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship")
                                 .toCode("SHIPPED").slaMinutes(60).build()));
 
-        //  Mock SLA query (lenient mode allows flexible matching)
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        var slaQueryStub = when(jdbcTemplate.query(anyString(), 
-                any(org.springframework.jdbc.core.RowMapper.class), 
-                anyString(), anyString(), anyString()));
+        // Mock SLA query (lenient mode allows flexible matching)
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        var slaQueryStub = when(
+                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
+                        anyString(), anyString(), anyString()));
         slaQueryStub.thenReturn(List.of(30));
 
         // Act
@@ -208,12 +208,12 @@ class WorkflowRuntimeServiceTest {
         when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
         when(workflowService.getAllowedTransitions(any(), any(), any(), any()))
                 .thenReturn(Collections.emptyList());
-                
+
         // Mock SLA query with lenient mode
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        var slaQueryStub2 = when(jdbcTemplate.query(anyString(), 
-                any(org.springframework.jdbc.core.RowMapper.class), 
-                anyString(), anyString(), anyString()));
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        var slaQueryStub2 = when(
+                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
+                        anyString(), anyString(), anyString()));
         slaQueryStub2.thenReturn(List.of(60));
 
         // Act
@@ -237,10 +237,10 @@ class WorkflowRuntimeServiceTest {
         String tenantId = "tenant-1";
 
         // Mock history query with lenient mode
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        var historyQueryStub = when(jdbcTemplate.query(anyString(), 
-                any(org.springframework.jdbc.core.RowMapper.class), 
-                anyString(), anyString(), anyString()));
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        var historyQueryStub = when(
+                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
+                        anyString(), anyString(), anyString()));
         historyQueryStub.thenReturn(List.of(
                 WorkflowModels.HistoryEntry.builder()
                         .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED)
@@ -248,11 +248,10 @@ class WorkflowRuntimeServiceTest {
                         .timestamp(Instant.now().minusSeconds(120)).durationMs(120000L)
                         .actor("user-1").slaStatus(WorkflowModels.SlaStatus.OK).build(),
                 WorkflowModels.HistoryEntry.builder()
-                        .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED)
-                        .fromState(null).toState("PENDING").transitionCode("create")
-                        .timestamp(Instant.now().minusSeconds(240))
-                        .durationMs(60000L).actor("user-1")
-                        .slaStatus(WorkflowModels.SlaStatus.OK).build()));
+                        .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED).fromState(null)
+                        .toState("PENDING").transitionCode("create")
+                        .timestamp(Instant.now().minusSeconds(240)).durationMs(60000L)
+                        .actor("user-1").slaStatus(WorkflowModels.SlaStatus.OK).build()));
 
         // Act
         WorkflowModels.WorkflowHistory history = runtimeService.getHistory(entityType, entityId,
@@ -293,20 +292,16 @@ class WorkflowRuntimeServiceTest {
                                 .toCode("SHIPPED").slaMinutes(120).build()));
 
         UUID timerId = UUID.randomUUID();
-        
+
         // Mock timer query with lenient mode
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        var timerQueryStub = when(jdbcTemplate.query(anyString(), 
-                any(org.springframework.jdbc.core.RowMapper.class), 
-                anyString(), anyString(), anyString()));
-        timerQueryStub.thenReturn(List.of(
-                WorkflowModels.PendingTimer.builder()
-                        .id(timerId)
-                        .type(WorkflowModels.TimerType.SLA_WARNING)
-                        .scheduledAt(Instant.now().plusSeconds(3600))
-                        .action("notify")
-                        .remainingMs(3600000L)
-                        .build()));
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        var timerQueryStub = when(
+                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
+                        anyString(), anyString(), anyString()));
+        timerQueryStub.thenReturn(List.of(WorkflowModels.PendingTimer.builder().id(timerId)
+                .type(WorkflowModels.TimerType.SLA_WARNING)
+                .scheduledAt(Instant.now().plusSeconds(3600)).action("notify").remainingMs(3600000L)
+                .build()));
 
         // Act
         WorkflowModels.WorkflowForecast forecast = runtimeService.getForecast(auth, entityType,

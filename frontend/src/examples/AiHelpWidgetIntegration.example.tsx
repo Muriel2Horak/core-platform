@@ -26,8 +26,9 @@ import {
 } from '@mui/material';
 import { Business as TenantIcon } from '@mui/icons-material';
 import axios from 'axios';
-import Users from '../../components/Users';
-import { AiHelpWidget } from '../../components/AiHelpWidget'; // 1. Import
+// NOTE: This is an example/demo file - Users component is fictional
+// import Users from '../../components/Users'; // Not actually implemented
+import { AiHelpWidget } from '../components/AiHelpWidget'; // 1. Import
 
 export const AdminUsersPageWithAiHelp = ({ user }: { user: any }) => {
   const [selectedTenant, setSelectedTenant] = useState<string>('all');
@@ -110,7 +111,13 @@ export const AdminUsersPageWithAiHelp = ({ user }: { user: any }) => {
         </Stack>
       )}
 
-      <Users user={user} />
+      {/* Example user list component - replace with actual implementation */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          {/* <Users user={user} /> - Not implemented in example */}
+          User list would go here
+        </Typography>
+      </Box>
     </Box>
   );
 };
