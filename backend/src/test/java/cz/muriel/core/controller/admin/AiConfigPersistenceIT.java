@@ -1,5 +1,6 @@
 package cz.muriel.core.controller.admin;
 
+import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.AiVisibilityMode;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
@@ -30,8 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests:
  * - YAML persistence after config update
  * - Atomic write with backup
- * - Rollback on error
- * - Hot reload (future)
+ * - Hot reload after update
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,6 +46,9 @@ class AiConfigPersistenceIT {
 
   @Autowired
   private GlobalMetamodelConfig globalConfig;
+
+  @Autowired
+  private MetamodelRegistry metamodelRegistry;
 
   private Path testConfigPath;
   private Path backupPath;
@@ -220,5 +223,37 @@ class AiConfigPersistenceIT {
     assertThat(readBack.getAi()).isNotNull();
     assertThat(readBack.getAi().getEnabled()).isTrue();
     assertThat(readBack.getAi().getMode()).isEqualTo(AiVisibilityMode.META_ONLY);
+  }
+
+  @Test
+  @WithMockUser(roles = "PLATFORM_ADMIN")
+  @DisplayName("Update AI config should trigger hot reload")
+  void testUpdateAiConfig_triggersHotReload() throws Exception {
+    // Given: Initial schema count
+    int initialSchemaCount = metamodelRegistry.getAllSchemas().size();
+
+    String json = """
+        {
+          "enabled": true,
+          "mode": "META_ONLY"
+        }
+        """;
+
+    // When: Update AI config
+    mockMvc.perform(put("/api/admin/ai/config")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("success"))
+        .andExpect(jsonPath("$.message").value("AI config updated, persisted, and metamodel reloaded successfully"));
+
+    // Then: Schema count should be preserved (hot reload successful)
+    int afterSchemaCount = metamodelRegistry.getAllSchemas().size();
+    assertThat(afterSchemaCount).isEqualTo(initialSchemaCount);
+
+    // And: Config should be persisted and match
+    GlobalMetamodelConfig persisted = yamlPersistenceService.readGlobalConfig();
+    assertThat(persisted.getAi().getEnabled()).isTrue();
+    assertThat(persisted.getAi().getMode()).isEqualTo(AiVisibilityMode.META_ONLY);
   }
 }

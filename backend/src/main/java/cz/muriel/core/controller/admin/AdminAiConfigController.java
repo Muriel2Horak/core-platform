@@ -1,5 +1,6 @@
 package cz.muriel.core.controller.admin;
 
+import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
 import cz.muriel.core.metamodel.schema.ai.AiVisibilityMode;
@@ -29,6 +30,7 @@ public class AdminAiConfigController {
 
   private final GlobalMetamodelConfig globalConfig;
   private final YamlPersistenceService yamlPersistenceService;
+  private final MetamodelRegistry metamodelRegistry;
 
   /**
    * Get global AI configuration
@@ -70,7 +72,7 @@ public class AdminAiConfigController {
    * 1. Validate config (enforce META_ONLY mode)
    * 2. Update in-memory config
    * 3. Persist to global-config.yaml
-   * 4. Hot reload will be triggered in next phase
+   * 4. Hot reload metamodel (triggers GlobalMetamodelConfig reload)
    */
   @PutMapping("/config") @PreAuthorize("hasAnyRole('PLATFORM_ADMIN', 'OPS')")
   public ResponseEntity<Map<String, String>> updateAiConfig(@RequestBody GlobalAiConfig aiConfig) {
@@ -97,16 +99,25 @@ public class AdminAiConfigController {
             .body(Map.of("error", "Failed to persist config: " + e.getMessage()));
       }
 
-      // TODO (next phase): Trigger hot reload
-      // TODO (next phase): Publish config change event to Kafka
+      // Hot reload metamodel
+      try {
+        log.info("🔄 Triggering hot reload of metamodel...");
+        metamodelRegistry.reload();
+        log.info("✅ Metamodel reloaded successfully");
+      } catch (Exception e) {
+        log.error("❌ Failed to reload metamodel", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "Failed to reload metamodel: " + e.getMessage()));
+      }
 
-      log.info("✅ AI config updated and persisted: enabled={}, mode={}", 
+      // TODO (future): Publish config change event to Kafka
+
+      log.info("✅ AI config updated, persisted, and reloaded: enabled={}, mode={}", 
           aiConfig.getEnabled(), aiConfig.getMode());
       
       return ResponseEntity.ok(Map.of(
           "status", "success", 
-          "message", "AI config updated and persisted successfully",
-          "note", "Hot reload will be triggered in next phase"));
+          "message", "AI config updated, persisted, and metamodel reloaded successfully"));
 
     } catch (Exception e) {
       log.error("❌ Failed to update AI config", e);
