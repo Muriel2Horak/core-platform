@@ -1,5 +1,6 @@
 package cz.muriel.core.controller.admin;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
@@ -9,10 +10,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Admin AI Configuration Controller
@@ -31,6 +35,8 @@ public class AdminAiConfigController {
   private final GlobalMetamodelConfig globalConfig;
   private final YamlPersistenceService yamlPersistenceService;
   private final MetamodelRegistry metamodelRegistry;
+  private final KafkaTemplate<String, String> kafkaTemplate;
+  private final ObjectMapper objectMapper;
 
   /**
    * Get global AI configuration
@@ -108,7 +114,8 @@ public class AdminAiConfigController {
             .body(Map.of("error", "Failed to reload metamodel: " + e.getMessage()));
       }
 
-      // TODO (future): Publish config change event to Kafka
+      // Publish config change event to Kafka for distributed cache invalidation
+      publishConfigChangeEvent(aiConfig);
 
       log.info("✅ AI config updated, persisted, and reloaded: enabled={}, mode={}",
           aiConfig.getEnabled(), aiConfig.getMode());
@@ -146,6 +153,34 @@ public class AdminAiConfigController {
       log.error("❌ Failed to check AI status", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(Map.of("error", e.getMessage()));
+    }
+  }
+
+  /**
+   * Publish AI config change event to Kafka
+   * 
+   * Allows distributed systems to invalidate their metamodel caches
+   */
+  private void publishConfigChangeEvent(GlobalAiConfig aiConfig) {
+    try {
+      Map<String, Object> event = Map.of("eventId", UUID.randomUUID().toString(), "eventType",
+          "AI_CONFIG_CHANGED", "timestamp", Instant.now().toString(), "config",
+          Map.of("enabled", aiConfig.getEnabled() != null ? aiConfig.getEnabled() : false, "mode",
+              aiConfig.getMode() != null ? aiConfig.getMode().toString() : "META_ONLY"));
+
+      String eventJson = objectMapper.writeValueAsString(event);
+      String topic = "platform.config.changes";
+
+      kafkaTemplate.send(topic, "ai-config", eventJson).whenComplete((result, ex) -> {
+        if (ex != null) {
+          log.error("❌ Failed to publish AI config change event to Kafka", ex);
+        } else {
+          log.info("✅ Published AI config change event to Kafka topic: {}", topic);
+        }
+      });
+    } catch (Exception e) {
+      log.error("❌ Failed to serialize or publish AI config change event", e);
+      // Don't fail the request if Kafka publish fails - just log it
     }
   }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.platform.workflow.versioning.WorkflowVersionService.MigrationStrategy;
 import com.platform.workflow.versioning.WorkflowVersionService.WorkflowVersion;
 
+import cz.muriel.core.BackendApplication;
 import cz.muriel.core.test.AbstractIntegrationTest;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * activation (deactivates others) - Version retrieval (active, specific, all) -
  * Instance migration - Bulk migration initiation
  */
-@SpringBootTest @Transactional
+@SpringBootTest(classes = BackendApplication.class) @Transactional
 class WorkflowVersionServiceTest extends AbstractIntegrationTest {
 
   @Autowired
@@ -137,10 +139,10 @@ class WorkflowVersionServiceTest extends AbstractIntegrationTest {
     Long v2Id = versionService.createVersion("ORDER", schema2, "admin", "V2");
 
     // Create instance on v1
-    Long instanceId = jdbcTemplate.queryForObject(
-        "INSERT INTO workflow_instances (entity_type, entity_id, current_state, tenant_id) "
-            + "VALUES ('ORDER', 'ORD-123', 'DRAFT', 'T1') RETURNING id",
-        Long.class);
+    UUID instanceId = jdbcTemplate.queryForObject(
+        "INSERT INTO workflow_instances (entity_type, entity_id, current_state_code, tenant_id, created_by) "
+            + "VALUES ('ORDER', 'ORD-123', 'DRAFT', 'T1', 'admin') RETURNING id",
+        UUID.class);
 
     jdbcTemplate.update(
         "INSERT INTO workflow_instance_versions (workflow_instance_id, version_id) VALUES (?, ?)",

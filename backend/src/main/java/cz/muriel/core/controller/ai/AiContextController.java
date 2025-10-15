@@ -5,8 +5,13 @@ import cz.muriel.core.metrics.AiMetricsCollector;
 import cz.muriel.core.service.ai.ContextAssembler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -55,12 +60,21 @@ public class AiContextController {
 
     // Use current tenant if not specified
     if (tenantId == null) {
-      // TODO: Get from security context
-      tenantId = UUID.randomUUID(); // Placeholder
+      tenantId = getTenantIdFromSecurityContext();
     }
 
-    // TODO: Implement strict reads check
-    // If strict=true and entity is UPDATING, return 423 Locked
+    // Strict reads check: reject if entity is being updated
+    if (strict) {
+      // Note: Strict mode requires entityType and entityId parameters
+      // Current implementation only has routeId, which doesn't contain entity ID
+      // To implement: Add entityType and entityId parameters, then check:
+      // if (editLockService.isLocked(tenantId, entityType, entityId)) {
+      // throw new ResponseStatusException(HttpStatus.LOCKED, "Entity is being
+      // edited");
+      // }
+      log.warn(
+          "⚠️ Strict reads requested but requires entityType/entityId parameters (not implemented yet)");
+    }
 
     try {
       Map<String, Object> context = contextAssembler.assembleContext(routeId, tenantId);
@@ -110,5 +124,47 @@ public class AiContextController {
 
     return ResponseEntity.ok(Map.of("status", enabled ? "enabled" : "disabled", "mode", mode,
         "timestamp", System.currentTimeMillis()));
+  }
+
+  /**
+   * Extract tenant ID from JWT security context
+   * 
+   * @return Tenant ID from JWT claims
+   * @throws ResponseStatusException if tenant ID not found or invalid
+   */
+  private UUID getTenantIdFromSecurityContext() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (auth == null || !auth.isAuthenticated()) {
+      log.error("❌ No authentication in security context");
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+          "Authentication required - tenant ID not available");
+    }
+
+    // Extract from JWT claims
+    if (auth.getPrincipal() instanceof Jwt jwt) {
+      String tenantIdStr = jwt.getClaimAsString("tenant_id");
+
+      if (tenantIdStr == null || tenantIdStr.isBlank()) {
+        log.error("❌ No tenant_id claim in JWT for user: {}", auth.getName());
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            "Tenant ID not found in security context - missing tenant_id claim");
+      }
+
+      try {
+        UUID tenantId = UUID.fromString(tenantIdStr);
+        log.debug("✅ Extracted tenant ID from JWT: {}", tenantId);
+        return tenantId;
+      } catch (IllegalArgumentException e) {
+        log.error("❌ Invalid tenant_id format in JWT: {}", tenantIdStr);
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            "Invalid tenant ID format in security context");
+      }
+    }
+
+    // Fallback: try to get from authentication details
+    log.warn("⚠️ Authentication principal is not JWT, attempting fallback");
+    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+        "Unable to extract tenant ID from security context - JWT expected");
   }
 }

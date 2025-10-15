@@ -13,16 +13,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.*;
 
 /**
- * 🧪 W7: WorkflowExecutionService Unit Tests
+ * 🧪 W7: WorkflowExecutorOrchestrator Unit Tests
  * 
  * Tests: - Async execution - Retry logic with exponential backoff -
  * Compensation on failure - Metrics tracking
  * 
  * @since 2025-01-14
  */
-class WorkflowExecutionServiceTest {
+class WorkflowExecutorOrchestratorTest {
 
-  private WorkflowExecutionService service;
+  private WorkflowExecutorOrchestrator orchestrator;
   private WorkflowExecutorRegistry registry;
   private MeterRegistry meterRegistry;
 
@@ -30,7 +30,7 @@ class WorkflowExecutionServiceTest {
   void setUp() {
     registry = new WorkflowExecutorRegistry();
     meterRegistry = new SimpleMeterRegistry();
-    service = new WorkflowExecutionService(registry, meterRegistry);
+    orchestrator = new WorkflowExecutorOrchestrator(registry, meterRegistry);
   }
 
   @Test
@@ -38,7 +38,7 @@ class WorkflowExecutionServiceTest {
     var executor = new SuccessExecutor();
     registry.register(executor);
 
-    var result = service.executeAction("order", "123", "test-action", Map.of()).get();
+    var result = orchestrator.executeAction("order", "123", "test-action", Map.of()).get();
 
     assertThat(result).containsEntry("status", "success");
     assertThat(meterRegistry.counter("workflow.executor.success").count()).isEqualTo(1.0);
@@ -49,7 +49,7 @@ class WorkflowExecutionServiceTest {
     var executor = new RetryExecutor(2); // Fail twice, succeed on 3rd attempt
     registry.register(executor);
 
-    var result = service.executeAction("order", "123", "retry-action", Map.of()).get();
+    var result = orchestrator.executeAction("order", "123", "retry-action", Map.of()).get();
 
     assertThat(result).containsEntry("status", "success");
     assertThat(executor.attemptCount.get()).isEqualTo(3);
@@ -62,7 +62,7 @@ class WorkflowExecutionServiceTest {
     var executor = new AlwaysFailExecutor();
     registry.register(executor);
 
-    var result = service.executeAction("order", "123", "fail-action", Map.of()).get();
+    var result = orchestrator.executeAction("order", "123", "fail-action", Map.of()).get();
 
     // Service catches exception and returns error map instead of throwing
     assertThat(result).containsKey("error");
@@ -76,7 +76,7 @@ class WorkflowExecutionServiceTest {
     registry.register(executor1);
     registry.register(executor2);
 
-    var result = service.executeAction("order", "123", "parallel-action", Map.of()).get();
+    var result = orchestrator.executeAction("order", "123", "parallel-action", Map.of()).get();
 
     // Both executors return {status: "success"}, results are merged
     // Since both return the same key "status", the result will have size 1
@@ -89,7 +89,8 @@ class WorkflowExecutionServiceTest {
     var executor = new CompensatableExecutor();
     registry.register(executor);
 
-    service.compensateAction("order", "123", "compensate-action", Map.of("originalData", "value"))
+    orchestrator
+        .compensateAction("order", "123", "compensate-action", Map.of("originalData", "value"))
         .get();
 
     assertThat(executor.compensated).isTrue();
@@ -98,7 +99,7 @@ class WorkflowExecutionServiceTest {
 
   @Test
   void shouldHandleNoExecutorsGracefully() throws ExecutionException, InterruptedException {
-    var result = service.executeAction("order", "123", "unknown-action", Map.of()).get();
+    var result = orchestrator.executeAction("order", "123", "unknown-action", Map.of()).get();
 
     assertThat(result).isEmpty();
   }
@@ -110,7 +111,7 @@ class WorkflowExecutionServiceTest {
 
     var startTime = System.currentTimeMillis();
     try {
-      service.executeAction("order", "123", "retry-action", Map.of()).get();
+      orchestrator.executeAction("order", "123", "retry-action", Map.of()).get();
     } catch (Exception e) {
       // Expected
     }

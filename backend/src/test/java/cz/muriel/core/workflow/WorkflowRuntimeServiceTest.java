@@ -165,7 +165,7 @@ class WorkflowRuntimeServiceTest {
                                 .toCode("SHIPPED").slaMinutes(60).build()));
 
         // Mock SLA query (lenient mode allows flexible matching)
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings("unchecked")
         var slaQueryStub = when(
                 jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
                         anyString(), anyString(), anyString()));
@@ -210,7 +210,7 @@ class WorkflowRuntimeServiceTest {
                 .thenReturn(Collections.emptyList());
 
         // Mock SLA query with lenient mode
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings("unchecked")
         var slaQueryStub2 = when(
                 jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
                         anyString(), anyString(), anyString()));
@@ -237,7 +237,7 @@ class WorkflowRuntimeServiceTest {
         String tenantId = "tenant-1";
 
         // Mock history query with lenient mode
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings("unchecked")
         var historyQueryStub = when(
                 jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
                         anyString(), anyString(), anyString()));
@@ -294,7 +294,7 @@ class WorkflowRuntimeServiceTest {
         UUID timerId = UUID.randomUUID();
 
         // Mock timer query with lenient mode
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings("unchecked")
         var timerQueryStub = when(
                 jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
                         anyString(), anyString(), anyString()));

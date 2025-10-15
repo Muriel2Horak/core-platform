@@ -19,9 +19,7 @@ BEGIN
         'entityId', COALESCE(NEW.id::TEXT, OLD.id::TEXT),
         'tenantId', COALESCE(
             NEW.tenant_id, 
-            NEW.tenant_key, 
-            OLD.tenant_id, 
-            OLD.tenant_key
+            OLD.tenant_id
         ),
         'operation', TG_OP,
         'timestamp', NOW()
