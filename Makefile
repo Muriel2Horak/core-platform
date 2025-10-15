@@ -602,7 +602,7 @@ _rebuild_clean_inner:
 
 # Clean with Build Doctor (FULL E2E TESTING)
 clean:
-	@RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner 2>&1 | tee -a $(LOG_FILE)
+	@bash scripts/build/auto-split.sh "RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
 
 _clean_inner:
 	@# Build dynamic step list and initialize tracker
@@ -633,9 +633,10 @@ _clean_inner:
 	@echo ""
 
 # Fast clean without E2E (for development)
+# Use PROGRESS_SPLIT=no to disable split-pane mode
 .PHONY: clean-fast
 clean-fast:
-	@scripts/build/wrapper.sh $(MAKE) _clean_fast_inner 2>&1 | tee -a $(LOG_FILE)
+	@bash scripts/build/auto-split.sh "scripts/build/wrapper.sh $(MAKE) _clean_fast_inner"
 
 _clean_fast_inner:
 	@echo "╔════════════════════════════════════════════════════════════════╗"

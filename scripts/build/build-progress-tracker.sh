@@ -158,12 +158,27 @@ draw_panel() {
     local elapsed=$(($(date +%s) - START_TIME))
     local elapsed_fmt=$(printf "%dm %02ds" $((elapsed / 60)) $((elapsed % 60)))
     
-    # Simple approach: clear screen only first time, then let panel scroll with output
-    # This is more reliable than tput scrolling regions in pipes/redirects
+    # Calculate panel height
+    local panel_height=$((TOTAL_STEPS + 5))
+    
+    # First time: setup fixed header with scrolling region
     if [ ! -f "$PANEL_INITIALIZED_FLAG" ]; then
+        # Clear screen
         clear
+        
+        # Hide cursor for cleaner look
+        tput civis 2>/dev/null || true
+        
+        # Set scrolling region: lines (panel_height+1) to bottom
+        # This keeps top lines fixed while bottom scrolls
+        tput csr "$panel_height" 999 2>/dev/null || true
+        
+        # Mark as initialized
         touch "$PANEL_INITIALIZED_FLAG"
     fi
+    
+    # Always draw panel at top (position 0,0)
+    tput cup 0 0 2>/dev/null || true
     
     echo -e "${BOLD}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${BOLD}║  🏗️  $(printf '%-66s' "$PIPELINE_NAME")║${NC}"
@@ -237,7 +252,10 @@ draw_panel() {
     
     echo -e "║  ${BOLD}Overall:${NC} $overall_bar ${CYAN}$overall_text${NC}  │  ${BLUE}$elapsed_text${NC}$(printf '%29s' '')║"
     echo -e "${BOLD}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
-    echo ""  # Blank line after panel
+    
+    # Move cursor to scrolling region (below panel)
+    local panel_height=$((TOTAL_STEPS + 5))
+    tput cup "$panel_height" 0 2>/dev/null || true
 }
 
 # Show error summary below panel (panel stays visible)
@@ -306,11 +324,19 @@ show_error() {
 
 # Cleanup - restore normal terminal state
 cleanup_progress() {
+    # Reset scrolling region to full screen
+    tput csr 0 999 2>/dev/null || true
+    
+    # Show cursor again
+    tput cnorm 2>/dev/null || true
+    
     # Remove flag file
     rm -f "$PANEL_INITIALIZED_FLAG"
     
     # Final draw to show completed state
     draw_panel
+    
+    echo ""
 }
 
 # Main command dispatcher
