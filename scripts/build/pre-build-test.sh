@@ -66,8 +66,8 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
 
         set +e  # Temporarily disable exit on error
         if [ "$STEP_NUM" -gt 0 ]; then
-            # With real-time progress tracking
-            ./mvnw "${MAVEN_ARGS[@]}" 2>&1 | tee "$BACKEND_LOG" | bash scripts/build/test-progress-parser.sh "$STEP_NUM" "backend"
+            # With real-time progress tracking (absolute path from workspace root)
+            ./mvnw "${MAVEN_ARGS[@]}" 2>&1 | tee "$BACKEND_LOG" | bash ../scripts/build/test-progress-parser.sh "$STEP_NUM" "backend"
             TEST_EXIT=$?
         else
             # Without progress tracking (fallback)
@@ -118,8 +118,8 @@ if [ "$COMPONENT" = "frontend" ] || [ "$COMPONENT" = "all" ]; then
             # Run tests (Vitest/Jest) - check based on output, not exit code
             set +e
             if [ "$STEP_NUM" -gt 0 ]; then
-                # With real-time progress tracking
-                npm test -- --run 2>&1 | tee "$FRONTEND_LOG" | bash scripts/build/test-progress-parser.sh "$STEP_NUM" "frontend"
+                # With real-time progress tracking (absolute path from workspace root)
+                npm test -- --run 2>&1 | tee "$FRONTEND_LOG" | bash ../scripts/build/test-progress-parser.sh "$STEP_NUM" "frontend"
             else
                 # Without progress tracking (fallback)
                 npm test -- --run 2>&1 | tee "$FRONTEND_LOG"
