@@ -21,11 +21,11 @@ import static org.awaitility.Awaitility.await;
  * 
  * Uses Redis container from AbstractIntegrationTest
  * 
- * NOTE: Uses SAME_THREAD execution mode because tests verify Redis lock atomicity
- * and race conditions. Parallel execution interferes with timing-sensitive assertions.
+ * NOTE: Uses SAME_THREAD execution mode because tests verify Redis lock
+ * atomicity and race conditions. Parallel execution interferes with
+ * timing-sensitive assertions.
  */
-@SpringBootTest
-@Execution(ExecutionMode.SAME_THREAD)
+@SpringBootTest @Execution(ExecutionMode.SAME_THREAD)
 class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired
@@ -44,7 +44,8 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void setUp() {
-    // Use unique tenant ID per test (inherited topicSuffix from AbstractIntegrationTest)
+    // Use unique tenant ID per test (inherited topicSuffix from
+    // AbstractIntegrationTest)
     tenantId = topicSuffix;
   }
 

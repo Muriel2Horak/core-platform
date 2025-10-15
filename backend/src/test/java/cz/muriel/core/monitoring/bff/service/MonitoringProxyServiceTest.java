@@ -30,9 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * NOTE: Uses SAME_THREAD execution mode because WireMock uses fixed port 8089.
  * Parallel execution causes port conflicts.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ExtendWith(WireMockExtension.class)
-@Execution(ExecutionMode.SAME_THREAD)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @ExtendWith(WireMockExtension.class) @Execution(ExecutionMode.SAME_THREAD)
 class MonitoringProxyServiceTest extends AbstractIntegrationTest {
 
   @Autowired

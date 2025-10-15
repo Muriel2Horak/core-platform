@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -17,6 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,7 +28,7 @@ import java.util.UUID;
  * 
  * **Per-Test Isolation** (parallel execution safe): - Unique Kafka topics:
  * base_topic_<8-char-uuid> - Unique Redis key prefix: test_<8-char-uuid>: - DB
- * transactions auto-rollback (@Transactional on tests)
+ * cleanup via DELETE (not TRUNCATE - avoids deadlocks)
  * 
  * **Usage:**
  * 
@@ -36,16 +36,12 @@ import java.util.UUID;
  * @SpringBootTest(webEnvironment = RANDOM_PORT)
  * class MyIT extends AbstractIntegrationTest {
  *   // Access topicSuffix for Kafka isolation
- *   // DB auto-rollbacks, no manual cleanup needed
  *   // Use redisKeyPrefix() for Redis keys
+ *   // Add @Transactional to test class if you want auto-rollback
  * }
  * }</pre>
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-@Import(MockTestConfig.class)
-@Transactional // Auto-rollback DB changes after each test (no TRUNCATE deadlocks!)
+@SpringBootTest @ActiveProfiles("test") @Testcontainers @Import(MockTestConfig.class)
 public abstract class AbstractIntegrationTest {
 
   // ==================== SHARED CONTAINERS (1 per JVM) ====================
@@ -76,6 +72,9 @@ public abstract class AbstractIntegrationTest {
   @Autowired(required = false)
   private org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
 
+  @Autowired(required = false)
+  private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
   @BeforeEach
   void setupTestIsolation(TestInfo testInfo) {
     // Generate unique 8-char ID for Kafka topic isolation
@@ -88,7 +87,27 @@ public abstract class AbstractIntegrationTest {
 
   @AfterEach
   void cleanupTestIsolation() {
-    // DB cleanup: @Transactional auto-rollback (no TRUNCATE → no deadlocks!)
+    // DB cleanup: DELETE instead of TRUNCATE (lighter locks, no deadlocks in
+    // parallel)
+    // Skip if no JdbcTemplate (some tests don't use DB)
+    if (jdbcTemplate != null) {
+      try {
+        List<String> tables = jdbcTemplate.queryForList(
+            "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE 'flyway%'",
+            String.class);
+
+        // Use DELETE instead of TRUNCATE (avoids AccessExclusiveLock)
+        for (String table : tables) {
+          try {
+            jdbcTemplate.execute("DELETE FROM " + table);
+          } catch (Exception e) {
+            // Some tables might not exist or have FK constraints - ignore
+          }
+        }
+      } catch (Exception e) {
+        // DB might not be available - ignore
+      }
+    }
 
     // Redis cleanup: delete keys with our prefix only
     if (redisTemplate != null && redisTemplate.getConnectionFactory() != null) {
@@ -109,10 +128,11 @@ public abstract class AbstractIntegrationTest {
   }
 
   /**
-   * Returns unique Redis key prefix for this test. Use this to avoid key collisions
-   * in parallel tests.
+   * Returns unique Redis key prefix for this test. Use this to avoid key
+   * collisions in parallel tests.
    * 
-   * Example: {@code redisTemplate.opsForValue().set(redisKeyPrefix() + "mykey", value)}
+   * Example:
+   * {@code redisTemplate.opsForValue().set(redisKeyPrefix() + "mykey", value)}
    */
   protected String redisKeyPrefix() {
     return topicSuffix + ":";

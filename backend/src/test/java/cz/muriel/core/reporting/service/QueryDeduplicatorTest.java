@@ -20,7 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * query detection.
  * 
  * NOTE: Uses SAME_THREAD execution mode because tests rely on precise timing
- * (Thread.sleep, race conditions). Parallel execution breaks timing assumptions.
+ * (Thread.sleep, race conditions). Parallel execution breaks timing
+ * assumptions.
  */
 @Execution(ExecutionMode.SAME_THREAD)
 class QueryDeduplicatorTest {
