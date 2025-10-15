@@ -97,17 +97,17 @@ if [ "$STEP_NUM" -gt 0 ]; then
 fi
 
 while IFS= read -r line; do
-    # Filter output: only show important lines
-    # Show errors and results - hide warnings/setup noise
-    if [[ "$line" =~ ^\[ERROR\]|Tests\ run:|BUILD\ SUCCESS|BUILD\ FAILURE|FAILED ]]; then
-        echo "$line"
-    fi
-    
-    # Parse based on component type
+    # Parse based on component type FIRST (to update counters)
     if [ "$COMPONENT" = "backend" ]; then
         parse_maven_realtime "$line"
     elif [ "$COMPONENT" = "frontend" ]; then
         parse_vitest_realtime "$line"
+    fi
+    
+    # Filter output: only show important lines
+    # Show test execution, errors and results - hide warnings/setup noise
+    if [[ "$line" =~ ^\[INFO\]\ Running\ |^\[ERROR\]|Tests\ run:|BUILD\ SUCCESS|BUILD\ FAILURE|FAILED ]]; then
+        echo "$line"
     fi
 done
 
