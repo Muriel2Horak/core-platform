@@ -4,7 +4,10 @@
 
 STEP_NUM="$1"
 COMPONENT="$2"  # backend | frontend
-TRACKER="scripts/build/build-progress-tracker.sh"
+
+# Find tracker script (works from any directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TRACKER="$SCRIPT_DIR/build-progress-tracker.sh"
 
 # Temporary file for counting
 TEST_COUNT=0
@@ -78,8 +81,12 @@ save_test_count() {
 TEST_TOTAL=$(get_estimated_count)
 bash "$TRACKER" progress "$STEP_NUM" 0 "$TEST_TOTAL"
 
+# Reserve space for panel at top (move cursor down)
+PANEL_LINES=$((TOTAL_STEPS + 5))  # Approximate panel height
+for i in $(seq 1 15); do echo ""; done  # Push output down
+
 while IFS= read -r line; do
-    # Echo line to stdout (preserve output)
+    # Echo line to stdout FIRST (preserve output)
     echo "$line"
     
     # Parse based on component
