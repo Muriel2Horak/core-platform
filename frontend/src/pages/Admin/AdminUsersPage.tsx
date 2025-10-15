@@ -3,10 +3,13 @@ import { Box, Typography, FormControl, InputLabel, Select, MenuItem, Chip, Alert
 import { Business as TenantIcon } from '@mui/icons-material';
 import axios from 'axios';
 import Users from '../../components/Users';
+import { AiHelpWidget } from '../../components/AiHelpWidget';
 
 export const AdminUsersPage = ({ user }: { user: any }) => {
   const [selectedTenant, setSelectedTenant] = useState<string>('all');
   const [tenants, setTenants] = useState<any[]>([]);
+  
+  const routeId = 'admin.users.list'; // Route ID for AI context
 
   useEffect(() => {
     const fetchTenants = async () => {
@@ -26,38 +29,43 @@ export const AdminUsersPage = ({ user }: { user: any }) => {
   const isCoreAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
 
   return (
-    <Box>
+    <Box data-route-id={routeId}>
       {isCoreAdmin && (
         <Box sx={{ mb: 3, p: 2, background: 'rgba(25, 118, 210, 0.05)', borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
-            <Typography variant="h6">Správa uživatelů</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+              <Typography variant="h6">Správa uživatelů</Typography>
 
-            <FormControl size="small" sx={{ minWidth: 250 }}>
-              <InputLabel>Filtr tenantu</InputLabel>
-              <Select
-                value={selectedTenant}
-                label="Filtr tenantu"
-                onChange={(e) => setSelectedTenant(e.target.value)}
-              >
-                <MenuItem value="all"><em>🌐 Všechny tenanty</em></MenuItem>
-                {tenants.map((tenant: any) => (
-                  <MenuItem key={tenant.key} value={tenant.key}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TenantIcon fontSize="small" />
-                      {tenant.key}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+              <FormControl size="small" sx={{ minWidth: 250 }}>
+                <InputLabel>Filtr tenantu</InputLabel>
+                <Select
+                  value={selectedTenant}
+                  label="Filtr tenantu"
+                  onChange={(e) => setSelectedTenant(e.target.value)}
+                >
+                  <MenuItem value="all"><em>🌐 Všechny tenanty</em></MenuItem>
+                  {tenants.map((tenant: any) => (
+                    <MenuItem key={tenant.key} value={tenant.key}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TenantIcon fontSize="small" />
+                        {tenant.key}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            {selectedTenant !== 'all' && (
-              <Chip
-                label={`Filtrováno: ${selectedTenant}`}
-                color="primary"
-                onDelete={() => setSelectedTenant('all')}
-              />
-            )}
+              {selectedTenant !== 'all' && (
+                <Chip
+                  label={`Filtrováno: ${selectedTenant}`}
+                  color="primary"
+                  onDelete={() => setSelectedTenant('all')}
+                />
+              )}
+            </Box>
+            
+            {/* AI Help Widget */}
+            <AiHelpWidget routeId={routeId} />
           </Box>
 
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
