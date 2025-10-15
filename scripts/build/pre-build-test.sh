@@ -67,8 +67,21 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
         set +e  # Temporarily disable exit on error
         if [ "$STEP_NUM" -gt 0 ]; then
             # With real-time progress tracking (absolute path from workspace root)
-            # Use stdbuf for line-buffered output so parser gets lines immediately
-            stdbuf -oL ./mvnw "${MAVEN_ARGS[@]}" 2>&1 | stdbuf -oL tee "$BACKEND_LOG" | bash ../scripts/build/test-progress-parser.sh "$STEP_NUM" "backend"
+            # Use stdbuf/gstdbuf for line-buffered output so parser gets lines immediately
+            # On macOS, stdbuf is called gstdbuf (from coreutils)
+            STDBUF_CMD=""
+            if command -v stdbuf &> /dev/null; then
+                STDBUF_CMD="stdbuf -oL"
+            elif command -v gstdbuf &> /dev/null; then
+                STDBUF_CMD="gstdbuf -oL"
+            fi
+            
+            if [ -n "$STDBUF_CMD" ]; then
+                $STDBUF_CMD ./mvnw "${MAVEN_ARGS[@]}" 2>&1 | $STDBUF_CMD tee "$BACKEND_LOG" | bash ../scripts/build/test-progress-parser.sh "$STEP_NUM" "backend"
+            else
+                # Fallback without stdbuf - output may be buffered
+                ./mvnw "${MAVEN_ARGS[@]}" 2>&1 | tee "$BACKEND_LOG" | bash ../scripts/build/test-progress-parser.sh "$STEP_NUM" "backend"
+            fi
             TEST_EXIT=$?
         else
             # Without progress tracking (fallback)
