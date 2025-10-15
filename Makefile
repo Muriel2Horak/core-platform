@@ -608,8 +608,8 @@ _clean_inner:
 	@# Build dynamic step list and initialize tracker
 	@bash scripts/build/build-progress-tracker.sh init "MAKE CLEAN - FULL PIPELINE" \
 		"Cleanup" "Pre-build tests" "Build images" "Start services" \
-		$$(if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then echo "E2E pre-deploy" "E2E post-deploy"; \
-		   elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then echo "E2E pre-deploy"; fi); \
+		$$(if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then echo '"E2E pre-deploy" "E2E post-deploy"'; \
+		   elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then echo '"E2E pre-deploy"'; fi); \
 	sleep 1; \
 	\
 	bash scripts/build/build-progress-tracker.sh update 1 "IN_PROGRESS" ""; \
