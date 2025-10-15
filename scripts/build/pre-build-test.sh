@@ -58,7 +58,14 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
             done
         fi
 
-        MAVEN_ARGS=("-q" "-DtrimStackTrace=true" "-Dsurefire.printSummary=true" "-Dsurefire.reportFormat=brief" "-Dmaven.test.failure.ignore=false")
+        # Maven args - use -q (quiet) only when NOT tracking progress
+        # Parser needs [INFO] Running lines to count tests
+        if [ "$STEP_NUM" -gt 0 ]; then
+            MAVEN_ARGS=("-DtrimStackTrace=true" "-Dsurefire.printSummary=true" "-Dsurefire.reportFormat=brief" "-Dmaven.test.failure.ignore=false")
+        else
+            MAVEN_ARGS=("-q" "-DtrimStackTrace=true" "-Dsurefire.printSummary=true" "-Dsurefire.reportFormat=brief" "-Dmaven.test.failure.ignore=false")
+        fi
+        
         if [ -n "$TEST_PATTERN" ]; then
             MAVEN_ARGS+=("-Dtest=$TEST_PATTERN")
         fi
