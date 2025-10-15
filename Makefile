@@ -12,7 +12,7 @@ LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
 JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
 
 .PHONY: help test-mt report-mt test-and-report clean-artifacts
-.PHONY: up down clean rebuild doctor watch verify verify-full
+.PHONY: up down clean clean-fast rebuild doctor watch verify verify-full
 
 # =============================================================================
 # 🚀 MAIN ENVIRONMENT TARGETS
@@ -43,7 +43,8 @@ help:
 	@echo "  restart         - Restart all services"
 	@echo "  rebuild         - Rebuild with cache (FAST ⚡)"
 	@echo "  rebuild-clean   - Rebuild without cache (slow but clean)"
-	@echo "  clean           - Clean restart (rebuild + smaže DATA)"
+	@echo "  clean           - Clean restart + FULL E2E testing 🧪"
+	@echo "  clean-fast      - Clean restart WITHOUT E2E (dev mode)"
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  test-backend    - Backend unit tests"
@@ -57,9 +58,10 @@ help:
 	@echo "  verify-full     - Full integration tests"
 	@echo ""
 	@echo "💡 Note: Unit tests run automatically before 'make rebuild'"
+	@echo "         'make clean' runs FULL E2E pipeline (PRE + POST)"
 	@echo "         PRE-DEPLOY E2E: Fast smoke tests (5-7 min)"
 	@echo "         POST-DEPLOY E2E: Full scenarios (20-30 min)"
-	@echo "         Use SKIP_TESTS=true to bypass (not recommended)"
+	@echo "         Use 'make clean-fast' for dev rebuild without E2E"
 	@echo ""
 	@echo "📚 More: make help-advanced"
 
@@ -76,6 +78,13 @@ help-advanced:
 	@echo "  e2e-scaffold        - Create test data only"
 	@echo "  e2e-teardown        - Cleanup test data only"
 	@echo "  e2e-report          - Open HTML test report"
+	@echo ""
+	@echo "🏗️ Build Modes:"
+	@echo "  clean               - Clean rebuild + FULL E2E (PRE + POST)"
+	@echo "  clean-fast          - Clean rebuild WITHOUT E2E (dev mode)"
+	@echo "  rebuild             - Fast rebuild (cache, no E2E)"
+	@echo "  rebuild RUN_E2E_PRE=true   - Rebuild with PRE-DEPLOY E2E"
+	@echo "  rebuild RUN_E2E_FULL=true  - Rebuild with ALL E2E tests"
 	@echo ""
 	@echo "� CI/CD Pipeline:"
 	@echo "  ci-test-pipeline    - Full CI pipeline (unit + E2E gate)"
@@ -390,28 +399,48 @@ _rebuild_inner:
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo ">>> rebuilding at $(BUILD_TS)"
+	@if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
+		echo "📋 Mode: FULL E2E TESTING"; \
+	elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
+		echo "📋 Mode: PRE-DEPLOY E2E ONLY"; \
+	else \
+		echo "📋 Mode: SMOKE TESTS ONLY (no E2E)"; \
+	fi
 	@echo ""
-	@echo "▶️  [1/4] Running pre-build tests..."
-	@bash scripts/build/pre-build-test.sh all 2>&1 | \
+	@echo "▶️  [1/6] Running pre-build tests..."
+	@set -o pipefail && bash scripts/build/pre-build-test.sh all 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
 		sed 's/Tests run:/📊 Tests:/g' | \
-		tail -15
+		tail -15 || (echo "❌ Tests failed - aborting build" && exit 1)
 	@echo "  ✅ Pre-build tests passed"
 	@echo ""
-	@echo "▶️  [2/4] Building Docker images (parallel, with cache)..."
+	@echo "▶️  [2/6] Building Docker images (parallel, with cache)..."
 	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | \
 		grep -E "(Building|built|CACHED|exporting)" | tail -20
 	@echo "  ✅ Images built successfully"
 	@echo ""
-	@echo "▶️  [3/4] Starting services..."
+	@echo "▶️  [3/6] Starting services..."
 	@$(MAKE) up
 	@echo ""
-	@if [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
-		echo "▶️  [4/4] Running PRE-DEPLOY E2E tests..."; \
+	@if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
+		echo "▶️  [4/6] Running PRE-DEPLOY E2E tests (smoke)..."; \
+		$(MAKE) test-e2e-pre || (echo "❌ PRE-DEPLOY E2E failed! Deployment blocked."; exit 1); \
+		echo ""; \
+		echo "▶️  [5/6] Running POST-DEPLOY E2E tests (full scenarios)..."; \
+		$(MAKE) test-e2e-post || (echo "❌ POST-DEPLOY E2E failed!"; exit 1); \
+		echo ""; \
+		echo "▶️  [6/6] All E2E tests completed ✅"; \
+	elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
+		echo "▶️  [4/6] Running PRE-DEPLOY E2E tests..."; \
 		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
+		echo ""; \
+		echo "⏭️  [5/6] POST-DEPLOY E2E skipped (set RUN_E2E_FULL=true to enable)"; \
+		echo "⏭️  [6/6] Skipped"; \
 	else \
-		echo "⏭️  [4/4] E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
+		echo "⏭️  [4/6] E2E tests skipped (set RUN_E2E_PRE=true or RUN_E2E_FULL=true)"; \
+		echo "⏭️  [5/6] Skipped"; \
+		echo "⏭️  [6/6] Skipped"; \
 	fi
 	@echo ""
 	@echo "🎉 Rebuild completed successfully!"
@@ -429,54 +458,100 @@ _rebuild_clean_inner:
 	@echo ""
 	@echo ">>> force rebuilding (no cache) at $(BUILD_TS)"
 	@echo "⚠️  Warning: This will take longer but ensures clean build"
+	@if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
+		echo "📋 Mode: FULL E2E TESTING"; \
+	elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
+		echo "📋 Mode: PRE-DEPLOY E2E ONLY"; \
+	else \
+		echo "📋 Mode: SMOKE TESTS ONLY (no E2E)"; \
+	fi
 	@echo ""
-	@echo "▶️  [1/4] Running pre-build tests..."
-	@bash scripts/build/pre-build-test.sh all 2>&1 | \
+	@echo "▶️  [1/6] Running pre-build tests..."
+	@set -o pipefail && bash scripts/build/pre-build-test.sh all 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
 		sed 's/Tests run:/📊 Tests:/g' | \
-		tail -15
+		tail -15 || (echo "❌ Tests failed - aborting build" && exit 1)
 	@echo "  ✅ Pre-build tests passed"
 	@echo ""
-	@echo "▶️  [2/4] Building Docker images (NO CACHE - parallel)..."
+	@echo "▶️  [2/6] Building Docker images (NO CACHE - parallel)..."
 	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1 | \
 		grep -E "(Building|built|exporting)" | tail -20
 	@echo "  ✅ Images built successfully"
 	@echo ""
-	@echo "▶️  [3/4] Starting services..."
+	@echo "▶️  [3/6] Starting services..."
 	@$(MAKE) up
 	@echo ""
-	@if [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
-		echo "▶️  [4/4] Running PRE-DEPLOY E2E tests..."; \
+	@if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
+		echo "▶️  [4/6] Running PRE-DEPLOY E2E tests (smoke)..."; \
+		$(MAKE) test-e2e-pre || (echo "❌ PRE-DEPLOY E2E failed! Deployment blocked."; exit 1); \
+		echo ""; \
+		echo "▶️  [5/6] Running POST-DEPLOY E2E tests (full scenarios)..."; \
+		$(MAKE) test-e2e-post || (echo "❌ POST-DEPLOY E2E failed!"; exit 1); \
+		echo ""; \
+		echo "▶️  [6/6] All E2E tests completed ✅"; \
+	elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
+		echo "▶️  [4/6] Running PRE-DEPLOY E2E tests..."; \
 		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
+		echo ""; \
+		echo "⏭️  [5/6] POST-DEPLOY E2E skipped (set RUN_E2E_FULL=true to enable)"; \
+		echo "⏭️  [6/6] Skipped"; \
 	else \
-		echo "⏭️  [4/4] E2E tests skipped (set RUN_E2E_PRE=true to enable)"; \
+		echo "⏭️  [4/6] E2E tests skipped (set RUN_E2E_PRE=true or RUN_E2E_FULL=true)"; \
+		echo "⏭️  [5/6] Skipped"; \
+		echo "⏭️  [6/6] Skipped"; \
 	fi
 	@echo ""
 	@echo "🎉 Clean rebuild completed successfully!"
 	@echo ""
 
-# Clean with Build Doctor
+# Clean with Build Doctor (FULL E2E TESTING)
 clean:
 	@scripts/build/wrapper.sh $(MAKE) _clean_inner 2>&1 | tee -a $(LOG_FILE)
 
 _clean_inner:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
-	@echo "║  🧹 CLEAN RESTART (REMOVES DATA + REBUILDS)                   ║"
+	@echo "║  🧹 CLEAN RESTART (REMOVES DATA + FULL E2E TESTING)           ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo ">>> cleaning at $(BUILD_TS)"
 	@echo "⚠️  WARNING: This will DELETE all volumes and data!"
+	@echo "📋 Full testing pipeline: PRE-BUILD → BUILD → POST-DEPLOY → E2E PRE → E2E POST"
 	@echo ""
 	@echo "▶️  Removing containers, images, and volumes..."
 	@docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes 2>&1 | \
 		grep -v "^\[DEBUG\]" | tail -10
 	@echo "  ✅ Cleanup complete"
 	@echo ""
-	@echo "▶️  Rebuilding from scratch..."
+	@echo "▶️  Rebuilding from scratch with full E2E testing..."
+	@$(MAKE) rebuild RUN_E2E_FULL=true
+	@echo ""
+	@echo "🎉 Clean restart with full E2E testing completed!"
+	@echo ""
+
+# Fast clean without E2E (for development)
+.PHONY: clean-fast
+clean-fast:
+	@scripts/build/wrapper.sh $(MAKE) _clean_fast_inner 2>&1 | tee -a $(LOG_FILE)
+
+_clean_fast_inner:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧹 FAST CLEAN (NO E2E TESTS - DEV MODE)                      ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo ">>> fast cleaning at $(BUILD_TS)"
+	@echo "⚠️  WARNING: This will DELETE all volumes and data!"
+	@echo "📋 Testing: PRE-BUILD unit tests + POST-DEPLOY smoke tests only"
+	@echo ""
+	@echo "▶️  Removing containers, images, and volumes..."
+	@docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes 2>&1 | \
+		grep -v "^\[DEBUG\]" | tail -10
+	@echo "  ✅ Cleanup complete"
+	@echo ""
+	@echo "▶️  Rebuilding from scratch (no E2E)..."
 	@$(MAKE) rebuild
 	@echo ""
-	@echo "🎉 Clean restart completed!"
+	@echo "🎉 Fast clean restart completed!"
 	@echo ""
 
 # Crashloop watcher
