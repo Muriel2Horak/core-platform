@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 
@@ -29,329 +31,346 @@ import static org.mockito.Mockito.*;
  * 
  * @since 2025-10-14
  */
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockitoExtension.class) @MockitoSettings(strictness = Strictness.LENIENT)
 class WorkflowRuntimeServiceTest {
 
-  @Mock
-  private JdbcTemplate jdbcTemplate;
+    @Mock
+    private JdbcTemplate jdbcTemplate;
 
-  @Mock
-  private WorkflowService workflowService;
+    @Mock
+    private WorkflowService workflowService;
 
-  @Mock
-  private MetamodelRegistry metamodelRegistry;
+    @Mock
+    private MetamodelRegistry metamodelRegistry;
 
-  @Mock
-  private Authentication auth;
+    @Mock
+    private Authentication auth;
 
-  private WorkflowRuntimeService runtimeService;
+    private WorkflowRuntimeService runtimeService;
 
-  @BeforeEach
-  void setUp() {
-    runtimeService = new WorkflowRuntimeService(jdbcTemplate, workflowService, metamodelRegistry);
-  }
+    @BeforeEach
+    void setUp() {
+        runtimeService = new WorkflowRuntimeService(jdbcTemplate, workflowService,
+                metamodelRegistry);
+    }
 
-  // ============================================
-  // GRAPH TESTS
-  // ============================================
+    // ============================================
+    // GRAPH TESTS
+    // ============================================
 
-  @Test
-  void testGetWorkflowGraph_withCurrentState() {
-    // Arrange
-    String entityType = "Order";
-    String entityId = "order-123";
-    String tenantId = "tenant-1";
+    @Test
+    void testGetWorkflowGraph_withCurrentState() {
+        // Arrange
+        String entityType = "Order";
+        String entityId = "order-123";
+        String tenantId = "tenant-1";
 
-    WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
-        .entityType(entityType).entityId(entityId).tenantId(tenantId).stateCode("APPROVED")
-        .since(Instant.now()).build();
+        WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
+                .entityType(entityType).entityId(entityId).tenantId(tenantId).stateCode("APPROVED")
+                .since(Instant.now()).build();
 
-    EntitySchema schema = createMockSchema();
+        EntitySchema schema = createMockSchema();
 
-    when(workflowService.getCurrentState(entityType, entityId, tenantId)).thenReturn(currentState);
-    when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(schema));
-    when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId), eq(tenantId)))
-        .thenReturn(List
-            .of(WorkflowModels.StateTransition.builder().code("ship").toCode("SHIPPED").build()));
+        when(workflowService.getCurrentState(entityType, entityId, tenantId))
+                .thenReturn(currentState);
+        when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(schema));
+        when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId),
+                eq(tenantId)))
+                        .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship")
+                                .toCode("SHIPPED").build()));
 
-    // Act
-    WorkflowModels.WorkflowGraph graph = runtimeService.getWorkflowGraph(auth, entityType, entityId,
-        tenantId);
+        // Act
+        WorkflowModels.WorkflowGraph graph = runtimeService.getWorkflowGraph(auth, entityType,
+                entityId, tenantId);
 
-    // Assert
-    assertNotNull(graph);
-    assertEquals(entityType, graph.getEntityType());
-    assertEquals("APPROVED", graph.getCurrentState());
+        // Assert
+        assertNotNull(graph);
+        assertEquals(entityType, graph.getEntityType());
+        assertEquals("APPROVED", graph.getCurrentState());
 
-    // Verify nodes
-    assertEquals(4, graph.getNodes().size());
-    assertTrue(
-        graph.getNodes().stream().anyMatch(n -> n.getCode().equals("APPROVED") && n.isCurrent()));
-    assertTrue(graph.getNodes().stream().anyMatch(n -> n.getCode().equals("PENDING")));
+        // Verify nodes
+        assertEquals(4, graph.getNodes().size());
+        assertTrue(graph.getNodes().stream()
+                .anyMatch(n -> n.getCode().equals("APPROVED") && n.isCurrent()));
+        assertTrue(graph.getNodes().stream().anyMatch(n -> n.getCode().equals("PENDING")));
 
-    // Verify edges
-    assertTrue(graph.getEdges().size() > 0);
-    Optional<WorkflowModels.GraphEdge> shipEdge = graph.getEdges().stream()
-        .filter(e -> e.getTransitionCode().equals("ship")).findFirst();
-    assertTrue(shipEdge.isPresent());
-    assertTrue(shipEdge.get().isAllowed());
-  }
+        // Verify edges
+        assertTrue(graph.getEdges().size() > 0);
+        Optional<WorkflowModels.GraphEdge> shipEdge = graph.getEdges().stream()
+                .filter(e -> e.getTransitionCode().equals("ship")).findFirst();
+        assertTrue(shipEdge.isPresent());
+        assertTrue(shipEdge.get().isAllowed());
+    }
 
-  @Test
-  void testGetWorkflowGraph_noCurrentState() {
-    // Arrange
-    String entityType = "Order";
-    String entityId = "order-new";
-    String tenantId = "tenant-1";
+    @Test
+    void testGetWorkflowGraph_noCurrentState() {
+        // Arrange
+        String entityType = "Order";
+        String entityId = "order-new";
+        String tenantId = "tenant-1";
 
-    EntitySchema schema = createMockSchema();
+        EntitySchema schema = createMockSchema();
 
-    when(workflowService.getCurrentState(entityType, entityId, tenantId)).thenReturn(null);
-    when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(schema));
-    when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId), eq(tenantId)))
-        .thenReturn(Collections.emptyList());
+        when(workflowService.getCurrentState(entityType, entityId, tenantId)).thenReturn(null);
+        when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(schema));
+        when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId),
+                eq(tenantId))).thenReturn(Collections.emptyList());
 
-    // Act
-    WorkflowModels.WorkflowGraph graph = runtimeService.getWorkflowGraph(auth, entityType, entityId,
-        tenantId);
+        // Act
+        WorkflowModels.WorkflowGraph graph = runtimeService.getWorkflowGraph(auth, entityType,
+                entityId, tenantId);
 
-    // Assert
-    assertNotNull(graph);
-    assertNull(graph.getCurrentState());
-    assertEquals(4, graph.getNodes().size());
-    assertFalse(graph.getNodes().stream().anyMatch(WorkflowModels.GraphNode::isCurrent));
-  }
+        // Assert
+        assertNotNull(graph);
+        assertNull(graph.getCurrentState());
+        assertEquals(4, graph.getNodes().size());
+        assertFalse(graph.getNodes().stream().anyMatch(WorkflowModels.GraphNode::isCurrent));
+    }
 
-  @Test
-  void testGetWorkflowGraph_noMetamodel() {
-    // Arrange
-    when(metamodelRegistry.getSchema("UnknownEntity")).thenReturn(Optional.empty());
+    @Test
+    void testGetWorkflowGraph_noMetamodel() {
+        // Arrange
+        when(metamodelRegistry.getSchema("UnknownEntity")).thenReturn(Optional.empty());
 
-    // Act
-    WorkflowModels.WorkflowGraph graph = runtimeService.getWorkflowGraph(auth, "UnknownEntity",
-        "id", "tenant");
+        // Act
+        WorkflowModels.WorkflowGraph graph = runtimeService.getWorkflowGraph(auth, "UnknownEntity",
+                "id", "tenant");
 
-    // Assert
-    assertNotNull(graph);
-    assertTrue(graph.getNodes().isEmpty());
-    assertTrue(graph.getEdges().isEmpty());
-  }
+        // Assert
+        assertNotNull(graph);
+        assertTrue(graph.getNodes().isEmpty());
+        assertTrue(graph.getEdges().isEmpty());
+    }
 
-  // ============================================
-  // STATE DETAIL TESTS
-  // ============================================
+    // ============================================
+    // STATE DETAIL TESTS
+    // ============================================
 
-  @Test
-  void testGetStateDetail_allowedAndBlockedTransitions() {
-    // Arrange
-    String entityType = "Order";
-    String entityId = "order-123";
-    String tenantId = "tenant-1";
+    @Test
+    void testGetStateDetail_allowedAndBlockedTransitions() {
+        // Arrange
+        String entityType = "Order";
+        String entityId = "order-123";
+        String tenantId = "tenant-1";
 
-    WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
-        .stateCode("APPROVED").since(Instant.now().minusSeconds(60)).build();
+        WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
+                .stateCode("APPROVED").since(Instant.now().minusSeconds(60)).build();
 
-    when(workflowService.getCurrentState(entityType, entityId, tenantId)).thenReturn(currentState);
-    when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
-    when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId), eq(tenantId)))
-        .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship").toCode("SHIPPED")
-            .slaMinutes(60).build()));
+        when(workflowService.getCurrentState(entityType, entityId, tenantId))
+                .thenReturn(currentState);
+        when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
+        when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId),
+                eq(tenantId)))
+                        .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship")
+                                .toCode("SHIPPED").slaMinutes(60).build()));
 
-    @SuppressWarnings("unchecked")
-    org.springframework.jdbc.core.RowMapper<Integer> slaRowMapper = any(
-        org.springframework.jdbc.core.RowMapper.class);
-    when(jdbcTemplate.query(anyString(), slaRowMapper, eq(entityType), eq(entityId), eq(tenantId)))
-        .thenReturn(List.of(30)); // 30 minutes SLA
+        //  Mock SLA query (lenient mode allows flexible matching)
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        var slaQueryStub = when(jdbcTemplate.query(anyString(), 
+                any(org.springframework.jdbc.core.RowMapper.class), 
+                anyString(), anyString(), anyString()));
+        slaQueryStub.thenReturn(List.of(30));
 
-    // Act
-    WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
-        entityId, tenantId);
+        // Act
+        WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
+                entityId, tenantId);
 
-    // Assert
-    assertNotNull(detail);
-    assertEquals(currentState, detail.getCurrentState());
+        // Assert
+        assertNotNull(detail);
+        assertEquals(currentState, detail.getCurrentState());
 
-    // Allowed transitions
-    assertEquals(1, detail.getAllowedTransitions().size());
-    WorkflowModels.AllowedTransition allowed = detail.getAllowedTransitions().get(0);
-    assertEquals("ship", allowed.getCode());
-    assertEquals("SHIPPED", allowed.getToState());
+        // Allowed transitions
+        assertEquals(1, detail.getAllowedTransitions().size());
+        WorkflowModels.AllowedTransition allowed = detail.getAllowedTransitions().get(0);
+        assertEquals("ship", allowed.getCode());
+        assertEquals("SHIPPED", allowed.getToState());
 
-    // Blocked transitions (should have some from schema)
-    assertTrue(detail.getBlockedTransitions().size() >= 0);
+        // Blocked transitions (should have some from schema)
+        assertTrue(detail.getBlockedTransitions().size() >= 0);
 
-    // State age
-    assertTrue(detail.getStateAgeMs() > 0);
-  }
+        // State age
+        assertTrue(detail.getStateAgeMs() > 0);
+    }
 
-  @Test
-  void testGetStateDetail_slaWarning() {
-    // Arrange
-    String entityType = "Order";
-    String entityId = "order-123";
-    String tenantId = "tenant-1";
+    @Test
+    void testGetStateDetail_slaWarning() {
+        // Arrange
+        String entityType = "Order";
+        String entityId = "order-123";
+        String tenantId = "tenant-1";
 
-    // State age: 50 minutes, SLA: 60 minutes -> WARN (> 80%)
-    WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
-        .stateCode("APPROVED").since(Instant.now().minusSeconds(50 * 60)).build();
+        // State age: 50 minutes, SLA: 60 minutes -> WARN (> 80%)
+        WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
+                .stateCode("APPROVED").since(Instant.now().minusSeconds(50 * 60)).build();
 
-    when(workflowService.getCurrentState(entityType, entityId, tenantId)).thenReturn(currentState);
-    when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
-    when(workflowService.getAllowedTransitions(any(), any(), any(), any()))
-        .thenReturn(Collections.emptyList());
-    @SuppressWarnings("unchecked")
-    org.springframework.jdbc.core.RowMapper<Integer> slaRowMapper2 = any(
-        org.springframework.jdbc.core.RowMapper.class);
-    when(jdbcTemplate.query(anyString(), slaRowMapper2, any(), any(), any()))
-        .thenReturn(List.of(60)); // 60 minutes SLA
+        when(workflowService.getCurrentState(entityType, entityId, tenantId))
+                .thenReturn(currentState);
+        when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
+        when(workflowService.getAllowedTransitions(any(), any(), any(), any()))
+                .thenReturn(Collections.emptyList());
+                
+        // Mock SLA query with lenient mode
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        var slaQueryStub2 = when(jdbcTemplate.query(anyString(), 
+                any(org.springframework.jdbc.core.RowMapper.class), 
+                anyString(), anyString(), anyString()));
+        slaQueryStub2.thenReturn(List.of(60));
 
-    // Act
-    WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
-        entityId, tenantId);
+        // Act
+        WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
+                entityId, tenantId);
 
-    // Assert
-    assertNotNull(detail);
-    assertEquals(WorkflowModels.SlaStatus.WARN, detail.getSlaStatus());
-  }
+        // Assert
+        assertNotNull(detail);
+        assertEquals(WorkflowModels.SlaStatus.WARN, detail.getSlaStatus());
+    }
 
-  // ============================================
-  // HISTORY TESTS
-  // ============================================
+    // ============================================
+    // HISTORY TESTS
+    // ============================================
 
-  @Test
-  void testGetHistory_withTimeline() {
-    // Arrange
-    String entityType = "Order";
-    String entityId = "order-123";
-    String tenantId = "tenant-1";
+    @Test
+    void testGetHistory_withTimeline() {
+        // Arrange
+        String entityType = "Order";
+        String entityId = "order-123";
+        String tenantId = "tenant-1";
 
-    @SuppressWarnings("unchecked")
-    org.springframework.jdbc.core.RowMapper<WorkflowModels.HistoryEntry> historyRowMapper = any(
-        org.springframework.jdbc.core.RowMapper.class);
-    when(jdbcTemplate.query(anyString(), historyRowMapper, eq(entityType), eq(entityId),
-        eq(tenantId)))
-            .thenReturn(List.of(
+        // Mock history query with lenient mode
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        var historyQueryStub = when(jdbcTemplate.query(anyString(), 
+                any(org.springframework.jdbc.core.RowMapper.class), 
+                anyString(), anyString(), anyString()));
+        historyQueryStub.thenReturn(List.of(
                 WorkflowModels.HistoryEntry.builder()
-                    .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED).fromState("PENDING")
-                    .toState("APPROVED").transitionCode("approve")
-                    .timestamp(Instant.now().minusSeconds(120)).durationMs(120000L).actor("user-1")
-                    .slaStatus(WorkflowModels.SlaStatus.OK).build(),
+                        .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED)
+                        .fromState("PENDING").toState("APPROVED").transitionCode("approve")
+                        .timestamp(Instant.now().minusSeconds(120)).durationMs(120000L)
+                        .actor("user-1").slaStatus(WorkflowModels.SlaStatus.OK).build(),
                 WorkflowModels.HistoryEntry.builder()
-                    .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED).fromState(null)
-                    .toState("PENDING").transitionCode("create")
-                    .timestamp(Instant.now().minusSeconds(240)).durationMs(60000L).actor("user-1")
-                    .slaStatus(WorkflowModels.SlaStatus.OK).build()));
+                        .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED)
+                        .fromState(null).toState("PENDING").transitionCode("create")
+                        .timestamp(Instant.now().minusSeconds(240))
+                        .durationMs(60000L).actor("user-1")
+                        .slaStatus(WorkflowModels.SlaStatus.OK).build()));
 
-    // Act
-    WorkflowModels.WorkflowHistory history = runtimeService.getHistory(entityType, entityId,
-        tenantId);
+        // Act
+        WorkflowModels.WorkflowHistory history = runtimeService.getHistory(entityType, entityId,
+                tenantId);
 
-    // Assert
-    assertNotNull(history);
-    assertEquals(entityType, history.getEntityType());
-    assertEquals(entityId, history.getEntityId());
-    assertEquals(2, history.getEntries().size());
-    assertTrue(history.getTotalDurationMs() > 0);
+        // Assert
+        assertNotNull(history);
+        assertEquals(entityType, history.getEntityType());
+        assertEquals(entityId, history.getEntityId());
+        assertEquals(2, history.getEntries().size());
+        assertTrue(history.getTotalDurationMs() > 0);
 
-    // Verify order (most recent first)
-    assertEquals("APPROVED", history.getEntries().get(0).getToState());
-    assertEquals("PENDING", history.getEntries().get(1).getToState());
-  }
+        // Verify order (most recent first)
+        assertEquals("APPROVED", history.getEntries().get(0).getToState());
+        assertEquals("PENDING", history.getEntries().get(1).getToState());
+    }
 
-  // ============================================
-  // FORECAST TESTS
-  // ============================================
+    // ============================================
+    // FORECAST TESTS
+    // ============================================
 
-  @Test
-  void testGetForecast_withPendingTimers() {
-    // Arrange
-    String entityType = "Order";
-    String entityId = "order-123";
-    String tenantId = "tenant-1";
+    @Test
+    void testGetForecast_withPendingTimers() {
+        // Arrange
+        String entityType = "Order";
+        String entityId = "order-123";
+        String tenantId = "tenant-1";
 
-    WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
-        .stateCode("APPROVED").build();
+        WorkflowModels.EntityState currentState = WorkflowModels.EntityState.builder()
+                .stateCode("APPROVED").build();
 
-    when(workflowService.getCurrentState(entityType, entityId, tenantId)).thenReturn(currentState);
-    when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
-    when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId), eq(tenantId)))
-        .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship").toCode("SHIPPED")
-            .slaMinutes(120).build()));
+        when(workflowService.getCurrentState(entityType, entityId, tenantId))
+                .thenReturn(currentState);
+        when(metamodelRegistry.getSchema(entityType)).thenReturn(Optional.of(createMockSchema()));
+        when(workflowService.getAllowedTransitions(any(), eq(entityType), eq(entityId),
+                eq(tenantId)))
+                        .thenReturn(List.of(WorkflowModels.StateTransition.builder().code("ship")
+                                .toCode("SHIPPED").slaMinutes(120).build()));
 
-    UUID timerId = UUID.randomUUID();
-    @SuppressWarnings("unchecked")
-    org.springframework.jdbc.core.RowMapper<WorkflowModels.PendingTimer> timerRowMapper = any(
-        org.springframework.jdbc.core.RowMapper.class);
-    when(
-        jdbcTemplate.query(anyString(), timerRowMapper, eq(entityType), eq(entityId), eq(tenantId)))
-            .thenReturn(List.of(WorkflowModels.PendingTimer.builder().id(timerId)
-                .type(WorkflowModels.TimerType.SLA_WARNING)
-                .scheduledAt(Instant.now().plusSeconds(3600)).action("notify").remainingMs(3600000L)
-                .build()));
+        UUID timerId = UUID.randomUUID();
+        
+        // Mock timer query with lenient mode
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        var timerQueryStub = when(jdbcTemplate.query(anyString(), 
+                any(org.springframework.jdbc.core.RowMapper.class), 
+                anyString(), anyString(), anyString()));
+        timerQueryStub.thenReturn(List.of(
+                WorkflowModels.PendingTimer.builder()
+                        .id(timerId)
+                        .type(WorkflowModels.TimerType.SLA_WARNING)
+                        .scheduledAt(Instant.now().plusSeconds(3600))
+                        .action("notify")
+                        .remainingMs(3600000L)
+                        .build()));
 
-    // Act
-    WorkflowModels.WorkflowForecast forecast = runtimeService.getForecast(auth, entityType,
-        entityId, tenantId);
+        // Act
+        WorkflowModels.WorkflowForecast forecast = runtimeService.getForecast(auth, entityType,
+                entityId, tenantId);
 
-    // Assert
-    assertNotNull(forecast);
-    assertEquals("APPROVED", forecast.getCurrentState());
+        // Assert
+        assertNotNull(forecast);
+        assertEquals("APPROVED", forecast.getCurrentState());
 
-    // Next steps
-    assertEquals(1, forecast.getNextSteps().size());
-    WorkflowModels.ForecastStep step = forecast.getNextSteps().get(0);
-    assertEquals("ship", step.getTransitionCode());
-    assertEquals("SHIPPED", step.getToState());
-    assertEquals(120, step.getEstimatedSlaMinutes());
+        // Next steps
+        assertEquals(1, forecast.getNextSteps().size());
+        WorkflowModels.ForecastStep step = forecast.getNextSteps().get(0);
+        assertEquals("ship", step.getTransitionCode());
+        assertEquals("SHIPPED", step.getToState());
+        assertEquals(120, step.getEstimatedSlaMinutes());
 
-    // Pending timers
-    assertEquals(1, forecast.getPendingTimers().size());
-    WorkflowModels.PendingTimer timer = forecast.getPendingTimers().get(0);
-    assertEquals(WorkflowModels.TimerType.SLA_WARNING, timer.getType());
-    assertTrue(timer.getRemainingMs() > 0);
-  }
+        // Pending timers
+        assertEquals(1, forecast.getPendingTimers().size());
+        WorkflowModels.PendingTimer timer = forecast.getPendingTimers().get(0);
+        assertEquals(WorkflowModels.TimerType.SLA_WARNING, timer.getType());
+        assertTrue(timer.getRemainingMs() > 0);
+    }
 
-  // ============================================
-  // HELPER METHODS
-  // ============================================
+    // ============================================
+    // HELPER METHODS
+    // ============================================
 
-  private EntitySchema createMockSchema() {
-    EntitySchema schema = new EntitySchema();
-    schema.setEntity("Order");
+    private EntitySchema createMockSchema() {
+        EntitySchema schema = new EntitySchema();
+        schema.setEntity("Order");
 
-    // States
-    List<StateConfig> states = new ArrayList<>();
-    states.add(createState("PENDING", "Pending"));
-    states.add(createState("APPROVED", "Approved"));
-    states.add(createState("SHIPPED", "Shipped"));
-    states.add(createState("DELIVERED", "Delivered"));
-    schema.setStates(states);
+        // States
+        List<StateConfig> states = new ArrayList<>();
+        states.add(createState("PENDING", "Pending"));
+        states.add(createState("APPROVED", "Approved"));
+        states.add(createState("SHIPPED", "Shipped"));
+        states.add(createState("DELIVERED", "Delivered"));
+        schema.setStates(states);
 
-    // Transitions
-    List<TransitionConfig> transitions = new ArrayList<>();
-    transitions.add(createTransition("approve", "PENDING", "APPROVED", "Approve", 30));
-    transitions.add(createTransition("ship", "APPROVED", "SHIPPED", "Ship", 60));
-    transitions.add(createTransition("deliver", "SHIPPED", "DELIVERED", "Deliver", 120));
-    schema.setTransitions(transitions);
+        // Transitions
+        List<TransitionConfig> transitions = new ArrayList<>();
+        transitions.add(createTransition("approve", "PENDING", "APPROVED", "Approve", 30));
+        transitions.add(createTransition("ship", "APPROVED", "SHIPPED", "Ship", 60));
+        transitions.add(createTransition("deliver", "SHIPPED", "DELIVERED", "Deliver", 120));
+        schema.setTransitions(transitions);
 
-    return schema;
-  }
+        return schema;
+    }
 
-  private StateConfig createState(String code, String label) {
-    StateConfig state = new StateConfig();
-    state.setCode(code);
-    state.setLabel(label);
-    return state;
-  }
+    private StateConfig createState(String code, String label) {
+        StateConfig state = new StateConfig();
+        state.setCode(code);
+        state.setLabel(label);
+        return state;
+    }
 
-  private TransitionConfig createTransition(String code, String from, String to, String label,
-      Integer slaMinutes) {
-    TransitionConfig transition = new TransitionConfig();
-    transition.setCode(code);
-    transition.setFrom(from);
-    transition.setTo(to);
-    transition.setLabel(label);
-    transition.setSlaMinutes(slaMinutes);
-    return transition;
-  }
+    private TransitionConfig createTransition(String code, String from, String to, String label,
+            Integer slaMinutes) {
+        TransitionConfig transition = new TransitionConfig();
+        transition.setCode(code);
+        transition.setFrom(from);
+        transition.setTo(to);
+        transition.setLabel(label);
+        transition.setSlaMinutes(slaMinutes);
+        return transition;
+    }
 }

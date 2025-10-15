@@ -13,9 +13,7 @@ import org.springframework.context.annotation.Configuration;
  * Provides GlobalMetamodelConfig as a singleton Spring bean. This bean is
  * loaded once at startup and injected into controllers/services.
  */
-@Slf4j
-@Configuration
-@RequiredArgsConstructor
+@Slf4j @Configuration @RequiredArgsConstructor
 public class MetamodelConfig {
 
   private final MetamodelLoader metamodelLoader;
@@ -29,7 +27,7 @@ public class MetamodelConfig {
   public GlobalMetamodelConfig globalMetamodelConfig() {
     log.info("🔧 Initializing GlobalMetamodelConfig bean");
     GlobalMetamodelConfig config = metamodelLoader.loadGlobalConfig();
-    log.info("✅ GlobalMetamodelConfig loaded: streaming.enabled={}, ai.enabled={}", 
+    log.info("✅ GlobalMetamodelConfig loaded: streaming.enabled={}, ai.enabled={}",
         config.getStreaming().isEnabled(),
         config.getAi() != null ? config.getAi().getEnabled() : false);
     return config;
