@@ -186,7 +186,8 @@ draw_panel() {
                 if [ "$total" -gt 0 ]; then
                     local percent=$((current * 100 / total))
                     bar=$(draw_bar "$percent")
-                    status_text="${YELLOW}IN PROGRESS${NC} ${GRAY}($current/$total)${NC}"
+                    # Show test count prominently: "145/215 tests (67%)"
+                    status_text="${CYAN}${current}/${total} tests${NC} ${GRAY}(${percent}%)${NC}"
                 else
                     bar=$(draw_bar 50)
                     status_text="${YELLOW}IN PROGRESS${NC}"

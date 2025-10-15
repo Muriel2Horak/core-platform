@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 # Real-time test progress parser
-# Parsuje Maven Surefire a Vitest output a reportuje progress
+# Parsuje Maven Surefire a Vitest while IFS= read -r line; do
+    # Filter output: only show important lines
+    # Show errors and results - hide warnings/setup noise and "[INFO] Running" (we print it ourselves)
+    if [[ "$line" =~ ^\[ERROR\]|Tests\ run:|BUILD\ SUCCESS|BUILD\ FAILURE|FAILED|✓|✗ ]]; then
+        echo "$line"
+    fi
+    
+    # Parse based on component type
+    if [ "$COMPONENT" = "backend" ]; then
+        parse_maven_realtime "$line"
+    elif [ "$COMPONENT" = "frontend" ]; then
+        parse_vitest_realtime "$line"
+    fi
+done
+ortuje progress
 
 STEP_NUM="$1"
 COMPONENT="$2"  # backend | frontend
@@ -97,13 +111,10 @@ if [ "$STEP_NUM" -gt 0 ]; then
 fi
 
 while IFS= read -r line; do
-    # Filter output: only show important lines
-    # Show errors and results - hide warnings/setup noise
-    if [[ "$line" =~ ^\[ERROR\]|Tests\ run:|BUILD\ SUCCESS|BUILD\ FAILURE|FAILED ]]; then
-        echo "$line"
-    fi
+    # Echo line to stdout FIRST (preserve output)
+    echo "$line"
     
-    # Parse based on component type
+    # Parse based on component
     if [ "$COMPONENT" = "backend" ]; then
         parse_maven_realtime "$line"
     elif [ "$COMPONENT" = "frontend" ]; then
