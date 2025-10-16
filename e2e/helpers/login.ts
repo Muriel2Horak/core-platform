@@ -156,6 +156,16 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 }
 
 /**
+ * Login as any user with username and password
+ */
+export async function loginAsUser(page: Page, username: string, password: string): Promise<void> {
+  await login(page, {
+    username,
+    password,
+  });
+}
+
+/**
  * Login as regular test user (test)
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
