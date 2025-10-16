@@ -21,24 +21,28 @@ parse_maven_realtime() {
     if [[ "$line" =~ ^\[INFO\]\ Running\ ([a-zA-Z0-9_.]+) ]]; then
         ((TEST_COUNT++))
         local test_class="${BASH_REMATCH[1]}"
-        # Print with color: test number and class name
-        echo -e "\033[1;36m→ Test ${TEST_COUNT}/${TEST_TOTAL}:\033[0m \033[0;33m${test_class}\033[0m"
-        # Update progress only every 10 tests to reduce redraw frequency
-        if [ "$STEP_NUM" -gt 0 ] && (( TEST_COUNT % 10 == 0 || TEST_COUNT == 1 )); then
-            bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
+        # Print with color: test number and class name (don't show total until we know it)
+        echo -e "\033[1;36m→ Test ${TEST_COUNT}:\033[0m \033[0;33m${test_class}\033[0m"
+        # Update progress
+        if [ "$STEP_NUM" -gt 0 ]; then
+            # If we have estimated total, use it; otherwise use current count as minimum
+            local display_total="$TEST_TOTAL"
+            if [ "$display_total" -lt "$TEST_COUNT" ]; then
+                display_total="$TEST_COUNT"
+            fi
+            bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$display_total"
         fi
     fi
     
     # Detect FINAL test summary to get exact total (only from final summary, not individual tests)
     # Final summary looks like: "[INFO] Tests run: 215, Failures: 0, Errors: 0, Skipped: 0"
-    if [[ "$line" =~ ^\[INFO\]\ Tests\ run:\ ([0-9]+),\ Failures:\ ([0-9]+) ]]; then
+    # It appears at the END without " - in ClassName" suffix
+    if [[ "$line" =~ ^\[INFO\]\ Tests\ run:\ ([0-9]+),\ Failures: ]] && [[ ! "$line" =~ \ -\ in\  ]]; then
         local total="${BASH_REMATCH[1]}"
-        # Only update if this is likely the final summary (not individual test)
-        if [ "$total" -gt "$TEST_TOTAL" ]; then
-            TEST_TOTAL=$total
-            if [ "$STEP_NUM" -gt 0 ]; then
-                bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
-            fi
+        # This is the final summary - update total
+        TEST_TOTAL=$total
+        if [ "$STEP_NUM" -gt 0 ]; then
+            bash "$TRACKER" progress "$STEP_NUM" "$TEST_COUNT" "$TEST_TOTAL"
         fi
     fi
 }
