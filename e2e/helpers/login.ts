@@ -82,17 +82,18 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
   }
   
   // Wait for page to be fully loaded
+  await page.waitForLoadState('domcontentloaded');
+  
+  // 🎯 A11Y-FIRST: Use role-based selector (works in production builds)
+  // Quick check (3s timeout) - if we're logged in, menu should be visible immediately
+  const userMenuButton = page.getByRole('button', { name: /account menu/i });
+  
   try {
-    await page.waitForLoadState('domcontentloaded');
-    
-    // 🎯 A11Y-FIRST: Use role-based selector (works in production builds)
-    const userMenuButton = page.getByRole('button', { name: /account menu/i });
-    await expect(userMenuButton).toBeVisible({ timeout: 30000 });
-    
+    await expect(userMenuButton).toBeVisible({ timeout: 3000 });
     console.log('✅ User menu visible - user is logged in');
     return true;
-  } catch (error: any) {
-    console.log(`❌ isLoggedIn() failed: ${error?.message || 'Unknown error'}`);
+  } catch {
+    // Menu not visible after 3s - probably not logged in
     return false;
   }
 }
