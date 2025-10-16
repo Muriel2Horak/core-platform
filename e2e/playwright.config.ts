@@ -38,7 +38,10 @@ export default defineConfig({
   
   // Reporting
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
+    ['html', { 
+      outputFolder: 'playwright-report',
+      open: 'never' // 🔧 FIX: Don't auto-open browser with report
+    }],
     ['json', { outputFile: 'playwright-report/results.json' }],
     ['list'],
   ],

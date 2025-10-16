@@ -71,6 +71,10 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
         fi
         MAVEN_ARGS+=("test")
 
+        # Disable Testcontainers checks that open Safari on macOS
+        export TESTCONTAINERS_CHECKS_DISABLE=true
+        export TESTCONTAINERS_RYUK_DISABLED=true
+        
         set +e  # Temporarily disable exit on error
         if [ "$STEP_NUM" -gt 0 ]; then
             # With real-time progress tracking (absolute path from workspace root)

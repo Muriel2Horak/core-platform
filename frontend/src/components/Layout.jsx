@@ -459,6 +459,7 @@ function Layout({ children, user, onLogout }) {
             {/* User menu button */}
             <Tooltip title="Uživatelské menu">
               <IconButton
+                data-testid="user-menu"
                 size="large"
                 aria-label="account menu"
                 aria-controls="account-menu"
