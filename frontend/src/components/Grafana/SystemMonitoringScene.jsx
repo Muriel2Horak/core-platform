@@ -1,8 +1,9 @@
 /**
- * 📊 SystemMonitoringScene - Grafana Scenes Component
+ * 📊 SystemMonitoringScene - Grafana Scenes Component (Native ESM Integration)
  * 
- * Replaces GrafanaEmbed iframes with native Grafana Scenes for system monitoring.
- * Uses BFF proxy (/api/monitoring/*) for secure datasource queries.
+ * Uses native Grafana Scenes with centralized #grafana-scenes-root container.
+ * Leverages ESM bootstrap (scenes.bootstrap.js) for scene initialization.
+ * BFF proxy (/api/monitoring/*) handles secure datasource queries.
  * 
  * Features:
  * - CPU, Memory, HTTP metrics
@@ -10,212 +11,76 @@
  * - PostgreSQL connections
  * - Error rates and response times
  * 
- * Migration:
- * - Before: <GrafanaEmbed dashboardUid="system-metrics" panelId={1} />
- * - After: <SystemMonitoringScene />
+ * Architecture:
+ * - Mounts to centralized #grafana-scenes-root (no local containerRef)
+ * - Uses scenes.bootstrap.js ESM entry point
+ * - Boot data guaranteed by inline script in index.html
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, CircularProgress, Alert, Paper, Typography } from '@mui/material';
-import { 
-  EmbeddedScene, 
-  SceneTimeRange, 
-  SceneFlexLayout, 
-  SceneFlexItem, 
-  PanelBuilders 
-} from '@grafana/scenes';
-import { GrafanaSceneDataSource } from '../../services/grafanaSceneDataSource';
 
 export const SystemMonitoringScene = ({
   height = 800,
   timeRange = { from: 'now-6h', to: 'now' },
 }) => {
-  const containerRef = useRef(null);
-  const [scene, setScene] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [scene, setScene] = useState(null);
 
   useEffect(() => {
     initializeScene();
     
     return () => {
-      // Cleanup handled by React
+      // Cleanup: Hide scenes container when component unmounts
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (scenesRoot) {
+        scenesRoot.style.display = 'none';
+      }
     };
   }, []);
 
   const initializeScene = async () => {
     try {
-      console.log('[SystemMonitoringScene] 🚀 Starting initialization...');
-      console.log('[SystemMonitoringScene] � Checking grafanaBootData:', window.grafanaBootData ? '✅ EXISTS' : '❌ MISSING');
+      console.log('[SystemMonitoringScene] 🚀 Starting native ESM initialization...');
       setLoading(true);
       setError(null);
 
-      // Create BFF-proxied datasource (not used directly in setData, but available)
-      console.log('[SystemMonitoringScene] 📊 Creating BFF datasource...');
-      const dataSource = new GrafanaSceneDataSource();
-      console.log('[SystemMonitoringScene] ✅ DataSource created:', dataSource);
-
-      // Define scene with 7 panels (matching MonitoringPage)
-      const sceneConfig = {
-        $timeRange: new SceneTimeRange({ 
-          from: timeRange.from, 
-          to: timeRange.to,
-        }),
-        body: new SceneFlexLayout({
-          direction: 'column',
-          children: [
-            // Row 1: CPU + Memory
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('💻 CPU Usage (%)')
-                    .setDescription('System CPU utilization')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: '100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)',
-                      }],
-                    })
-                    .setMin(0)
-                    .setMax(100)
-                    .setUnit('percent')
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('🧠 Memory Usage (%)')
-                    .setDescription('System memory utilization')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: '100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))',
-                      }],
-                    })
-                    .setMin(0)
-                    .setMax(100)
-                    .setUnit('percent')
-                    .build(),
-                }),
-              ],
-            }),
-
-            // Row 2: HTTP Requests + Kafka Messages
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('🌐 HTTP Requests (req/s)')
-                    .setDescription('HTTP request rate')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'sum(rate(http_server_requests_seconds_count[5m]))',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('📨 Kafka Messages (msg/s)')
-                    .setDescription('Kafka message throughput')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'sum(rate(kafka_server_brokertopicmetrics_messagesin_total[5m]))',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-              ],
-            }),
-
-            // Row 3: PostgreSQL + Error Rate + Response Time
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '33%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('🗄️ PostgreSQL Connections')
-                    .setDescription('Active database connections')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'pg_stat_database_numbackends{datname!="template0",datname!="template1"}',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '33%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('⚠️ Error Rate (%)')
-                    .setDescription('HTTP 5xx error rate')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: '100 * sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))',
-                      }],
-                    })
-                    .setMin(0)
-                    .setMax(100)
-                    .setUnit('percent')
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '33%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('⏱️ Response Time (P95)')
-                    .setDescription('95th percentile response time')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))',
-                      }],
-                    })
-                    .setMin(0)
-                    .setUnit('s')
-                    .build(),
-                }),
-              ],
-            }),
-          ],
-        }),
-      };
-
-      console.log('[SystemMonitoringScene] 🎨 Creating EmbeddedScene with config...');
-      const newScene = new EmbeddedScene(sceneConfig);
-      console.log('[SystemMonitoringScene] ✅ Scene created:', newScene);
-
-      if (containerRef.current) {
-        console.log('[SystemMonitoringScene] 🎬 Activating scene...');
-        newScene.activate();
-        console.log('[SystemMonitoringScene] ✅ Scene activated successfully!');
-        setScene(newScene);
-        setLoading(false);
-        console.log('[SystemMonitoringScene] 🎉 Initialization complete!');
-      } else {
-        console.warn('[SystemMonitoringScene] ⚠️  Container ref is null, cannot activate scene');
-        setError('Container not ready');
-        setLoading(false);
+      // Check if grafanaBootData exists (should be set by inline script)
+      if (!window.grafanaBootData) {
+        throw new Error('grafanaBootData not initialized. ESM bootstrap may have failed.');
       }
+      console.log('[SystemMonitoringScene] ✅ grafanaBootData exists');
+
+      // Find centralized scenes container
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (!scenesRoot) {
+        throw new Error('#grafana-scenes-root container not found in DOM');
+      }
+      console.log('[SystemMonitoringScene] ✅ Scenes root container found');
+
+      // Show and prepare container
+      scenesRoot.style.display = 'block';
+      scenesRoot.style.width = '100%';
+      scenesRoot.style.height = `${height}px`;
+
+      // Dynamically import scene creation function from ESM bootstrap
+      console.log('[SystemMonitoringScene] 📦 Loading scene factory...');
+      const { createSystemMonitoringScene } = await import('../../scenes/scene-factories');
+      
+      // Create and mount scene using centralized factory
+      console.log('[SystemMonitoringScene] 🎨 Creating scene...');
+      const scene = await createSystemMonitoringScene(scenesRoot, {
+        timeRange: {
+          from: timeRange.from,
+          to: timeRange.to,
+        },
+      });
+
+      console.log('[SystemMonitoringScene] ✅ Scene created and activated:', scene);
+      setScene(scene);
+      setLoading(false);
+      console.log('[SystemMonitoringScene] 🎉 Initialization complete!');
     } catch (err) {
       console.error('[SystemMonitoringScene] ❌ Initialization failed:', err);
       console.error('[SystemMonitoringScene] Error stack:', err.stack);
@@ -245,16 +110,9 @@ export const SystemMonitoringScene = ({
       <Typography variant="h6" gutterBottom>
         📊 System Monitoring
       </Typography>
-      <Box 
-        ref={containerRef} 
-        sx={{ 
-          height: height - 60,
-          width: '100%',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-        }} 
-      />
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Scene is rendered in centralized #grafana-scenes-root container
+      </Typography>
     </Paper>
   );
 };
