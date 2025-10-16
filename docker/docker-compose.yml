@@ -520,7 +520,7 @@ services:
       - CUBEJS_DEV_MODE=${CUBE_DEV_MODE:-true}
       - CUBEJS_WEB_SOCKETS=true
       - CUBEJS_REDIS_URL=redis://redis:6379
-      - CUBEJS_CACHE_AND_QUEUE_DRIVER=redis
+      - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
       - NODE_ENV=${ENVIRONMENT:-development}
     volumes:
       - ./cube/schema:/cube/conf/schema:ro
