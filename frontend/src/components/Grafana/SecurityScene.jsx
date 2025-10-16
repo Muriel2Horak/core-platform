@@ -1,154 +1,85 @@
 /**
- * 🛡️ SecurityScene - Grafana Scenes Component
+ * 🛡️ SecurityScene - Grafana Scenes Component (Native ESM Integration)
  * 
- * Security monitoring with failed logins, suspicious activity, blocked IPs.
- * Replaces GrafanaEmbed iframe in AdminSecurityPage.
+ * Uses native Grafana Scenes with centralized #grafana-scenes-root container.
+ * Leverages ESM bootstrap (scenes.bootstrap.js) for scene initialization.
  * 
- * Migration:
- * - Before: <GrafanaEmbed dashboardUid="security-events" />
- * - After: <SecurityScene />
+ * Features:
+ * - Failed Login Attempts (Keycloak)
+ * - Suspicious Activity Score
+ * - Blocked IP Addresses
+ * - Rate Limit Triggers
+ * 
+ * Architecture:
+ * - Mounts to centralized #grafana-scenes-root (no local containerRef)
+ * - Uses scenes.bootstrap.js ESM entry point
+ * - Boot data guaranteed by inline script in index.html
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, CircularProgress, Alert, Paper, Typography } from '@mui/material';
-import { 
-  EmbeddedScene, 
-  SceneTimeRange, 
-  SceneFlexLayout, 
-  SceneFlexItem, 
-  PanelBuilders 
-} from '@grafana/scenes';
-import { GrafanaSceneDataSource } from '../../services/grafanaSceneDataSource';
 
 export const SecurityScene = ({
   height = 600,
   timeRange = { from: 'now-24h', to: 'now' },
 }) => {
-  const containerRef = useRef(null);
-  const [scene, setScene] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [scene, setScene] = useState(null);
 
   useEffect(() => {
     initializeScene();
     
     return () => {
-      // Cleanup handled by React
+      // Cleanup: Hide scenes container when component unmounts
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (scenesRoot) {
+        scenesRoot.style.display = 'none';
+      }
     };
   }, []);
 
   const initializeScene = async () => {
     try {
-      console.log('[SecurityScene] 🚀 Starting initialization...');
-      console.log('[SecurityScene] � Checking grafanaBootData:', window.grafanaBootData ? '✅ EXISTS' : '❌ MISSING');
+      console.log('[SecurityScene] 🚀 Starting native ESM initialization...');
       setLoading(true);
       setError(null);
 
-      console.log('[SecurityScene] 🔒 Creating BFF datasource...');
-      const dataSource = new GrafanaSceneDataSource();
-      console.log('[SecurityScene] ✅ DataSource created:', dataSource);
-
-      console.log('[SecurityScene] 🎨 Building scene config...');
-      const sceneConfig = {
-        $timeRange: new SceneTimeRange({ 
-          from: timeRange.from, 
-          to: timeRange.to,
-        }),
-        body: new SceneFlexLayout({
-          direction: 'column',
-          children: [
-            // Row 1: Failed Logins + Suspicious Activity
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 300,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('🚫 Failed Login Attempts')
-                    .setDescription('Authentication failures over time')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'sum(rate(keycloak_failed_login_attempts_total[5m]))',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 300,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('⚠️ Suspicious Activity Score')
-                    .setDescription('Anomaly detection score')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'sum(security_anomaly_score) by (type)',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-              ],
-            }),
-
-            // Row 2: Blocked IPs + Rate Limiting
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 300,
-                  body: PanelBuilders.table()
-                    .setTitle('🚷 Blocked IP Addresses')
-                    .setDescription('Currently blocked IPs')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'topk(10, count by (ip_address) (security_blocked_ips))',
-                      }],
-                    })
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '50%',
-                  height: 300,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('🛡️ Rate Limit Triggers')
-                    .setDescription('Rate limiting events')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'sum(rate(rate_limit_exceeded_total[5m])) by (endpoint)',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-              ],
-            }),
-          ],
-        }),
-      };
-
-      console.log('[SecurityScene] 🎨 Creating EmbeddedScene...');
-      const newScene = new EmbeddedScene(sceneConfig);
-      console.log('[SecurityScene] ✅ Scene created:', newScene);
-
-      if (containerRef.current) {
-        console.log('[SecurityScene] 🎬 Activating scene...');
-        newScene.activate();
-        console.log('[SecurityScene] ✅ Scene activated!');
-        setScene(newScene);
-        setLoading(false);
-        console.log('[SecurityScene] 🎉 Initialization complete!');
-      } else {
-        console.warn('[SecurityScene] ⚠️  Container ref is null');
-        setError('Container not ready');
-        setLoading(false);
+      // Check if grafanaBootData exists (should be set by inline script)
+      if (!window.grafanaBootData) {
+        throw new Error('grafanaBootData not initialized. ESM bootstrap may have failed.');
       }
+      console.log('[SecurityScene] ✅ grafanaBootData exists');
+
+      // Find centralized scenes container
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (!scenesRoot) {
+        throw new Error('#grafana-scenes-root container not found in DOM');
+      }
+      console.log('[SecurityScene] ✅ Scenes root container found');
+
+      // Show and prepare container
+      scenesRoot.style.display = 'block';
+      scenesRoot.style.width = '100%';
+      scenesRoot.style.height = `${height}px`;
+
+      // Dynamically import scene creation function from ESM bootstrap
+      console.log('[SecurityScene] 📦 Loading scene factory...');
+      const { createSecurityScene } = await import('../../scenes/scene-factories');
+      
+      // Create and mount scene using centralized factory
+      console.log('[SecurityScene] 🎨 Creating scene...');
+      const scene = await createSecurityScene(scenesRoot, {
+        timeRange: {
+          from: timeRange.from,
+          to: timeRange.to,
+        },
+      });
+
+      console.log('[SecurityScene] ✅ Scene created and activated:', scene);
+      setScene(scene);
+      setLoading(false);
+      console.log('[SecurityScene] 🎉 Initialization complete!');
     } catch (err) {
       console.error('[SecurityScene] ❌ Initialization failed:', err);
       console.error('[SecurityScene] Error stack:', err.stack);
@@ -178,16 +109,9 @@ export const SecurityScene = ({
       <Typography variant="h6" gutterBottom>
         🛡️ Security Monitoring
       </Typography>
-      <Box 
-        ref={containerRef} 
-        sx={{ 
-          height: height - 60,
-          width: '100%',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-        }} 
-      />
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Scene is rendered in centralized #grafana-scenes-root container
+      </Typography>
     </Paper>
   );
 };

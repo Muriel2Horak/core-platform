@@ -189,19 +189,202 @@ export async function createSystemMonitoringScene(container, options = {}) {
 }
 
 /**
- * Creates Security Monitoring Scene
+ * Create Security Monitoring Scene
+ * 
+ * Panels:
+ * - Failed Login Attempts (rate)
+ * - Suspicious Activity Score
+ * - Blocked IP Addresses (table)
+ * - Rate Limit Triggers
  */
 export async function createSecurityScene(container, options = {}) {
-  // TODO: Implement security scene
-  console.log('[scene-factories] Security Scene not yet implemented');
-  throw new Error('Security Scene factory not implemented');
+  const { timeRange = { from: 'now-24h', to: 'now' } } = options;
+  
+  console.log('[scene-factories] 🔒 Creating SecurityScene...');
+
+  const sceneConfig = {
+    $timeRange: new SceneTimeRange({ 
+      from: timeRange.from, 
+      to: timeRange.to,
+    }),
+    body: new SceneFlexLayout({
+      direction: 'column',
+      children: [
+        // Row 1: Failed Logins + Suspicious Activity
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '50%',
+              height: 300,
+              body: PanelBuilders.timeseries()
+                .setTitle('🚫 Failed Login Attempts')
+                .setDescription('Authentication failures over time')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(rate(keycloak_failed_login_attempts_total[5m]))',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '50%',
+              height: 300,
+              body: PanelBuilders.timeseries()
+                .setTitle('⚠️ Suspicious Activity Score')
+                .setDescription('Anomaly detection score')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(security_anomaly_score) by (type)',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+          ],
+        }),
+
+        // Row 2: Blocked IPs + Rate Limiting
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '50%',
+              height: 300,
+              body: PanelBuilders.table()
+                .setTitle('🚷 Blocked IP Addresses')
+                .setDescription('Currently blocked IPs')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'topk(10, count by (ip_address) (security_blocked_ips))',
+                  }],
+                })
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '50%',
+              height: 300,
+              body: PanelBuilders.timeseries()
+                .setTitle('🛡️ Rate Limit Triggers')
+                .setDescription('Rate limiting events')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(rate(rate_limit_exceeded_total[5m])) by (endpoint)',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+          ],
+        }),
+      ],
+    }),
+  };
+
+  const scene = new EmbeddedScene(sceneConfig);
+  scene.activate();
+  
+  console.log('[scene-factories] ✅ SecurityScene created and activated');
+  return scene;
 }
 
 /**
- * Creates Audit Scene
+ * Create Audit Log Scene
+ * 
+ * Panels:
+ * - Audit Events Timeline (rate)
+ * - Active Users Today (stat)
+ * - Recent Audit Logs (table)
  */
 export async function createAuditScene(container, options = {}) {
-  // TODO: Implement audit scene
-  console.log('[scene-factories] Audit Scene not yet implemented');
-  throw new Error('Audit Scene factory not implemented');
+  const { timeRange = { from: 'now-7d', to: 'now' } } = options;
+  
+  console.log('[scene-factories] 📋 Creating AuditScene...');
+
+  const sceneConfig = {
+    $timeRange: new SceneTimeRange({ 
+      from: timeRange.from, 
+      to: timeRange.to,
+    }),
+    body: new SceneFlexLayout({
+      direction: 'column',
+      children: [
+        // Row 1: Audit Events Timeline + User Actions
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '60%',
+              height: 250,
+              body: PanelBuilders.timeseries()
+                .setTitle('📊 Audit Events Timeline')
+                .setDescription('All audit events over time')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(rate(audit_events_total[5m])) by (event_type)',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '40%',
+              height: 250,
+              body: PanelBuilders.stat()
+                .setTitle('👥 Active Users Today')
+                .setDescription('Unique users with audit events')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'count(count by (user_id) (audit_events_total{timestamp>now()-24h}))',
+                  }],
+                })
+                .setThresholds({
+                  mode: 'absolute',
+                  steps: [
+                    { value: 0, color: 'green' },
+                    { value: 100, color: 'yellow' },
+                    { value: 500, color: 'red' },
+                  ],
+                })
+                .build(),
+            }),
+          ],
+        }),
+
+        // Row 2: Recent Audit Logs Table
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '100%',
+              height: 400,
+              body: PanelBuilders.table()
+                .setTitle('📝 Recent Audit Logs')
+                .setDescription('Latest 100 audit events')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'topk(100, audit_log_entries)',
+                  }],
+                })
+                .build(),
+            }),
+          ],
+        }),
+      ],
+    }),
+  };
+
+  const scene = new EmbeddedScene(sceneConfig);
+  scene.activate();
+  
+  console.log('[scene-factories] ✅ AuditScene created and activated');
+  return scene;
 }

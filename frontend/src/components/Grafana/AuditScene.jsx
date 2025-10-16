@@ -1,146 +1,84 @@
 /**
- * 📋 AuditScene - Grafana Scenes Component
+ * 📋 AuditScene - Grafana Scenes Component (Native ESM Integration)
  * 
- * Audit log monitoring with user actions, system changes, compliance events.
- * Replaces GrafanaEmbed iframe in AdminAuditPage.
+ * Uses native Grafana Scenes with centralized #grafana-scenes-root container.
+ * Leverages ESM bootstrap (scenes.bootstrap.js) for scene initialization.
  * 
- * Migration:
- * - Before: <GrafanaEmbed dashboardUid="audit-logs" />
- * - After: <AuditScene />
+ * Features:
+ * - Audit Events Timeline
+ * - Active Users Today (stat)
+ * - Recent Audit Logs (table)
+ * 
+ * Architecture:
+ * - Mounts to centralized #grafana-scenes-root (no local containerRef)
+ * - Uses scenes.bootstrap.js ESM entry point
+ * - Boot data guaranteed by inline script in index.html
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, CircularProgress, Alert, Paper, Typography } from '@mui/material';
-import { 
-  EmbeddedScene, 
-  SceneTimeRange, 
-  SceneFlexLayout, 
-  SceneFlexItem, 
-  PanelBuilders 
-} from '@grafana/scenes';
-import { GrafanaSceneDataSource } from '../../services/grafanaSceneDataSource';
 
 export const AuditScene = ({
   height = 700,
   timeRange = { from: 'now-7d', to: 'now' },
 }) => {
-  const containerRef = useRef(null);
-  const [scene, setScene] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [scene, setScene] = useState(null);
 
   useEffect(() => {
     initializeScene();
     
     return () => {
-      // Cleanup handled by React
+      // Cleanup: Hide scenes container when component unmounts
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (scenesRoot) {
+        scenesRoot.style.display = 'none';
+      }
     };
   }, []);
 
   const initializeScene = async () => {
     try {
-      console.log('[AuditScene] 🚀 Starting initialization...');
-      console.log('[AuditScene] � Checking grafanaBootData:', window.grafanaBootData ? '✅ EXISTS' : '❌ MISSING');
+      console.log('[AuditScene] 🚀 Starting native ESM initialization...');
       setLoading(true);
       setError(null);
 
-      console.log('[AuditScene] 📝 Creating BFF datasource...');
-      const dataSource = new GrafanaSceneDataSource();
-      console.log('[AuditScene] ✅ DataSource created:', dataSource);
-
-      console.log('[AuditScene] 🎨 Building scene config...');
-      const sceneConfig = {
-        $timeRange: new SceneTimeRange({ 
-          from: timeRange.from, 
-          to: timeRange.to,
-        }),
-        body: new SceneFlexLayout({
-          direction: 'column',
-          children: [
-            // Row 1: Audit Events Timeline + User Actions
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '60%',
-                  height: 250,
-                  body: PanelBuilders.timeseries()
-                    .setTitle('📊 Audit Events Timeline')
-                    .setDescription('All audit events over time')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'sum(rate(audit_events_total[5m])) by (event_type)',
-                      }],
-                    })
-                    .setMin(0)
-                    .build(),
-                }),
-                new SceneFlexItem({
-                  width: '40%',
-                  height: 250,
-                  body: PanelBuilders.stat()
-                    .setTitle('👥 Active Users Today')
-                    .setDescription('Unique users with audit events')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'count(count by (user_id) (audit_events_total{timestamp>now()-24h}))',
-                      }],
-                    })
-                    .setThresholds({
-                      mode: 'absolute',
-                      steps: [
-                        { value: 0, color: 'green' },
-                        { value: 100, color: 'yellow' },
-                        { value: 500, color: 'red' },
-                      ],
-                    })
-                    .build(),
-                }),
-              ],
-            }),
-
-            // Row 2: Recent Audit Logs Table
-            new SceneFlexLayout({
-              direction: 'row',
-              children: [
-                new SceneFlexItem({
-                  width: '100%',
-                  height: 400,
-                  body: PanelBuilders.table()
-                    .setTitle('📝 Recent Audit Logs')
-                    .setDescription('Latest 100 audit events')
-                    .setData({
-                      queries: [{
-                        refId: 'A',
-                        expr: 'topk(100, audit_log_entries)',
-                      }],
-                    })
-                    .build(),
-                }),
-              ],
-            }),
-          ],
-        }),
-      };
-
-      console.log('[AuditScene] 🎨 Creating EmbeddedScene...');
-      const newScene = new EmbeddedScene(sceneConfig);
-      console.log('[AuditScene] ✅ Scene created:', newScene);
-
-      if (containerRef.current) {
-        console.log('[AuditScene] 🎬 Activating scene...');
-        newScene.activate();
-        console.log('[AuditScene] ✅ Scene activated!');
-        setScene(newScene);
-        setLoading(false);
-        console.log('[AuditScene] 🎉 Initialization complete!');
-      } else {
-        console.warn('[AuditScene] ⚠️  Container ref is null');
-        setError('Container not ready');
-        setLoading(false);
+      // Check if grafanaBootData exists (should be set by inline script)
+      if (!window.grafanaBootData) {
+        throw new Error('grafanaBootData not initialized. ESM bootstrap may have failed.');
       }
+      console.log('[AuditScene] ✅ grafanaBootData exists');
+
+      // Find centralized scenes container
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (!scenesRoot) {
+        throw new Error('#grafana-scenes-root container not found in DOM');
+      }
+      console.log('[AuditScene] ✅ Scenes root container found');
+
+      // Show and prepare container
+      scenesRoot.style.display = 'block';
+      scenesRoot.style.width = '100%';
+      scenesRoot.style.height = `${height}px`;
+
+      // Dynamically import scene creation function from ESM bootstrap
+      console.log('[AuditScene] 📦 Loading scene factory...');
+      const { createAuditScene } = await import('../../scenes/scene-factories');
+      
+      // Create and mount scene using centralized factory
+      console.log('[AuditScene] 🎨 Creating scene...');
+      const scene = await createAuditScene(scenesRoot, {
+        timeRange: {
+          from: timeRange.from,
+          to: timeRange.to,
+        },
+      });
+
+      console.log('[AuditScene] ✅ Scene created and activated:', scene);
+      setScene(scene);
+      setLoading(false);
+      console.log('[AuditScene] 🎉 Initialization complete!');
     } catch (err) {
       console.error('[AuditScene] ❌ Initialization failed:', err);
       console.error('[AuditScene] Error stack:', err.stack);
@@ -170,16 +108,9 @@ export const AuditScene = ({
       <Typography variant="h6" gutterBottom>
         📋 Audit Log Monitoring
       </Typography>
-      <Box 
-        ref={containerRef} 
-        sx={{ 
-          height: height - 60,
-          width: '100%',
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1,
-        }} 
-      />
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Scene is rendered in centralized #grafana-scenes-root container
+      </Typography>
     </Paper>
   );
 };
