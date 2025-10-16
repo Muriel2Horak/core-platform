@@ -33,8 +33,9 @@ init_progress() {
     # Clean up any previous panel state
     rm -f "$PANEL_INITIALIZED_FLAG"
     
-    # Start state file
-    cat > "$STATE_FILE" <<EOF
+    # Write to temp file first (atomic operation)
+    local tmp_file="${STATE_FILE}.tmp.$$"
+    cat > "$tmp_file" <<EOF
 PIPELINE_NAME="$pipeline_name"
 TOTAL_STEPS=$total_steps
 CURRENT_STEP=0
@@ -44,7 +45,7 @@ EOF
     # Dynamically add steps with sub-progress support
     for i in "${!step_names[@]}"; do
         local step_num=$((i + 1))
-        cat >> "$STATE_FILE" <<EOF
+        cat >> "$tmp_file" <<EOF
 STEP_${step_num}_STATUS=PENDING
 STEP_${step_num}_NAME="${step_names[$i]}"
 STEP_${step_num}_TIME=""
@@ -52,6 +53,9 @@ STEP_${step_num}_CURRENT=0
 STEP_${step_num}_TOTAL=0
 EOF
     done
+    
+    # Atomic move (prevents reading partial file)
+    mv "$tmp_file" "$STATE_FILE"
 }
 
 # Update step status
