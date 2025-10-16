@@ -176,9 +176,95 @@ roles:
     
     data_scope: "own_tenant"
 
+  CORE_ROLE_STUDIO:
+    display_name: "Metamodel Studio"
+    description: "Přístup k návrhu metamodelu a konfiguraci AI"
+    
+    api_permissions:
+      # Studio API
+      - "studio:read:all"
+      - "studio:create:all"
+      - "studio:update:all"
+      - "studio:validate:all"
+      - "studio:publish:all"
+      
+      # Metamodel management
+      - "metamodel:read:all"
+      - "metamodel:reload:all"
+      - "metamodel:export:all"
+    
+    menu_items:
+      - id: "dashboard"
+        label: "Dashboard"
+        path: "/dashboard"
+        icon: "DashboardIcon"
+      
+      - id: "studio"
+        label: "Metamodel Studio"
+        path: "/core-admin/studio"
+        icon: "ArchitectureIcon"
+      
+      - id: "profile"
+        label: "Můj profil"
+        path: "/profile"
+        icon: "PersonIcon"
+    
+    features:
+      - "metamodel_design"
+      - "ai_config"
+      - "workflow_design"
+      - "hot_reload"
+    
+    data_scope: "all_tenants"
+
+  CORE_ROLE_REPORTING:
+    display_name: "Reporting Explorer"
+    description: "Pokročilá analýza dat a export"
+    
+    api_permissions:
+      # Reporting API
+      - "reports:read:all"
+      - "reports:create:all"
+      - "reports:update:all"
+      - "reports:delete:all"
+      - "reports:export:all"
+      
+      # Report views management
+      - "report-views:read:all"
+      - "report-views:create:all"
+      - "report-views:update:all"
+      - "report-views:delete:all"
+      
+      # Entity metadata access
+      - "entities:metadata:read:all"
+    
+    menu_items:
+      - id: "dashboard"
+        label: "Dashboard"
+        path: "/dashboard"
+        icon: "DashboardIcon"
+      
+      - id: "reporting"
+        label: "Reporting Explorer"
+        path: "/reporting"
+        icon: "AssessmentIcon"
+      
+      - id: "profile"
+        label: "Můj profil"
+        path: "/profile"
+        icon: "PersonIcon"
+    
+    features:
+      - "advanced_analytics"
+      - "data_export"
+      - "custom_reports"
+      - "cube_queries"
+    
+    data_scope: "all_tenants"
+
   CORE_ROLE_USER:
-    display_name: "Uživatel"
-    description: "Základní uživatel aplikace"
+    display_name: "Běžný uživatel"
+    description: "Základní přístup k systému"
     
     api_permissions:
       # Self-service only
@@ -201,6 +287,8 @@ roles:
       - "grafana_viewer"
     
     data_scope: "own_data"
+
+# Permission format: "resource:action:scope"
 
 # Permission format: "resource:action:scope"
 # Examples:

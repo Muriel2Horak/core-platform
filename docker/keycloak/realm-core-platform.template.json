@@ -140,15 +140,41 @@
         "description": "Basic user role for core platform"
       },
       { 
-        "name": "CORE_USER_MANAGER", 
-        "description": "User manager role for core platform"
+        "name": "CORE_ROLE_USER_MANAGER", 
+        "description": "User manager - create and update users, assign roles within tenant"
+      },
+      {
+        "name": "CORE_ROLE_TENANT_ADMIN",
+        "description": "Tenant administrator - full management of tenant users, roles and groups"
+      },
+      {
+        "name": "CORE_ROLE_MONITORING",
+        "description": "Global monitoring access - can view and edit all dashboards across tenants"
+      },
+      {
+        "name": "CORE_ROLE_TENANT_MONITORING",
+        "description": "Tenant-specific monitoring access - can view tenant dashboards only"
+      },
+      {
+        "name": "CORE_ROLE_STUDIO",
+        "description": "Metamodel Studio access - entity design and AI configuration"
+      },
+      {
+        "name": "CORE_ROLE_REPORTING",
+        "description": "Reporting Explorer access - advanced data analysis and export"
       },
       { 
         "name": "CORE_ROLE_ADMIN", 
-        "description": "Administrator role for core platform",
+        "description": "Administrator role for core platform - highest level access",
         "composite": true,
         "composites": {
-          "realm": ["CORE_USER_MANAGER"]
+          "realm": [
+            "CORE_ROLE_USER_MANAGER", 
+            "CORE_ROLE_TENANT_ADMIN",
+            "CORE_ROLE_MONITORING", 
+            "CORE_ROLE_STUDIO", 
+            "CORE_ROLE_REPORTING"
+          ]
         }
       }
     ]
