@@ -40,6 +40,7 @@ export const AuditScene = ({
   const initializeScene = async () => {
     try {
       console.log('[AuditScene] 🚀 Starting initialization...');
+      console.log('[AuditScene] � Checking grafanaBootData:', window.grafanaBootData ? '✅ EXISTS' : '❌ MISSING');
       setLoading(true);
       setError(null);
 

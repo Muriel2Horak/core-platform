@@ -40,6 +40,7 @@ export const SecurityScene = ({
   const initializeScene = async () => {
     try {
       console.log('[SecurityScene] 🚀 Starting initialization...');
+      console.log('[SecurityScene] � Checking grafanaBootData:', window.grafanaBootData ? '✅ EXISTS' : '❌ MISSING');
       setLoading(true);
       setError(null);
 

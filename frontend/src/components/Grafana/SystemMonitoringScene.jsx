@@ -46,6 +46,7 @@ export const SystemMonitoringScene = ({
   const initializeScene = async () => {
     try {
       console.log('[SystemMonitoringScene] 🚀 Starting initialization...');
+      console.log('[SystemMonitoringScene] � Checking grafanaBootData:', window.grafanaBootData ? '✅ EXISTS' : '❌ MISSING');
       setLoading(true);
       setError(null);
 

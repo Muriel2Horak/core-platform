@@ -98,6 +98,54 @@
             }
         }
     </style>
+    
+    <!-- 📊 Grafana Scenes Mock Configuration - CRITICAL: Must be BEFORE bundle.js -->
+    <script>
+        // STEP 1: Initialize grafanaBootData IMMEDIATELY (before any bundle loads)
+        console.log('[HTML] 🔧 Initializing grafanaBootData...');
+        window.grafanaBootData = {
+            assets: {
+                dark: '',
+                light: ''
+            },
+            settings: {
+                appUrl: window.location.origin,
+                appSubUrl: '',
+                theme: 'light',
+                buildInfo: {
+                    version: '1.0',
+                    commit: '1',
+                    env: 'production'
+                },
+                bootData: {
+                    user: {
+                        theme: 'light',
+                        lightTheme: true,
+                        isSignedIn: false,
+                        orgId: 1,
+                        regionalFormat: 'en-US'
+                    },
+                    settings: {}
+                }
+            },
+            user: {
+                theme: 'light',
+                lightTheme: true,
+                isSignedIn: false,
+                orgId: 1,
+                regionalFormat: 'en-US'
+            },
+            navTree: []
+        };
+        console.log('[HTML] ✅ grafanaBootData initialized:', window.grafanaBootData);
+        
+        // STEP 2: Verify it's available
+        if (window.grafanaBootData) {
+            console.log('[HTML] ✅ Verification: grafanaBootData is ready!');
+        } else {
+            console.error('[HTML] ❌ CRITICAL: grafanaBootData initialization failed!');
+        }
+    </script>
 </head>
 <body>
     <div id="root">
@@ -106,6 +154,11 @@
             <p>Načítání aplikace...</p>
         </div>
     </div>
+    
+    <!-- STEP 3: Load bundle AFTER grafanaBootData is ready -->
+    <script>
+        console.log('[HTML] 📦 Loading bundle.js...');
+    </script>
     <script src="/bundle.js"></script>
 </body>
 </html>
