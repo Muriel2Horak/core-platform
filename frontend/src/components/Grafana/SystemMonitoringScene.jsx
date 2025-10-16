@@ -17,25 +17,35 @@
  * - Boot data guaranteed by inline script in index.html
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 
 export const SystemMonitoringScene = ({
   height = 800,
   timeRange = { from: 'now-6h', to: 'now' },
 }) => {
+  const containerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
 
   useEffect(() => {
+    // Mount #grafana-scenes-root into this component's container
+    if (containerRef.current) {
+      const scenesRoot = document.getElementById('grafana-scenes-root');
+      if (scenesRoot && !containerRef.current.contains(scenesRoot)) {
+        containerRef.current.appendChild(scenesRoot);
+      }
+    }
+    
     initializeScene();
     
     return () => {
-      // Cleanup: Hide scenes container when component unmounts
+      // Cleanup: Move scenes container back to body and hide it
       const scenesRoot = document.getElementById('grafana-scenes-root');
       if (scenesRoot) {
         scenesRoot.style.display = 'none';
+        document.body.appendChild(scenesRoot);
       }
     };
   }, []);
@@ -105,9 +115,19 @@ export const SystemMonitoringScene = ({
     );
   }
 
-  // Scene is rendered in centralized #grafana-scenes-root container
-  // This component just manages lifecycle, actual rendering happens elsewhere
-  return null;
+  // Container that will hold the #grafana-scenes-root div
+  // Scene is mounted by moving the global container into this ref
+  return (
+    <Box 
+      ref={containerRef}
+      sx={{ 
+        width: '100%',
+        height: height,
+        position: 'relative',
+        overflow: 'auto',
+      }} 
+    />
+  );
 };
 
 export default SystemMonitoringScene;

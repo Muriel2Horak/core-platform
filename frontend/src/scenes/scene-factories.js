@@ -388,3 +388,184 @@ export async function createAuditScene(container, options = {}) {
   console.log('[scene-factories] ✅ AuditScene created and activated');
   return scene;
 }
+
+/**
+ * Create Streaming/Kafka Monitoring Scene
+ * 
+ * Panels:
+ * - Kafka Message Throughput
+ * - Consumer Lag
+ * - Active Topics (stat)
+ * - Online Brokers (stat)
+ * - Consumer Groups (stat)
+ * - Message Processing Time (P95)
+ * - Processing Error Rate
+ */
+export async function createStreamingScene(container, options = {}) {
+  const { timeRange = { from: 'now-1h', to: 'now' } } = options;
+  
+  console.log('[scene-factories] 🚀 Creating StreamingScene...');
+
+  const sceneConfig = {
+    $timeRange: new SceneTimeRange({ 
+      from: timeRange.from, 
+      to: timeRange.to,
+    }),
+    body: new SceneFlexLayout({
+      direction: 'column',
+      children: [
+        // Row 1: Kafka Throughput + Consumer Lag
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '50%',
+              height: 250,
+              body: PanelBuilders.timeseries()
+                .setTitle('📨 Kafka Message Throughput')
+                .setDescription('Messages/sec by topic')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(rate(kafka_messages_in_total[1m])) by (topic)',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '50%',
+              height: 250,
+              body: PanelBuilders.timeseries()
+                .setTitle('⏱️ Consumer Lag')
+                .setDescription('Lag by consumer group')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(kafka_consumer_lag) by (consumer_group)',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+          ],
+        }),
+
+        // Row 2: Topic Partitions + Broker Health
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '33%',
+              height: 250,
+              body: PanelBuilders.stat()
+                .setTitle('📂 Active Topics')
+                .setDescription('Total number of topics')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'count(count by (topic) (kafka_topic_partitions))',
+                  }],
+                })
+                .setThresholds({
+                  mode: 'absolute',
+                  steps: [
+                    { value: 0, color: 'green' },
+                    { value: 50, color: 'yellow' },
+                    { value: 100, color: 'red' },
+                  ],
+                })
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '33%',
+              height: 250,
+              body: PanelBuilders.stat()
+                .setTitle('🔌 Online Brokers')
+                .setDescription('Active Kafka brokers')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'count(kafka_broker_online)',
+                  }],
+                })
+                .setThresholds({
+                  mode: 'absolute',
+                  steps: [
+                    { value: 0, color: 'red' },
+                    { value: 1, color: 'yellow' },
+                    { value: 3, color: 'green' },
+                  ],
+                })
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '34%',
+              height: 250,
+              body: PanelBuilders.stat()
+                .setTitle('👥 Consumer Groups')
+                .setDescription('Active consumer groups')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'count(count by (consumer_group) (kafka_consumer_group_members))',
+                  }],
+                })
+                .setThresholds({
+                  mode: 'absolute',
+                  steps: [
+                    { value: 0, color: 'green' },
+                  ],
+                })
+                .build(),
+            }),
+          ],
+        }),
+
+        // Row 3: Processing Time + Error Rate
+        new SceneFlexLayout({
+          direction: 'row',
+          children: [
+            new SceneFlexItem({
+              width: '50%',
+              height: 250,
+              body: PanelBuilders.timeseries()
+                .setTitle('⚡ Message Processing Time')
+                .setDescription('P95 processing latency')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'histogram_quantile(0.95, sum(rate(kafka_processing_duration_seconds_bucket[5m])) by (le, consumer_group))',
+                  }],
+                })
+                .setUnit('s')
+                .setMin(0)
+                .build(),
+            }),
+            new SceneFlexItem({
+              width: '50%',
+              height: 250,
+              body: PanelBuilders.timeseries()
+                .setTitle('❌ Processing Error Rate')
+                .setDescription('Errors/sec by topic')
+                .setData({
+                  queries: [{
+                    refId: 'A',
+                    expr: 'sum(rate(kafka_processing_errors_total[5m])) by (topic)',
+                  }],
+                })
+                .setMin(0)
+                .build(),
+            }),
+          ],
+        }),
+      ],
+    }),
+  };
+
+  const scene = new EmbeddedScene(sceneConfig);
+  scene.activate();
+  
+  console.log('[scene-factories] ✅ StreamingScene created and activated');
+  return scene;
+}
