@@ -27,7 +27,7 @@ class StudioAdminControllerIT extends AbstractIntegrationTest {
   /**
    * S10-B: Test export all entities endpoint
    */
-  @Test @WithMockUser(authorities = { "CORE_ADMIN_STUDIO" })
+  @Test @WithMockUser(authorities = { "CORE_ROLE_STUDIO" })
   void testExportEntities_Success() throws Exception {
     mockMvc.perform(get("/api/admin/studio/entities")).andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("success"))
@@ -49,7 +49,7 @@ class StudioAdminControllerIT extends AbstractIntegrationTest {
   /**
    * S10-B: Test get single entity detail
    */
-  @Test @WithMockUser(authorities = { "CORE_ADMIN_STUDIO" })
+  @Test @WithMockUser(authorities = { "CORE_ROLE_STUDIO" })
   void testGetEntity_Success() throws Exception {
     mockMvc.perform(get("/api/admin/studio/entities/User")).andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("User")).andExpect(jsonPath("$.entity").value("User"))
@@ -62,7 +62,7 @@ class StudioAdminControllerIT extends AbstractIntegrationTest {
   /**
    * S10-B: Test get non-existent entity - should return 404
    */
-  @Test @WithMockUser(authorities = { "CORE_ADMIN_STUDIO" })
+  @Test @WithMockUser(authorities = { "CORE_ROLE_STUDIO" })
   void testGetEntity_NotFound() throws Exception {
     mockMvc.perform(get("/api/admin/studio/entities/NonExistentEntity"))
         .andExpect(status().isNotFound());
@@ -71,7 +71,7 @@ class StudioAdminControllerIT extends AbstractIntegrationTest {
   /**
    * S10-B: Test health check
    */
-  @Test @WithMockUser(authorities = { "CORE_ADMIN_STUDIO" })
+  @Test @WithMockUser(authorities = { "CORE_ROLE_STUDIO" })
   void testHealth() throws Exception {
     mockMvc.perform(get("/api/admin/studio/health")).andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("ok")).andExpect(jsonPath("$.phase").value("S10-B"));

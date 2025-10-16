@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * (hot reload + diff) - POST /api/admin/metamodel/apply-safe-changes - GET
  * /api/admin/metamodel/status
  */
-@Slf4j @RestController @RequestMapping("/api/admin/studio") @RequiredArgsConstructor @PreAuthorize("hasAuthority('CORE_ADMIN_STUDIO')")
+@Slf4j @RestController @RequestMapping("/api/admin/studio") @RequiredArgsConstructor @PreAuthorize("hasAuthority('CORE_ROLE_STUDIO')")
 public class StudioAdminController {
 
   private final MetamodelRegistry metamodelRegistry;
