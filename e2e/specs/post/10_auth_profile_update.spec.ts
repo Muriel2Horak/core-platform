@@ -29,8 +29,10 @@ test.describe('Auth & Profile Update E2E', () => {
     // 3. Update display name
     const newDisplayName = `Test User E2E ${Date.now()}`;
     
-    // 🎯 A11Y: Use label-based selector or aria-label
-    const displayNameInput = page.getByRole('textbox', { name: /display name|jméno/i });
+    // 🎯 A11Y: Use more specific label (there are multiple inputs with "jméno")
+    // Look for editable display name field (not the readonly username field)
+    const displayNameInput = page.getByRole('textbox', { name: /display name|zobrazované jméno/i })
+      .or(page.locator('input[name="displayName"], input[id*="displayName"]').first());
     await displayNameInput.fill(newDisplayName);
     
     // Save button
