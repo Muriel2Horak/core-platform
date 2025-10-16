@@ -45,11 +45,14 @@ export const SystemMonitoringScene = ({
 
   const initializeScene = async () => {
     try {
+      console.log('[SystemMonitoringScene] 🚀 Starting initialization...');
       setLoading(true);
       setError(null);
 
       // Create BFF-proxied datasource (not used directly in setData, but available)
+      console.log('[SystemMonitoringScene] 📊 Creating BFF datasource...');
       const dataSource = new GrafanaSceneDataSource();
+      console.log('[SystemMonitoringScene] ✅ DataSource created:', dataSource);
 
       // Define scene with 7 panels (matching MonitoringPage)
       const sceneConfig = {
@@ -196,15 +199,25 @@ export const SystemMonitoringScene = ({
         }),
       };
 
+      console.log('[SystemMonitoringScene] 🎨 Creating EmbeddedScene with config...');
       const newScene = new EmbeddedScene(sceneConfig);
+      console.log('[SystemMonitoringScene] ✅ Scene created:', newScene);
 
       if (containerRef.current) {
+        console.log('[SystemMonitoringScene] 🎬 Activating scene...');
         newScene.activate();
+        console.log('[SystemMonitoringScene] ✅ Scene activated successfully!');
         setScene(newScene);
+        setLoading(false);
+        console.log('[SystemMonitoringScene] 🎉 Initialization complete!');
+      } else {
+        console.warn('[SystemMonitoringScene] ⚠️  Container ref is null, cannot activate scene');
+        setError('Container not ready');
         setLoading(false);
       }
     } catch (err) {
-      console.error('Failed to initialize SystemMonitoringScene:', err);
+      console.error('[SystemMonitoringScene] ❌ Initialization failed:', err);
+      console.error('[SystemMonitoringScene] Error stack:', err.stack);
       setError(err.message);
       setLoading(false);
     }

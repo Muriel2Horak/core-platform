@@ -39,11 +39,15 @@ export const SecurityScene = ({
 
   const initializeScene = async () => {
     try {
+      console.log('[SecurityScene] 🚀 Starting initialization...');
       setLoading(true);
       setError(null);
 
+      console.log('[SecurityScene] 🔒 Creating BFF datasource...');
       const dataSource = new GrafanaSceneDataSource();
+      console.log('[SecurityScene] ✅ DataSource created:', dataSource);
 
+      console.log('[SecurityScene] 🎨 Building scene config...');
       const sceneConfig = {
         $timeRange: new SceneTimeRange({ 
           from: timeRange.from, 
@@ -128,15 +132,25 @@ export const SecurityScene = ({
         }),
       };
 
+      console.log('[SecurityScene] 🎨 Creating EmbeddedScene...');
       const newScene = new EmbeddedScene(sceneConfig);
+      console.log('[SecurityScene] ✅ Scene created:', newScene);
 
       if (containerRef.current) {
+        console.log('[SecurityScene] 🎬 Activating scene...');
         newScene.activate();
+        console.log('[SecurityScene] ✅ Scene activated!');
         setScene(newScene);
+        setLoading(false);
+        console.log('[SecurityScene] 🎉 Initialization complete!');
+      } else {
+        console.warn('[SecurityScene] ⚠️  Container ref is null');
+        setError('Container not ready');
         setLoading(false);
       }
     } catch (err) {
-      console.error('Failed to initialize SecurityScene:', err);
+      console.error('[SecurityScene] ❌ Initialization failed:', err);
+      console.error('[SecurityScene] Error stack:', err.stack);
       setError(err.message);
       setLoading(false);
     }

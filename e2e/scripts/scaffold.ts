@@ -22,7 +22,7 @@ import {
   createTestUser,
   createTestEntity,
   publishUISpec,
-} from '../helpers/api.js';
+} from '../helpers/api';
 
 interface ScaffoldResult {
   tenantId: string;

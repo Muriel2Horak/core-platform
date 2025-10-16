@@ -10,7 +10,7 @@
 
 import { test, expect } from '@playwright/test';
 import { login } from '../../helpers/login.js';
-import { createApiContext, getAuthToken, getCurrentUser, updateUserProfile, searchUsers } from '../../helpers/api.js';
+import { createApiContext, getAuthToken, getCurrentUser, updateUserProfile, searchUsers } from '../../helpers/api';
 
 test.describe('Auth & Profile Update E2E', () => {
   test('should update user profile and verify in directory', async ({ page }) => {

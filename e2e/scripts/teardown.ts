@@ -21,7 +21,7 @@ import {
   deleteTenant,
   deleteTestUser,
   deleteTestEntity,
-} from '../helpers/api.js';
+} from '../helpers/api';
 
 interface ScaffoldResult {
   tenantId: string;

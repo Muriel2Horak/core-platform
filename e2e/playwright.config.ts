@@ -97,6 +97,26 @@ export default defineConfig({
         baseURL: process.env.POST_BASE_URL || config.baseUrl,
       },
     },
+    
+    // ADMIN: Admin panel tests (monitoring, security, etc.)
+    {
+      name: 'admin',
+      testDir: './specs/admin',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.ADMIN_BASE_URL || config.baseUrl,
+      },
+    },
+    
+    // MONITORING: Grafana dashboards and monitoring tests
+    {
+      name: 'monitoring',
+      testDir: './specs/monitoring',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.MONITORING_BASE_URL || config.baseUrl,
+      },
+    },
   ],
   
   // Output folder

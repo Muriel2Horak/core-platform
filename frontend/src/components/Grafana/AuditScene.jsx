@@ -39,11 +39,15 @@ export const AuditScene = ({
 
   const initializeScene = async () => {
     try {
+      console.log('[AuditScene] 🚀 Starting initialization...');
       setLoading(true);
       setError(null);
 
+      console.log('[AuditScene] 📝 Creating BFF datasource...');
       const dataSource = new GrafanaSceneDataSource();
+      console.log('[AuditScene] ✅ DataSource created:', dataSource);
 
+      console.log('[AuditScene] 🎨 Building scene config...');
       const sceneConfig = {
         $timeRange: new SceneTimeRange({ 
           from: timeRange.from, 
@@ -120,15 +124,25 @@ export const AuditScene = ({
         }),
       };
 
+      console.log('[AuditScene] 🎨 Creating EmbeddedScene...');
       const newScene = new EmbeddedScene(sceneConfig);
+      console.log('[AuditScene] ✅ Scene created:', newScene);
 
       if (containerRef.current) {
+        console.log('[AuditScene] 🎬 Activating scene...');
         newScene.activate();
+        console.log('[AuditScene] ✅ Scene activated!');
         setScene(newScene);
+        setLoading(false);
+        console.log('[AuditScene] 🎉 Initialization complete!');
+      } else {
+        console.warn('[AuditScene] ⚠️  Container ref is null');
+        setError('Container not ready');
         setLoading(false);
       }
     } catch (err) {
-      console.error('Failed to initialize AuditScene:', err);
+      console.error('[AuditScene] ❌ Initialization failed:', err);
+      console.error('[AuditScene] Error stack:', err.stack);
       setError(err.message);
       setLoading(false);
     }

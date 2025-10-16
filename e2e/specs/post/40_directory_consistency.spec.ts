@@ -7,7 +7,7 @@
 
 import { test, expect } from '@playwright/test';
 import { login } from '../../helpers/login.js';
-import { createApiContext, getAuthToken, searchUsers } from '../../helpers/api.js';
+import { createApiContext, getAuthToken, searchUsers } from '../../helpers/api';
 
 test.describe('Directory Consistency E2E', () => {
   test('should search user by updated name and verify metadata', async ({ page }) => {

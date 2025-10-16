@@ -17,7 +17,14 @@ export class GrafanaSceneDataSource {
    * Proxies request through /api/monitoring/ds/query
    */
   async query(request) {
+    console.log('[GrafanaSceneDataSource] 📊 Query request:', {
+      targets: request.targets?.length,
+      range: request.range,
+      intervalMs: request.intervalMs,
+    });
+    
     try {
+      console.log('[GrafanaSceneDataSource] 🌐 Sending POST to /api/monitoring/ds/query...');
       const response = await axios.post('/api/monitoring/ds/query', {
         queries: request.targets.map(target => ({
           refId: target.refId,
@@ -45,11 +52,21 @@ export class GrafanaSceneDataSource {
         withCredentials: true,
       });
 
+      console.log('[GrafanaSceneDataSource] ✅ Query response:', {
+        status: response.status,
+        dataCount: response.data.results?.length,
+      });
+
       return {
         data: response.data.results || [],
       };
     } catch (error) {
-      console.error('BFF query failed:', error);
+      console.error('[GrafanaSceneDataSource] ❌ BFF query failed:', error);
+      console.error('[GrafanaSceneDataSource] Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
       throw new Error(`Failed to query datasource: ${error.message}`);
     }
   }
