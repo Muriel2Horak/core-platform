@@ -56,12 +56,13 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
 
   // Wait for redirect back to app
   if (waitForDashboard) {
-    // 🎯 Navigation hardening: Wait for redirect to dashboard/home
-    await page.waitForURL(/(dashboard|home)/, { timeout: 30000 }); // Increased from 15s to 30s
+    // 🎯 Navigation hardening: Wait for redirect to dashboard/home/admin
+    await page.waitForURL(/(dashboard|home|core-admin)/, { timeout: 15000 });
     console.log('✓ Redirected back to app');
     
-    // Wait for app to be fully loaded
-    await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+    // Wait for network to be idle (all bundles loaded)
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    console.log('✓ Network idle');
     
     console.log('✓ Login complete');
   }
