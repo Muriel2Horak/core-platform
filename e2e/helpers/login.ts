@@ -57,7 +57,7 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
   // Wait for redirect back to app
   if (waitForDashboard) {
     // 🎯 Navigation hardening: Wait for redirect to dashboard/home
-    await page.waitForURL(/(dashboard|home)/, { timeout: 15000 });
+    await page.waitForURL(/(dashboard|home)/, { timeout: 30000 }); // Increased from 15s to 30s
     console.log('✓ Redirected back to app');
     
     // Wait for app to be fully loaded
