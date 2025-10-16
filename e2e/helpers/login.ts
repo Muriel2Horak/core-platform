@@ -4,7 +4,7 @@
  * Handles GUI-based Keycloak login flow for E2E tests.
  */
 
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { readE2EConfig } from '../config/read-config.js';
 
 export interface LoginOptions {
@@ -22,13 +22,6 @@ export interface LoginOptions {
 export async function login(page: Page, options: LoginOptions = {}): Promise<void> {
   const config = readE2EConfig();
   
-  // 🔧 FIX: Zkontroluj jestli už jsme přihlášení (Keycloak session caching)
-  const alreadyLoggedIn = await isLoggedIn(page);
-  if (alreadyLoggedIn) {
-    console.log('✓ Already logged in, skipping Keycloak flow');
-    return;
-  }
-  
   const username = options.username || config.testUser.username;
   const password = options.password || config.testUser.password;
   const waitForDashboard = options.waitForDashboard ?? true;
@@ -37,9 +30,17 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
   
   // Navigate to app (should redirect to Keycloak if not logged in)
   await page.goto('/');
+  
+  // 🔧 FIX: Check login status AFTER navigation
+  const alreadyLoggedIn = await isLoggedIn(page);
+  if (alreadyLoggedIn) {
+    console.log('✓ Already logged in, skipping Keycloak flow');
+    return;
+  }
 
-  // Wait for Keycloak login page
-  const isKeycloakPage = page.url().includes(config.keycloak.authServerUrl);
+  // Wait for Keycloak login page - improved detection
+  const currentUrl = page.url();
+  const isKeycloakPage = currentUrl.includes('/realms/') && currentUrl.includes('/protocol/openid-connect');
   
   if (isKeycloakPage) {
     // Fill login form
@@ -55,24 +56,12 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
 
   // Wait for redirect back to app
   if (waitForDashboard) {
-    // Wait for navigation away from Keycloak
-    await page.waitForURL(url => {
-      const urlString = url.toString();
-      return !urlString.includes('keycloak') && !urlString.includes(':8081');
-    }, { timeout: 15000 });
-    
+    // 🎯 Navigation hardening: Wait for redirect to dashboard/home
+    await page.waitForURL(/(dashboard|home)/, { timeout: 15000 });
     console.log('✓ Redirected back to app');
     
-    // Wait for app to be fully loaded (either dashboard or root that will redirect)
-    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
-      // Ignore timeout, continue
-    });
-    
-    // If we're on root, wait a bit for React Router redirect
-    const currentURL = page.url();
-    if (currentURL.endsWith('/') && !currentURL.includes('/dashboard')) {
-      await page.waitForTimeout(2000); // Give React Router time to redirect
-    }
+    // Wait for app to be fully loaded
+    await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
     
     console.log('✓ Login complete');
   }
@@ -81,25 +70,29 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
 /**
  * Checks if user is already logged in
  * 
- * 🔧 FIX: Wait for user menu to appear instead of synchronous count check
+ * Uses accessible role-based selector instead of data-testid
+ * to work reliably even when test attributes are stripped in production builds.
  */
 export async function isLoggedIn(page: Page): Promise<boolean> {
-  const config = readE2EConfig();
-  
   // Check if on Keycloak login page
-  if (page.url().includes(config.keycloak.authServerUrl)) {
+  const currentUrl = page.url();
+  if (currentUrl.includes('/realms/') && currentUrl.includes('/protocol/openid-connect')) {
+    console.log('🔐 Still on Keycloak page, not logged in');
     return false;
   }
   
-  // Wait for user menu to appear (with timeout)
+  // Wait for page to be fully loaded
   try {
-    await page.waitForSelector('[data-testid="user-menu"], .user-profile, #user-dropdown', { 
-      timeout: 5000,
-      state: 'visible'
-    });
+    await page.waitForLoadState('domcontentloaded');
+    
+    // 🎯 A11Y-FIRST: Use role-based selector (works in production builds)
+    const userMenuButton = page.getByRole('button', { name: /account menu/i });
+    await expect(userMenuButton).toBeVisible({ timeout: 30000 });
+    
+    console.log('✅ User menu visible - user is logged in');
     return true;
-  } catch {
-    // User menu not found within timeout
+  } catch (error: any) {
+    console.log(`❌ isLoggedIn() failed: ${error?.message || 'Unknown error'}`);
     return false;
   }
 }

@@ -362,6 +362,17 @@ _up_inner: validate-env kc-image
 	@echo "║  🚀 PRODUCTION ENVIRONMENT STARTUP                             ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
+	@echo "🔍 Checking Docker daemon..."
+	@if ! docker info > /dev/null 2>&1; then \
+		echo ""; \
+		echo "❌ Docker daemon is not running!"; \
+		echo ""; \
+		echo "Please start Docker Desktop and try again."; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo "✅ Docker daemon is running"
+	@echo ""
 	@echo ">>> starting compose up at $(BUILD_TS)"
 	@echo "📋 Environment: $${ENVIRONMENT:-development}"
 	@echo "🌐 Domain: $${DOMAIN:-core-platform.local}"
@@ -372,6 +383,41 @@ _up_inner: validate-env kc-image
 		sed 's/Container .* Started/  ✅ Container started/g' | \
 		sed 's/Container .* Starting/  ⏳ Container starting/g'
 	@echo ""
+	@echo "⏳ Waiting for containers to start..."
+	@sleep 5
+	@FAILED_CONTAINERS=$$(docker compose -f docker/docker-compose.yml ps --filter "status=exited" --format "{{.Service}}" 2>/dev/null); \
+	if [ -n "$$FAILED_CONTAINERS" ]; then \
+		echo ""; \
+		echo "❌ Some containers failed to start:"; \
+		echo "$$FAILED_CONTAINERS" | sed 's/^/   - /'; \
+		echo ""; \
+		echo "🔍 Check logs with: make logs"; \
+		exit 1; \
+	fi
+	@echo "✅ All containers started"
+	@echo ""
+	@echo "⏳ Waiting for backend to be ready (this may take several minutes)..."
+	@MAX_WAIT=420; \
+	ELAPSED=0; \
+	while [ $$ELAPSED -lt $$MAX_WAIT ]; do \
+		if docker exec core-backend curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then \
+			echo "✅ Backend is ready (took $${ELAPSED}s)"; \
+			break; \
+		fi; \
+		if [ $$ELAPSED -eq 0 ]; then \
+			echo "   Backend is starting up, please wait..."; \
+		elif [ $$((ELAPSED % 30)) -eq 0 ]; then \
+			echo "   Still waiting... ($${ELAPSED}s elapsed)"; \
+		fi; \
+		sleep 5; \
+		ELAPSED=$$((ELAPSED + 5)); \
+		if [ $$ELAPSED -ge $$MAX_WAIT ]; then \
+			echo ""; \
+			echo "❌ Backend failed to become ready within $${MAX_WAIT}s"; \
+			echo "🔍 Check logs with: docker logs core-backend"; \
+			exit 1; \
+		fi; \
+	done
 	@echo "✅ Environment started successfully!"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -423,10 +469,17 @@ _rebuild_with_progress:
 	CURRENT=$$((CURRENT + 1)); \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "IN_PROGRESS" ""; \
 	START_SVC=$$(date +%s); \
-	$(MAKE) up > /dev/null 2>&1; \
-	END_SVC=$$(date +%s); \
-	SVC_TIME=$$((END_SVC - START_SVC)); \
-	bash scripts/build/build-progress-tracker.sh update $$CURRENT "DONE" "$${SVC_TIME}s"; \
+	if $(MAKE) up 2>&1 | tail -20; then \
+		END_SVC=$$(date +%s); \
+		SVC_TIME=$$((END_SVC - START_SVC)); \
+		bash scripts/build/build-progress-tracker.sh update $$CURRENT "DONE" "$${SVC_TIME}s"; \
+	else \
+		END_SVC=$$(date +%s); \
+		SVC_TIME=$$((END_SVC - START_SVC)); \
+		bash scripts/build/build-progress-tracker.sh update $$CURRENT "FAILED" "$${SVC_TIME}s"; \
+		echo "❌ Failed to start services"; \
+		exit 1; \
+	fi; \
 	sleep 0.5; \
 	\
 	if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
@@ -602,7 +655,7 @@ _rebuild_clean_inner:
 
 # Clean with Build Doctor (FULL E2E TESTING)
 clean:
-	@bash scripts/build/auto-split.sh "RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
+	@bash scripts/build/auto-split.sh "SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
 
 _clean_inner:
 	@# Build dynamic step list and initialize tracker

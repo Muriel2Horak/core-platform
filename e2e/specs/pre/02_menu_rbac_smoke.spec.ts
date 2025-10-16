@@ -93,12 +93,12 @@ test.describe('Menu RBAC Smoke Test', () => {
   test('should show user profile menu', async ({ page }) => {
     await login(page);
     
-    // User menu should always be visible for logged-in users
-    const userMenu = page.locator('[data-testid="user-menu"], .user-profile, #user-dropdown').first();
-    await expect(userMenu).toBeVisible({ timeout: 5000 });
+    // 🎯 A11Y: Use role-based selector (works in production builds)
+    const userMenuButton = page.getByRole('button', { name: /account menu/i });
+    await expect(userMenuButton).toBeVisible();
     
-    // Click to expand
-    await userMenu.click();
+    // Click to expand menu
+    await userMenuButton.click();
     
     // Should show profile and logout options
     const profileOption = page.locator('text=/profile/i').first();

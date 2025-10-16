@@ -1,0 +1,9 @@
+# Ignore build output - Docker will rebuild it
+dist/
+node_modules/
+.cache/
+
+# Ignore development files
+*.log
+.DS_Store
+.env.local

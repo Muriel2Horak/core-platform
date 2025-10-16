@@ -20,12 +20,14 @@ export default defineConfig({
   timeout: 60 * 1000,
   
   // Timeout pro expect assertions
+  // 🔧 FIX: Increased to 45s for Keycloak OAuth flow + React initialization
   expect: {
-    timeout: 10 * 1000,
+    timeout: 45 * 1000,
   },
   
   // Paralelizace testů
-  fullyParallel: true,
+  // 🔧 FIX: Disable full parallelization to prevent session conflicts
+  fullyParallel: false,
   
   // Fail build pokud je test.only
   forbidOnly: !!process.env.CI,
@@ -34,7 +36,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   
   // Workers
-  workers: process.env.CI ? 1 : undefined,
+  // 🔧 FIX: Reduce to 2 workers to prevent session conflicts
+  workers: process.env.CI ? 1 : 2,
   
   // Reporting
   reporter: [

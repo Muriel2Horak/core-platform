@@ -19,6 +19,8 @@ test.describe('Login Smoke Test', () => {
   });
 
   test('should login via Keycloak GUI and redirect to dashboard', async ({ page }) => {
+    test.setTimeout(90000); // 🔧 FIX: Increase timeout to 90s for Keycloak + React init
+    
     TestLogger.testStart('Keycloak Login & Dashboard Redirect', 1, 3);
     
     // Perform login
@@ -26,7 +28,7 @@ test.describe('Login Smoke Test', () => {
     await login(page);
     TestLogger.success('Login completed');
     
-    // Verify we're on dashboard/home
+    // Verify we're on dashboard/home (login() already does this via waitForURL)
     TestLogger.verify('Verifying redirect to dashboard...');
     await expect(page).toHaveURL(/\/(dashboard|home)/i);
     TestLogger.success('Redirected to dashboard/home');
@@ -37,10 +39,10 @@ test.describe('Login Smoke Test', () => {
     expect(loggedIn).toBe(true);
     TestLogger.success('User is logged in');
     
-    // Verify user menu is visible
+    // 🎯 A11Y: Use role-based selector (works in production builds)
     TestLogger.step('Verifying UI elements...', 3);
-    const userMenu = page.locator('[data-testid="user-menu"], .user-profile, #user-dropdown').first();
-    await expect(userMenu).toBeVisible({ timeout: 5000 });
+    const userMenuButton = page.getByRole('button', { name: /account menu/i });
+    await expect(userMenuButton).toBeVisible();
     TestLogger.success('User menu visible');
     
     TestLogger.testEnd();
