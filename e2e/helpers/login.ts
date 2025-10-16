@@ -37,8 +37,9 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
     await page.fill('input[name="username"]', username);
     await page.fill('input[name="password"]', password);
     
-    // Submit
-    await page.click('input[type="submit"]');
+    // Submit - Try button first (newer Keycloak), fallback to input
+    const submitButton = page.locator('button[type="submit"], input[type="submit"], button:has-text("Sign In")');
+    await submitButton.first().click();
   }
 
   // Wait for redirect back to app

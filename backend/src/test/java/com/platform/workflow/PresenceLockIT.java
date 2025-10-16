@@ -9,6 +9,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.awaitility.Awaitility;
 
+import cz.muriel.core.BackendApplication;
 import cz.muriel.core.test.AbstractKafkaIntegrationTest;
 
 import java.net.URI;
@@ -34,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 
  * @since 2025-10-14
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = BackendApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class PresenceLockIT extends AbstractKafkaIntegrationTest {
 
   @LocalServerPort

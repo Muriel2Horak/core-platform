@@ -12,6 +12,7 @@ import org.openapi4j.parser.model.v3.Path;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import cz.muriel.core.test.AbstractIntegrationTest;
@@ -21,8 +22,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * 🧪 OpenAPI Contract Tests
@@ -45,12 +48,17 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    // Fetch OpenAPI spec
-    ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs", String.class);
+    // Wait for backend to be ready and fetch OpenAPI spec
+    // Use Awaitility to retry in case backend is still starting up
+    await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).untilAsserted(() -> {
+      ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs", String.class);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getBody()).isNotNull();
+    });
 
-    assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+    // Fetch OpenAPI spec (now guaranteed to work)
+    ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs", String.class);
     openApiJson = response.getBody();
-    assertThat(openApiJson).isNotNull();
 
     // Parse OpenAPI spec
     File tempFile = File.createTempFile("openapi", ".json");
