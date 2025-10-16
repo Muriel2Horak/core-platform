@@ -100,9 +100,9 @@ test.describe('Menu RBAC Smoke Test', () => {
     // Click to expand menu
     await userMenuButton.click();
     
-    // Should show profile and logout options
-    const profileOption = page.locator('text=/profile/i').first();
-    const logoutOption = page.locator('text=/logout|sign out/i').first();
+    // Should show profile and logout options (Czech UI: "Můj profil", "Odhlásit se")
+    const profileOption = page.locator('text=/můj profil|profile/i').first();
+    const logoutOption = page.locator('text=/odhlásit|logout|sign out/i').first();
     
     await expect(profileOption).toBeVisible({ timeout: 3000 });
     await expect(logoutOption).toBeVisible({ timeout: 3000 });
