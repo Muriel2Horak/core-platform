@@ -48,13 +48,18 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
 
         BACKEND_LOG="../$LOG_DIR/backend-${TIMESTAMP}.log"
 
-        TEST_PATTERN="*Test"
+        # Build test pattern - match *Test, *Tests, *IT, *IntegrationTest
+        TEST_PATTERN=""
         if [ -n "$SKIP_TEST_CLASSES" ]; then
             IFS=',' read -ra CLASSES <<< "$SKIP_TEST_CLASSES"
             for CLASS in "${CLASSES[@]}"; do
                 TRIMMED="$(echo "$CLASS" | xargs)"
                 [ -z "$TRIMMED" ] && continue
-                TEST_PATTERN="$TEST_PATTERN,!$TRIMMED"
+                if [ -z "$TEST_PATTERN" ]; then
+                    TEST_PATTERN="!$TRIMMED"
+                else
+                    TEST_PATTERN="$TEST_PATTERN,!$TRIMMED"
+                fi
             done
         fi
 

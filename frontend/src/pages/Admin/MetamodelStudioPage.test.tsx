@@ -13,8 +13,8 @@ describe('MetamodelStudioPage - S10-A RBAC & Layout', () => {
     vi.clearAllMocks();
   });
 
-  it('should show access denied for user without CORE_ROLE_STUDIO role', () => {
-    // Mock user without CORE_ROLE_STUDIO
+  it('should show access denied for user without CORE_ADMIN_STUDIO role', () => {
+    // Mock user without CORE_ADMIN_STUDIO
     // @ts-expect-error - Mock return value for testing
     vi.mocked(AuthProvider.useAuth).mockReturnValue({
       user: { username: 'regular_user', roles: ['CORE_ROLE_USER'] },
@@ -28,14 +28,14 @@ describe('MetamodelStudioPage - S10-A RBAC & Layout', () => {
 
     // Check access denied message
     expect(screen.getByText('Přístup odepřen')).toBeInTheDocument();
-    expect(screen.getByText(/CORE_ROLE_STUDIO/)).toBeInTheDocument();
+    expect(screen.getByText(/CORE_ADMIN_STUDIO/)).toBeInTheDocument();
   });
 
-  it('should render Studio layout for user with CORE_ROLE_STUDIO role', () => {
-    // Mock user with CORE_ROLE_STUDIO
+  it('should render Studio layout for user with CORE_ADMIN_STUDIO role', () => {
+    // Mock user with CORE_ADMIN_STUDIO
     // @ts-expect-error - Mock return value for testing
     vi.mocked(AuthProvider.useAuth).mockReturnValue({
-      user: { username: 'studio_admin', roles: ['CORE_ROLE_STUDIO'] },
+      user: { username: 'studio_admin', roles: ['CORE_ADMIN_STUDIO'] },
       isAuthenticated: true,
       loading: false,
       login: vi.fn(),
