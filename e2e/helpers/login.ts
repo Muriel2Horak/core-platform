@@ -60,9 +60,13 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
     await page.waitForURL(/(dashboard|home|core-admin)/, { timeout: 15000 });
     console.log('✓ Redirected back to app');
     
-    // Wait for network to be idle (all bundles loaded)
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
-    console.log('✓ Network idle');
+    // Wait for DOM to be fully loaded (more reliable than networkidle for chunked ESM)
+    await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+    console.log('✓ DOM loaded');
+    
+    // Give scenes/chunks time to lazy load (shorter wait, non-blocking)
+    await page.waitForTimeout(2000);
+    console.log('✓ Lazy modules loaded');
     
     console.log('✓ Login complete');
   }
