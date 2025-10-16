@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Box, CircularProgress, Alert, Paper, Typography } from '@mui/material';
+import { Box, CircularProgress, Alert } from '@mui/material';
 
 export const SystemMonitoringScene = ({
   height = 800,
@@ -105,16 +105,9 @@ export const SystemMonitoringScene = ({
     );
   }
 
-  return (
-    <Paper elevation={0} sx={{ p: 2, height }}>
-      <Typography variant="h6" gutterBottom>
-        📊 System Monitoring
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Scene is rendered in centralized #grafana-scenes-root container
-      </Typography>
-    </Paper>
-  );
+  // Scene is rendered in centralized #grafana-scenes-root container
+  // This component just manages lifecycle, actual rendering happens elsewhere
+  return null;
 };
 
 export default SystemMonitoringScene;
