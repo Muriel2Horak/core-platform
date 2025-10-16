@@ -52,7 +52,8 @@ try {
   console.warn('⚠️ Could not copy public files:', err.message);
 }
 
-const buildOptions = {
+// Main app build (IIFE format, unchanged)
+const mainAppBuildOptions = {
   entryPoints: ['src/main.jsx'],
   bundle: true,
   outfile: 'dist/bundle.js',
@@ -90,31 +91,79 @@ const buildOptions = {
   plugins: [grafanaSchemaResolverPlugin]
 };
 
+// Scenes ESM build (separate entry)
+const scenesBuildOptions = {
+  entryPoints: ['src/scenes/scenes.bootstrap.ts'],
+  bundle: true,
+  outdir: 'dist/assets',
+  format: 'esm',
+  target: 'es2020',
+  platform: 'browser',
+  splitting: true,
+  sourcemap: isDev,
+  minify: isProduction,
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+    global: 'globalThis'
+  },
+  jsx: 'automatic',
+  jsxImportSource: 'react',
+  loader: {
+    '.js': 'jsx',
+    '.jsx': 'jsx',
+    '.ts': 'tsx',
+    '.tsx': 'tsx',
+    '.css': 'css',
+    '.png': 'file',
+    '.jpg': 'file',
+    '.jpeg': 'file',
+    '.svg': 'dataurl',
+    '.ttf': 'file',
+    '.woff': 'file',
+    '.woff2': 'file'
+  },
+  resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.gen.js', '.gen.ts'],
+  external: [],
+  logLevel: 'info',
+  plugins: [grafanaSchemaResolverPlugin],
+  chunkNames: 'chunks/[name]-[hash]',
+};
+
 if (isDev) {
   // Development mode with watch and dev server
-  const ctx = await context({
-    ...buildOptions,
+  const mainCtx = await context({
+    ...mainAppBuildOptions,
     banner: {
       js: '(() => new EventSource("/esbuild").addEventListener("change", () => location.reload()))();',
     },
   });
   
-  await ctx.watch();
+  const scenesCtx = await context(scenesBuildOptions);
   
-  // Start dev server
-  const { host, port } = await ctx.serve({
+  await mainCtx.watch();
+  await scenesCtx.watch();
+  
+  // Start dev server (only one server needed)
+  const { host, port } = await mainCtx.serve({
     servedir: 'dist',
     port: 8080,
     host: '0.0.0.0',
   });
   
   console.log(`🚀 Dev server running at http://${host}:${port}`);
-  console.log('👀 Watching for changes...');
+  console.log('👀 Watching for changes (main app + scenes)...');
 } else {
-  // Production build
+  // Production build - build both bundles
   try {
-    await build(buildOptions);
-    console.log('✅ Build completed successfully!');
+    console.log('🏗️  Building main app (IIFE)...');
+    await build(mainAppBuildOptions);
+    console.log('✅ Main app built successfully!');
+    
+    console.log('🏗️  Building scenes (ESM)...');
+    await build(scenesBuildOptions);
+    console.log('✅ Scenes built successfully!');
+    
+    console.log('✅ All builds completed successfully!');
   } catch (err) {
     console.error('❌ Build failed:', err);
     process.exit(1);

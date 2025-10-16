@@ -99,52 +99,35 @@
         }
     </style>
     
-    <!-- 📊 Grafana Scenes Mock Configuration - CRITICAL: Must be BEFORE bundle.js -->
+    <!-- 📊 Grafana Boot Data - Inline initialization (BEFORE any module loads) -->
     <script>
-        // STEP 1: Initialize grafanaBootData IMMEDIATELY (before any bundle loads)
-        console.log('[HTML] 🔧 Initializing grafanaBootData...');
-        window.grafanaBootData = {
-            assets: {
-                dark: '',
-                light: ''
-            },
-            settings: {
-                appUrl: window.location.origin,
-                appSubUrl: '',
-                theme: 'light',
-                buildInfo: {
-                    version: '1.0',
-                    commit: '1',
-                    env: 'production'
-                },
-                bootData: {
+        !function() {
+            if (!window.grafanaBootData) {
+                window.grafanaBootData = {
                     user: {
-                        theme: 'light',
-                        lightTheme: true,
-                        isSignedIn: false,
+                        isSignedIn: true,
                         orgId: 1,
-                        regionalFormat: 'en-US'
+                        orgRole: 'Admin',
+                        timeZone: 'browser'
                     },
-                    settings: {}
-                }
-            },
-            user: {
-                theme: 'light',
-                lightTheme: true,
-                isSignedIn: false,
-                orgId: 1,
-                regionalFormat: 'en-US'
-            },
-            navTree: []
-        };
-        console.log('[HTML] ✅ grafanaBootData initialized:', window.grafanaBootData);
-        
-        // STEP 2: Verify it's available
-        if (window.grafanaBootData) {
-            console.log('[HTML] ✅ Verification: grafanaBootData is ready!');
-        } else {
-            console.error('[HTML] ❌ CRITICAL: grafanaBootData initialization failed!');
-        }
+                    settings: {
+                        appSubUrl: '',
+                        baseUrl: '',
+                        buildInfo: {
+                            version: 'dev',
+                            commit: 'dev',
+                            env: (window.NODE_ENV || 'production')
+                        },
+                        featureToggles: {
+                            scenes: true
+                        },
+                        defaultDatasource: null,
+                        theme2: (localStorage.getItem('grafana.user.theme') || 'dark')
+                    }
+                };
+                console.info('[bootdata] ✅ grafanaBootData initialized inline');
+            }
+        }();
     </script>
 </head>
 <body>
@@ -155,10 +138,13 @@
         </div>
     </div>
     
-    <!-- STEP 3: Load bundle AFTER grafanaBootData is ready -->
-    <script>
-        console.log('[HTML] 📦 Loading bundle.js...');
-    </script>
+    <!-- Grafana Scenes container (hidden until activated) -->
+    <div id="grafana-scenes-root" style="display: none; width: 100%; height: 100%;"></div>
+    
+    <!-- Main app bundle (IIFE format) -->
     <script src="/bundle.js"></script>
+    
+    <!-- Scenes module (ESM format, loaded only when needed) -->
+    <script type="module" src="/assets/scenes.bootstrap.js"></script>
 </body>
 </html>
