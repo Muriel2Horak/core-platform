@@ -850,12 +850,6 @@ status:
 	@echo "=================================="
 	docker compose -f docker/docker-compose.yml --env-file .env ps
 
-# Show all services logs
-.PHONY: logs
-logs:
-	@echo "📋 Core Platform Services Logs:"
-	docker compose -f docker/docker-compose.yml --env-file .env logs -f
-
 # First-time development setup
 .PHONY: dev-setup
 dev-setup:
@@ -1194,33 +1188,6 @@ restart-db:
 		fi; \
 		sleep 2; \
 	done
-
-# Show backend logs only
-.PHONY: logs-backend
-logs-backend:
-	@echo "📋 Backend logs (Docker + recent test results):"
-	@echo "=== Docker Logs ==="
-	@docker compose -f docker/docker-compose.yml --env-file .env logs --tail=50 backend
-	@echo ""
-	@echo "=== Recent Test Results ==="
-	@if [ -f artifacts/backend_tests.log ]; then \
-		echo "🧪 Last unit test results:"; \
-		tail -20 artifacts/backend_tests.log; \
-	else \
-		echo "No recent test results found"; \
-	fi
-
-# Show frontend logs only
-.PHONY: logs-frontend
-logs-frontend:
-	@echo "📋 Frontend logs:"
-	docker compose -f docker/docker-compose.yml --env-file .env logs -f frontend
-
-# Show keycloak logs only
-.PHONY: logs-keycloak
-logs-keycloak:
-	@echo "📋 Keycloak logs:"
-	docker compose -f docker/docker-compose.yml --env-file .env logs -f keycloak
 
 # Show database logs only
 .PHONY: logs-db
