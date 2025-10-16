@@ -18,24 +18,27 @@ test.describe('Auth & Profile Update E2E', () => {
     await login(page);
     
     // 2. Navigate to user profile
-    const userMenu = page.locator('[data-testid="user-menu"], .user-profile, #user-dropdown').first();
-    await userMenu.click();
+    // 🎯 A11Y: Use role-based selector for user menu button
+    const userMenuButton = page.getByRole('button', { name: /account menu/i });
+    await userMenuButton.click();
     
-    const profileLink = page.locator('text=/profile/i, a[href*="profile"]').first();
-    await profileLink.click();
+    // Click profile menu item (Czech: "Můj profil")
+    const profileMenuItem = page.getByRole('menuitem', { name: /můj profil|my profile/i });
+    await profileMenuItem.click();
     
     // 3. Update display name
     const newDisplayName = `Test User E2E ${Date.now()}`;
     
-    const displayNameInput = page.locator('input[name="displayName"], input[id="displayName"]').first();
+    // 🎯 A11Y: Use label-based selector or aria-label
+    const displayNameInput = page.getByRole('textbox', { name: /display name|jméno/i });
     await displayNameInput.fill(newDisplayName);
     
-    // Save
-    const saveBtn = page.locator('button:has-text("Save"), button[type="submit"]').first();
+    // Save button
+    const saveBtn = page.getByRole('button', { name: /save|uložit/i });
     await saveBtn.click();
     
     // Wait for success message
-    await expect(page.locator('text=/success|saved/i').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=/success|saved|uloženo/i').first()).toBeVisible({ timeout: 5000 });
     
     // 4. Verify via API (same as GUI uses)
     const token = await getAuthToken();
@@ -54,7 +57,8 @@ test.describe('Auth & Profile Update E2E', () => {
     // 🔧 FIX: Correct route is /user-directory, not /directory/users
     await page.goto('/user-directory');
     
-    const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
+    // 🎯 A11Y: Use searchbox role
+    const searchInput = page.getByRole('searchbox').or(page.getByRole('textbox', { name: /search|hledat/i }));
     await searchInput.fill(newDisplayName);
     
     // Should find the updated user
@@ -80,8 +84,8 @@ test.describe('Auth & Profile Update E2E', () => {
     // 🔧 FIX: Correct route is /user-directory, not /directory/users
     await page.goto('/user-directory');
     
-    // Search for updated user
-    const searchInput = page.locator('input[type="search"]').first();
+    // 🎯 A11Y: Use searchbox role
+    const searchInput = page.getByRole('searchbox').or(page.getByRole('textbox', { name: /search|hledat/i }));
     await searchInput.fill(newName);
     
     // Look for "recently updated" badge or indicator

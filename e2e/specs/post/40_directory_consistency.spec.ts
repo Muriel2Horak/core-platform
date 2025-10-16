@@ -28,7 +28,9 @@ test.describe('Directory Consistency E2E', () => {
     // Verify in GUI
     // 🔧 FIX: Correct route is /user-directory, not /directory/users
     await page.goto('/user-directory');
-    const searchInput = page.locator('input[type="search"]').first();
+    
+    // 🎯 A11Y: Use searchbox role instead of type selector
+    const searchInput = page.getByRole('searchbox').or(page.getByRole('textbox', { name: /search|hledat/i }));
     await searchInput.fill(currentUser.displayName || currentUser.username);
     
     await expect(page.locator(`text="${currentUser.displayName || currentUser.username}"`).first())
