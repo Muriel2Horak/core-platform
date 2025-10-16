@@ -208,7 +208,7 @@ draw_panel() {
                 ;;
             IN_PROGRESS)
                 # Calculate progress percentage if we have total
-                if [ "$total" -gt 0 ]; then
+                if [ -n "$total" ] && [ "$total" -gt 0 ]; then
                     local percent=$((current * 100 / total))
                     bar=$(draw_bar "$percent")
                     # Show test count prominently: "145/215 tests (67%)"
@@ -223,7 +223,7 @@ draw_panel() {
                 status_text="${GREEN}DONE${NC}"
                 [ -n "$time" ] && status_text="${status_text} ${GRAY}(${time})${NC}"
                 # Show final count if available
-                if [ "$total" -gt 0 ]; then
+                if [ -n "$total" ] && [ "$total" -gt 0 ]; then
                     status_text="${status_text} ${GRAY}[$total tests]${NC}"
                 fi
                 ;;
@@ -231,7 +231,7 @@ draw_panel() {
                 bar=$(draw_bar 100)
                 status_text="${RED}FAILED${NC}"
                 [ -n "$time" ] && status_text="${status_text} ${GRAY}(${time})${NC}"
-                if [ "$current" -gt 0 ] && [ "$total" -gt 0 ]; then
+                if [ -n "$current" ] && [ "$current" -gt 0 ] && [ -n "$total" ] && [ "$total" -gt 0 ]; then
                     status_text="${status_text} ${GRAY}($current/$total)${NC}"
                 fi
                 ;;
