@@ -26,7 +26,8 @@ test.describe('Directory Consistency E2E', () => {
     expect(found).toBeTruthy();
     
     // Verify in GUI
-    await page.goto('/directory/users');
+    // 🔧 FIX: Correct route is /user-directory, not /directory/users
+    await page.goto('/user-directory');
     const searchInput = page.locator('input[type="search"]').first();
     await searchInput.fill(currentUser.displayName || currentUser.username);
     

@@ -4,7 +4,7 @@
  * Handles GUI-based Keycloak login flow for E2E tests.
  */
 
-import { Page, expect } from '@playwright/test';
+import { Page } from '@playwright/test';
 import { readE2EConfig } from '../config/read-config.js';
 
 export interface LoginOptions {
@@ -22,11 +22,20 @@ export interface LoginOptions {
 export async function login(page: Page, options: LoginOptions = {}): Promise<void> {
   const config = readE2EConfig();
   
+  // 🔧 FIX: Zkontroluj jestli už jsme přihlášení (Keycloak session caching)
+  const alreadyLoggedIn = await isLoggedIn(page);
+  if (alreadyLoggedIn) {
+    console.log('✓ Already logged in, skipping Keycloak flow');
+    return;
+  }
+  
   const username = options.username || config.testUser.username;
   const password = options.password || config.testUser.password;
   const waitForDashboard = options.waitForDashboard ?? true;
 
-  // Navigate to app (should redirect to Keycloak)
+  console.log(`🔐 Logging in as ${username}...`);
+  
+  // Navigate to app (should redirect to Keycloak if not logged in)
   await page.goto('/');
 
   // Wait for Keycloak login page
@@ -40,16 +49,39 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
     // Submit - Try button first (newer Keycloak), fallback to input
     const submitButton = page.locator('button[type="submit"], input[type="submit"], button:has-text("Sign In")');
     await submitButton.first().click();
+    
+    console.log('✓ Keycloak credentials submitted');
   }
 
   // Wait for redirect back to app
   if (waitForDashboard) {
-    await expect(page).toHaveURL(/\/(dashboard|home)/i, { timeout: 15000 });
+    // Wait for navigation away from Keycloak
+    await page.waitForURL(url => {
+      const urlString = url.toString();
+      return !urlString.includes('keycloak') && !urlString.includes(':8081');
+    }, { timeout: 15000 });
+    
+    console.log('✓ Redirected back to app');
+    
+    // Wait for app to be fully loaded (either dashboard or root that will redirect)
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+      // Ignore timeout, continue
+    });
+    
+    // If we're on root, wait a bit for React Router redirect
+    const currentURL = page.url();
+    if (currentURL.endsWith('/') && !currentURL.includes('/dashboard')) {
+      await page.waitForTimeout(2000); // Give React Router time to redirect
+    }
+    
+    console.log('✓ Login complete');
   }
 }
 
 /**
  * Checks if user is already logged in
+ * 
+ * 🔧 FIX: Wait for user menu to appear instead of synchronous count check
  */
 export async function isLoggedIn(page: Page): Promise<boolean> {
   const config = readE2EConfig();
@@ -59,9 +91,17 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
     return false;
   }
   
-  // Check for auth token or user indicator in DOM
-  const hasUserMenu = await page.locator('[data-testid="user-menu"], .user-profile, #user-dropdown').count() > 0;
-  return hasUserMenu;
+  // Wait for user menu to appear (with timeout)
+  try {
+    await page.waitForSelector('[data-testid="user-menu"], .user-profile, #user-dropdown', { 
+      timeout: 5000,
+      state: 'visible'
+    });
+    return true;
+  } catch {
+    // User menu not found within timeout
+    return false;
+  }
 }
 
 /**

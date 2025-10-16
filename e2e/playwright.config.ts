@@ -51,6 +51,9 @@ export default defineConfig({
     // TLS validation control
     ignoreHTTPSErrors: config.ignoreTLS,
     
+    // Headless mode (no browser window)
+    headless: true,
+    
     // Trace on first retry
     trace: 'on-first-retry',
     

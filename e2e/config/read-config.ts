@@ -137,7 +137,8 @@ export function readE2EConfig(): E2EConfig {
   const domain = expanded['DOMAIN'] || 'core-platform.local';
   
   // Base URL (override přes ENV)
-  const baseUrl = process.env.E2E_BASE_URL || `https://${domain}`;
+  // Frontend běží na admin subdoména (např. admin.core-platform.local)
+  const baseUrl = process.env.E2E_BASE_URL || `https://admin.${domain}`;
   
   // TLS validation (default: true, disable pouze když E2E_IGNORE_TLS=true)
   const ignoreTLS = process.env.E2E_IGNORE_TLS === 'true';

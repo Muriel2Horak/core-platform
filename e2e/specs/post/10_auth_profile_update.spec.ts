@@ -51,7 +51,8 @@ test.describe('Auth & Profile Update E2E', () => {
     expect(found).toBeTruthy();
     
     // 6. Verify in GUI
-    await page.goto('/directory/users');
+    // 🔧 FIX: Correct route is /user-directory, not /directory/users
+    await page.goto('/user-directory');
     
     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]').first();
     await searchInput.fill(newDisplayName);
@@ -76,7 +77,8 @@ test.describe('Auth & Profile Update E2E', () => {
     await updateUserProfile(api, { displayName: newName });
     
     // Navigate to directory
-    await page.goto('/directory/users');
+    // 🔧 FIX: Correct route is /user-directory, not /directory/users
+    await page.goto('/user-directory');
     
     // Search for updated user
     const searchInput = page.locator('input[type="search"]').first();

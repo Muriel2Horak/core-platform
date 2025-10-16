@@ -64,28 +64,35 @@ test.describe('Login Smoke Test', () => {
     TestLogger.testEnd();
   });
   
-  test('should reject invalid credentials', async ({ page }) => {
+  test('should reject invalid credentials', async ({ page, context }) => {
     TestLogger.testStart('Invalid Credentials Rejection', 3, 3);
     
-    TestLogger.step('Navigating to login page...', 1);
+    // 🔧 FIX: Clear cookies before test to ensure Keycloak login form appears
+    TestLogger.step('Clearing cookies to reset session...', 1);
+    await context.clearCookies();
+    TestLogger.success('Cookies cleared');
+    
+    TestLogger.step('Navigating to login page...', 2);
     await page.goto('/');
     TestLogger.success('Login page loaded');
     
-    // Wait for login form
-    TestLogger.step('Waiting for login form...', 2);
+    // Wait for login form (should appear now since session is cleared)
+    TestLogger.step('Waiting for login form...', 3);
     await page.waitForSelector('input[name="username"]', { timeout: 10000 });
     TestLogger.success('Login form ready');
     
     // Try invalid login
-    TestLogger.step('Attempting login with invalid credentials...', 3);
+    TestLogger.step('Attempting login with invalid credentials...', 4);
     await page.fill('input[name="username"]', 'invalid-user');
     await page.fill('input[name="password"]', 'wrong-password');
-    await page.click('input[type="submit"]');
+    
+    const submitButton = page.locator('button[type="submit"], input[type="submit"]').first();
+    await submitButton.click();
     TestLogger.success('Login form submitted');
     
     // Should show error message
     TestLogger.verify('Verifying error message displayed...');
-    const errorVisible = await page.locator('text=/invalid|incorrect|error/i').count() > 0;
+    const errorVisible = await page.locator('text=/invalid|incorrect|error/i').isVisible({ timeout: 5000 }).catch(() => false);
     expect(errorVisible).toBeTruthy();
     TestLogger.success('Error message displayed correctly');
     

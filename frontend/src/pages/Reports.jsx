@@ -17,9 +17,19 @@ export default function Reports() {
   const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
+    // 🔧 FIX: Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error('Grafana Scenes initialization timeout');
+        setError('Dashboard loading timeout. Please check if monitoring services are running.');
+        setLoading(false);
+      }
+    }, 30000); // 30 second timeout
+
     initializeScene();
     
     return () => {
+      clearTimeout(timeoutId);
       if (scene) {
         scene.deactivate();
       }
@@ -31,8 +41,22 @@ export default function Reports() {
       setLoading(true);
       setError(null);
 
-      // Create custom datasource that uses our BFF proxy
+      // 🔧 FIX: Test datasource connectivity first
       const dataSource = new GrafanaSceneDataSource();
+      
+      console.log('Testing Grafana datasource connection...');
+      const testResult = await Promise.race([
+        dataSource.testDatasource(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Datasource test timeout')), 5000)
+        )
+      ]);
+      
+      if (testResult.status === 'error') {
+        throw new Error(testResult.message);
+      }
+      
+      console.log('✓ Datasource connected:', testResult.message);
 
       // Define scene based on active tab
       let sceneConfig;
@@ -52,18 +76,15 @@ export default function Reports() {
 
       if (containerRef.current) {
         newScene.activate();
-        const unsub = newScene.subscribe(() => {
-          // Handle scene updates
-        });
         
         setScene(newScene);
         setLoading(false);
-
-        return () => unsub();
+      } else {
+        throw new Error('Container ref not available');
       }
     } catch (err) {
       console.error('Failed to initialize Grafana scene:', err);
-      setError(err.message);
+      setError(err.message || 'Failed to load dashboard. Check if Prometheus and Grafana are running.');
       setLoading(false);
     }
   };
