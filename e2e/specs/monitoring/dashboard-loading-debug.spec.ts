@@ -48,8 +48,8 @@ test.describe('Dashboard Loading Debug', () => {
     console.log('✅ Login successful\n');
 
     // Navigate to Monitoring
-    console.log('2️⃣ Navigating to /admin/monitoring...');
-    await page.goto('/admin/monitoring', { waitUntil: 'domcontentloaded' });
+    console.log('2️⃣ Navigating to /core-admin/monitoring...');
+    await page.goto('/core-admin/monitoring', { waitUntil: 'domcontentloaded' });
     console.log('✅ Page loaded\n');
 
     // Wait a bit for React to render
@@ -168,7 +168,7 @@ test.describe('Dashboard Loading Debug', () => {
     });
 
     await login(page);
-    await page.goto('/admin/security', { waitUntil: 'domcontentloaded' });
+    await page.goto('/core-admin/security', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(3000);
 
     const stillLoading = await page.locator('[role="progressbar"], .MuiCircularProgress-root').isVisible();
@@ -195,7 +195,7 @@ test.describe('Dashboard Loading Debug', () => {
     });
 
     await login(page);
-    await page.goto('/admin/audit', { waitUntil: 'domcontentloaded' });
+    await page.goto('/core-admin/audit', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(3000);
 
     const stillLoading = await page.locator('[role="progressbar"], .MuiCircularProgress-root').isVisible();
