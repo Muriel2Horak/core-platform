@@ -47,17 +47,19 @@ help:
 	@echo "  clean-fast      - Clean restart WITHOUT E2E (dev mode)"
 	@echo ""
 	@echo "🧪 Testing:"
-	@echo "  test-backend    - Backend unit tests"
-	@echo "  test-frontend   - Frontend unit tests"
-	@echo "  test-all        - All unit tests (backend + frontend)"
-	@echo "  test-mt         - Multitenancy tests"
-	@echo "  test-e2e-pre    - PRE-DEPLOY smoke tests (fast gate)"
-	@echo "  test-e2e-post   - POST-DEPLOY full E2E (with scaffold)"
-	@echo "  test-e2e        - All E2E tests (pre + post)"
-	@echo "  verify          - Quick smoke tests (health checks)"
-	@echo "  verify-full     - Full integration tests"
+	@echo "  test-backend          - Backend UNIT tests only (fast, 2-5 min)"
+	@echo "  test-backend-full     - Backend ALL tests (unit + integration, 10-15 min)"
+	@echo "  test-frontend         - Frontend unit tests"
+	@echo "  test-all              - All unit tests (backend + frontend)"
+	@echo "  test-mt               - Multitenancy tests"
+	@echo "  test-e2e-pre          - PRE-DEPLOY smoke tests (fast gate)"
+	@echo "  test-e2e-post         - POST-DEPLOY full E2E (with scaffold)"
+	@echo "  test-e2e              - All E2E tests (pre + post)"
+	@echo "  verify                - Quick smoke tests (health checks)"
+	@echo "  verify-full           - Full integration tests"
 	@echo ""
-	@echo "💡 Note: Unit tests run automatically before 'make rebuild'"
+	@echo "💡 Note: 'make rebuild' runs UNIT tests only (fast)"
+	@echo "         'make test-backend-full' runs ALL tests (needs Docker)"
 	@echo "         'make clean' runs FULL E2E pipeline (PRE + POST)"
 	@echo "         PRE-DEPLOY E2E: Fast smoke tests (5-7 min)"
 	@echo "         POST-DEPLOY E2E: Full scenarios (20-30 min)"
@@ -1451,6 +1453,60 @@ test-grafana:
 		grep -v "^OpenJDK" | \
 		grep -v "org.flywaydb" | \
 		grep -E "(📝|🔧|🚀|🧪|✅|✓|❌|Tests run:|BUILD|INFO.*Grafana)"
+	@echo ""
+
+# Run FULL backend tests (unit + integration) - requires Docker/Testcontainers
+.PHONY: test-backend-full
+test-backend-full:
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 BACKEND FULL TEST SUITE (Unit + Integration)              ║"
+	@echo "║  ⚠️  Requires: Docker running (Kafka, PostgreSQL)              ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🐳 Checking Docker availability..."
+	@if ! docker ps >/dev/null 2>&1; then \
+		echo "❌ ERROR: Docker is not running!"; \
+		echo ""; \
+		echo "Integration tests require Docker for Testcontainers (Kafka, PostgreSQL)"; \
+		echo "Please start Docker and try again."; \
+		echo ""; \
+		echo "Or use 'make test-backend' for unit tests only (no Docker needed)"; \
+		exit 1; \
+	fi
+	@echo "✅ Docker is running"
+	@echo ""
+	@echo "▶️  Running ALL backend tests (unit + integration)..."
+	@mkdir -p artifacts
+	@cd backend && ./mvnw test 2>&1 | \
+		tee ../artifacts/backend_full_tests.log | \
+		grep -v "^\[DEBUG\]" | \
+		grep -v "^2025-" | \
+		grep -v "DEBUG \[tenant:" | \
+		grep -v "Mockito is currently" | \
+		grep -v "OpenJDK 64-Bit" | \
+		grep -v "WARNING: A Java agent" | \
+		grep -v "WARNING: If a serviceability" | \
+		grep -v "WARNING: Dynamic loading" | \
+		grep -v "CREATE TABLE\|create table\|ALTER TABLE\|alter table" | \
+		grep -v "primary key\|foreign key\|references\|constraint" | \
+		grep -v "CREATE EXTENSION\|CREATE OR REPLACE\|CREATE INDEX" | \
+		grep -v "installed_rank\|flyway_schema" | \
+		grep -v "Spring Boot ::" | \
+		grep -v "^  .   ____\|^ /\\\\\|^( ( )\|^ \\\\/\|^  '\|^ =========" | \
+		grep -v "java.net.SocketException\|at java.base\|at io.netty" | \
+		grep -v "testcontainers.reuse.enable" | \
+		grep -E "(Running|Tests:|BUILD|Failures|Errors|Skipped|Time elapsed|\[INFO\]|\[ERROR\]|\[WARNING\]|Test.*(passed|failed))" | \
+		sed 's/\[INFO\]/ℹ️ /g' | \
+		sed 's/\[ERROR\]/❌/g' | \
+		sed 's/\[WARNING\]/⚠️ /g' | \
+		sed 's/BUILD SUCCESS/✅ BUILD SUCCESS/g' | \
+		sed 's/BUILD FAILURE/❌ BUILD FAILURE/g' | \
+		sed 's/Tests run:/📊 Tests:/g' || \
+		(echo "" && echo "❌ Full test suite failed - check artifacts/backend_full_tests.log" && exit 1)
+	@echo ""
+	@echo "✅ Full backend test suite completed!"
+	@echo "📁 Log: artifacts/backend_full_tests.log"
 	@echo ""
 
 .PHONY: test-backend-integration

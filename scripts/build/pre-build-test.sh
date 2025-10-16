@@ -48,21 +48,6 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
 
         BACKEND_LOG="../$LOG_DIR/backend-${TIMESTAMP}.log"
 
-        # Build test pattern - match *Test, *Tests, *IT, *IntegrationTest
-        TEST_PATTERN=""
-        if [ -n "$SKIP_TEST_CLASSES" ]; then
-            IFS=',' read -ra CLASSES <<< "$SKIP_TEST_CLASSES"
-            for CLASS in "${CLASSES[@]}"; do
-                TRIMMED="$(echo "$CLASS" | xargs)"
-                [ -z "$TRIMMED" ] && continue
-                if [ -z "$TEST_PATTERN" ]; then
-                    TEST_PATTERN="!$TRIMMED"
-                else
-                    TEST_PATTERN="$TEST_PATTERN,!$TRIMMED"
-                fi
-            done
-        fi
-
         # Maven args - use -q (quiet) only when NOT tracking progress
         # Parser needs [INFO] Running lines to count tests
         if [ "$STEP_NUM" -gt 0 ]; then
@@ -71,9 +56,22 @@ if [ "$COMPONENT" = "backend" ] || [ "$COMPONENT" = "all" ]; then
             MAVEN_ARGS=("-q" "-DtrimStackTrace=true" "-Dsurefire.printSummary=true" "-Dsurefire.reportFormat=brief" "-Dmaven.test.failure.ignore=false")
         fi
         
-        if [ -n "$TEST_PATTERN" ]; then
-            MAVEN_ARGS+=("-Dtest=$TEST_PATTERN")
+        # Build test exclusion pattern
+        # Skip integration tests (*IT) by default in pre-build phase (need Docker/Testcontainers)
+        EXCLUDE_PATTERN="**/*IT.java"
+        
+        # Additional skip classes if specified
+        if [ -n "$SKIP_TEST_CLASSES" ]; then
+            IFS=',' read -ra CLASSES <<< "$SKIP_TEST_CLASSES"
+            for CLASS in "${CLASSES[@]}"; do
+                TRIMMED="$(echo "$CLASS" | xargs)"
+                [ -z "$TRIMMED" ] && continue
+                EXCLUDE_PATTERN="$EXCLUDE_PATTERN,**/${TRIMMED}.java"
+            done
         fi
+        
+        # Add exclusion to Maven args
+        MAVEN_ARGS+=("-Dsurefire.excludes=$EXCLUDE_PATTERN")
         MAVEN_ARGS+=("test")
 
         # Disable Testcontainers checks that open Safari on macOS

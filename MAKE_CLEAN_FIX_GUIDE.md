@@ -15,24 +15,36 @@
 **Issue**: 5 integration tests need Docker/Testcontainers which isn't available
 **Solution**: Skip them in pre-build phase using `SKIP_TEST_CLASSES`
 
-## 🎯 How to Run Make Clean Successfully
+## 🎯 How to Run Tests
 
-### Option 1: Skip Integration Tests (Recommended for Pre-Build)
+### Option 1: Fast Pre-Build (Unit Tests Only) ⚡ RECOMMENDED
 ```bash
-SKIP_TEST_CLASSES="PresenceServiceIntegrationTest,MonitoringHeaderSecurityIT,BackendApplicationTests,BulkUpdateControllerIT,CubeQueryServiceIT" make clean
+make clean
+# OR
+make rebuild
 ```
+- **Speed**: 2-5 minutes
+- **What runs**: Unit tests only
+- **Skips**: Integration tests (no Docker needed)
+- **Use for**: Local development, quick validation
 
-### Option 2: Skip All Tests (Fast, but less safe)
+### Option 2: Full Test Suite (Unit + Integration) 🔬
 ```bash
-SKIP_TESTS=true make clean
+make test-backend-full
 ```
+- **Speed**: 10-15 minutes  
+- **What runs**: All tests (unit + integration)
+- **Requires**: Docker running
+- **Use for**: Before commit, PR validation
 
-### Option 3: With Docker Available (Full Test Suite)
+### Option 3: Integration Tests Only
 ```bash
-# Start Docker first
-docker ps  # Verify Docker is running
-make clean  # Run all tests including integration
+make test-backend-integration
 ```
+- **Speed**: 8-12 minutes
+- **What runs**: Integration tests only (*IT)
+- **Requires**: Docker running
+- **Use for**: Testing Docker/Kafka/DB integration
 
 ## 📊 Expected Results
 
