@@ -120,6 +120,7 @@ export const SystemMonitoringScene = ({
   return (
     <Box 
       ref={containerRef}
+      data-testid="grafana-scene-system-monitoring"
       sx={{ 
         width: '100%',
         height: height,

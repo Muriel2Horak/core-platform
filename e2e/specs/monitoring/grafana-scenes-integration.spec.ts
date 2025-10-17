@@ -150,16 +150,16 @@ test.describe('Grafana Scenes Integration - E2E', () => {
     // Login as admin (who has access to monitoring)
     await login(page);
     
-    // Navigate to monitoring dashboard
-    console.log('🔗 Navigating to /monitoring/dashboard...');
-    await page.goto('/monitoring/dashboard');
+    // Navigate to React app monitoring dashboard (Grafana Scenes)
+    console.log('🔗 Navigating to /core-admin/monitoring...');
+    await page.goto('/core-admin/monitoring');
     
-    // Wait for page load
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    // Wait for page load (use 'load' instead of 'networkidle' as Grafana polls data continuously)
+    await page.waitForLoadState('load', { timeout: 10000 });
     
     // Check if Grafana iframe or SceneApp container loaded
     const hasGrafanaIframe = await page.locator('iframe[title*="Grafana"], iframe[src*="grafana"]').count() > 0;
-    const hasSceneContainer = await page.locator('[data-testid="scene-container"], [class*="grafana-scene"]').count() > 0;
+    const hasSceneContainer = await page.locator('[data-testid="grafana-scene-system-monitoring"], #grafana-scenes-root, [class*="grafana-scene"]').count() > 0;
     
     if (hasGrafanaIframe) {
       console.log('✅ Grafana iframe detected');
@@ -175,7 +175,7 @@ test.describe('Grafana Scenes Integration - E2E', () => {
       console.log('✅ Grafana Scenes container detected');
       
       // Wait for scene to initialize
-      await page.waitForSelector('[data-testid="scene-container"], [class*="grafana-scene"]', {
+      await page.waitForSelector('[data-testid="grafana-scene-system-monitoring"], #grafana-scenes-root, [class*="grafana-scene"]', {
         timeout: 10000,
       });
       
@@ -225,7 +225,7 @@ test.describe('Grafana Scenes Integration - E2E', () => {
     // We'll verify that queries include proper tenant filters
     
     await login(page);
-    await page.goto('/monitoring/dashboard');
+    await page.goto('/core-admin/monitoring');
     
     // Monitor network requests to Grafana
     const grafanaRequests: Array<{ url: string; headers: Record<string, string> }> = [];
@@ -284,7 +284,7 @@ test.describe('Grafana Scenes Integration - E2E', () => {
     });
     
     // Navigate to monitoring dashboard
-    await page.goto('/monitoring/dashboard');
+    await page.goto('/core-admin/monitoring');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
     // Verify error message is displayed (not crash)
@@ -348,7 +348,7 @@ test.describe('Grafana Scenes Integration - E2E', () => {
     console.log('🔄 Test 7: Verifying tenant context persistence...');
     
     await login(page);
-    await page.goto('/monitoring/dashboard');
+    await page.goto('/core-admin/monitoring');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
     // Get current tenant context (from local storage or cookies)
@@ -390,7 +390,7 @@ test.describe('Grafana Scenes - Service Account Token Security', () => {
     console.log('🔐 Test: Verifying service account token is not exposed...');
     
     await login(page);
-    await page.goto('/monitoring/dashboard');
+    await page.goto('/core-admin/monitoring');
     await page.waitForLoadState('networkidle', { timeout: 10000 });
     
     // Check JavaScript context for token exposure
@@ -437,7 +437,7 @@ test.describe('Grafana Scenes - Performance', () => {
     await login(page);
     
     const startTime = Date.now();
-    await page.goto('/monitoring/dashboard');
+    await page.goto('/core-admin/monitoring');
     await page.waitForLoadState('networkidle', { timeout: 15000 });
     
     // Wait for main content
