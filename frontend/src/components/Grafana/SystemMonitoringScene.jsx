@@ -24,71 +24,34 @@ export const SystemMonitoringScene = ({
   height = 800,
   timeRange = { from: 'now-6h', to: 'now' },
 }) => {
-  const containerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
 
   useEffect(() => {
-    // Mount #grafana-scenes-root into this component's container
-    if (containerRef.current) {
-      const scenesRoot = document.getElementById('grafana-scenes-root');
-      if (scenesRoot && !containerRef.current.contains(scenesRoot)) {
-        containerRef.current.appendChild(scenesRoot);
-      }
-    }
-    
     initializeScene();
-    
-    return () => {
-      // Cleanup: Move scenes container back to body and hide it
-      const scenesRoot = document.getElementById('grafana-scenes-root');
-      if (scenesRoot) {
-        scenesRoot.style.display = 'none';
-        document.body.appendChild(scenesRoot);
-      }
-    };
   }, []);
 
   const initializeScene = async () => {
     try {
-      console.log('[SystemMonitoringScene] 🚀 Starting native ESM initialization...');
+      console.log('[SystemMonitoringScene] 🚀 Starting scene initialization...');
       setLoading(true);
       setError(null);
 
-      // Check if grafanaBootData exists (should be set by inline script)
-      if (!window.grafanaBootData) {
-        throw new Error('grafanaBootData not initialized. ESM bootstrap may have failed.');
-      }
-      console.log('[SystemMonitoringScene] ✅ grafanaBootData exists');
-
-      // Find centralized scenes container
-      const scenesRoot = document.getElementById('grafana-scenes-root');
-      if (!scenesRoot) {
-        throw new Error('#grafana-scenes-root container not found in DOM');
-      }
-      console.log('[SystemMonitoringScene] ✅ Scenes root container found');
-
-      // Show and prepare container
-      scenesRoot.style.display = 'block';
-      scenesRoot.style.width = '100%';
-      scenesRoot.style.height = `${height}px`;
-
-      // Dynamically import scene creation function from ESM bootstrap
+      // Dynamically import scene creation function
       console.log('[SystemMonitoringScene] 📦 Loading scene factory...');
-      const { createSystemMonitoringScene } = await import('../../scenes/scene-factories');
       
-      // Create and mount scene using centralized factory
-      console.log('[SystemMonitoringScene] 🎨 Creating scene...');
-      const scene = await createSystemMonitoringScene(scenesRoot, {
-        timeRange: {
-          from: timeRange.from,
-          to: timeRange.to,
-        },
-      });
+      // Load native monitoring scene (NO plugins, NO datasources)
+      const { createSystemMonitoringScene } = await import('../../scenes/scene-monitoring-native');
+      
+      // Create scene (no container needed - will render via React)
+      console.log('[SystemMonitoringScene] 🎨 Creating monitoring scene with native components...');
+      const sceneInstance = await createSystemMonitoringScene(null, { timeRange });
 
-      console.log('[SystemMonitoringScene] ✅ Scene created and activated:', scene);
-      setScene(scene);
+      console.log('[SystemMonitoringScene] ✅ Scene created and activated');
+      
+      // Store the entire scene instance
+      setScene(sceneInstance);
       setLoading(false);
       console.log('[SystemMonitoringScene] 🎉 Initialization complete!');
     } catch (err) {
@@ -115,11 +78,20 @@ export const SystemMonitoringScene = ({
     );
   }
 
-  // Container that will hold the #grafana-scenes-root div
-  // Scene is mounted by moving the global container into this ref
+  if (!scene) {
+    return (
+      <Alert severity="warning">
+        Scene not available
+      </Alert>
+    );
+  }
+
+  // Render the Grafana Scene using its React Component
+  // Pass the scene itself as the model prop
+  const SceneComponent = scene.Component;
+  
   return (
     <Box 
-      ref={containerRef}
       data-testid="grafana-scene-system-monitoring"
       sx={{ 
         width: '100%',
@@ -127,7 +99,9 @@ export const SystemMonitoringScene = ({
         position: 'relative',
         overflow: 'auto',
       }} 
-    />
+    >
+      <SceneComponent model={scene} />
+    </Box>
   );
 };
 

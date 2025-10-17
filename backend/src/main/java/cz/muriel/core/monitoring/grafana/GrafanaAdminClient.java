@@ -5,6 +5,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -12,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 🔧 GRAFANA ADMIN API CLIENT
@@ -135,7 +137,35 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🗑️ DELETE ORGANIZATION Smaže Grafana organizaci
+   * � FIND ORGANIZATION BY NAME Najde organizaci podle jména, vrátí Optional
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "findOrgByNameFallback")
+  public Optional<OrgInfo> findOrgByName(String orgName) {
+    log.debug("🔍 Finding Grafana organization by name: {}", orgName);
+
+    String url = grafanaUrl + "/api/orgs";
+    HttpHeaders headers = createAuthHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ParameterizedTypeReference<List<OrgInfo>> responseType = new ParameterizedTypeReference<List<OrgInfo>>() {
+      };
+      ResponseEntity<List<OrgInfo>> response = restTemplate.exchange(url, HttpMethod.GET, entity,
+          responseType);
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        return response.getBody().stream().filter(org -> org.getName().equals(orgName)).findFirst();
+      } else {
+        throw new GrafanaApiException("Unexpected response: " + response.getStatusCode());
+      }
+    } catch (Exception e) {
+      log.error("❌ Failed to find Grafana organization by name: {}", orgName, e);
+      throw new GrafanaApiException("Failed to find organization: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * �🗑️ DELETE ORGANIZATION Smaže Grafana organizaci
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "deleteOrganizationFallback")
   public void deleteOrganization(Long orgId) {
@@ -228,6 +258,12 @@ public class GrafanaAdminClient {
   @SuppressWarnings("unused")
   private void deleteOrganizationFallback(Long orgId, Exception e) {
     log.error("⚠️ Circuit breaker: deleteOrganization fallback for orgId: {}", orgId, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
+
+  @SuppressWarnings("unused")
+  private Optional<OrgInfo> findOrgByNameFallback(String orgName, Exception e) {
+    log.error("⚠️ Circuit breaker: findOrgByName fallback for orgName: {}", orgName, e);
     throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
   }
 

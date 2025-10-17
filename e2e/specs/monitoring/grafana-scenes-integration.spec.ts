@@ -147,19 +147,42 @@ test.describe('Grafana Scenes Integration - E2E', () => {
   test('should load monitoring dashboard with Grafana Scenes', async ({ page }) => {
     console.log('🎨 Test 3: Loading monitoring dashboard...');
     
+    // Capture browser console logs (errors only)
+    page.on('console', msg => {
+      if (msg.type() === 'error' || msg.text().includes('SystemMonitoringScene')) {
+        console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`);
+      }
+    });
+    
+    // Capture browser errors
+    page.on('pageerror', error => {
+      console.error(`[BROWSER ERROR] ${error.message}`);
+    });
+    
     // Login as admin (who has access to monitoring)
     await login(page);
     
     // Navigate to React app monitoring dashboard (Grafana Scenes)
     console.log('🔗 Navigating to /core-admin/monitoring...');
-    await page.goto('/core-admin/monitoring');
+    await page.goto('/core-admin/monitoring', { waitUntil: 'domcontentloaded' });
     
-    // Wait for page load (use 'load' instead of 'networkidle' as Grafana polls data continuously)
-    await page.waitForLoadState('load', { timeout: 10000 });
+    // Wait for scene initialization to complete (scenes load async)
+    await page.waitForTimeout(5000);
     
-    // Check if Grafana iframe or SceneApp container loaded
-    const hasGrafanaIframe = await page.locator('iframe[title*="Grafana"], iframe[src*="grafana"]').count() > 0;
-    const hasSceneContainer = await page.locator('[data-testid="grafana-scene-system-monitoring"], #grafana-scenes-root, [class*="grafana-scene"]').count() > 0;
+    // Debug: Check DOM structure via evaluate
+    const domDebug = await page.evaluate(() => {
+      return {
+        hasSceneTestId: !!document.querySelector('[data-testid="grafana-scene-system-monitoring"]'),
+        hasTabPanel: !!document.querySelector('[role="tabpanel"]'),
+        visibleTabPanel: !!document.querySelector('[role="tabpanel"]:not([hidden])'),
+        bodyHTML: document.body.innerHTML.includes('grafana-scene') ? 'Contains grafana-scene' : 'NO grafana-scene',
+      };
+    });
+    console.log(`[DEBUG] DOM state:`, JSON.stringify(domDebug, null, 2));
+    
+    // Check if Grafana iframe or SceneApp container loaded (must be visible, not hidden)
+    const hasGrafanaIframe = await page.locator('iframe[title*="Grafana"], iframe[src*="grafana"]').isVisible();
+    const hasSceneContainer = domDebug.hasSceneTestId;
     
     if (hasGrafanaIframe) {
       console.log('✅ Grafana iframe detected');
@@ -174,8 +197,8 @@ test.describe('Grafana Scenes Integration - E2E', () => {
     } else if (hasSceneContainer) {
       console.log('✅ Grafana Scenes container detected');
       
-      // Wait for scene to initialize
-      await page.waitForSelector('[data-testid="grafana-scene-system-monitoring"], #grafana-scenes-root, [class*="grafana-scene"]', {
+      // Wait for scene to initialize (panels should be visible)
+      await page.waitForSelector('[data-testid="grafana-scene-system-monitoring"], [class*="grafana-scene"], [data-viz-panel-key]', {
         timeout: 10000,
       });
       
@@ -183,14 +206,16 @@ test.describe('Grafana Scenes Integration - E2E', () => {
     } else {
       console.warn('⚠️ Neither Grafana iframe nor Scenes container found');
       
-      // Check for error messages
-      const errorMessage = await page.locator('[data-testid="error-message"], [class*="error"]').textContent();
-      if (errorMessage) {
+      // Check for error messages (with short timeout)
+      const errorLocator = page.locator('[data-testid="error-message"], [class*="MuiAlert-standard"]');
+      const hasError = await errorLocator.isVisible().catch(() => false);
+      if (hasError) {
+        const errorMessage = await errorLocator.textContent();
         console.log('Error message:', errorMessage);
       }
       
       // Check for loading spinner (should not be stuck)
-      const hasLoadingSpinner = await page.locator('[data-testid="loading"], [class*="loading"]').isVisible();
+      const hasLoadingSpinner = await page.locator('[data-testid="loading"], [class*="MuiCircularProgress"]').isVisible().catch(() => false);
       if (hasLoadingSpinner) {
         console.warn('⚠️ Loading spinner still visible after timeout');
       }

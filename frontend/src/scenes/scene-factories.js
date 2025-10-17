@@ -172,18 +172,10 @@ export async function createSystemMonitoringScene(container, options = {}) {
   const scene = new EmbeddedScene(sceneConfig);
   console.log('[scene-factories] ✅ EmbeddedScene instance created');
 
-  // Activate and mount
+  // Activate scene (React component will handle rendering)
   scene.activate();
   console.log('[scene-factories] ✅ Scene activated');
-
-  // Clear container and append scene
-  container.innerHTML = '';
-  const sceneDiv = document.createElement('div');
-  sceneDiv.style.width = '100%';
-  sceneDiv.style.height = '100%';
-  container.appendChild(sceneDiv);
-
-  console.log('[scene-factories] ✅ System Monitoring Scene mounted successfully');
+  console.log('[scene-factories] ✅ System Monitoring Scene ready for rendering');
 
   return scene;
 }

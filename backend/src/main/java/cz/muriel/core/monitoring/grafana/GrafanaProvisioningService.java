@@ -50,16 +50,51 @@ public class GrafanaProvisioningService {
     }
 
     try {
-      // Step 1: Create Grafana organization
+      // Step 1: Create or find existing Grafana organization
       String orgName = generateOrgName(tenantId);
-      CreateOrgResponse orgResponse = grafanaAdminClient.createOrganization(orgName);
-      Long orgId = orgResponse.getOrgId();
+      Long orgId;
 
-      // Step 2: Create service account
+      try {
+        CreateOrgResponse orgResponse = grafanaAdminClient.createOrganization(orgName);
+        orgId = orgResponse.getOrgId();
+        log.info("✅ Created new Grafana organization: {} (orgId: {})", orgName, orgId);
+      } catch (GrafanaApiException e) {
+        // If organization already exists (409 Conflict), find it
+        if (e.getMessage().contains("409") || e.getMessage().contains("Organization name taken")) {
+          log.info("ℹ️ Organization already exists, finding existing: {}", orgName);
+          var existingOrg = grafanaAdminClient.findOrgByName(orgName)
+              .orElseThrow(() -> new GrafanaProvisioningException(
+                  "Organization exists but cannot be found: " + orgName));
+          orgId = existingOrg.getId();
+          log.info("✅ Found existing Grafana organization: {} (orgId: {})", orgName, orgId);
+        } else {
+          throw e; // Re-throw if it's a different error
+        }
+      }
+
+      // Step 2: Create or find existing service account
       String saName = generateServiceAccountName(tenantId);
-      CreateServiceAccountResponse saResponse = grafanaAdminClient.createServiceAccount(orgId,
-          saName, defaultServiceAccountRole);
-      Long serviceAccountId = saResponse.getId();
+      Long serviceAccountId;
+
+      try {
+        CreateServiceAccountResponse saResponse = grafanaAdminClient.createServiceAccount(orgId,
+            saName, defaultServiceAccountRole);
+        serviceAccountId = saResponse.getId();
+        log.info("✅ Created new service account: {} (id: {})", saName, serviceAccountId);
+      } catch (GrafanaApiException e) {
+        // If service account already exists, find it
+        if (e.getMessage().contains("409") || e.getMessage().contains("already exists")) {
+          log.info("ℹ️ Service account already exists, finding existing: {}", saName);
+          var existingSA = grafanaAdminClient.listServiceAccounts(orgId).stream()
+              .filter(sa -> sa.getName().equals(saName)).findFirst()
+              .orElseThrow(() -> new GrafanaProvisioningException(
+                  "Service account exists but cannot be found: " + saName));
+          serviceAccountId = existingSA.getId();
+          log.info("✅ Found existing service account: {} (id: {})", saName, serviceAccountId);
+        } else {
+          throw e; // Re-throw if it's a different error
+        }
+      }
 
       // Step 3: Create service account token
       String tokenName = generateTokenName(tenantId);

@@ -91,43 +91,8 @@ const mainAppBuildOptions = {
   plugins: [grafanaSchemaResolverPlugin]
 };
 
-// Scenes ESM build (separate entry)
-const scenesBuildOptions = {
-  entryPoints: ['src/scenes/scenes.bootstrap.ts'],
-  bundle: true,
-  outdir: 'dist/assets',
-  format: 'esm',
-  target: 'es2020',
-  platform: 'browser',
-  splitting: true,
-  sourcemap: isDev,
-  minify: isProduction,
-  define: {
-    'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
-    global: 'globalThis'
-  },
-  jsx: 'automatic',
-  jsxImportSource: 'react',
-  loader: {
-    '.js': 'jsx',
-    '.jsx': 'jsx',
-    '.ts': 'tsx',
-    '.tsx': 'tsx',
-    '.css': 'css',
-    '.png': 'file',
-    '.jpg': 'file',
-    '.jpeg': 'file',
-    '.svg': 'dataurl',
-    '.ttf': 'file',
-    '.woff': 'file',
-    '.woff2': 'file'
-  },
-  resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.json', '.gen.js', '.gen.ts'],
-  external: [],
-  logLevel: 'info',
-  plugins: [grafanaSchemaResolverPlugin],
-  chunkNames: 'chunks/[name]-[hash]',
-};
+// NOTE: Removed separate scenesBuildOptions - scenes are now part of main React bundle
+// Scenes are imported dynamically via scene-factories.js in SystemMonitoringScene component
 
 if (isDev) {
   // Development mode with watch and dev server
@@ -138,10 +103,9 @@ if (isDev) {
     },
   });
   
-  const scenesCtx = await context(scenesBuildOptions);
+  // NOTE: Removed scenes build - scenes are now part of main React bundle
   
   await mainCtx.watch();
-  await scenesCtx.watch();
   
   // Start dev server (only one server needed)
   const { host, port } = await mainCtx.serve({
@@ -151,19 +115,15 @@ if (isDev) {
   });
   
   console.log(`🚀 Dev server running at http://${host}:${port}`);
-  console.log('👀 Watching for changes (main app + scenes)...');
+  console.log('👀 Watching for changes (main app)...');
 } else {
-  // Production build - build both bundles
+  // Production build - single bundle only
   try {
-    console.log('🏗️  Building main app (IIFE)...');
+    console.log('🏗️  Building main app (includes scenes)...');
     await build(mainAppBuildOptions);
     console.log('✅ Main app built successfully!');
     
-    console.log('🏗️  Building scenes (ESM)...');
-    await build(scenesBuildOptions);
-    console.log('✅ Scenes built successfully!');
-    
-    console.log('✅ All builds completed successfully!');
+    console.log('✅ Build completed successfully!');
   } catch (err) {
     console.error('❌ Build failed:', err);
     process.exit(1);
