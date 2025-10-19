@@ -1,5 +1,6 @@
 # Ignore build output - Docker will rebuild it
-dist/
+# NOTE: dist/ is NOT ignored - esbuild creates it during build and we need to copy it
+# dist/
 node_modules/
 .cache/
 

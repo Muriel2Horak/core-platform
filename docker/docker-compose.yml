@@ -144,9 +144,8 @@ services:
         GRAFANA_PUBLIC_URL: ${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN:-core-platform.local}}
         API_BASE_URL: /api
     container_name: core-frontend
-    # 🔄 Volume mount for hot-sync of built static files (macOS delegated mode)
-    volumes:
-      - ../frontend/dist:/usr/share/nginx/html:ro,delegated
+    # NOTE: No volume mount - static files are baked into the image during build
+    # For development with hot-reload, use: make dev-watch or docker compose watch
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
       interval: 15s
