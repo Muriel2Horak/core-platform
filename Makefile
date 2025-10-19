@@ -635,6 +635,8 @@ _clean_inner:
 		grep -v "^\[DEBUG\]" | tail -10; \
 	echo "🧹 Cleaning Docker buildkit cache..."; \
 	docker builder prune -f 2>&1 | tail -5; \
+	echo "🧹 Cleaning local frontend/dist directory..."; \
+	rm -rf frontend/dist; \
 	CLEANUP_END=$$(date +%s); \
 	CLEANUP_TIME=$$((CLEANUP_END - CLEANUP_START)); \
 	bash scripts/build/build-progress-tracker.sh update 1 "DONE" "$${CLEANUP_TIME}s"; \
@@ -665,6 +667,10 @@ _clean_fast_inner:
 	@echo "▶️  Removing containers, images, and volumes..."
 	@docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes 2>&1 | \
 		grep -v "^\[DEBUG\]" | tail -10
+	@echo "▶️  Cleaning Docker buildkit cache..."
+	@docker builder prune -f 2>&1 | tail -5
+	@echo "▶️  Cleaning local frontend/dist directory..."
+	@rm -rf frontend/dist
 	@echo "  ✅ Cleanup complete"
 	@echo ""
 	@echo "▶️  Rebuilding from scratch (no E2E)..."
