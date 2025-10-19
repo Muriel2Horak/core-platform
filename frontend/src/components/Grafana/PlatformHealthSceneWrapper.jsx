@@ -77,23 +77,38 @@ export const PlatformHealthSceneWrapper = ({
     );
   }
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height={height}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Box 
-      ref={containerRef}
-      sx={{ 
-        width: '100%',
-        minHeight: height,
-        position: 'relative',
-      }} 
-    />
+    <Box sx={{ width: '100%', minHeight: height, position: 'relative' }}>
+      {/* Loading overlay */}
+      {loading && (
+        <Box 
+          display="flex" 
+          justifyContent="center" 
+          alignItems="center" 
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10,
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
+      
+      {/* Scene container - ALWAYS in DOM */}
+      <Box 
+        ref={containerRef}
+        sx={{ 
+          width: '100%',
+          minHeight: height,
+          position: 'relative',
+        }} 
+      />
+    </Box>
   );
 };
 
