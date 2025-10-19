@@ -42,7 +42,7 @@ public class MonitoringProxyService {
     String tenantId = binding.tenantId();
 
     log.info("Forwarding query for tenant {} to org {}", tenantId, binding.orgId());
-    log.debug("Query body: {}", body);
+    log.info("Query body: {}", body);
 
     try {
       String response = grafanaClient.post().uri("/api/ds/query")
@@ -53,7 +53,8 @@ public class MonitoringProxyService {
       return ResponseEntity.ok(response);
 
     } catch (Exception e) {
-      log.error("Error forwarding query for tenant {}: {}", tenantId, e.getMessage());
+      log.error("Error forwarding query for tenant {}: {}", tenantId, e.getMessage(), e);
+      log.error("Failed query body was: {}", body);
       return ResponseEntity.internalServerError().body("{\"error\":\"Failed to query Grafana\"}");
     }
   }
