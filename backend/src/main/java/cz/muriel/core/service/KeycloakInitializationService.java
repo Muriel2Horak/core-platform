@@ -25,6 +25,10 @@ public class KeycloakInitializationService implements ApplicationRunner {
 
   private final KeycloakAdminService keycloakAdminService;
   private final TenantService tenantService; // 🆕 PŘIDÁNO: Pro inicializaci admin tenantu
+  private final cz.muriel.core.monitoring.grafana.GrafanaProvisioningService grafanaProvisioningService; // 🆕
+                                                                                                         // Pro
+                                                                                                         // Grafana
+                                                                                                         // provisioning
 
   @Value("${keycloak.init.admin.username:CORE_SYSTEM_ADMIN}")
   private String systemAdminUsername;
@@ -316,6 +320,21 @@ public class KeycloakInitializationService implements ApplicationRunner {
             }
           }
         }
+      }
+
+      // 🆕 ENSURE GRAFANA PROVISIONING FOR ADMIN TENANT
+      log.info("🔍 Checking Grafana provisioning for admin tenant...");
+      if (!grafanaProvisioningService.isTenantProvisioned("admin")) {
+        log.info("🚀 Provisioning Grafana for admin tenant...");
+        try {
+          grafanaProvisioningService.provisionTenant("admin");
+          log.info("✅ Grafana provisioned for admin tenant");
+        } catch (Exception e) {
+          log.error("❌ Failed to provision Grafana for admin tenant: {}", e.getMessage(), e);
+          // Don't fail startup, but log the error
+        }
+      } else {
+        log.info("✅ Grafana already provisioned for admin tenant");
       }
 
     } catch (Exception e) {

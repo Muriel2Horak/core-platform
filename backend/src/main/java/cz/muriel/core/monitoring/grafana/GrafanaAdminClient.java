@@ -37,12 +37,34 @@ public class GrafanaAdminClient {
   private String adminPassword;
 
   /**
-   * 🏢 CREATE ORGANIZATION Vytvoří novou Grafana organizaci
+   * 🏢 CREATE ORGANIZATION Vytvoří novou Grafana organizaci NEBO vrátí existující
+   * pokud už existuje
+   * 
+   * ✨ IDEMPOTENT: Pokud organizace už existuje (409 Conflict), najde ji a vrátí
+   * její ID místo chyby
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "createOrganizationFallback")
   public CreateOrgResponse createOrganization(String orgName) {
     log.info("🏢 Creating Grafana organization: {}", orgName);
 
+    // 🆕 STEP 1: Check if organization already exists
+    try {
+      Optional<OrgInfo> existing = findOrgByName(orgName);
+      if (existing.isPresent()) {
+        log.info("ℹ️  Grafana organization already exists: {} (orgId: {})", orgName,
+            existing.get().getId());
+        // Return existing org as if we created it (idempotent behavior)
+        CreateOrgResponse response = new CreateOrgResponse();
+        response.setOrgId(existing.get().getId());
+        response.setMessage("Organization already exists");
+        return response;
+      }
+    } catch (Exception e) {
+      log.debug("Could not check for existing org (will try to create): {}", e.getMessage());
+      // Continue to creation attempt
+    }
+
+    // STEP 2: Create new organization
     String url = grafanaUrl + "/api/orgs";
     HttpHeaders headers = createAuthHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -60,6 +82,29 @@ public class GrafanaAdminClient {
         return orgResponse;
       } else {
         throw new GrafanaApiException("Unexpected response: " + response.getStatusCode());
+      }
+    } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+      // 🆕 HANDLE 409 CONFLICT: Organization name already taken
+      log.warn("⚠️  Organization '{}' already exists (409 Conflict), fetching existing org ID...",
+          orgName);
+
+      try {
+        Optional<OrgInfo> existing = findOrgByName(orgName);
+        if (existing.isPresent()) {
+          log.info("✅ Found existing organization: {} (orgId: {})", orgName,
+              existing.get().getId());
+          CreateOrgResponse response = new CreateOrgResponse();
+          response.setOrgId(existing.get().getId());
+          response.setMessage("Organization already exists (recovered from 409)");
+          return response;
+        } else {
+          throw new GrafanaApiException(
+              "Organization exists but could not be found by name: " + orgName);
+        }
+      } catch (Exception ex) {
+        log.error("❌ Failed to recover from 409 Conflict for org: {}", orgName, ex);
+        throw new GrafanaApiException("Failed to handle existing organization: " + ex.getMessage(),
+            ex);
       }
     } catch (Exception e) {
       log.error("❌ Failed to create Grafana organization: {}", orgName, e);

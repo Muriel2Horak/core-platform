@@ -1,12 +1,24 @@
 -- =====================================================
--- V1.1: SEED DATA FOR DEV/CI TESTING
+-- V1.1: SEED DATA FOR DEV/CI TESTING ONLY
 -- Creates demo tenants, users, and documents
+-- 🚨 THIS SHOULD ONLY RUN IN DEV/TEST ENVIRONMENTS
 -- =====================================================
 
+-- ❌ CONDITIONAL EXECUTION VIA FLYWAY PLACEHOLDER
+-- Migration will only execute INSERTs if ${seed_demo_data} = 'true'
+-- Set via SEED_DEMO_DATA environment variable
+
 -- Seed 2 demo tenants (admin already exists from V1)
-INSERT INTO tenants (id, key) VALUES
-    (generate_tenant_uuid('test-tenant'), 'test-tenant'),
-    (generate_tenant_uuid('company-b'), 'company-b')
+INSERT INTO tenants (id, key) 
+SELECT 
+    generate_tenant_uuid('test-tenant'), 
+    'test-tenant'
+WHERE '${seed_demo_data}' = 'true'
+UNION ALL
+SELECT 
+    generate_tenant_uuid('company-b'), 
+    'company-b'
+WHERE '${seed_demo_data}' = 'true'
 ON CONFLICT (key) DO NOTHING;
 
 -- Seed demo users for test-tenant

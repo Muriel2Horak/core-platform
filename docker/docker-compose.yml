@@ -124,6 +124,12 @@ services:
       options:
         loki-url: "http://localhost:3100/loki/api/v1/push"
         loki-external-labels: "service=backend,environment=${ENVIRONMENT:-development}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
     networks:
       - core-net
     restart: unless-stopped
@@ -284,8 +290,12 @@ services:
         echo '🎉 Provisioning completed, container will exit';
       "
     depends_on:
-      - grafana
-      - db
+      backend:
+        condition: service_healthy
+      grafana:
+        condition: service_started
+      db:
+        condition: service_healthy
     networks:
       - core-net
     restart: "no" # Spustí se pouze jednou

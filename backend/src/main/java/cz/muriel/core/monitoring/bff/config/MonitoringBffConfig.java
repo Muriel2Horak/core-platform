@@ -110,8 +110,9 @@ public class MonitoringBffConfig {
    * 🔹 Shared Caffeine CacheManager (fallback when Redis unavailable)
    * 
    * This is the PRIMARY CacheManager when Redis is not available. It dynamically
-   * creates caches for: - Monitoring: grafana-queries, grafana-dashboards -
-   * Reporting: reportQueryCache - Any other @Cacheable annotated methods
+   * creates caches for: - Monitoring: grafana-queries, grafana-dashboards,
+   * tenantOrgBindings - Reporting: reportQueryCache - Any other @Cacheable
+   * annotated methods
    * 
    * TTL: 30 seconds (short for real-time monitoring data) Max size: 1000 entries
    * per cache Stats enabled for monitoring
@@ -119,7 +120,7 @@ public class MonitoringBffConfig {
   @Bean @Primary @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "false", matchIfMissing = true)
   public CacheManager cacheManager() {
     CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
-        "grafana-dashboards", "reportQueryCache");
+        "grafana-dashboards", "reportQueryCache", "tenantOrgBindings");
     cacheManager.setCaffeine(caffeineConfig());
     return cacheManager;
   }
