@@ -138,6 +138,16 @@ export const defaultMenuItems: SidebarNavItem[] = [
         requiredRoles: ['CORE_ROLE_ADMIN'],
       },
       {
+        id: 'monitoring-comprehensive',
+        label: 'Pokročilý Monitoring',
+        icon: <AssessmentIcon />,
+        href: '/core-admin/monitoring-comprehensive',
+        description: 'Kompletní monitoring suite - USE, RED, SLI/SLO, Security, Audit, Logy',
+        requiredRoles: ['CORE_ROLE_ADMIN'],
+        badge: 'NEW',
+        badgeColor: 'success',
+      },
+      {
         id: 'streaming-dashboard',
         label: 'Streaming Dashboard',
         icon: <AssessmentIcon />,
