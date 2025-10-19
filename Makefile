@@ -630,8 +630,11 @@ _clean_inner:
 	\
 	bash scripts/build/build-progress-tracker.sh update 1 "IN_PROGRESS" ""; \
 	CLEANUP_START=$$(date +%s); \
+	echo "🧹 Cleaning up containers, volumes and images..."; \
 	docker compose -f docker/docker-compose.yml --env-file .env down --rmi local --volumes 2>&1 | \
 		grep -v "^\[DEBUG\]" | tail -10; \
+	echo "🧹 Cleaning Docker buildkit cache..."; \
+	docker builder prune -f 2>&1 | tail -5; \
 	CLEANUP_END=$$(date +%s); \
 	CLEANUP_TIME=$$((CLEANUP_END - CLEANUP_START)); \
 	bash scripts/build/build-progress-tracker.sh update 1 "DONE" "$${CLEANUP_TIME}s"; \
