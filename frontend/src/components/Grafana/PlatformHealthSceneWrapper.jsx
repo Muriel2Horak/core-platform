@@ -33,12 +33,18 @@ export const PlatformHealthSceneWrapper = ({
       setLoading(true);
       setError(null);
 
+      // Get container element
+      const container = document.getElementById('platform-health-scene-root');
+      if (!container) {
+        throw new Error('Container element not found');
+      }
+
       // Dynamically import scene creation function
       const { createPlatformHealthScene } = await import('../../scenes/scene-monitoring-health');
       
-      // Create scene
+      // Create scene and mount it
       console.log('[PlatformHealthSceneWrapper] 🎨 Creating platform health scene...');
-      const sceneInstance = await createPlatformHealthScene(null, { timeRange });
+      const sceneInstance = await createPlatformHealthScene(container, { timeRange });
 
       console.log('[PlatformHealthSceneWrapper] ✅ Scene created and activated');
       setScene(sceneInstance);
@@ -68,6 +74,7 @@ export const PlatformHealthSceneWrapper = ({
 
   return (
     <Box 
+      id="platform-health-scene-root"
       sx={{ 
         width: '100%',
         minHeight: height,

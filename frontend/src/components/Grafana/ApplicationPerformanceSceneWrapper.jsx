@@ -33,12 +33,18 @@ export const ApplicationPerformanceSceneWrapper = ({
       setLoading(true);
       setError(null);
 
+      // Get container element
+      const container = document.getElementById('app-performance-scene-root');
+      if (!container) {
+        throw new Error('Container element not found');
+      }
+
       // Dynamically import scene creation function
       const { createApplicationPerformanceScene } = await import('../../scenes/scene-monitoring-app');
       
-      // Create scene
+      // Create scene and mount it
       console.log('[ApplicationPerformanceSceneWrapper] 🎨 Creating application performance scene...');
-      const sceneInstance = await createApplicationPerformanceScene(null, { timeRange });
+      const sceneInstance = await createApplicationPerformanceScene(container, { timeRange });
 
       console.log('[ApplicationPerformanceSceneWrapper] ✅ Scene created and activated');
       setScene(sceneInstance);
@@ -68,6 +74,7 @@ export const ApplicationPerformanceSceneWrapper = ({
 
   return (
     <Box 
+      id="app-performance-scene-root"
       sx={{ 
         width: '100%',
         minHeight: height,

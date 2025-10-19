@@ -34,12 +34,18 @@ export const SystemResourcesSceneWrapper = ({
       setLoading(true);
       setError(null);
 
+      // Get container element
+      const container = document.getElementById('system-resources-scene-root');
+      if (!container) {
+        throw new Error('Container element not found');
+      }
+
       // Dynamically import scene creation function
       const { createSystemResourcesScene } = await import('../../scenes/scene-monitoring-system');
       
-      // Create scene
+      // Create scene and mount it
       console.log('[SystemResourcesSceneWrapper] 🎨 Creating system resources scene...');
-      const sceneInstance = await createSystemResourcesScene(null, { timeRange });
+      const sceneInstance = await createSystemResourcesScene(container, { timeRange });
 
       console.log('[SystemResourcesSceneWrapper] ✅ Scene created and activated');
       setScene(sceneInstance);
@@ -69,6 +75,7 @@ export const SystemResourcesSceneWrapper = ({
 
   return (
     <Box 
+      id="system-resources-scene-root"
       sx={{ 
         width: '100%',
         minHeight: height,

@@ -33,12 +33,18 @@ export const LogsSceneWrapper = ({
       setLoading(true);
       setError(null);
 
+      // Get container element
+      const container = document.getElementById('logs-scene-root');
+      if (!container) {
+        throw new Error('Container element not found');
+      }
+
       // Dynamically import scene creation function
       const { createLogsScene } = await import('../../scenes/scene-monitoring-logs');
       
-      // Create scene
+      // Create scene and mount it
       console.log('[LogsSceneWrapper] 🎨 Creating logs scene...');
-      const sceneInstance = await createLogsScene(null, { timeRange });
+      const sceneInstance = await createLogsScene(container, { timeRange });
 
       console.log('[LogsSceneWrapper] ✅ Scene created and activated');
       setScene(sceneInstance);
@@ -68,6 +74,7 @@ export const LogsSceneWrapper = ({
 
   return (
     <Box 
+      id="logs-scene-root"
       sx={{ 
         width: '100%',
         minHeight: height,
