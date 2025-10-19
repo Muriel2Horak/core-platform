@@ -1044,11 +1044,11 @@ kc-image-no-cache:
 # Rebuild & restart backend only
 .PHONY: rebuild-backend
 rebuild-backend:
-	@echo "🔨 Rebuilding backend service (with cache)..."
+	@echo "🔨 Rebuilding backend service (NO CACHE - ensures code changes are included)..."
 	# @echo "🧪 Running unit tests before rebuild..."
 	# @$(MAKE) test-backend-unit || (echo "❌ Unit tests failed - aborting rebuild" && exit 1)
 	docker compose -f docker/docker-compose.yml --env-file .env stop backend
-	docker compose -f docker/docker-compose.yml --env-file .env build backend
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache backend
 	docker compose -f docker/docker-compose.yml --env-file .env up -d backend
 	@echo "✅ Backend rebuilt and restarted"
 	@echo "⏳ Waiting for backend to be ready..."
@@ -1062,14 +1062,28 @@ rebuild-backend:
 	# @echo "🧪 Running integration tests after rebuild..."
 	# @$(MAKE) test-backend-integration
 
-# Force rebuild backend without cache
-.PHONY: rebuild-backend-clean
-rebuild-backend-clean:
-	@echo "🔨 Force rebuilding backend service (NO CACHE)..."
+# Fast rebuild backend WITH cache (for iterations without code changes)
+.PHONY: rebuild-backend-fast
+rebuild-backend-fast:
+	@echo "🔨 Fast rebuilding backend service (WITH CACHE)..."
+	@echo "⚠️  WARNING: This uses Docker cache - code changes may be ignored!"
+	@echo "⚠️  Use 'make rebuild-backend' if you have code changes."
 	docker compose -f docker/docker-compose.yml --env-file .env stop backend
-	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache backend
+	docker compose -f docker/docker-compose.yml --env-file .env build backend
 	docker compose -f docker/docker-compose.yml --env-file .env up -d backend
-	@echo "✅ Backend force rebuilt and restarted"
+	@echo "✅ Backend fast rebuilt and restarted"
+
+# Legacy alias (kept for backwards compatibility)
+.PHONY: rebuild-backend-clean
+rebuild-backend-clean: rebuild-backend
+
+# Build backend on HOST (fastest for development iterations)
+.PHONY: build-backend
+build-backend:
+	@echo "🔨 Building backend on host (Maven)..."
+	@cd backend && ./mvnw clean package -DskipTests
+	@echo "✅ Backend build complete - JAR in backend/target/"
+	@echo "💡 Tip: Use 'make restart-backend' to restart with new JAR"
 
 # Restart backend service only
 .PHONY: restart-backend
@@ -1091,17 +1105,15 @@ restart-backend:
 # Rebuild & restart frontend only - FIXED: Only frontend, no dependencies
 .PHONY: rebuild-frontend
 rebuild-frontend:
-	@echo "🔨 Rebuilding frontend service with deep cleanup..."
+	@echo "🔨 Rebuilding frontend service (NO CACHE - ensures code changes are included)..."
 	@echo "🛑 Stopping frontend service only..."
 	docker compose -f docker/docker-compose.yml --env-file .env stop frontend
 	@echo "🗑️  Removing frontend container completely..."
 	-docker rm core-frontend 2>/dev/null || echo "Container already removed"
 	@echo "🧹 Removing frontend image to force complete rebuild..."
 	-docker rmi docker-frontend:latest 2>/dev/null || echo "Image already removed"
-	@echo "🚿 Clearing Docker build cache for frontend..."
-	-docker builder prune -f --filter label=stage=frontend-build 2>/dev/null || true
-	@echo "🏗️  Building fresh frontend image (with cache for dependencies)..."
-	docker compose -f docker/docker-compose.yml --env-file .env build frontend
+	@echo "🏗️  Building fresh frontend image (NO CACHE)..."
+	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache frontend
 	@echo "🚀 Starting ONLY frontend container (no dependencies)..."
 	docker compose -f docker/docker-compose.yml --env-file .env up -d --no-deps frontend
 	@echo ""
@@ -1115,16 +1127,22 @@ rebuild-frontend:
 	@echo ""
 	@echo "🧹 To clear browser data automatically, run: make clear-browser-cache"
 
-# Force rebuild frontend without cache
-.PHONY: rebuild-frontend-clean
-rebuild-frontend-clean:
-	@echo "🔨 Force rebuilding frontend service (NO CACHE)..."
+# Fast rebuild frontend WITH cache (for iterations without code changes)
+.PHONY: rebuild-frontend-fast
+rebuild-frontend-fast:
+	@echo "🔨 Fast rebuilding frontend service (WITH CACHE)..."
+	@echo "⚠️  WARNING: This uses Docker cache - code changes may be ignored!"
+	@echo "⚠️  Use 'make rebuild-frontend' if you have code changes."
 	docker compose -f docker/docker-compose.yml --env-file .env stop frontend
 	-docker rm core-frontend 2>/dev/null || echo "Container already removed"
 	-docker rmi docker-frontend:latest 2>/dev/null || echo "Image already removed"
-	docker compose -f docker/docker-compose.yml --env-file .env build --no-cache frontend
+	docker compose -f docker/docker-compose.yml --env-file .env build frontend
 	docker compose -f docker/docker-compose.yml --env-file .env up -d --no-deps frontend
-	@echo "✅ Frontend force rebuilt and restarted"
+	@echo "✅ Frontend fast rebuilt and restarted"
+
+# Legacy alias (kept for backwards compatibility)
+.PHONY: rebuild-frontend-clean
+rebuild-frontend-clean: rebuild-frontend
 
 # Rebuild & restart keycloak only
 .PHONY: rebuild-keycloak
@@ -1270,6 +1288,14 @@ loki-search:
 # 🚀 FRONTEND DEVELOPMENT WORKFLOW (Production Build)
 # =============================================================================
 
+# Build frontend on HOST (fastest for development iterations)
+.PHONY: build-frontend
+build-frontend:
+	@echo "🔨 Building frontend on host (npm run build)..."
+	@cd frontend && npm run build
+	@echo "✅ Frontend build complete - files in frontend/dist/"
+	@echo "💡 Tip: Use 'make dev-hot' to copy to running container"
+
 # Quick frontend development cycle - build & deploy changes
 .PHONY: dev-frontend
 dev-frontend:
@@ -1282,12 +1308,9 @@ dev-frontend:
 	docker compose -f docker/docker-compose.yml up -d frontend
 	@echo "✅ Frontend deployed! Check: https://$${DOMAIN:-core-platform.local}"
 
-# Build frontend only (no Docker restart) - useful for testing build
+# Legacy alias (kept for backwards compatibility)
 .PHONY: dev-build
-dev-build:
-	@echo "🔨 Building frontend only..."
-	@cd frontend && npm run build
-	@echo "✅ Frontend build complete - files in frontend/dist/"
+dev-build: build-frontend
 
 # Hot rebuild from outside Docker - build, copy to container, restart nginx
 .PHONY: dev-hot
