@@ -461,8 +461,15 @@ _rebuild_with_progress:
 	CURRENT=$$((CURRENT + 1)); \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "IN_PROGRESS" ""; \
 	BUILD_START=$$(date +%s); \
-	DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | \
-		grep -E "(Building|built|CACHED|exporting)" | tail -20; \
+	if [ "$${NO_CACHE:-false}" = "true" ]; then \
+		echo "🔨 Building with --no-cache (ensures all code changes included)..."; \
+		DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1 | \
+			grep -E "(Building|built|CACHED|exporting)" | tail -20; \
+	else \
+		echo "🔨 Building with cache (faster but may miss changes)..."; \
+		DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | \
+			grep -E "(Building|built|CACHED|exporting)" | tail -20; \
+	fi; \
 	BUILD_END=$$(date +%s); \
 	BUILD_TIME=$$((BUILD_END - BUILD_START)); \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "DONE" "$${BUILD_TIME}s"; \
@@ -603,61 +610,11 @@ _rebuild_inner:
 # Force rebuild without cache (slower but ensures clean build)
 .PHONY: rebuild-clean
 rebuild-clean:
-	@scripts/build/wrapper.sh $(MAKE) _rebuild_clean_inner 2>&1 | tee -a $(LOG_FILE)
-
-_rebuild_clean_inner:
-	@echo "╔════════════════════════════════════════════════════════════════╗"
-	@echo "║  🏗️  PRODUCTION REBUILD (NO CACHE - CLEAN)                    ║"
-	@echo "╚════════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@echo ">>> force rebuilding (no cache) at $(BUILD_TS)"
-	@echo "⚠️  Warning: This will take longer but ensures clean build"
-	@if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
-		echo "📋 Mode: FULL E2E TESTING"; \
-	elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
-		echo "📋 Mode: PRE-DEPLOY E2E ONLY"; \
-	else \
-		echo "📋 Mode: SMOKE TESTS ONLY (no E2E)"; \
-	fi
-	@echo ""
-	@echo "▶️  [1/6] Running pre-build tests..."
-	@bash scripts/build/pre-build-test.sh all || (echo "❌ Pre-build tests FAILED" && exit 1)
-	@echo "  ✅ Pre-build tests passed"
-	@echo ""
-	@echo "▶️  [2/6] Building Docker images (NO CACHE - parallel)..."
-	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1 | \
-		grep -E "(Building|built|exporting)" | tail -20
-	@echo "  ✅ Images built successfully"
-	@echo ""
-	@echo "▶️  [3/6] Starting services..."
-	@$(MAKE) up
-	@echo ""
-	@if [ "$${RUN_E2E_FULL:-false}" = "true" ]; then \
-		echo "▶️  [4/6] Running PRE-DEPLOY E2E tests (smoke)..."; \
-		$(MAKE) test-e2e-pre || (echo "❌ PRE-DEPLOY E2E failed! Deployment blocked."; exit 1); \
-		echo ""; \
-		echo "▶️  [5/6] Running POST-DEPLOY E2E tests (full scenarios)..."; \
-		$(MAKE) test-e2e-post || (echo "❌ POST-DEPLOY E2E failed!"; exit 1); \
-		echo ""; \
-		echo "▶️  [6/6] All E2E tests completed ✅"; \
-	elif [ "$${RUN_E2E_PRE:-false}" = "true" ]; then \
-		echo "▶️  [4/6] Running PRE-DEPLOY E2E tests..."; \
-		$(MAKE) test-e2e-pre || (echo "❌ E2E tests failed! Deployment blocked."; exit 1); \
-		echo ""; \
-		echo "⏭️  [5/6] POST-DEPLOY E2E skipped (set RUN_E2E_FULL=true to enable)"; \
-		echo "⏭️  [6/6] Skipped"; \
-	else \
-		echo "⏭️  [4/6] E2E tests skipped (set RUN_E2E_PRE=true or RUN_E2E_FULL=true)"; \
-		echo "⏭️  [5/6] Skipped"; \
-		echo "⏭️  [6/6] Skipped"; \
-	fi
-	@echo ""
-	@echo "🎉 Clean rebuild completed successfully!"
-	@echo ""
+	@NO_CACHE=true scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
 
 # Clean with Build Doctor (FULL E2E TESTING)
 clean:
-	@bash scripts/build/auto-split.sh "SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
+	@bash scripts/build/auto-split.sh "NO_CACHE=true SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
 
 _clean_inner:
 	@# Build dynamic step list and initialize tracker
