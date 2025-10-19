@@ -107,8 +107,11 @@ export const SystemResourcesSceneWrapper = ({
           width: '100%',
           minHeight: height,
           position: 'relative',
-        }} 
-      />
+        }}
+      >
+        {/* Render Grafana Scene as React component */}
+        {scene && <scene.Component model={scene} />}
+      </Box>
     </Box>
   );
 };

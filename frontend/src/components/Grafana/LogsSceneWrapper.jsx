@@ -110,8 +110,13 @@ export const LogsSceneWrapper = ({
             width: '100%',
             height: '100%',
           },
-        }} 
-      />
+        }}
+      >
+        {/* Render Grafana Scene as React component */}
+        {scene && <scene.Component model={scene} />}
+      </Box>
     </Box>
   );
 };
+
+export default LogsSceneWrapper;
