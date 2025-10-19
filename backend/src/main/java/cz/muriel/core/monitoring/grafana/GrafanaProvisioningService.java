@@ -102,7 +102,20 @@ public class GrafanaProvisioningService {
           .createServiceAccountToken(orgId, serviceAccountId, tokenName);
       String token = tokenResponse.getKey();
 
-      // Step 4: Save binding to database
+      // Step 4: Create Prometheus datasource
+      String datasourceName = "Prometheus";
+      try {
+        CreateDataSourceResponse dsResponse = grafanaAdminClient.createPrometheusDataSource(orgId,
+            datasourceName);
+        log.info("✅ Created Prometheus datasource: {} (id: {}, uid: {})", datasourceName,
+            dsResponse.getId(), dsResponse.getUid());
+      } catch (GrafanaApiException e) {
+        log.warn("⚠️ Failed to create Prometheus datasource (may already exist): {}",
+            e.getMessage());
+        // Continue - datasource creation is not critical for binding
+      }
+
+      // Step 5: Save binding to database
       GrafanaTenantBinding binding = GrafanaTenantBinding.builder().tenantId(tenantId)
           .grafanaOrgId(orgId).serviceAccountId(serviceAccountId).serviceAccountName(saName)
           .serviceAccountToken(token).build();

@@ -113,13 +113,71 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🤖 CREATE SERVICE ACCOUNT Vytvoří service account v dané organizaci
+   * 🔍 FIND SERVICE ACCOUNT BY NAME Finds existing service account in
+   * organization
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "findServiceAccountByNameFallback")
+  public Optional<CreateServiceAccountResponse> findServiceAccountByName(Long orgId, String name) {
+    log.debug("🔍 Searching for service account: {} in orgId: {}", name, orgId);
+
+    String url = grafanaUrl + "/api/serviceaccounts/search?query=" + name;
+    HttpHeaders headers = createAuthHeaders();
+    headers.set("X-Grafana-Org-Id", String.valueOf(orgId));
+
+    try {
+      ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET,
+          new HttpEntity<>(headers), new ParameterizedTypeReference<Map<String, Object>>() {
+          });
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        Map<String, Object> body = response.getBody();
+        List<Map<String, Object>> serviceAccounts = (List<Map<String, Object>>) body
+            .get("serviceAccounts");
+
+        if (serviceAccounts != null && !serviceAccounts.isEmpty()) {
+          for (Map<String, Object> sa : serviceAccounts) {
+            // Match by 'name' field (not 'login' which has 'sa-' prefix)
+            if (name.equals(sa.get("name"))) {
+              CreateServiceAccountResponse saResponse = new CreateServiceAccountResponse();
+              saResponse.setId(((Number) sa.get("id")).longValue());
+              saResponse.setName((String) sa.get("name"));
+              saResponse.setLogin((String) sa.get("login"));
+              saResponse.setRole((String) sa.get("role"));
+              saResponse.setIsDisabled((Boolean) sa.getOrDefault("isDisabled", false));
+              log.debug("✅ Found existing service account: {} (id: {})", name, saResponse.getId());
+              return Optional.of(saResponse);
+            }
+          }
+        }
+      }
+      return Optional.empty();
+    } catch (Exception e) {
+      log.warn("⚠️ Failed to search for service account: {}", name, e);
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * 🤖 CREATE SERVICE ACCOUNT Vytvoří service account v dané organizaci NEBO
+   * vrátí existující
+   * 
+   * ✨ IDEMPOTENT: Pokud service account už existuje, najde ho a vrátí jeho ID
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "createServiceAccountFallback")
   public CreateServiceAccountResponse createServiceAccount(Long orgId, String name, String role) {
     log.info("🤖 Creating Grafana service account: {} in orgId: {} with role: {}", name, orgId,
         role);
 
+    // 🆕 STEP 1: Check if service account already exists
+    Optional<CreateServiceAccountResponse> existing = findServiceAccountByName(orgId, name);
+    if (existing.isPresent()) {
+      CreateServiceAccountResponse saResponse = existing.get();
+      log.info("ℹ️ Service account already exists: {} (id: {}) - using existing", name,
+          saResponse.getId());
+      return saResponse;
+    }
+
+    // STEP 2: Create new service account
     String url = grafanaUrl + "/api/serviceaccounts";
     HttpHeaders headers = createAuthHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -175,6 +233,23 @@ public class GrafanaAdminClient {
         throw new GrafanaApiException("Unexpected response: " + response.getStatusCode());
       }
     } catch (Exception e) {
+      // Check if token already exists (400 Bad Request with "already exists" message)
+      String errorMessage = e.getMessage();
+      if (errorMessage != null && errorMessage.contains("400")
+          && (errorMessage.contains("already exists")
+              || errorMessage.contains("ErrTokenAlreadyExists"))) {
+        log.warn(
+            "⚠️ Service account token already exists: {} for SA: {} in orgId: {} - using placeholder token",
+            tokenName, serviceAccountId, orgId);
+
+        // Return dummy response since Grafana API doesn't support token retrieval
+        // Token will be empty string - binding will be saved anyway for idempotency
+        CreateServiceAccountTokenResponse dummyResponse = new CreateServiceAccountTokenResponse();
+        dummyResponse.setName(tokenName);
+        dummyResponse.setKey(""); // Empty token - cannot retrieve existing token from Grafana
+        return dummyResponse;
+      }
+
       log.error("❌ Failed to create Grafana service account token: {} for SA: {} in orgId: {}",
           tokenName, serviceAccountId, orgId, e);
       throw new GrafanaApiException("Failed to create service account token: " + e.getMessage(), e);
@@ -266,7 +341,101 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🔐 CREATE AUTH HEADERS Vytvoří HTTP headers s Basic Auth
+   * � CREATE PROMETHEUS DATASOURCE Vytvoří Prometheus datasource v Grafana
+   * organizaci
+   * 
+   * ✨ IDEMPOTENT: Pokud datasource už existuje, vrátí jeho ID
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "createPrometheusDataSourceFallback")
+  public CreateDataSourceResponse createPrometheusDataSource(Long orgId, String datasourceName) {
+    log.info("📊 Creating Prometheus datasource: {} in orgId: {}", datasourceName, orgId);
+
+    // STEP 1: Check if datasource already exists
+    Optional<DataSourceInfo> existing = findDataSourceByName(orgId, datasourceName);
+    if (existing.isPresent()) {
+      DataSourceInfo ds = existing.get();
+      log.info("✅ Prometheus datasource already exists: {} (id: {}, uid: {})", datasourceName,
+          ds.getId(), ds.getUid());
+      CreateDataSourceResponse response = new CreateDataSourceResponse();
+      response.setId(ds.getId());
+      response.setUid(ds.getUid());
+      response.setName(ds.getName());
+      response.setType(ds.getType());
+      response.setUrl(ds.getUrl());
+      response.setIsDefault(ds.getIsDefault());
+      response.setMessage("Datasource already exists");
+      return response;
+    }
+
+    // STEP 2: Create new datasource
+    String url = grafanaUrl + "/api/datasources";
+    HttpHeaders headers = createAuthHeaders();
+    headers.set("X-Grafana-Org-Id", String.valueOf(orgId));
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    CreateDataSourceRequest request = CreateDataSourceRequest.builder().name(datasourceName)
+        .type("prometheus").url("http://prometheus:9090").access("proxy").isDefault(true)
+        .jsonData(Map.of("httpMethod", "POST", "timeInterval", "30s")).build();
+
+    HttpEntity<CreateDataSourceRequest> entity = new HttpEntity<>(request, headers);
+
+    try {
+      ResponseEntity<CreateDataSourceResponse> response = restTemplate.exchange(url,
+          HttpMethod.POST, entity, CreateDataSourceResponse.class);
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        CreateDataSourceResponse body = response.getBody();
+        log.info("✅ Prometheus datasource created: {} (id: {}, uid: {})", datasourceName,
+            body.getId(), body.getUid());
+        return body;
+      } else {
+        throw new GrafanaApiException("Unexpected response: " + response.getStatusCode());
+      }
+    } catch (Exception e) {
+      log.error("❌ Failed to create Prometheus datasource: {} in orgId: {}", datasourceName, orgId,
+          e);
+      throw new GrafanaApiException("Failed to create Prometheus datasource: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * 🔍 FIND DATASOURCE BY NAME Najde datasource podle názvu v dané organizaci
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "findDataSourceByNameFallback")
+  public Optional<DataSourceInfo> findDataSourceByName(Long orgId, String datasourceName) {
+    log.debug("🔍 Searching for datasource: {} in orgId: {}", datasourceName, orgId);
+
+    String url = grafanaUrl + "/api/datasources";
+    HttpHeaders headers = createAuthHeaders();
+    headers.set("X-Grafana-Org-Id", String.valueOf(orgId));
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ResponseEntity<List<DataSourceInfo>> response = restTemplate.exchange(url, HttpMethod.GET,
+          entity, new ParameterizedTypeReference<List<DataSourceInfo>>() {
+          });
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        Optional<DataSourceInfo> found = response.getBody().stream()
+            .filter(ds -> ds.getName().equals(datasourceName)).findFirst();
+
+        if (found.isPresent()) {
+          log.debug("✅ Found datasource: {} (id: {})", datasourceName, found.get().getId());
+        } else {
+          log.debug("❌ Datasource not found: {}", datasourceName);
+        }
+        return found;
+      } else {
+        throw new GrafanaApiException("Unexpected response: " + response.getStatusCode());
+      }
+    } catch (Exception e) {
+      log.error("❌ Failed to search for datasource: {} in orgId: {}", datasourceName, orgId, e);
+      throw new GrafanaApiException("Failed to search for datasource: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * �🔐 CREATE AUTH HEADERS Vytvoří HTTP headers s Basic Auth
    */
   private HttpHeaders createAuthHeaders() {
     HttpHeaders headers = new HttpHeaders();
@@ -313,8 +482,32 @@ public class GrafanaAdminClient {
   }
 
   @SuppressWarnings("unused")
+  private Optional<CreateServiceAccountResponse> findServiceAccountByNameFallback(Long orgId,
+      String name, Exception e) {
+    log.error("⚠️ Circuit breaker: findServiceAccountByName fallback for {} in orgId: {}", name,
+        orgId, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
+
+  @SuppressWarnings("unused")
   private List<ServiceAccountInfo> listServiceAccountsFallback(Long orgId, Exception e) {
     log.error("⚠️ Circuit breaker: listServiceAccounts fallback for orgId: {}", orgId, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
+
+  @SuppressWarnings("unused")
+  private CreateDataSourceResponse createPrometheusDataSourceFallback(Long orgId,
+      String datasourceName, Exception e) {
+    log.error("⚠️ Circuit breaker: createPrometheusDataSource fallback for {} in orgId: {}",
+        datasourceName, orgId, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
+
+  @SuppressWarnings("unused")
+  private Optional<DataSourceInfo> findDataSourceByNameFallback(Long orgId, String datasourceName,
+      Exception e) {
+    log.error("⚠️ Circuit breaker: findDataSourceByName fallback for {} in orgId: {}",
+        datasourceName, orgId, e);
     throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
   }
 }
