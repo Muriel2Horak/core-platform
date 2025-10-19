@@ -2,20 +2,21 @@
  * 🏥 PlatformHealthSceneWrapper - Platform Health Dashboard (SLI/SLO)
  * 
  * Wraps scene-monitoring-health.js for React integration
- * Monitors: PostgreSQL, Kafka, Circuit Breakers, Service Availability
+ * Monitors: Database, Kafka, Circuit Breakers
  * Method: SLI/SLO (Service Level Indicators/Objectives)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 
 export const PlatformHealthSceneWrapper = ({
   height = 1200,
-  timeRange = { from: 'now-6h', to: 'now' },
+  timeRange = { from: 'now-1h', to: 'now' },
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     initializeScene();
@@ -33,8 +34,8 @@ export const PlatformHealthSceneWrapper = ({
       setLoading(true);
       setError(null);
 
-      // Get container element
-      const container = document.getElementById('platform-health-scene-root');
+      // Get container element from ref
+      const container = containerRef.current;
       if (!container) {
         throw new Error('Container element not found');
       }
@@ -74,7 +75,7 @@ export const PlatformHealthSceneWrapper = ({
 
   return (
     <Box 
-      id="platform-health-scene-root"
+      ref={containerRef}
       sx={{ 
         width: '100%',
         minHeight: height,

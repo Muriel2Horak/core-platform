@@ -1,12 +1,12 @@
 /**
- * ⚡ ApplicationPerformanceSceneWrapper - Application Performance Dashboard (RED Method)
+ * 🚀 ApplicationPerformanceSceneWrapper - Application Performance Dashboard (RED Method)
  * 
  * Wraps scene-monitoring-app.js for React integration
- * Monitors: Request Rate, Error Rate, Response Time, Active Connections
+ * Monitors: Request Rate, Error Rate, Duration
  * Method: RED (Rate, Errors, Duration)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 
 export const ApplicationPerformanceSceneWrapper = ({
@@ -16,6 +16,7 @@ export const ApplicationPerformanceSceneWrapper = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     initializeScene();
@@ -33,8 +34,8 @@ export const ApplicationPerformanceSceneWrapper = ({
       setLoading(true);
       setError(null);
 
-      // Get container element
-      const container = document.getElementById('app-performance-scene-root');
+      // Get container element from ref
+      const container = containerRef.current;
       if (!container) {
         throw new Error('Container element not found');
       }
@@ -74,7 +75,7 @@ export const ApplicationPerformanceSceneWrapper = ({
 
   return (
     <Box 
-      id="app-performance-scene-root"
+      ref={containerRef}
       sx={{ 
         width: '100%',
         minHeight: height,

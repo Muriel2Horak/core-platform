@@ -1,21 +1,22 @@
 /**
- * 📝 LogsSceneWrapper - Logs Dashboard (Loki)
+ * 📋 LogsSceneWrapper - Logs Dashboard (Loki Integration)
  * 
  * Wraps scene-monitoring-logs.js for React integration
- * Features: Real-time log search, filtering, log volume metrics
- * Datasource: Loki
+ * Features: Log search, filtering, aggregation
+ * Source: Loki datasource
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 
 export const LogsSceneWrapper = ({
-  height = 900,
+  height = 1200,
   timeRange = { from: 'now-1h', to: 'now' },
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     initializeScene();
@@ -33,8 +34,8 @@ export const LogsSceneWrapper = ({
       setLoading(true);
       setError(null);
 
-      // Get container element
-      const container = document.getElementById('logs-scene-root');
+      // Get container element from ref
+      const container = containerRef.current;
       if (!container) {
         throw new Error('Container element not found');
       }
@@ -74,14 +75,16 @@ export const LogsSceneWrapper = ({
 
   return (
     <Box 
-      id="logs-scene-root"
+      ref={containerRef}
       sx={{ 
         width: '100%',
         minHeight: height,
         position: 'relative',
-      }} 
+        '& .grafana-scene': {
+          width: '100%',
+          height: '100%',
+        },
+      }}
     />
   );
 };
-
-export default LogsSceneWrapper;

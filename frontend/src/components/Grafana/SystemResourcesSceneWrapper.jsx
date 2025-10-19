@@ -6,7 +6,7 @@
  * Method: USE (Utilization, Saturation, Errors)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 
 export const SystemResourcesSceneWrapper = ({
@@ -16,6 +16,7 @@ export const SystemResourcesSceneWrapper = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     initializeScene();
@@ -34,8 +35,8 @@ export const SystemResourcesSceneWrapper = ({
       setLoading(true);
       setError(null);
 
-      // Get container element
-      const container = document.getElementById('system-resources-scene-root');
+      // Get container element from ref
+      const container = containerRef.current;
       if (!container) {
         throw new Error('Container element not found');
       }
@@ -75,7 +76,7 @@ export const SystemResourcesSceneWrapper = ({
 
   return (
     <Box 
-      id="system-resources-scene-root"
+      ref={containerRef}
       sx={{ 
         width: '100%',
         minHeight: height,
