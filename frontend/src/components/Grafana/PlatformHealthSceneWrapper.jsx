@@ -19,9 +19,19 @@ export const PlatformHealthSceneWrapper = ({
   const containerRef = useRef(null);
 
   useEffect(() => {
-    initializeScene();
+    // Wait for ref to be attached, then initialize
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        initializeScene();
+      } else {
+        console.error('[PlatformHealthSceneWrapper] ❌ Container ref is still null after timeout');
+        setError('Container ref not available');
+        setLoading(false);
+      }
+    }, 0);
     
     return () => {
+      clearTimeout(timer);
       if (scene) {
         console.log('[PlatformHealthSceneWrapper] Cleaning up scene');
       }
@@ -34,11 +44,13 @@ export const PlatformHealthSceneWrapper = ({
       setLoading(true);
       setError(null);
 
-      // Get container element from ref
+      // Get container element from ref (should be available now)
       const container = containerRef.current;
       if (!container) {
         throw new Error('Container element not found');
       }
+
+      console.log('[PlatformHealthSceneWrapper] 📦 Container element found:', container);
 
       // Dynamically import scene creation function
       const { createPlatformHealthScene } = await import('../../scenes/scene-monitoring-health');

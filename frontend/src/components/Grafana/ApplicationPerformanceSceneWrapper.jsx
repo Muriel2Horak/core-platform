@@ -19,9 +19,19 @@ export const ApplicationPerformanceSceneWrapper = ({
   const containerRef = useRef(null);
 
   useEffect(() => {
-    initializeScene();
+    // Wait for ref to be attached, then initialize
+    const timer = setTimeout(() => {
+      if (containerRef.current) {
+        initializeScene();
+      } else {
+        console.error('[ApplicationPerformanceSceneWrapper] ❌ Container ref is still null after timeout');
+        setError('Container ref not available');
+        setLoading(false);
+      }
+    }, 0);
     
     return () => {
+      clearTimeout(timer);
       if (scene) {
         console.log('[ApplicationPerformanceSceneWrapper] Cleaning up scene');
       }
@@ -34,11 +44,13 @@ export const ApplicationPerformanceSceneWrapper = ({
       setLoading(true);
       setError(null);
 
-      // Get container element from ref
+      // Get container element from ref (should be available now)
       const container = containerRef.current;
       if (!container) {
         throw new Error('Container element not found');
       }
+
+      console.log('[ApplicationPerformanceSceneWrapper] 📦 Container element found:', container);
 
       // Dynamically import scene creation function
       const { createApplicationPerformanceScene } = await import('../../scenes/scene-monitoring-app');
