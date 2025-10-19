@@ -16,28 +16,70 @@ export const MetricPanel = ({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [datasourceUid, setDatasourceUid] = useState(null);
+
+  // Fetch datasource UID on mount
+  useEffect(() => {
+    const fetchDatasourceUid = async () => {
+      try {
+        console.log(`[MetricPanel] Fetching datasource UID...`);
+        const response = await fetch('/api/monitoring/datasource/prometheus', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to get datasource: ${response.status}`);
+        }
+
+        const dsInfo = await response.json();
+        console.log(`[MetricPanel] Datasource info:`, dsInfo);
+        setDatasourceUid(dsInfo.uid);
+      } catch (err) {
+        console.error(`[MetricPanel] Error fetching datasource:`, err);
+        setError(`Failed to get datasource: ${err.message}`);
+        setLoading(false);
+      }
+    };
+
+    fetchDatasourceUid();
+  }, []);
 
   useEffect(() => {
+    if (!datasourceUid) {
+      console.log(`[MetricPanel] Waiting for datasource UID...`);
+      return;
+    }
+
     fetchData();
     const interval = setInterval(fetchData, refreshInterval);
     return () => clearInterval(interval);
-  }, [query, refreshInterval]);
+  }, [query, refreshInterval, datasourceUid]);
 
   const fetchData = async () => {
+    if (!datasourceUid) {
+      console.log(`[MetricPanel] No datasource UID available yet`);
+      return;
+    }
+
     try {
       console.log(`[MetricPanel] Fetching data for: ${title}`);
       console.log(`[MetricPanel] Query:`, query);
+      console.log(`[MetricPanel] Using datasource UID:`, datasourceUid);
       
       const requestBody = {
         queries: [{
           refId: 'A',
-          datasourceUid: 'prometheus',
-          expr: query,
-          range: {
-            from: 'now-5m',
-            to: 'now',
+          datasource: {
+            uid: datasourceUid,
+            type: 'prometheus'
           },
+          expr: query,
+          range: true
         }],
+        from: 'now-5m',
+        to: 'now'
       };
       
       console.log(`[MetricPanel] Request body:`, JSON.stringify(requestBody, null, 2));
