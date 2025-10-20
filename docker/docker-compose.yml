@@ -311,9 +311,12 @@ services:
       - GF_AUTH_JWT_USERNAME_CLAIM=sub
       - GF_AUTH_JWT_EMAIL_CLAIM=email
       # 🔑 JWT Verification via JWK Set URL
-      # Backend mints short-lived JWT (120s TTL) - Grafana verifies with Keycloak's public key
+      # Backend passes Keycloak JWT - Grafana verifies with Keycloak's public key
       # Using Keycloak's JWK endpoint for signature verification
       - GF_AUTH_JWT_JWK_SET_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
+      # CRITICAL: Skip TLS verification for self-signed certs (development only!)
+      - GF_AUTH_JWT_URL_LOGIN=false
+      - GF_AUTH_JWT_SKIP_TLS_VERIFICATION=true
       - GF_AUTH_JWT_CACHE_TTL=60m
       - GF_AUTH_JWT_AUTO_SIGN_UP=true
       # 🎭 Role mapping based on Keycloak roles
