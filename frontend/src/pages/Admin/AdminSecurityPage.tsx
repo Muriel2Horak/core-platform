@@ -1,7 +1,7 @@
 import { Container, Typography, Box } from '@mui/material';
 import { Shield as ShieldIcon } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { SecurityScene } from '../../components/Grafana/SecurityScene';
+import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 export const AdminSecurityPage = () => {
   const routeId = 'admin.security.monitoring';
@@ -20,7 +20,7 @@ export const AdminSecurityPage = () => {
           <AiHelpWidget routeId={routeId} />
         </Box>
       </Box>
-      <SecurityScene height={800} timeRange={{ from: 'now-24h', to: 'now' }} />
+      <GrafanaEmbed path="/d/security?orgId=1&theme=light&kiosk" height="800px" />
     </Container>
   );
 };

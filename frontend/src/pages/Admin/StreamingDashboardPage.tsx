@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { Warning, CheckCircle, Error as ErrorIcon, OpenInNew, Stream } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { StreamingScene } from '../../components/Grafana/StreamingScene';
+import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 import axios from 'axios';
 
 interface StreamingMetrics {
@@ -29,93 +29,52 @@ const StreamingDashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000); // Refresh every 30s
+    const interval = setInterval(fetchMetrics, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchMetrics = async () => {
     try {
-      // Fetch from backend API
       const response = await axios.get('/api/admin/streaming/metrics');
       setMetrics(response.data);
       setError(null);
     } catch (err: any) {
-      // Placeholder metrics if API doesn't exist yet
       setMetrics({
         queueDepth: 0,
         unsentOutbox: 0,
         successRate: 100,
         dlqMessages: 0,
       });
-      setError(null); // Don't show error for missing endpoint
+      setError(null);
     } finally {
       setLoading(false);
     }
   };
 
   const openFullGrafana = () => {
-    const protocol = 'https:';
-    const host = window.location.host;
-    window.open(`${protocol}//${host}/monitoring`, '_blank');
+    window.open('https://' + window.location.host + '/monitoring/d/streaming?orgId=1', '_blank');
   };
-
-  const renderMetricCard = (title: string, value: number | string, status: 'success' | 'warning' | 'error') => {
-    const icons = {
-      success: <CheckCircle color="success" />,
-      warning: <Warning color="warning" />,
-      error: <ErrorIcon color="error" />,
-    };
-
-    return (
-      <Card>
-        <CardContent>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Box>
-              <Typography variant="caption" color="textSecondary" gutterBottom>
-                {title}
-              </Typography>
-              <Typography variant="h4" component="div">
-                {value}
-              </Typography>
-            </Box>
-            <Box>{icons[status]}</Box>
-          </Box>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ p: 3 }} data-route-id={routeId}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Stream fontSize="large" color="primary" />
-          <Box>
-            <Typography variant="h4">Streaming Dashboard</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Monitoring streamingové infrastruktury, front a Kafka event flow
-            </Typography>
-          </Box>
+          <Typography variant="h4">Streaming Dashboard</Typography>
         </Box>
         <Box display="flex" gap={1}>
           <AiHelpWidget routeId={routeId} />
-          <Button
-            variant="contained"
-            startIcon={<OpenInNew />}
-            onClick={openFullGrafana}
-          >
+          <Button variant="contained" startIcon={<OpenInNew />} onClick={openFullGrafana}>
             Otevřít v Grafaně
           </Button>
         </Box>
       </Box>
+
+      {loading && (
+        <Box display="flex" justifyContent="center" p={4}>
+          <CircularProgress />
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -123,40 +82,52 @@ const StreamingDashboardPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Real-time Metrics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          {renderMetricCard(
-            'Queue Depth',
-            metrics?.queueDepth || 0,
-            (metrics?.queueDepth || 0) > 1000 ? 'warning' : 'success'
-          )}
+      {metrics && (
+        <Grid container spacing={3} mb={3}>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary" gutterBottom>
+                  Queue Depth
+                </Typography>
+                <Typography variant="h4">{metrics.queueDepth}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary" gutterBottom>
+                  Unsent Outbox
+                </Typography>
+                <Typography variant="h4">{metrics.unsentOutbox}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary" gutterBottom>
+                  Success Rate
+                </Typography>
+                <Typography variant="h4">{metrics.successRate}%</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card>
+              <CardContent>
+                <Typography color="text.secondary" gutterBottom>
+                  DLQ Messages
+                </Typography>
+                <Typography variant="h4">{metrics.dlqMessages}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          {renderMetricCard(
-            'Unsent Outbox',
-            metrics?.unsentOutbox || 0,
-            (metrics?.unsentOutbox || 0) > 100 ? 'error' : 'success'
-          )}
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          {renderMetricCard(
-            'Success Rate',
-            `${(metrics?.successRate || 0).toFixed(1)}%`,
-            (metrics?.successRate || 0) < 95 ? 'error' : 'success'
-          )}
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          {renderMetricCard(
-            'DLQ Messages',
-            metrics?.dlqMessages || 0,
-            (metrics?.dlqMessages || 0) > 0 ? 'warning' : 'success'
-          )}
-        </Grid>
-      </Grid>
+      )}
 
-      {/* Streaming Monitoring Dashboard */}
-      <StreamingScene height={900} timeRange={{ from: 'now-1h', to: 'now' }} />
+      <GrafanaEmbed path="/d/streaming?orgId=1&theme=light&kiosk" height="800px" />
     </Box>
   );
 };

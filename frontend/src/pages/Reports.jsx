@@ -1,265 +1,49 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Alert, CircularProgress, Tab, Tabs, Button } from '@mui/material';
+import React from 'react';
+import { Box, Typography, Alert, Tab, Tabs, Button, Container } from '@mui/material';
 import { Assessment, OpenInNew } from '@mui/icons-material';
-import { EmbeddedScene, SceneTimeRange, SceneFlexLayout, SceneFlexItem, PanelBuilders } from '@grafana/scenes';
-import { GrafanaSceneDataSource } from '../services/grafanaSceneDataSource';
+import { GrafanaEmbed } from '../components/GrafanaEmbed';
 
-/**
- * Reports Page with Grafana Scenes Integration
- * Uses BFF proxy (/api/monitoring/*) for secure datasource queries
- * NO tokens exposed to browser
- */
 export default function Reports() {
-  const containerRef = useRef(null);
-  const [scene, setScene] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
-
-  useEffect(() => {
-    // 🔧 FIX: Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.error('Grafana Scenes initialization timeout');
-        setError('Dashboard loading timeout. Please check if monitoring services are running.');
-        setLoading(false);
-      }
-    }, 30000); // 30 second timeout
-
-    initializeScene();
-    
-    return () => {
-      clearTimeout(timeoutId);
-      if (scene) {
-        scene.deactivate();
-      }
-    };
-  }, [activeTab]);
-
-  const initializeScene = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // 🔧 FIX: Test datasource connectivity first
-      const dataSource = new GrafanaSceneDataSource();
-      
-      console.log('Testing Grafana datasource connection...');
-      const testResult = await Promise.race([
-        dataSource.testDatasource(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Datasource test timeout')), 5000)
-        )
-      ]);
-      
-      if (testResult.status === 'error') {
-        throw new Error(testResult.message);
-      }
-      
-      console.log('✓ Datasource connected:', testResult.message);
-
-      // Define scene based on active tab
-      let sceneConfig;
-      
-      if (activeTab === 0) {
-        // Application Overview
-        sceneConfig = createApplicationOverviewScene(dataSource);
-      } else if (activeTab === 1) {
-        // Infrastructure Metrics
-        sceneConfig = createInfrastructureScene(dataSource);
-      } else {
-        // Logs & Tracing
-        sceneConfig = createLogsScene(dataSource);
-      }
-
-      const newScene = new EmbeddedScene(sceneConfig);
-
-      if (containerRef.current) {
-        newScene.activate();
-        
-        setScene(newScene);
-        setLoading(false);
-      } else {
-        throw new Error('Container ref not available');
-      }
-    } catch (err) {
-      console.error('Failed to initialize Grafana scene:', err);
-      setError(err.message || 'Failed to load dashboard. Check if Prometheus and Grafana are running.');
-      setLoading(false);
-    }
-  };
-
-  const createApplicationOverviewScene = (dataSource) => ({
-    $timeRange: new SceneTimeRange({ from: 'now-6h', to: 'now' }),
-    body: new SceneFlexLayout({
-      direction: 'column',
-      children: [
-        new SceneFlexItem({
-          height: 200,
-          body: PanelBuilders.timeseries()
-            .setTitle('HTTP Request Rate')
-            .setData({
-              datasource: dataSource,
-              queries: [{
-                refId: 'A',
-                expr: 'rate(http_server_requests_total[5m])',
-              }],
-            })
-            .build(),
-        }),
-        new SceneFlexItem({
-          height: 200,
-          body: PanelBuilders.timeseries()
-            .setTitle('Response Time (P95)')
-            .setData({
-              datasource: dataSource,
-              queries: [{
-                refId: 'A',
-                expr: 'histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))',
-              }],
-            })
-            .build(),
-        }),
-        new SceneFlexItem({
-          height: 200,
-          body: PanelBuilders.timeseries()
-            .setTitle('Active Users (WebSocket)')
-            .setData({
-              datasource: dataSource,
-              queries: [{
-                refId: 'A',
-                expr: 'websocket_active_connections',
-              }],
-            })
-            .build(),
-        }),
-      ],
-    }),
-  });
-
-  const createInfrastructureScene = (dataSource) => ({
-    $timeRange: new SceneTimeRange({ from: 'now-1h', to: 'now' }),
-    body: new SceneFlexLayout({
-      direction: 'column',
-      children: [
-        new SceneFlexItem({
-          height: 200,
-          body: PanelBuilders.timeseries()
-            .setTitle('Database Connection Pool')
-            .setData({
-              datasource: dataSource,
-              queries: [{
-                refId: 'A',
-                expr: 'hikaricp_connections_active',
-              }],
-            })
-            .build(),
-        }),
-        new SceneFlexItem({
-          height: 200,
-          body: PanelBuilders.timeseries()
-            .setTitle('Redis Operations')
-            .setData({
-              datasource: dataSource,
-              queries: [{
-                refId: 'A',
-                expr: 'rate(redis_commands_total[5m])',
-              }],
-            })
-            .build(),
-        }),
-      ],
-    }),
-  });
-
-  const createLogsScene = (dataSource) => ({
-    $timeRange: new SceneTimeRange({ from: 'now-30m', to: 'now' }),
-    body: new SceneFlexLayout({
-      direction: 'column',
-      children: [
-        new SceneFlexItem({
-          height: 400,
-          body: PanelBuilders.logs()
-            .setTitle('Application Logs')
-            .setData({
-              datasource: dataSource,
-              queries: [{
-                refId: 'A',
-                expr: '{container="backend"} | json',
-              }],
-            })
-            .build(),
-        }),
-      ],
-    }),
-  });
-
-  const handleTabChange = (_, newValue) => {
-    setActiveTab(newValue);
-  };
+  const [activeTab, setActiveTab] = React.useState(0);
 
   const openFullGrafana = () => {
-    window.open(`https://admin.${window.location.hostname.split('.').slice(-2).join('.')}/monitoring/`, '_blank');
+    window.open('https://' + window.location.host + '/monitoring', '_blank');
   };
 
-  if (error) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Failed to load monitoring dashboard: {error}
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
           <Assessment fontSize="large" color="primary" />
           <Box>
-            <Typography variant="h4">Reporting & Analytics</Typography>
+            <Typography variant="h4">Reporty</Typography>
             <Typography variant="body2" color="text.secondary">
-              Real-time metrics, logs and performance dashboards
+              Grafana dashboardy a analýzy
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<OpenInNew />}
-          onClick={openFullGrafana}
-        >
-          Open in Grafana
+        <Button variant="contained" startIcon={<OpenInNew />} onClick={openFullGrafana}>
+          Otevřít v Grafaně
         </Button>
       </Box>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 2 }}>
-        <Tab label="📊 Application" />
-        <Tab label="🔧 Infrastructure" />
-        <Tab label="📋 Logs" />
-      </Tabs>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
+          <Tab label="Systém" />
+          <Tab label="Aplikace" />
+          <Tab label="Zabezpečení" />
+        </Tabs>
+      </Box>
 
-      {/* Scene Container */}
-      {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" height={400}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Box
-          ref={containerRef}
-          sx={{
-            flex: 1,
-            width: '100%',
-            height: '100%',
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 1,
-            overflow: 'auto',
-          }}
-        />
+      {activeTab === 0 && (
+        <GrafanaEmbed path="/d/system-resources?orgId=1&theme=light&kiosk" height="800px" />
       )}
-    </Box>
+      {activeTab === 1 && (
+        <GrafanaEmbed path="/d/app-performance?orgId=1&theme=light&kiosk" height="800px" />
+      )}
+      {activeTab === 2 && (
+        <GrafanaEmbed path="/d/security?orgId=1&theme=light&kiosk" height="800px" />
+      )}
+    </Container>
   );
 }

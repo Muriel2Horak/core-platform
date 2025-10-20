@@ -1,7 +1,7 @@
 import { Container, Typography, Box } from '@mui/material';
 import { BugReport as BugReportIcon } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { AuditScene } from '../../components/Grafana/AuditScene';
+import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 export const AdminAuditPage = () => {
   const routeId = 'admin.audit.log';
@@ -20,7 +20,7 @@ export const AdminAuditPage = () => {
           <AiHelpWidget routeId={routeId} />
         </Box>
       </Box>
-      <AuditScene height={800} timeRange={{ from: 'now-7d', to: 'now' }} />
+      <GrafanaEmbed path="/d/audit?orgId=1&theme=light&kiosk" height="800px" />
     </Container>
   );
 };

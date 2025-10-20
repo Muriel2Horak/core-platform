@@ -3,9 +3,7 @@ import { Assessment, OpenInNew, Dashboard as DashboardIcon } from '@mui/icons-ma
 import { useState } from 'react';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { SystemMonitoringScene } from '../../components/Grafana/SystemMonitoringScene';
-import { SecurityScene } from '../../components/Grafana/SecurityScene';
-import { AuditScene } from '../../components/Grafana/AuditScene';
+import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -33,7 +31,6 @@ export const MonitoringPage = () => {
   const routeId = 'admin.monitoring';
 
   const openFullGrafana = () => {
-    // ✅ OPRAVA: Vždy HTTPS
     const protocol = 'https:';
     const host = window.location.host;
     window.open(`${protocol}//${host}/monitoring`, '_blank');
@@ -49,9 +46,9 @@ export const MonitoringPage = () => {
         <Box display="flex" alignItems="center" gap={2}>
           <Assessment fontSize="large" color="primary" />
           <Box>
-            <Typography variant="h4">Monitoring & Analytics</Typography>
+            <Typography variant="h4">Monitoring</Typography>
             <Typography variant="body2" color="text.secondary">
-              Sledování výkonu, bezpečnosti a aktivity systému v reálném čase
+              Systémový monitoring a metriky
             </Typography>
           </Box>
         </Box>
@@ -67,60 +64,25 @@ export const MonitoringPage = () => {
         </Box>
       </Box>
 
-      <GlassPaper sx={{ mb: 3 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="monitoring tabs">
-          <Tab label="📊 Přehled" icon={<DashboardIcon />} iconPosition="start" />
-          <Tab label="⚡ Výkon" />
-          <Tab label="🔒 Bezpečnost" />
-          <Tab label="📝 Audit" />
-          <Tab label="📈 Infrastruktura" />
+      <GlassPaper>
+        <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tab label="Systém" />
+          <Tab label="Zabezpečení" />
+          <Tab label="Audit" />
         </Tabs>
+
+        <TabPanel value={tabValue} index={0}>
+          <GrafanaEmbed path="/d/system-resources?orgId=1&theme=light&kiosk" height="800px" />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+          <GrafanaEmbed path="/d/security?orgId=1&theme=light&kiosk" height="800px" />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={2}>
+          <GrafanaEmbed path="/d/audit?orgId=1&theme=light&kiosk" height="800px" />
+        </TabPanel>
       </GlassPaper>
-
-      {/* Tab 0: Application Overview */}
-      <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <SystemMonitoringScene height={800} timeRange={{ from: 'now-6h', to: 'now' }} />
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      {/* Tab 1: Performance */}
-      <TabPanel value={tabValue} index={1}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <SystemMonitoringScene height={800} timeRange={{ from: 'now-1h', to: 'now' }} />
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      {/* Tab 2: Security */}
-      <TabPanel value={tabValue} index={2}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <SecurityScene height={800} timeRange={{ from: 'now-24h', to: 'now' }} />
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      {/* Tab 3: Audit */}
-      <TabPanel value={tabValue} index={3}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <AuditScene height={800} timeRange={{ from: 'now-7d', to: 'now' }} />
-          </Grid>
-        </Grid>
-      </TabPanel>
-
-      {/* Tab 4: Infrastructure */}
-      <TabPanel value={tabValue} index={4}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <SystemMonitoringScene height={800} timeRange={{ from: 'now-24h', to: 'now' }} />
-          </Grid>
-        </Grid>
-      </TabPanel>
     </Container>
   );
 };
