@@ -67,7 +67,9 @@ public class AuthRequestController {
       log.debug("Grafana auth request successful for user: {}",
           jwt.getClaimAsString("preferred_username"));
 
-      return ResponseEntity.ok().header("Grafana-JWT", token).build();
+      // CRITICAL: Nginx expects this header name (auth_request_set $grafana_token $upstream_http_grafana_jwt)
+      // Nginx converts to lowercase: Grafana-Jwt becomes grafana_jwt
+      return ResponseEntity.ok().header("Grafana-Jwt", token).build();
 
     } catch (Exception e) {
       log.error("Failed to validate JWT for Grafana: {}", e.getMessage());
