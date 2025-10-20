@@ -270,7 +270,7 @@ dev-restart:
 
 # Clean restart dev environment
 .PHONY: dev-clean
-dev-clean:
+dev-clean: check-registries
 	@echo "╔════════════════════════════════════════════════════════════════╗"
 	@echo "║  🧹 CLEAN DEV RESTART (WITH REBUILD)                          ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
@@ -540,7 +540,7 @@ _rebuild_with_progress:
 	echo ""
 
 # Production rebuild with Build Doctor
-rebuild:
+rebuild: check-registries
 	@scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
 
 _rebuild_inner:
@@ -609,11 +609,11 @@ _rebuild_inner:
 
 # Force rebuild without cache (slower but ensures clean build)
 .PHONY: rebuild-clean
-rebuild-clean:
+rebuild-clean: check-registries
 	@NO_CACHE=true scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
 
 # Clean with Build Doctor (FULL E2E TESTING)
-clean:
+clean: check-registries
 	@bash scripts/build/auto-split.sh "NO_CACHE=true SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
 
 _clean_inner:
@@ -652,7 +652,7 @@ _clean_inner:
 # Fast clean without E2E (for development)
 # Use PROGRESS_SPLIT=no to disable split-pane mode
 .PHONY: clean-fast
-clean-fast:
+clean-fast: check-registries
 	@bash scripts/build/auto-split.sh "scripts/build/wrapper.sh $(MAKE) _clean_fast_inner"
 
 _clean_fast_inner:
@@ -802,9 +802,46 @@ db-clean-migrate:
 	done; \
 	echo "⚠️  Backend might still be starting up"
 
+# =============================================================================
+# 🌐 DOCKER REGISTRY VALIDATION
+# =============================================================================
+
+# Check if Docker registries are accessible
+.PHONY: check-registries
+check-registries:
+	@echo "🌐 Checking Docker registry availability..."
+	@echo -n "  📦 Docker Hub (docker.io)... "
+	@if curl -s --max-time 5 -I https://registry-1.docker.io/v2/ | grep -q "HTTP"; then \
+		echo "✅ OK"; \
+	else \
+		echo "❌ UNAVAILABLE"; \
+		echo ""; \
+		echo "⚠️  ERROR: Docker Hub (docker.io) is not accessible!"; \
+		echo "   This will cause build failures."; \
+		echo ""; \
+		echo "   Please wait a few minutes and try again."; \
+		echo "   You can check status at: https://status.docker.com/"; \
+		exit 1; \
+	fi
+	@echo -n "  📦 Quay.io (quay.io)... "
+	@if curl -s --max-time 5 -I https://quay.io/v2/ | grep -q "HTTP"; then \
+		echo "✅ OK"; \
+	else \
+		echo "❌ UNAVAILABLE"; \
+		echo ""; \
+		echo "⚠️  ERROR: Quay.io registry is not accessible!"; \
+		echo "   This will cause Keycloak build to fail."; \
+		echo ""; \
+		echo "   Please wait a few minutes and try again."; \
+		echo "   You can check status at: https://status.quay.io/"; \
+		exit 1; \
+	fi
+	@echo "✅ All Docker registries are accessible"
+	@echo ""
+
 # Build all images
 .PHONY: build
-build:
+build: check-registries
 	@echo "🔨 Building all images (with cache)..."
 	@$(MAKE) kc-image
 	docker compose -f docker/docker-compose.yml --env-file .env build
@@ -993,13 +1030,13 @@ kc-bootstrap:
 
 # Build Keycloak image
 .PHONY: kc-image
-kc-image:
+kc-image: check-registries
 	@echo "🔨 Building Keycloak image..."
 	docker build -f docker/keycloak/Dockerfile -t core-platform/keycloak:local .
 
 # Build Keycloak image (no cache)
 .PHONY: kc-image-no-cache
-kc-image-no-cache:
+kc-image-no-cache: check-registries
 	@echo "🔨 Building Keycloak image (no cache)..."
 	docker build --no-cache -f docker/keycloak/Dockerfile -t core-platform/keycloak:local .
 
