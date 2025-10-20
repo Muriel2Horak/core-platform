@@ -67,7 +67,8 @@ public class AuthRequestController {
       log.debug("Grafana auth request successful for user: {}",
           jwt.getClaimAsString("preferred_username"));
 
-      // CRITICAL: Nginx expects this header name (auth_request_set $grafana_token $upstream_http_grafana_jwt)
+      // CRITICAL: Nginx expects this header name (auth_request_set $grafana_token
+      // $upstream_http_grafana_jwt)
       // Nginx converts to lowercase: Grafana-Jwt becomes grafana_jwt
       return ResponseEntity.ok().header("Grafana-Jwt", token).build();
 

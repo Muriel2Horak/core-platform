@@ -302,7 +302,10 @@ services:
     restart: "no" # Spustí se pouze jednou
 
   grafana:
-    image: grafana/grafana:10.4.0
+    build:
+      context: .
+      dockerfile: grafana/Dockerfile
+    image: core-grafana:custom
     container_name: core-grafana
     environment:
       # 🔐 JWT Authentication (Primary - for iframe embedding)
@@ -313,10 +316,9 @@ services:
       # 🔑 JWT Verification via JWK Set URL
       # Backend passes Keycloak JWT - Grafana verifies with Keycloak's public key
       # Using Keycloak's JWK endpoint for signature verification
+      # PRODUCTION READY: Use HTTPS with mounted SSL cert
       - GF_AUTH_JWT_JWK_SET_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
-      # CRITICAL: Skip TLS verification for self-signed certs (development only!)
       - GF_AUTH_JWT_URL_LOGIN=false
-      - GF_AUTH_JWT_SKIP_TLS_VERIFICATION=true
       - GF_AUTH_JWT_CACHE_TTL=60m
       - GF_AUTH_JWT_AUTO_SIGN_UP=true
       # 🎭 Role mapping based on Keycloak roles
@@ -350,7 +352,7 @@ services:
       # CRITICAL: No hardcoded domain - use %(domain)s variable for multi-tenant
       # DO NOT set GF_SERVER_DOMAIN - let Grafana read from Host header
       - GF_SERVER_HTTP_PORT=3000
-      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SERVER_ROOT_URL=https://%(domain)s/core-admin/monitoring
       
       # 🎨 UI Configuration
