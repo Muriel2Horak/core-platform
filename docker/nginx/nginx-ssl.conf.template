@@ -81,6 +81,17 @@ http {
             proxy_set_header Content-Length "";
         }
         
+        # 📊 GRAFANA STATIC ASSETS - NO AUTH (public files, prevent rate limit)
+        location ^~ /core-admin/monitoring/public/ {
+            # Static assets don't need authentication
+            proxy_pass http://grafana;
+            proxy_set_header Host $host;
+            
+            # Cache static assets
+            expires 1h;
+            add_header Cache-Control "public, immutable";
+        }
+        
         # 📊 GRAFANA PROXY with SSO via BFF JWT - UNIFIED PREFIX: /core-admin/monitoring
         # CRITICAL: Use ^~ prefix to give this location priority over FE catch-all location /
         location ^~ /core-admin/monitoring/ {
