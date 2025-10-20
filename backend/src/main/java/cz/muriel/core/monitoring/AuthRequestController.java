@@ -1,16 +1,20 @@
 package cz.muriel.core.monitoring;
 
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import com.fasterxml.jackson.databind.JsonNode;
+import cz.muriel.core.auth.KeycloakClient;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Internal endpoint for Nginx auth_request
@@ -18,34 +22,45 @@ import org.springframework.web.bind.annotation.RestController;
  * Returns 200 + Grafana-JWT header if authenticated Returns 401 if not
  * authenticated
  * 
- * Security: - Rate limited (20 req/min per user) - Internal only (Nginx should
+ * Security: - Rate limited (100 req/min per user) - Internal only (Nginx should
  * restrict access) - No PII in logs - Reads JWT from HTTP-only cookie (not
- * Authorization header)
+ * Authorization header) - Auto-refreshes tokens before expiration
  */
 @RestController @RequestMapping("/internal/auth") @Slf4j
 public class AuthRequestController {
 
-  private static final String ACCESS_COOKIE = "at"; // Same as AuthController
+  private static final String ACCESS_COOKIE = "at"; // Access token cookie
+  private static final String REFRESH_COOKIE = "rt"; // Refresh token cookie
+  private static final Duration REFRESH_THRESHOLD = Duration.ofMinutes(5); // Refresh if token
+                                                                           // expires in < 5 min
 
   private final GrafanaJwtService jwtService;
   private final JwtDecoder jwtDecoder;
+  private final KeycloakClient keycloakClient;
 
-  public AuthRequestController(GrafanaJwtService jwtService, JwtDecoder jwtDecoder) {
+  public AuthRequestController(GrafanaJwtService jwtService, JwtDecoder jwtDecoder,
+      KeycloakClient keycloakClient) {
     this.jwtService = jwtService;
     this.jwtDecoder = jwtDecoder;
+    this.keycloakClient = keycloakClient;
   }
 
   /**
    * Nginx auth_request endpoint
    * 
    * Called by Nginx before proxying to Grafana Reads JWT from HTTP-only cookie,
-   * validates it, and mints short-lived Grafana JWT
+   * validates it, and auto-refreshes if needed
+   * 
+   * NOTE: NO RATE LIMITING - this is internal Nginx→Backend communication Rate
+   * limiting should be applied at Nginx level, not here!
    */
-  @GetMapping("/grafana") @RateLimiter(name = "grafana-auth", fallbackMethod = "rateLimitFallback")
-  public ResponseEntity<Void> authenticateForGrafana(HttpServletRequest request) {
+  @GetMapping("/grafana")
+  public ResponseEntity<Void> authenticateForGrafana(HttpServletRequest request,
+      HttpServletResponse response) {
 
     // Read JWT token from HTTP-only cookie
     String token = getCookieValue(request, ACCESS_COOKIE);
+    String refreshToken = getCookieValue(request, REFRESH_COOKIE);
 
     if (token == null || token.isEmpty()) {
       log.debug("Grafana auth request failed: no auth cookie found");
@@ -56,14 +71,61 @@ public class AuthRequestController {
       // Decode and validate JWT
       Jwt jwt = jwtDecoder.decode(token);
 
-      if (jwt == null || !jwt.getExpiresAt().isAfter(java.time.Instant.now())) {
-        log.debug("Grafana auth request failed: expired or invalid JWT");
+      if (jwt == null) {
+        log.debug("Grafana auth request failed: invalid JWT");
         return ResponseEntity.status(401).build();
       }
 
-      // SIMPLIFIED: Pass Keycloak JWT directly to Grafana (already RS256-signed)
-      // Grafana will verify it using JWK from Keycloak
-      // This avoids complexity of minting our own JWT with shared secret
+      Instant now = Instant.now();
+      Instant expiresAt = jwt.getExpiresAt();
+
+      // Check if token is expired
+      if (expiresAt == null || !expiresAt.isAfter(now)) {
+        log.debug("Grafana auth request failed: expired JWT");
+        return ResponseEntity.status(401).build();
+      }
+
+      // Auto-refresh if token expires soon (< 5 minutes) and we have refresh token
+      Duration timeUntilExpiry = Duration.between(now, expiresAt);
+      if (timeUntilExpiry.compareTo(REFRESH_THRESHOLD) < 0 && refreshToken != null
+          && !refreshToken.isEmpty()) {
+        log.debug("Token expires in {}, attempting auto-refresh for user: {}", timeUntilExpiry,
+            jwt.getClaimAsString("preferred_username"));
+
+        try {
+          JsonNode tokenResponse = keycloakClient.refreshToken(refreshToken);
+          String newAccessToken = tokenResponse.path("access_token").asText();
+          String newRefreshToken = tokenResponse.path("refresh_token").asText();
+
+          // Update cookies with new tokens
+          if (newAccessToken != null && !newAccessToken.isEmpty()) {
+            Cookie atCookie = new Cookie(ACCESS_COOKIE, newAccessToken);
+            atCookie.setHttpOnly(true);
+            atCookie.setSecure(true);
+            atCookie.setPath("/");
+            atCookie.setMaxAge(3600); // 1 hour
+            response.addCookie(atCookie);
+
+            if (newRefreshToken != null && !newRefreshToken.isEmpty()) {
+              Cookie rtCookie = new Cookie(REFRESH_COOKIE, newRefreshToken);
+              rtCookie.setHttpOnly(true);
+              rtCookie.setSecure(true);
+              rtCookie.setPath("/");
+              rtCookie.setMaxAge(86400); // 24 hours
+              response.addCookie(rtCookie);
+            }
+
+            token = newAccessToken; // Use new token for Grafana
+            log.debug("✅ Token auto-refreshed successfully for user: {}",
+                jwt.getClaimAsString("preferred_username"));
+          }
+        } catch (Exception e) {
+          log.warn("Failed to auto-refresh token, continuing with existing token: {}",
+              e.getMessage());
+          // Continue with existing token - it's still valid for a few more minutes
+        }
+      }
+
       log.debug("Grafana auth request successful for user: {}",
           jwt.getClaimAsString("preferred_username"));
 
@@ -76,14 +138,6 @@ public class AuthRequestController {
       log.error("Failed to validate JWT for Grafana: {}", e.getMessage());
       return ResponseEntity.status(500).build();
     }
-  }
-
-  /**
-   * Rate limit fallback
-   */
-  public ResponseEntity<Void> rateLimitFallback(HttpServletRequest request, Exception e) {
-    log.warn("Rate limit exceeded for Grafana auth from IP: {}", request.getRemoteAddr());
-    return ResponseEntity.status(429).build();
   }
 
   /**

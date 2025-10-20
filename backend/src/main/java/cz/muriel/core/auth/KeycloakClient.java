@@ -96,6 +96,29 @@ public class KeycloakClient {
     }
   }
 
+  /**
+   * Refresh access token using refresh token Returns new token response with
+   * access_token, refresh_token, etc.
+   */
+  public JsonNode refreshToken(String refreshToken) {
+    String url = issuer + "/protocol/openid-connect/token";
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+    MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+    form.add("grant_type", "refresh_token");
+    form.add("client_id", clientId);
+    form.add("refresh_token", refreshToken);
+
+    try {
+      ResponseEntity<String> res = rt.postForEntity(url, new HttpEntity<>(form, headers),
+          String.class);
+      return readJson(res.getBody());
+    } catch (HttpStatusCodeException ex) {
+      throw kcException("refresh_token", ex);
+    }
+  }
+
   public void changePassword(String userId, String newPassword) {
     String adminToken = getAdminToken();
     String url = issuer.replace("/realms/", "/admin/realms/") + "/users/" + userId
