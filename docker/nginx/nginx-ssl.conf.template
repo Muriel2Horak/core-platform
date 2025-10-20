@@ -62,48 +62,55 @@ http {
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
-        # CSP - pro hlavní aplikaci (NE pro /monitoring/)
+        # CSP - pro hlavní aplikaci (NE pro /core-admin/monitoring/)
         # CSP se aplikuje jen na non-monitoring endpointy (viz location specifické CSP níže)
         
-        # 📊 GRAFANA MONITORING - dostupné na všech doménách
-        location /monitoring/ {
-            # Grafana má vlastní CSP, neaplikujeme zde žádnou CSP
-            # Odstranit X-Frame-Options pro Grafana embedding
-            proxy_hide_header X-Frame-Options;
+        # 📊 GRAFANA SSO: Redirect without trailing slash to prevent SPA fallback
+        location = /core-admin/monitoring {
+            return 301 /core-admin/monitoring/;
+        }
+        
+        # 📊 GRAFANA SSO: Internal auth bridge endpoint
+        location = /_auth/grafana {
+            internal;
+            proxy_pass http://backend/internal/auth/grafana;
+            # CRITICAL: Pass 'at' cookie explicitly (auth_request doesn't forward cookies automatically)
+            proxy_set_header Cookie "at=$cookie_at";
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_pass_request_body off;
+            proxy_set_header Content-Length "";
+        }
+        
+        # 📊 GRAFANA PROXY with SSO via BFF JWT - UNIFIED PREFIX: /core-admin/monitoring
+        # CRITICAL: Use ^~ prefix to give this location priority over FE catch-all location /
+        location ^~ /core-admin/monitoring/ {
+            # Authenticate via BFF
+            auth_request /_auth/grafana;
+            auth_request_set $grafana_token $upstream_http_grafana_jwt;
             
-            # 🔐 JWT Authentication - extrahujeme token z query parametru
-            # Frontend posílá: /monitoring/?token=eyJhbGc...
-            # Nginx přidá jako Authorization header
-            set $auth_header "";
-            if ($arg_token != "") {
-                set $auth_header "Bearer $arg_token";
-            }
-            
-            # OPRAVA: Grafana běží na HTTP interně, Nginx dělá HTTPS terminaci
-            # Celá cesta /monitoring/ se posílá Grafaně (serve_from_sub_path=true)
-            # Port 3000 je už v upstream definici!
-            proxy_pass http://grafana;
-            
+            # Pass JWT to Grafana
+            proxy_set_header X-Org-JWT $grafana_token;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto https;
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Port 443;
+            proxy_set_header X-Forwarded-Proto $scheme;
             
-            # 🔐 Předáme JWT token jako Authorization header (pokud existuje)
-            proxy_set_header Authorization $auth_header;
-            
-            # WebSocket support for live updates
+            # WebSocket support for live dashboards
             proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Connection "upgrade";
             proxy_http_version 1.1;
-            proxy_cache_bypass $http_upgrade;
             
+            # Timeouts for long-running queries
             proxy_connect_timeout 60s;
             proxy_send_timeout 60s;
             proxy_read_timeout 60s;
-            proxy_buffering off;
+            
+            # CSP for iframe embedding - allow wildcard subdomains
+            add_header Content-Security-Policy "frame-ancestors 'self' https://*.$DOMAIN" always;
+            
+            # Strip /core-admin/monitoring prefix before proxying to Grafana (serve_from_sub_path=false)
+            rewrite ^/core-admin/monitoring/(.*) /$1 break;
+            proxy_pass http://grafana;
         }
         
         #  KEYCLOAK PATHS - transparentně pro všechny subdomény
