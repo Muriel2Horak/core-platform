@@ -64,7 +64,8 @@ public class AuthRequestController {
       // SIMPLIFIED: Pass Keycloak JWT directly to Grafana (already RS256-signed)
       // Grafana will verify it using JWK from Keycloak
       // This avoids complexity of minting our own JWT with shared secret
-      log.debug("Grafana auth request successful for user: {}", jwt.getClaimAsString("preferred_username"));
+      log.debug("Grafana auth request successful for user: {}",
+          jwt.getClaimAsString("preferred_username"));
 
       return ResponseEntity.ok().header("Grafana-JWT", token).build();
 
