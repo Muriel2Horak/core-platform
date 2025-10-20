@@ -118,7 +118,7 @@ public class GrafanaJwtService {
     if (realmAccess != null && realmAccess.get("roles") instanceof List) {
       @SuppressWarnings("unchecked")
       List<String> roles = (List<String>) realmAccess.get("roles");
-      
+
       if (roles.contains("CORE_ROLE_ADMIN")) {
         return "Admin";
       }
@@ -164,15 +164,9 @@ public class GrafanaJwtService {
     Instant now = Instant.now();
     Instant expiry = now.plusSeconds(jwtTtl);
 
-    String jwt = JWT.create()
-        .withSubject(username)
-        .withClaim("email", email)
-        .withClaim("name", name != null ? name : username)
-        .withClaim("orgId", grafanaOrgId)
-        .withClaim("role", grafanaRole)
-        .withIssuedAt(now)
-        .withExpiresAt(expiry)
-        .withJWTId(jti)
+    String jwt = JWT.create().withSubject(username).withClaim("email", email)
+        .withClaim("name", name != null ? name : username).withClaim("orgId", grafanaOrgId)
+        .withClaim("role", grafanaRole).withIssuedAt(now).withExpiresAt(expiry).withJWTId(jti)
         .sign(Algorithm.HMAC256(jwtSecret));
 
     // Store JTI for replay protection

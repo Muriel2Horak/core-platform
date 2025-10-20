@@ -48,9 +48,21 @@ public class SecurityConfig {
     this.dynamicJwtDecoder = dynamicJwtDecoder;
   }
 
-  @Bean
-  SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  @Bean @org.springframework.core.annotation.Order(1)
+  SecurityFilterChain internalSecurityFilterChain(HttpSecurity http) throws Exception {
+    // Separate filter chain for /internal/** endpoints (NO JWT validation)
+    http.securityMatcher("/internal/**").csrf(csrf -> csrf.disable())
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
 
+    return http.build();
+  }
+
+  @Bean @org.springframework.core.annotation.Order(2)
+  SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+    // Main filter chain for API endpoints (WITH JWT validation)
     http.csrf(csrf -> csrf.disable())
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(
@@ -61,9 +73,6 @@ public class SecurityConfig {
             .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico")
             .permitAll().requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
-
-            // Internal endpoints - restrict to internal network only
-            .requestMatchers("/internal/**").access(isInternalRequestManager())
 
             // All other API endpoints require authentication
             .requestMatchers("/api/**").authenticated().anyRequest().permitAll())

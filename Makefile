@@ -541,7 +541,11 @@ _rebuild_with_progress:
 
 # Production rebuild with Build Doctor
 rebuild: check-registries
-	@scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
+	@REBUILD_START=$$(date +%s); \
+	scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE); \
+	EXIT_CODE=$$?; \
+	bash scripts/build/build-summary.sh "$(LOG_FILE)" "$$REBUILD_START" "rebuild"; \
+	exit $$EXIT_CODE
 
 _rebuild_inner:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
@@ -614,7 +618,11 @@ rebuild-clean: check-registries
 
 # Clean with Build Doctor (FULL E2E TESTING)
 clean: check-registries
-	@bash scripts/build/auto-split.sh "NO_CACHE=true SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"
+	@CLEAN_START=$$(date +%s); \
+	bash scripts/build/auto-split.sh "NO_CACHE=true SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"; \
+	EXIT_CODE=$$?; \
+	bash scripts/build/build-summary.sh "$(LOG_FILE)" "$$CLEAN_START" "clean"; \
+	exit $$EXIT_CODE
 
 _clean_inner:
 	@# Build dynamic step list and initialize tracker
@@ -653,7 +661,11 @@ _clean_inner:
 # Use PROGRESS_SPLIT=no to disable split-pane mode
 .PHONY: clean-fast
 clean-fast: check-registries
-	@bash scripts/build/auto-split.sh "scripts/build/wrapper.sh $(MAKE) _clean_fast_inner"
+	@CLEAN_START=$$(date +%s); \
+	bash scripts/build/auto-split.sh "scripts/build/wrapper.sh $(MAKE) _clean_fast_inner"; \
+	EXIT_CODE=$$?; \
+	bash scripts/build/build-summary.sh "$(LOG_FILE)" "$$CLEAN_START" "clean-fast"; \
+	exit $$EXIT_CODE
 
 _clean_fast_inner:
 	@echo "╔════════════════════════════════════════════════════════════════╗"

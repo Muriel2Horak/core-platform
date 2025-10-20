@@ -1,0 +1,13 @@
+BUILD SUMMARY - po 20. října 2025 11:40:22 CEST
+================================
+
+Build Type: clean
+Duration: 0m 2s
+Log File: diagnostics/build-20251020-111311.log
+
+Errors Found: 3
+Containers Running:        0
+Healthy:        0
+Unhealthy:        0
+
+Full details above.
