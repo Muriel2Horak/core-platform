@@ -1848,3 +1848,51 @@ ci-post-deploy:
 	@echo ""
 	@echo "✅ Post-deployment validation complete!"
 	@echo ""
+
+# =============================================================================
+# 📊 GRAFANA SSO DIAGNOSTICS
+# =============================================================================
+
+.PHONY: diag-grafana-sso
+diag-grafana-sso:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  📊 GRAFANA SSO EMBED DIAGNOSTICS                              ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔍 Test 1: Auth Bridge (/_auth/grafana should return 200 + header)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@# This should work from inside backend container (internal call)
+	@docker exec core-backend curl -s -w "\nHTTP Status: %{http_code}\n" \
+		-H "Cookie: at=test-jwt-token" \
+		http://localhost:8080/internal/auth/grafana || echo "❌ Auth bridge unreachable"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔍 Test 2: Grafana subpath WITHOUT auth (should be 401/403)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@curl -skL -w "\nHTTP Status: %{http_code}\n" \
+		https://admin.core-platform.local/core-admin/monitoring/api/health 2>/dev/null || echo "❌ Grafana unreachable"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔍 Test 3: Grafana static assets (should return JS/CSS, not HTML)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@ASSET_URL=$$(curl -skL https://admin.core-platform.local/core-admin/monitoring/api/frontend/settings 2>/dev/null | \
+		grep -o '"appSubUrl":"[^"]*"' | cut -d'"' -f4); \
+	if [ -n "$$ASSET_URL" ]; then \
+		echo "Found appSubUrl: $$ASSET_URL"; \
+		curl -skL -I "https://admin.core-platform.local$$ASSET_URL/public/build/grafana.light.css" 2>/dev/null | head -5; \
+	else \
+		echo "Checking default asset path..."; \
+		curl -skL -I "https://admin.core-platform.local/core-admin/monitoring/public/build/grafana.light.css" 2>/dev/null | head -5; \
+	fi
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔍 Test 4: Check redirect /core-admin/monitoring → /core-admin/monitoring/"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@curl -skL -w "\nHTTP Status: %{http_code}\nFinal URL: %{url_effective}\n" \
+		https://admin.core-platform.local/core-admin/monitoring 2>/dev/null | tail -3
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Diagnostics complete!"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""

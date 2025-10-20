@@ -58,13 +58,14 @@ export const GrafanaEmbed: React.FC<GrafanaEmbedProps> = ({
   const [error, setError] = React.useState<string | null>(null);
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
 
-  // Normalize path (remove leading slash if present, we'll add /core-admin/monitoring/)
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  // Normalize path (remove leading slash, we'll add it in URL construction)
+  const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
   
-  // Use absolute URL to admin subdomain (admin.core-platform.local)
+  // Use absolute URL to admin subdomain with TRAILING SLASH on /core-admin/monitoring/
+  // This prevents falling into FE SPA fallback (which catches /core-admin/monitoring without slash)
   // Browser will automatically send HTTP-only cookie with JWT token
   // NO TOKENS IN URL - authentication handled by cookie
-  const iframeSrc = `https://admin.core-platform.local/core-admin/monitoring${normalizedPath}`;
+  const iframeSrc = `https://admin.core-platform.local/core-admin/monitoring/${normalizedPath}`;
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
