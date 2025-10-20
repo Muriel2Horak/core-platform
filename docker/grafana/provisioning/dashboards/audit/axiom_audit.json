@@ -1,0 +1,33 @@
+{
+  "uid": "axiom_audit",
+  "title": "Audit & Governance",
+  "tags": ["axiom", "audit", "governance", "compliance"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "tenant", "label": "Tenant", "type": "query", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "query": "label_values(audit_events_total, tenant)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1},
+      {"name": "entity_type", "label": "Entity Type", "type": "query", "datasource": {"type": "loki", "uid": "${DS_LOKI}"}, "query": "label_values({tenant=~\"$tenant\"}, entity_type)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1},
+      {"name": "operation", "label": "Operation", "type": "custom", "options": ["CREATE", "UPDATE", "DELETE", "BULK_UPDATE", "BULK_DELETE"], "multi": true, "includeAll": true, "allValue": ".*"}
+    ]
+  },
+  "panels": [
+    {"id": 1, "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}, "type": "stat", "title": "Total Audit Events (6h)", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(increase(audit_events_total{tenant=~\"$tenant\"}[6h]))", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short"}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "area"}},
+    {"id": 2, "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}, "type": "stat", "title": "CREATE Operations", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(increase(audit_events_total{tenant=~\"$tenant\",operation=\"CREATE\"}[6h]))", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "green"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"}},
+    {"id": 3, "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}, "type": "stat", "title": "UPDATE Operations", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(increase(audit_events_total{tenant=~\"$tenant\",operation=\"UPDATE\"}[6h]))", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "blue"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"}},
+    {"id": 4, "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}, "type": "stat", "title": "DELETE Operations", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(increase(audit_events_total{tenant=~\"$tenant\",operation=\"DELETE\"}[6h]))", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short", "color": {"fixedColor": "red"}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value"}},
+    {"id": 5, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}, "type": "timeseries", "title": "Audit Events by Operation", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(rate(audit_events_total{tenant=~\"$tenant\",operation=~\"$operation\"}[5m])) by (operation)", "legendFormat": "{{operation}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "stacking": {"mode": "normal"}}}}},
+    {"id": 6, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}, "type": "timeseries", "title": "Audit Events by Entity Type", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(rate(audit_events_total{tenant=~\"$tenant\",entity_type=~\"$entity_type\"}[5m])) by (entity_type)", "legendFormat": "{{entity_type}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}}}},
+    {"id": 7, "gridPos": {"h": 12, "w": 24, "x": 0, "y": 12}, "type": "table", "title": "Recent Audit Events (Loki)", "datasource": {"type": "loki", "uid": "${DS_LOKI}"}, "targets": [{"expr": "{tenant=~\"$tenant\",event_type=\"audit\",entity_type=~\"$entity_type\",operation=~\"$operation\"} | json | line_format \"{{.timestamp}} | {{.user}} | {{.operation}} | {{.entity_type}} | {{.entity_id}} | {{.changes}}\"", "refId": "A"}], "transformations": [{"id": "organize", "options": {"renameByName": {"Time": "Timestamp", "user": "User", "operation": "Operation", "entity_type": "Entity Type", "entity_id": "Entity ID", "requestId": "Request ID", "changes": "Changes"}}}], "options": {"showHeader": true, "footer": {"show": false}}},
+    {"id": 8, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}, "type": "piechart", "title": "Operations Distribution", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(increase(audit_events_total{tenant=~\"$tenant\"}[6h])) by (operation)", "legendFormat": "{{operation}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short"}}, "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "percent"]}, "pieType": "donut"}},
+    {"id": 9, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}, "type": "piechart", "title": "Entity Types Distribution", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "sum(increase(audit_events_total{tenant=~\"$tenant\"}[6h])) by (entity_type)", "legendFormat": "{{entity_type}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short"}}, "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "percent"]}, "pieType": "donut"}}
+  ],
+  "annotations": {
+    "list": [
+      {"name": "Bulk Operations", "datasource": {"type": "loki", "uid": "${DS_LOKI}"}, "enable": true, "expr": "{tenant=~\"$tenant\",event_type=\"audit\",operation=~\"BULK.*\"} | json", "tagKeys": "operation,entity_type,user", "titleFormat": "Bulk {{operation}}", "textFormat": "{{entity_type}} by {{user}}", "iconColor": "orange"}
+    ]
+  }
+}

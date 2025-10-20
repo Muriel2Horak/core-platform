@@ -26,6 +26,7 @@ import { ReportingPage } from './components/Reporting';
 import {
   MonitoringPage,
   MonitoringComprehensivePage,
+  AxiomMonitoringPage,
   AdminUsersPage,
   AdminRolesPage,
   AdminTenantsPage,
@@ -470,9 +471,10 @@ const AppContent = () => {
         
         {/* 🆕 Core Admin sekce - hierarchická struktura */}
         <Route path="/core-admin">
-          <Route index element={<Navigate to="/core-admin/monitoring" replace />} />
+          <Route index element={<Navigate to="/core-admin/axiom-monitoring" replace />} />
           <Route path="monitoring" element={<MonitoringPage />} />
           <Route path="monitoring-comprehensive" element={<MonitoringComprehensivePage />} />
+          <Route path="axiom-monitoring" element={<AxiomMonitoringPage />} />
           <Route path="users" element={<AdminUsersPage user={user} />} />
           <Route path="users/:userId/edit" element={<UserEditPage currentUser={user} />} />
           <Route path="roles" element={<AdminRolesPage />} />

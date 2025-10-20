@@ -1,0 +1,25 @@
+{
+  "uid": "axiom_adv_db",
+  "title": "Advanced - Database Operations",
+  "tags": ["axiom", "advanced", "database", "postgresql"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {
+    "list": [
+      {"name": "tenant", "label": "Tenant", "type": "query", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "query": "label_values(hikaricp_connections_active, tenant)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1},
+      {"name": "pool", "label": "Pool", "type": "query", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "query": "label_values(hikaricp_connections_active, pool)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1}
+    ]
+  },
+  "panels": [
+    {"id": 1, "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0}, "type": "stat", "title": "Pool Saturation", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "app:db:pool_saturation{pool=~\"$pool\"}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "percentunit", "thresholds": {"mode": "absolute", "steps": [{"value": null, "color": "green"}, {"value": 0.8, "color": "yellow"}, {"value": 0.9, "color": "red"}]}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background", "graphMode": "area"}},
+    {"id": 2, "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0}, "type": "stat", "title": "Active Connections", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "hikaricp_connections_active{pool=~\"$pool\"}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short"}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "area"}},
+    {"id": 3, "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0}, "type": "stat", "title": "Pending Connections", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "hikaricp_connections_pending{pool=~\"$pool\"}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "short", "thresholds": {"mode": "absolute", "steps": [{"value": null, "color": "green"}, {"value": 5, "color": "yellow"}, {"value": 10, "color": "red"}]}}}, "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "background"}},
+    {"id": 4, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}, "type": "timeseries", "title": "Connection Pool Usage", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "hikaricp_connections_active{pool=~\"$pool\"}", "legendFormat": "Active - {{pool}}", "refId": "A"}, {"expr": "hikaricp_connections_max{pool=~\"$pool\"}", "legendFormat": "Max - {{pool}}", "refId": "B"}, {"expr": "hikaricp_connections_idle{pool=~\"$pool\"}", "legendFormat": "Idle - {{pool}}", "refId": "C"}], "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}}}},
+    {"id": 5, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}, "type": "timeseries", "title": "Connection Acquisition Time (p95)", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "app:db:connection_acquisition_p95{pool=~\"$pool\"}", "legendFormat": "{{pool}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "ms", "custom": {"drawStyle": "line", "lineInterpolation": "smooth"}}}},
+    {"id": 6, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}, "type": "timeseries", "title": "Connection Timeout Rate", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "app:db:connection_timeout_rate{pool=~\"$pool\"}", "legendFormat": "{{pool}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}}}},
+    {"id": 7, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}, "type": "timeseries", "title": "Slow Queries Rate (>1s)", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "targets": [{"expr": "app:db:slow_queries_rate{tenant=~\"$tenant\"}", "legendFormat": "{{service}}", "refId": "A"}], "fieldConfig": {"defaults": {"unit": "ops", "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}}}}
+  ]
+}
