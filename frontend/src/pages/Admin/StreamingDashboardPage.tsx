@@ -127,7 +127,7 @@ const StreamingDashboardPage: React.FC = () => {
         </Grid>
       )}
 
-      <GrafanaEmbed path="/d/streaming?orgId=1&theme=light&kiosk" height="800px" />
+      <GrafanaEmbed path="/d/streaming-overview?orgId=1&theme=light&kiosk" height="800px" />
     </Box>
   );
 };

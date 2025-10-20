@@ -72,15 +72,15 @@ export const MonitoringPage = () => {
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
-          <GrafanaEmbed path="/d/system-resources?orgId=1&theme=light&kiosk" height="800px" />
+          <GrafanaEmbed path="/d/infra-overview?orgId=1&theme=light&kiosk" height="800px" />
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <GrafanaEmbed path="/d/security?orgId=1&theme=light&kiosk" height="800px" />
+          <GrafanaEmbed path="/d/security-dashboard?orgId=1&theme=light&kiosk" height="800px" />
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <GrafanaEmbed path="/d/audit?orgId=1&theme=light&kiosk" height="800px" />
+          <GrafanaEmbed path="/d/audit-dashboard?orgId=1&theme=light&kiosk" height="800px" />
         </TabPanel>
       </GlassPaper>
     </Container>

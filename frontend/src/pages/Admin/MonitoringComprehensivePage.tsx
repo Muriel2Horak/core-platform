@@ -263,32 +263,32 @@ export const MonitoringComprehensivePage = () => {
       
       {/* Tab 0: System Resources (USE) */}
       <TabPanel value={tabValue} index={0}>
-        <GrafanaEmbed path="/d/system-resources?orgId=1&theme=light&kiosk" height="1200px" />
+        <GrafanaEmbed path="/d/infra-overview?orgId=1&theme=light&kiosk" height="1200px" />
       </TabPanel>
 
       {/* Tab 1: Application Performance (RED) */}
       <TabPanel value={tabValue} index={1}>
-        <GrafanaEmbed path="/d/app-performance?orgId=1&theme=light&kiosk" height="1200px" />
+        <GrafanaEmbed path="/d/performance-dashboard?orgId=1&theme=light&kiosk" height="1200px" />
       </TabPanel>
 
       {/* Tab 2: Platform Health (SLI/SLO) */}
       <TabPanel value={tabValue} index={2}>
-        <GrafanaEmbed path="/d/platform-health?orgId=1&theme=light&kiosk" height="1200px" />
+        <GrafanaEmbed path="/d/core-platform-status?orgId=1&theme=light&kiosk" height="1200px" />
       </TabPanel>
 
       {/* Tab 3: Security */}
       <TabPanel value={tabValue} index={3}>
-        <GrafanaEmbed path="/d/security?orgId=1&theme=light&kiosk" height="1000px" />
+        <GrafanaEmbed path="/d/security-dashboard?orgId=1&theme=light&kiosk" height="1000px" />
       </TabPanel>
 
       {/* Tab 4: Audit */}
       <TabPanel value={tabValue} index={4}>
-        <GrafanaEmbed path="/d/audit?orgId=1&theme=light&kiosk" height="1000px" />
+        <GrafanaEmbed path="/d/audit-dashboard?orgId=1&theme=light&kiosk" height="1000px" />
       </TabPanel>
 
       {/* Tab 5: Logs */}
       <TabPanel value={tabValue} index={5}>
-        <GrafanaEmbed path="/d/logs?orgId=1&theme=light&kiosk" height="900px" />
+        <GrafanaEmbed path="/d/loki-overview?orgId=1&theme=light&kiosk" height="900px" />
       </TabPanel>
     </Container>
   );
