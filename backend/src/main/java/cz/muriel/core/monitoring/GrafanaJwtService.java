@@ -11,9 +11,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
-import java.security.KeyFactory;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -21,8 +18,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Service for minting short-lived Grafana JWT tokens from Keycloak identity
  * 
- * Security: - TTL: 120 seconds - JTI replay protection via Redis - RS256
- * signature - Rate limiting in controller
+ * Security: - TTL: 120 seconds - JTI replay protection via Redis - HS256
+ * signature (shared secret with Grafana) - Rate limiting in controller
  */
 @Service @Slf4j
 public class GrafanaJwtService {
@@ -33,13 +30,13 @@ public class GrafanaJwtService {
   @Value("${grafana.jwt.ttl:120}")
   private int jwtTtl;
 
-  private RSAPrivateKey privateKey;
+  @Value("${grafana.jwt.secret}")
+  private String jwtSecret;
 
   public GrafanaJwtService(StringRedisTemplate redisTemplate,
       GrafanaTenantRegistry tenantRegistry) {
     this.redisTemplate = redisTemplate;
     this.tenantRegistry = tenantRegistry;
-    this.privateKey = loadPrivateKey();
   }
 
   /**
@@ -78,7 +75,7 @@ public class GrafanaJwtService {
     String jwt = JWT.create().withSubject(username).withClaim("email", email)
         .withClaim("name", name != null ? name : username).withClaim("orgId", grafanaOrgId)
         .withClaim("role", grafanaRole).withIssuedAt(now).withExpiresAt(expiry).withJWTId(jti)
-        .sign(Algorithm.RSA256(null, privateKey));
+        .sign(Algorithm.HMAC256(jwtSecret));
 
     // Store JTI for replay protection
     redisTemplate.opsForValue().set("grafana:jti:" + jti, "used", jwtTtl, TimeUnit.SECONDS);
@@ -123,26 +120,5 @@ public class GrafanaJwtService {
       return parts[1];
     }
     return "admin"; // Fallback
-  }
-
-  /**
-   * Load RSA private key for JWT signing TODO: Load from secure keystore or K8s
-   * secret
-   */
-  private RSAPrivateKey loadPrivateKey() {
-    try {
-      // For now, generate ephemeral key pair
-      // In production, load from keystore
-      java.security.KeyPairGenerator keyGen = java.security.KeyPairGenerator.getInstance("RSA");
-      keyGen.initialize(2048);
-      java.security.KeyPair keyPair = keyGen.generateKeyPair();
-
-      log.warn(
-          "Using ephemeral RSA key pair for Grafana JWT signing. Configure proper keystore for production!");
-
-      return (RSAPrivateKey) keyPair.getPrivate();
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to load RSA private key", e);
-    }
   }
 }
