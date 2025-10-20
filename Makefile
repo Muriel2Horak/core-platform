@@ -1853,46 +1853,62 @@ ci-post-deploy:
 # 📊 GRAFANA SSO DIAGNOSTICS
 # =============================================================================
 
-.PHONY: diag-grafana-sso
-diag-grafana-sso:
+.PHONY: diag-grafana-embed
+diag-grafana-embed:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
-	@echo "║  📊 GRAFANA SSO EMBED DIAGNOSTICS                              ║"
+	@echo "║  📊 GRAFANA EMBED MULTI-TENANT DIAGNOSTICS                     ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "🔍 Test 1: Auth Bridge (/_auth/grafana should return 200 + header)"
+	@echo "🔍 Test 1: Auth Bridge (/_auth/grafana with valid cookie)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@# This should work from inside backend container (internal call)
+	@# Internal call from backend - should return 200 + Grafana-JWT header
 	@docker exec core-backend curl -s -w "\nHTTP Status: %{http_code}\n" \
 		-H "Cookie: at=test-jwt-token" \
-		http://localhost:8080/internal/auth/grafana || echo "❌ Auth bridge unreachable"
+		http://localhost:8080/internal/auth/grafana 2>/dev/null || echo "❌ Auth bridge unreachable"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "🔍 Test 2: Grafana subpath WITHOUT auth (should be 401/403)"
+	@echo "🔍 Test 2: /core-admin/monitoring/ WITHOUT auth (should be 401)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@curl -skL -w "\nHTTP Status: %{http_code}\n" \
-		https://admin.core-platform.local/core-admin/monitoring/api/health 2>/dev/null || echo "❌ Grafana unreachable"
+		https://admin.core-platform.local/core-admin/monitoring/api/health 2>/dev/null | tail -2
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "🔍 Test 3: Grafana static assets (should return JS/CSS, not HTML)"
+	@echo "🔍 Test 3: Grafana assets (should be CSS, not HTML)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@ASSET_URL=$$(curl -skL https://admin.core-platform.local/core-admin/monitoring/api/frontend/settings 2>/dev/null | \
-		grep -o '"appSubUrl":"[^"]*"' | cut -d'"' -f4); \
-	if [ -n "$$ASSET_URL" ]; then \
-		echo "Found appSubUrl: $$ASSET_URL"; \
-		curl -skL -I "https://admin.core-platform.local$$ASSET_URL/public/build/grafana.light.css" 2>/dev/null | head -5; \
-	else \
-		echo "Checking default asset path..."; \
-		curl -skL -I "https://admin.core-platform.local/core-admin/monitoring/public/build/grafana.light.css" 2>/dev/null | head -5; \
-	fi
+	@curl -skL -I "https://admin.core-platform.local/core-admin/monitoring/public/build/grafana.light.css" 2>/dev/null | \
+		grep -E "HTTP|Content-Type" | head -2
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "🔍 Test 4: Check redirect /core-admin/monitoring → /core-admin/monitoring/"
+	@echo "🔍 Test 4: Redirect /core-admin/monitoring → /core-admin/monitoring/"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@curl -skL -w "\nHTTP Status: %{http_code}\nFinal URL: %{url_effective}\n" \
+	@curl -sk -w "\nHTTP Status: %{http_code}\nRedirect: %{redirect_url}\n" \
+		-o /dev/null \
 		https://admin.core-platform.local/core-admin/monitoring 2>/dev/null | tail -3
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔍 Test 5: Grafana config (root_url, serve_from_sub_path)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker exec core-grafana grep -E "^(root_url|serve_from_sub_path|domain)" /etc/grafana/grafana.ini | grep -v "^#"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🔍 Test 6: Check for domain duplication in logs"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@docker logs core-grafana 2>&1 | grep -i "admin\.admin\|double.*subdomain" | tail -5 || echo "✅ No domain duplication in logs"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "✅ Diagnostics complete!"
+	@echo "Expected results:"
+	@echo "  ✓ Test 1: HTTP 200 with Grafana-JWT header"
+	@echo "  ✓ Test 2: HTTP 401 (auth required)"
+	@echo "  ✓ Test 3: Content-Type: text/css"
+	@echo "  ✓ Test 4: HTTP 301/308 redirect to trailing slash"
+	@echo "  ✓ Test 5: root_url = https://%(domain)s/core-admin/monitoring"
+	@echo "  ✓ Test 5: serve_from_sub_path = true"
+	@echo "  ✓ Test 6: No admin.admin.core-platform.local errors"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
+
+# Legacy alias
+.PHONY: diag-grafana-sso
+diag-grafana-sso: diag-grafana-embed

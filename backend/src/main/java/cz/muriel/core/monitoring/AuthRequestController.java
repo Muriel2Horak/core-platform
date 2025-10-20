@@ -61,13 +61,15 @@ public class AuthRequestController {
         return ResponseEntity.status(401).build();
       }
 
-      // Mint short-lived Grafana JWT
-      String grafanaJwt = jwtService.mintGrafanaJwtFromKeycloakJwt(jwt);
+      // SIMPLIFIED: Pass Keycloak JWT directly to Grafana (already RS256-signed)
+      // Grafana will verify it using JWK from Keycloak
+      // This avoids complexity of minting our own JWT with shared secret
+      log.debug("Grafana auth request successful for user: {}", jwt.getClaimAsString("preferred_username"));
 
-      return ResponseEntity.ok().header("Grafana-JWT", grafanaJwt).build();
+      return ResponseEntity.ok().header("Grafana-JWT", token).build();
 
     } catch (Exception e) {
-      log.error("Failed to mint Grafana JWT: {}", e.getMessage());
+      log.error("Failed to validate JWT for Grafana: {}", e.getMessage());
       return ResponseEntity.status(500).build();
     }
   }

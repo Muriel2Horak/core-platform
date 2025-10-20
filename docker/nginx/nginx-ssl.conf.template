@@ -91,6 +91,7 @@ http {
             # Pass JWT to Grafana
             proxy_set_header X-Org-JWT $grafana_token;
             proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
@@ -108,8 +109,8 @@ http {
             # CSP for iframe embedding - allow wildcard subdomains
             add_header Content-Security-Policy "frame-ancestors 'self' https://*.$DOMAIN" always;
             
-            # Strip /core-admin/monitoring prefix before proxying to Grafana (serve_from_sub_path=false)
-            rewrite ^/core-admin/monitoring/(.*) /$1 break;
+            # DO NOT strip prefix - Grafana serves from subpath (serve_from_sub_path=true)
+            # Forward full path /core-admin/monitoring/* to Grafana
             proxy_pass http://grafana;
         }
         
