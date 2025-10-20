@@ -52,6 +52,7 @@ help:
 	@echo "  test-frontend         - Frontend unit tests"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
+	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
 	@echo "  test-e2e-pre          - PRE-DEPLOY smoke tests (fast gate)"
 	@echo "  test-e2e-post         - POST-DEPLOY full E2E (with scaffold)"
 	@echo "  test-e2e              - All E2E tests (pre + post)"
@@ -71,6 +72,11 @@ help:
 .PHONY: help-advanced
 help-advanced:
 	@echo "🔧 Advanced Commands:"
+	@echo ""
+	@echo "📊 Monitoring:"
+	@echo "  test-monitoring-deploy  - Pre-deploy config validation"
+	@echo "  test-monitoring-runtime - Post-deploy runtime tests"
+	@echo "  test-monitoring         - Full monitoring test suite"
 	@echo ""
 	@echo "🎭 E2E Testing (Two-Tier):"
 	@echo "  e2e-setup           - Install E2E dependencies + Playwright"
@@ -1639,6 +1645,38 @@ test-frontend:
 		sed 's/Test Files/📊 Test Files/g'
 	@echo ""
 	@echo "✅ Frontend tests completed!"
+	@echo ""
+
+# =============================================================================
+# 📊 MONITORING TESTS (Axiom Monitoring Package)
+# =============================================================================
+
+# PRE-DEPLOY: Validate monitoring configuration
+.PHONY: test-monitoring-deploy
+test-monitoring-deploy:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🧪 MONITORING PRE-DEPLOY TESTS                                ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/test-monitoring-deploy.sh
+	@echo ""
+
+# POST-DEPLOY: Runtime monitoring tests
+.PHONY: test-monitoring-runtime
+test-monitoring-runtime:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🎭 MONITORING RUNTIME TESTS                                   ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/test-monitoring-runtime.sh
+	@echo ""
+
+# Full monitoring test suite
+.PHONY: test-monitoring
+test-monitoring: test-monitoring-deploy test-monitoring-runtime
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  ✅ ALL MONITORING TESTS COMPLETED                             ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 
 # =============================================================================

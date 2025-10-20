@@ -2,6 +2,7 @@ package cz.muriel.core.controller;
 
 import cz.muriel.core.dto.CreateTenantRequest;
 import cz.muriel.core.entity.Tenant;
+import cz.muriel.core.service.GrafanaMonitoringProvisioningService;
 import cz.muriel.core.service.KeycloakRealmManagementService;
 import cz.muriel.core.service.TenantService;
 import cz.muriel.core.service.UserDirectoryService;
@@ -30,6 +31,7 @@ public class TenantManagementController {
   private final KeycloakRealmManagementService keycloakRealmManagementService;
   private final TenantService tenantService;
   private final UserDirectoryService userDirectoryService;
+  private final GrafanaMonitoringProvisioningService grafanaMonitoringProvisioningService;
 
   @Value("${DOMAIN:core-platform.local}")
   private String domain;
@@ -58,7 +60,21 @@ public class TenantManagementController {
         throw new RuntimeException("Tenant was created but not found in registry");
       }
 
-      // 3. Return success response with tenant details
+      // 3. 📊 AUTO-PROVISION: Grafana monitoring dashboards for new tenant
+      try {
+        log.info("📊 Auto-provisioning Grafana monitoring for tenant: {}", request.getKey());
+        grafanaMonitoringProvisioningService.provisionMonitoringForTenant(
+            request.getKey(), 
+            request.getDisplayName()
+        );
+        log.info("✅ Grafana monitoring provisioned for tenant: {}", request.getKey());
+      } catch (Exception e) {
+        // Log but don't fail tenant creation
+        log.warn("⚠️ Grafana monitoring provisioning failed (tenant creation continues): {}", 
+            e.getMessage());
+      }
+
+      // 4. Return success response with tenant details
       Map<String, Object> response = Map.of("success", true, "message",
           "Tenant created successfully", "tenant", Map.of("id", tenant.get().getId().toString(), // Convert
                                                                                                  // UUID
