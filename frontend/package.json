@@ -52,7 +52,7 @@
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
     "@types/dagre": "^0.7.53",
-    "@types/node": "^20.19.20",
+    "@types/node": "^24.8.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
