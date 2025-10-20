@@ -387,8 +387,27 @@ _up_inner: validate-env kc-image
 	@echo "📋 Environment: $${ENVIRONMENT:-development}"
 	@echo "🌐 Domain: $${DOMAIN:-core-platform.local}"
 	@echo ""
+	@echo "🔨 Building Docker images..."
+	@BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build 2>&1); \
+	BUILD_EXIT_CODE=$$?; \
+	echo "$$BUILD_OUTPUT" | grep -v "^\[DEBUG\]" | sed 's/^/  /'; \
+	if [ $$BUILD_EXIT_CODE -ne 0 ]; then \
+		echo ""; \
+		echo "❌ Docker build failed with exit code $$BUILD_EXIT_CODE"; \
+		echo ""; \
+		echo "🔍 Check the build output above for details"; \
+		echo "💡 Common issues:"; \
+		echo "   - Missing dependencies in package.json"; \
+		echo "   - Import errors (wrong module names)"; \
+		echo "   - TypeScript compilation errors"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "✅ Build successful"
+	@echo ""
 	@echo "▶️  Starting Docker Compose..."
-	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env up -d --remove-orphans 2>&1 | \
+	@docker compose -f docker/docker-compose.yml --env-file .env up -d --remove-orphans 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		sed 's/Container .* Started/  ✅ Container started/g' | \
 		sed 's/Container .* Starting/  ⏳ Container starting/g'
@@ -469,17 +488,30 @@ _rebuild_with_progress:
 	CURRENT=$$((CURRENT + 1)); \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "IN_PROGRESS" ""; \
 	BUILD_START=$$(date +%s); \
+	BUILD_OUTPUT=""; \
+	BUILD_EXIT_CODE=0; \
 	if [ "$${NO_CACHE:-false}" = "true" ]; then \
 		echo "🔨 Building with --no-cache (ensures all code changes included)..."; \
-		DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1 | \
-			grep -E "(Building|built|CACHED|exporting)" | tail -20; \
+		BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1); \
+		BUILD_EXIT_CODE=$$?; \
 	else \
 		echo "🔨 Building with cache (faster but may miss changes)..."; \
-		DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | \
-			grep -E "(Building|built|CACHED|exporting)" | tail -20; \
+		BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1); \
+		BUILD_EXIT_CODE=$$?; \
 	fi; \
+	echo "$$BUILD_OUTPUT" | grep -E "(Building|built|CACHED|exporting|ERROR|failed)" | tail -30; \
 	BUILD_END=$$(date +%s); \
 	BUILD_TIME=$$((BUILD_END - BUILD_START)); \
+	if [ $$BUILD_EXIT_CODE -ne 0 ]; then \
+		bash scripts/build/build-progress-tracker.sh update $$CURRENT "FAILED" "$${BUILD_TIME}s"; \
+		echo ""; \
+		echo "❌ Docker build failed with exit code $$BUILD_EXIT_CODE"; \
+		echo ""; \
+		echo "🔍 Last 50 lines of build output:"; \
+		echo "$$BUILD_OUTPUT" | tail -50; \
+		echo ""; \
+		exit 1; \
+	fi; \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "DONE" "$${BUILD_TIME}s"; \
 	sleep 0.5; \
 	\
@@ -577,8 +609,24 @@ _rebuild_inner:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "📍 STEP 2/6: Building Docker Images"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | \
-		grep -E "(Building|built|CACHED|exporting)" | tail -20
+	@BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1); \
+	BUILD_EXIT_CODE=$$?; \
+	echo "$$BUILD_OUTPUT" | grep -E "(Building|built|CACHED|exporting|ERROR|failed)" | tail -30; \
+	if [ $$BUILD_EXIT_CODE -ne 0 ]; then \
+		echo ""; \
+		echo "❌ Docker build failed with exit code $$BUILD_EXIT_CODE"; \
+		echo ""; \
+		echo "🔍 Full build output:"; \
+		echo "$$BUILD_OUTPUT" | tail -50; \
+		echo ""; \
+		echo "💡 Common issues:"; \
+		echo "   - Missing dependencies in package.json"; \
+		echo "   - Import errors (wrong module names)"; \
+		echo "   - TypeScript compilation errors"; \
+		echo "   - Java compilation errors"; \
+		echo ""; \
+		exit 1; \
+	fi
 	@echo "  ✅ Images built successfully"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

@@ -1,5 +1,5 @@
 import { Box, Container, Typography, Tabs, Tab, Button, Chip } from '@mui/material';
-import { Assessment, OpenInNew, Security, Stream, Audit, Settings, Dashboard as DashboardIcon } from '@mui/icons-material';
+import { Assessment, OpenInNew, Security, Stream, VerifiedUser, Settings, Dashboard as DashboardIcon } from '@mui/icons-material';
 import { useState } from 'react';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
@@ -109,7 +109,7 @@ export const AxiomMonitoringPage = () => {
             label="Security" 
           />
           <Tab 
-            icon={<Audit />} 
+            icon={<VerifiedUser />} 
             iconPosition="start" 
             label="Audit" 
           />
