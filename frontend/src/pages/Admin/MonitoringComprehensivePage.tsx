@@ -40,14 +40,7 @@ import {
 } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-
-// Import scene wrapper components
-import { SystemResourcesSceneWrapper } from '../../components/Grafana/SystemResourcesSceneWrapper';
-import { ApplicationPerformanceSceneWrapper } from '../../components/Grafana/ApplicationPerformanceSceneWrapper';
-import { PlatformHealthSceneWrapper } from '../../components/Grafana/PlatformHealthSceneWrapper';
-import { SecuritySceneWrapper } from '../../components/Grafana/SecuritySceneWrapper';
-import { AuditSceneWrapper } from '../../components/Grafana/AuditSceneWrapper';
-import { LogsSceneWrapper } from '../../components/Grafana/LogsSceneWrapper';
+import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -270,32 +263,32 @@ export const MonitoringComprehensivePage = () => {
       
       {/* Tab 0: System Resources (USE) */}
       <TabPanel value={tabValue} index={0}>
-        <SystemResourcesSceneWrapper height={1200} />
+        <GrafanaEmbed path="/d/system-resources?orgId=1&theme=light&kiosk" height="1200px" />
       </TabPanel>
 
       {/* Tab 1: Application Performance (RED) */}
       <TabPanel value={tabValue} index={1}>
-        <ApplicationPerformanceSceneWrapper height={1200} />
+        <GrafanaEmbed path="/d/app-performance?orgId=1&theme=light&kiosk" height="1200px" />
       </TabPanel>
 
       {/* Tab 2: Platform Health (SLI/SLO) */}
       <TabPanel value={tabValue} index={2}>
-        <PlatformHealthSceneWrapper height={1200} />
+        <GrafanaEmbed path="/d/platform-health?orgId=1&theme=light&kiosk" height="1200px" />
       </TabPanel>
 
       {/* Tab 3: Security */}
       <TabPanel value={tabValue} index={3}>
-        <SecuritySceneWrapper height={1000} />
+        <GrafanaEmbed path="/d/security?orgId=1&theme=light&kiosk" height="1000px" />
       </TabPanel>
 
       {/* Tab 4: Audit */}
       <TabPanel value={tabValue} index={4}>
-        <AuditSceneWrapper height={1000} />
+        <GrafanaEmbed path="/d/audit?orgId=1&theme=light&kiosk" height="1000px" />
       </TabPanel>
 
       {/* Tab 5: Logs */}
       <TabPanel value={tabValue} index={5}>
-        <LogsSceneWrapper height={900} />
+        <GrafanaEmbed path="/d/logs?orgId=1&theme=light&kiosk" height="900px" />
       </TabPanel>
     </Container>
   );

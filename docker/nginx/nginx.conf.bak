@@ -22,7 +22,7 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://core-platform.local https://*.core-platform.local wss://core-platform.local wss://*.core-platform.local https://fonts.gstatic.com https://fonts.googleapis.com; frame-src 'self' https://admin.core-platform.local; child-src 'self' https://admin.core-platform.local;" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://core-platform.local https://*.core-platform.local wss://core-platform.local wss://*.core-platform.local https://fonts.gstatic.com https://fonts.googleapis.com; frame-src 'self'" always;
 
     # Force HTTPS redirect
     if ($scheme != "https") {
@@ -174,7 +174,7 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://core-platform.local https://*.core-platform.local wss://core-platform.local wss://*.core-platform.local https://fonts.gstatic.com https://fonts.googleapis.com; frame-src 'self' https://admin.core-platform.local; child-src 'self' https://admin.core-platform.local;" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https:; connect-src 'self' https://core-platform.local https://*.core-platform.local wss://core-platform.local wss://*.core-platform.local https://fonts.gstatic.com https://fonts.googleapis.com; frame-src 'self'" always;
 
     # Force HTTPS redirect
     if ($scheme != "https") {
