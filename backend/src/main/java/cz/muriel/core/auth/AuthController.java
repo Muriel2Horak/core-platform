@@ -398,14 +398,31 @@ public class AuthController {
 
   private static void setCookie(HttpServletResponse resp, String name, String value,
       Duration maxAge) {
-    ResponseCookie cookie = ResponseCookie.from(name, value).httpOnly(true).secure(false).path("/")
-        .sameSite("Lax").maxAge(maxAge).build();
+    // CRITICAL: Cookie must work for iframe cross-site requests
+    // - httpOnly: prevents XSS attacks
+    // - secure: HTTPS only (set to true in production)
+    // - sameSite=None: allows cross-site iframe embedding (admin.core-platform.local -> core-platform.local)
+    // - domain=.core-platform.local: wildcard for all subdomains
+    ResponseCookie cookie = ResponseCookie.from(name, value)
+        .httpOnly(true)
+        .secure(true)  // Changed from false - HTTPS required
+        .path("/")
+        .sameSite("None")  // Changed from Lax - allows iframe embedding
+        .domain(".core-platform.local")  // NEW - wildcard domain
+        .maxAge(maxAge)
+        .build();
     resp.addHeader("Set-Cookie", cookie.toString());
   }
 
   private static void clearCookie(HttpServletResponse resp, String name) {
-    ResponseCookie cookie = ResponseCookie.from(name, "").httpOnly(true).secure(false).path("/")
-        .sameSite("Lax").maxAge(Duration.ZERO).build();
+    ResponseCookie cookie = ResponseCookie.from(name, "")
+        .httpOnly(true)
+        .secure(true)  // Changed from false
+        .path("/")
+        .sameSite("None")  // Changed from Lax
+        .domain(".core-platform.local")  // NEW - wildcard domain
+        .maxAge(Duration.ZERO)
+        .build();
     resp.addHeader("Set-Cookie", cookie.toString());
   }
 

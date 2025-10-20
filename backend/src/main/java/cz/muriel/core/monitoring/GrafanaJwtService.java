@@ -110,6 +110,81 @@ public class GrafanaJwtService {
   }
 
   /**
+   * Map Keycloak roles from JWT to Grafana role (Viewer|Editor|Admin)
+   */
+  private String mapKeycloakRoleToGrafanaFromJwt(Jwt jwt) {
+    // Extract roles from realm_access.roles
+    Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
+    if (realmAccess != null && realmAccess.get("roles") instanceof List) {
+      @SuppressWarnings("unchecked")
+      List<String> roles = (List<String>) realmAccess.get("roles");
+      
+      if (roles.contains("CORE_ROLE_ADMIN")) {
+        return "Admin";
+      }
+      if (roles.contains("CORE_ROLE_MONITORING")) {
+        return "Editor";
+      }
+      if (roles.contains("CORE_TENANT_ADMIN")) {
+        return "Editor";
+      }
+      if (roles.contains("CORE_ROLE_TENANT_MONITORING")) {
+        return "Viewer";
+      }
+    }
+
+    return "Viewer"; // Default
+  }
+
+  /**
+   * Mint short-lived Grafana JWT directly from Keycloak JWT (for auth_request)
+   * This is used by Nginx auth_request bridge where we only have the Keycloak JWT
+   */
+  public String mintGrafanaJwtFromKeycloakJwt(Jwt kcToken) {
+    // Extract claims
+    String username = kcToken.getClaimAsString("preferred_username");
+    String email = kcToken.getClaimAsString("email");
+    String name = kcToken.getClaimAsString("name");
+
+    // Get tenant from realm or tenant claim
+    String realm = extractRealm(kcToken);
+    String tenantId = kcToken.getClaimAsString("tenant");
+    if (tenantId == null || tenantId.isBlank()) {
+      tenantId = realm; // Fallback to realm as tenant
+    }
+
+    // Map tenant to Grafana org
+    int grafanaOrgId = tenantRegistry.getGrafanaOrgId(tenantId);
+
+    // Map Keycloak roles to Grafana role
+    String grafanaRole = mapKeycloakRoleToGrafanaFromJwt(kcToken);
+
+    // Generate JWT
+    String jti = UUID.randomUUID().toString();
+    Instant now = Instant.now();
+    Instant expiry = now.plusSeconds(jwtTtl);
+
+    String jwt = JWT.create()
+        .withSubject(username)
+        .withClaim("email", email)
+        .withClaim("name", name != null ? name : username)
+        .withClaim("orgId", grafanaOrgId)
+        .withClaim("role", grafanaRole)
+        .withIssuedAt(now)
+        .withExpiresAt(expiry)
+        .withJWTId(jti)
+        .sign(Algorithm.HMAC256(jwtSecret));
+
+    // Store JTI for replay protection
+    redisTemplate.opsForValue().set("grafana:jti:" + jti, "used", jwtTtl, TimeUnit.SECONDS);
+
+    log.debug("Minted Grafana JWT for user={}, tenant={}, orgId={}, role={}, ttl={}s", username,
+        tenantId, grafanaOrgId, grafanaRole, jwtTtl);
+
+    return jwt;
+  }
+
+  /**
    * Extract realm from Keycloak JWT issuer
    */
   private String extractRealm(Jwt token) {
