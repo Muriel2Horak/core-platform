@@ -138,7 +138,7 @@ else
           fi
           
           # Count alerts
-          ALERT_COUNT=$(grep -c "^  - alert:" "$alert_file" || echo "0")
+          ALERT_COUNT=$(grep -c "^  - alert:" "$alert_file" 2>/dev/null || echo "0")
           TOTAL_ALERTS=$((TOTAL_ALERTS + ALERT_COUNT))
         else
           test_fail "$(basename "$alert_file")" "Missing required YAML structure"
@@ -166,7 +166,7 @@ else
           fi
           
           # Count alerts
-          ALERT_COUNT=$(grep -c "^  - alert:" "$alert_file" || echo "0")
+          ALERT_COUNT=$(grep -c "^  - alert:" "$alert_file" 2>/dev/null || echo "0")
           TOTAL_ALERTS=$((TOTAL_ALERTS + ALERT_COUNT))
         else
           ERROR=$(promtool check rules "$alert_file" 2>&1 || true)
@@ -222,12 +222,12 @@ for dashboard_name in "${EXPECTED_DASHBOARDS[@]}"; do
       # JSON syntax validation
       if jq empty "$dashboard_path" 2>/dev/null; then
         # Check for required fields
-        UID=$(jq -r '.uid // empty' "$dashboard_path")
-        TITLE=$(jq -r '.title // empty' "$dashboard_path")
-        PANELS=$(jq -r '.panels // [] | length' "$dashboard_path")
+        DASH_UID=$(jq -r '.uid // empty' "$dashboard_path" 2>/dev/null)
+        DASH_TITLE=$(jq -r '.title // empty' "$dashboard_path" 2>/dev/null)
+        DASH_PANELS=$(jq -r '.panels // [] | length' "$dashboard_path" 2>/dev/null)
         
-        if [ -n "$UID" ] && [ -n "$TITLE" ] && [ "$PANELS" -gt 0 ]; then
-          test_pass "$dashboard_name - JSON valid (uid=$UID, panels=$PANELS)"
+        if [ -n "$DASH_UID" ] && [ -n "$DASH_TITLE" ] && [ -n "$DASH_PANELS" ] && [ "$DASH_PANELS" -gt 0 ] 2>/dev/null; then
+          test_pass "$dashboard_name - JSON valid (uid=$DASH_UID, panels=$DASH_PANELS)"
           DASHBOARD_VALID=$((DASHBOARD_VALID + 1))
         else
           test_fail "$dashboard_name" "Missing required fields (uid/title/panels)"
@@ -264,7 +264,7 @@ else
     test_pass "dashboards.yml - YAML syntax OK"
     
     # Check for Axiom dashboard providers
-    PROVIDER_COUNT=$(grep -c "name: 'Axiom" "$PROVISIONING_FILE" || echo "0")
+    PROVIDER_COUNT=$(grep -c "name: 'Axiom" "$PROVISIONING_FILE" 2>/dev/null || echo "0")
     
     if [ "$PROVIDER_COUNT" -ge 5 ]; then
       test_pass "dashboards.yml - Axiom providers configured ($PROVIDER_COUNT providers)"
