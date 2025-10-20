@@ -60,7 +60,11 @@ export const GrafanaEmbed: React.FC<GrafanaEmbedProps> = ({
 
   // Normalize path (remove leading slash if present, we'll add /monitoring/)
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const iframeSrc = `/monitoring${normalizedPath}`;
+  
+  // CRITICAL: Use absolute URL to force core-platform.local (not admin subdomain)
+  // This ensures iframe goes through main server block with auth_request bridge
+  const protocol = window.location.protocol; // https:
+  const iframeSrc = `${protocol}//core-platform.local/monitoring${normalizedPath}`;
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
