@@ -349,18 +349,19 @@ services:
       - GF_SECURITY_COOKIE_SECURE=true
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_PROTOCOL=http
-      # CRITICAL: No hardcoded domain - use %(domain)s variable for multi-tenant
-      # DO NOT set GF_SERVER_DOMAIN - let Grafana read from Host header
+      # CRITICAL: Must include trailing slash AND be relative for multi-tenant
+      # DO NOT hardcode domain - Grafana will read from Host header
       - GF_SERVER_HTTP_PORT=3000
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SERVER_ROOT_URL=https://%(domain)s/core-admin/monitoring
+      - GF_SERVER_ROOT_URL=/core-admin/monitoring/
       
       # 🎨 UI Configuration
       - GF_AUTH_OAUTH_AUTO_LOGIN=false
       - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
       
-      # 🔄 Redirect configuration
-      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://admin.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout?redirect_uri=https://%(domain)s/core-admin/monitoring
+      # 🔄 Redirect configuration - relative path for multi-tenant support
+      # Browser will use current domain (admin.core-platform.local or ten.core-platform.local)
+      - GF_AUTH_SIGNOUT_REDIRECT_URL=/realms/admin/protocol/openid-connect/logout?redirect_uri=/core-admin/monitoring/
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
