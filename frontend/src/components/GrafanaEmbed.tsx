@@ -61,10 +61,10 @@ export const GrafanaEmbed: React.FC<GrafanaEmbedProps> = ({
   // Normalize path (remove leading slash if present, we'll add /core-admin/monitoring/)
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Use same-origin path (admin.core-platform.local) with unified prefix
+  // Use absolute URL to admin subdomain (admin.core-platform.local)
   // Browser will automatically send HTTP-only cookie with JWT token
   // NO TOKENS IN URL - authentication handled by cookie
-  const iframeSrc = `/core-admin/monitoring${normalizedPath}`;
+  const iframeSrc = `https://admin.core-platform.local/core-admin/monitoring${normalizedPath}`;
 
   React.useEffect(() => {
     const iframe = iframeRef.current;
