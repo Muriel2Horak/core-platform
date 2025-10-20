@@ -811,7 +811,7 @@ db-clean-migrate:
 check-registries:
 	@echo "🌐 Checking Docker registry availability..."
 	@echo -n "  📦 Docker Hub (docker.io)... "
-	@if curl -s --max-time 5 -I https://registry-1.docker.io/v2/ | grep -q "HTTP"; then \
+	@if curl -s --max-time 5 -I https://registry-1.docker.io/v2/ | grep -q "HTTP/[12]"; then \
 		echo "✅ OK"; \
 	else \
 		echo "❌ UNAVAILABLE"; \
@@ -824,7 +824,7 @@ check-registries:
 		exit 1; \
 	fi
 	@echo -n "  📦 Quay.io (quay.io)... "
-	@if curl -s --max-time 5 -I https://quay.io/v2/ | grep -q "HTTP"; then \
+	@if curl -s --max-time 5 -I https://quay.io/v2/keycloak/keycloak/manifests/24.0.4 | grep -q "HTTP/[12]"; then \
 		echo "✅ OK"; \
 	else \
 		echo "❌ UNAVAILABLE"; \
