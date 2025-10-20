@@ -19,6 +19,11 @@ pre-commit:
       glob: "backend/src/**/*.java"
       run: cd backend && ./mvnw spotless:check -q
       fail_text: "❌ Backend code formatting issues. Run: cd backend && ./mvnw spotless:apply"
+      
+    dashboard-structure:
+      glob: "docker/grafana/provisioning/dashboards/**/*.json"
+      run: bash scripts/validate-dashboard-structure.sh
+      fail_text: "❌ Dashboard structure validation failed. Move loose JSON files to subdirectories!"
 
 pre-push:
   commands:

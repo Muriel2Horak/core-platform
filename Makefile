@@ -73,10 +73,12 @@ help:
 help-advanced:
 	@echo "🔧 Advanced Commands:"
 	@echo ""
-	@echo "📊 Monitoring:"
-	@echo "  test-monitoring-deploy  - Pre-deploy config validation"
-	@echo "  test-monitoring-runtime - Post-deploy runtime tests"
-	@echo "  test-monitoring         - Full monitoring test suite"
+	@echo "📊 Monitoring & Grafana:"
+	@echo "  test-monitoring-deploy      - Pre-deploy config validation"
+	@echo "  test-monitoring-runtime     - Post-deploy runtime tests"
+	@echo "  test-monitoring             - Full monitoring test suite"
+	@echo "  diag-grafana-provisioning   - Grafana provisioning diagnostics"
+	@echo "  validate-dashboard-structure - Validate dashboard file structure"
 	@echo ""
 	@echo "🎭 E2E Testing (Two-Tier):"
 	@echo "  e2e-setup           - Install E2E dependencies + Playwright"
@@ -1677,6 +1679,26 @@ test-monitoring: test-monitoring-deploy test-monitoring-runtime
 	@echo "╔════════════════════════════════════════════════════════════════╗"
 	@echo "║  ✅ ALL MONITORING TESTS COMPLETED                             ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+
+# Grafana provisioning diagnostics
+.PHONY: diag-grafana-provisioning
+diag-grafana-provisioning:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  📊 GRAFANA PROVISIONING DIAGNOSTICS                           ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/test-grafana-provisioning.sh
+	@echo ""
+
+# Validate Grafana dashboard structure
+.PHONY: validate-dashboard-structure
+validate-dashboard-structure:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  📋 VALIDATING DASHBOARD STRUCTURE                             ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@bash scripts/validate-dashboard-structure.sh
 	@echo ""
 
 # =============================================================================

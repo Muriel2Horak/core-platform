@@ -63,13 +63,13 @@ public class TenantManagementController {
       // 3. 📊 AUTO-PROVISION: Grafana org + service account for new tenant
       // Note: Dashboard provisioning is handled by file-based provisioning in Grafana
       try {
-        log.info("📊 Auto-provisioning Grafana org + service account for tenant: {}", request.getKey());
+        log.info("📊 Auto-provisioning Grafana org + service account for tenant: {}",
+            request.getKey());
         grafanaProvisioningService.provisionTenant(request.getKey());
         log.info("✅ Grafana provisioned for tenant: {}", request.getKey());
       } catch (Exception e) {
         // Log but don't fail tenant creation
-        log.warn("⚠️ Grafana provisioning failed (tenant creation continues): {}",
-            e.getMessage());
+        log.warn("⚠️ Grafana provisioning failed (tenant creation continues): {}", e.getMessage());
       }
 
       // 4. Return success response with tenant details
