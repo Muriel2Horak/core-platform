@@ -1,0 +1,314 @@
+{
+  "uid": "axiom_kafka_lag",
+  "title": "Kafka - Consumer Lag Analysis",
+  "tags": ["axiom", "kafka", "streaming", "lag"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "Tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(kafka_consumer_lag, tenant)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "refresh": 1
+      },
+      {
+        "name": "consumer_group",
+        "label": "Consumer Group",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(kafka_consumer_lag{tenant=~\"$tenant\"}, consumer_group)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "refresh": 1
+      },
+      {
+        "name": "topic",
+        "label": "Topic",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(kafka_consumer_lag{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\"}, topic)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "refresh": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+      "type": "stat",
+      "title": "Total Consumer Lag",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(app:kafka:consumer_lag_total{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 10000, "color": "yellow"},
+              {"value": 50000, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 2,
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+      "type": "stat",
+      "title": "Max Lag (Slowest Partition)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "max(app:kafka:consumer_lag_max{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 5000, "color": "yellow"},
+              {"value": 20000, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+      "type": "stat",
+      "title": "Lag Velocity (Growing/Shrinking)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(app:kafka:lag_velocity{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "msgs/s",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 50, "color": "yellow"},
+              {"value": 100, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+      "type": "timeseries",
+      "title": "Consumer Lag per Topic",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:kafka:consumer_lag_total{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"}",
+          "legendFormat": "{{topic}} ({{consumer_group}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max", "mean"]}
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+      "type": "timeseries",
+      "title": "Consumer Lag per Partition",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "kafka_consumer_lag{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"}",
+          "legendFormat": "{{topic}}-p{{partition}} ({{consumer_group}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 5
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"]}
+      }
+    },
+    {
+      "id": 6,
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "type": "timeseries",
+      "title": "Produce Rate",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:kafka:produce_rate{tenant=~\"$tenant\",topic=~\"$topic\"}",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "msgs/s",
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}
+        }
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "type": "timeseries",
+      "title": "Consume Rate",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:kafka:consume_rate{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"}",
+          "legendFormat": "{{topic}} ({{consumer_group}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "msgs/s",
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}
+        }
+      }
+    },
+    {
+      "id": 8,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+      "type": "table",
+      "title": "Consumer Groups Overview",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:kafka:consumer_lag_total{tenant=~\"$tenant\",consumer_group=~\"$consumer_group\",topic=~\"$topic\"}",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true},
+            "indexByName": {},
+            "renameByName": {
+              "Value": "Lag",
+              "consumer_group": "Consumer Group",
+              "topic": "Topic",
+              "tenant": "Tenant"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Lag"},
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {"type": "color-background"}
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": null, "color": "green"},
+                    {"value": 10000, "color": "yellow"},
+                    {"value": 50000, "color": "red"}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "Rebalances",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "enable": true,
+        "expr": "changes(kafka_consumer_group_rebalances_total{consumer_group=~\"$consumer_group\"}[1m]) > 0",
+        "tagKeys": "consumer_group",
+        "titleFormat": "Rebalance",
+        "textFormat": "{{consumer_group}}",
+        "iconColor": "orange"
+      }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+groups:
+  - name: axiom_redis_alerts
+    rules:
+      - alert: RedisHitRateLow
+        expr: app:redis:hit_rate < 0.8
+        for: 15m
+        labels:
+          severity: warning
+          category: cache
+          runbook: redis-hit-rate-low
+        annotations:
+          summary: "Low Redis cache hit rate"
+          description: "Hit rate is {{ $value | humanizePercentage }}. Cache effectiveness degraded. Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/redis-hit-rate-low"
+          dashboard_url: "/d/axiom_adv_redis?var-tenant={{ $labels.tenant }}"
+      
+      - alert: RedisEvictionsHigh
+        expr: app:redis:evictions_rate > 100
+        for: 10m
+        labels:
+          severity: warning
+          category: cache
+          runbook: redis-evictions-high
+        annotations:
+          summary: "High Redis eviction rate"
+          description: "{{ $value }} evictions/sec. Memory pressure detected. Consider increasing maxmemory."
+          runbook_url: "https://docs.core-platform.io/runbooks/redis-evictions-high"
+          dashboard_url: "/d/axiom_adv_redis"
+      
+      - alert: RedisMemoryHigh
+        expr: app:redis:memory_utilization > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          category: cache
+          runbook: redis-memory-high
+        annotations:
+          summary: "High Redis memory utilization"
+          description: "Memory utilization is {{ $value | humanizePercentage }}. Risk of evictions or OOM."
+          runbook_url: "https://docs.core-platform.io/runbooks/redis-memory-high"
+          dashboard_url: "/d/axiom_adv_redis"
+      
+      - alert: RedisMemoryCritical
+        expr: app:redis:memory_utilization > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: cache
+          runbook: redis-memory-critical
+        annotations:
+          summary: "Critical Redis memory utilization"
+          description: "Memory utilization is {{ $value | humanizePercentage }}. Evictions or OOM imminent."
+          runbook_url: "https://docs.core-platform.io/runbooks/redis-memory-critical"
+          dashboard_url: "/d/axiom_adv_redis"

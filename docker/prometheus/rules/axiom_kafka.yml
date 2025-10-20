@@ -1,0 +1,46 @@
+groups:
+  - name: axiom_kafka_recording
+    interval: 30s
+    rules:
+      # Consumer lag aggregation
+      - record: app:kafka:consumer_lag_total
+        expr: sum(kafka_consumer_lag) by (tenant, consumer_group, topic)
+      
+      # Max lag per topic (slowest partition)
+      - record: app:kafka:consumer_lag_max
+        expr: max(kafka_consumer_lag) by (tenant, consumer_group, topic)
+      
+      # Lag per partition
+      - record: app:kafka:consumer_lag_by_partition
+        expr: kafka_consumer_lag
+      
+      # Produce rate (5m window)
+      - record: app:kafka:produce_rate
+        expr: sum(rate(kafka_producer_record_send_total[5m])) by (tenant, topic)
+      
+      # Consume rate (5m window)
+      - record: app:kafka:consume_rate
+        expr: sum(rate(kafka_consumer_records_consumed_total[5m])) by (tenant, consumer_group, topic)
+      
+      # Consumer group lag velocity (lag change rate)
+      - record: app:kafka:lag_velocity
+        expr: deriv(app:kafka:consumer_lag_total[5m])
+      
+      # DLQ message rate
+      - record: app:kafka:dlq_rate
+        expr: sum(rate(kafka_dlq_messages_total[5m])) by (tenant, topic, dlq_topic)
+      
+      # DLQ age (oldest message in DLQ)
+      - record: app:kafka:dlq_age_seconds
+        expr: kafka_dlq_oldest_message_age_seconds
+      
+      # Consumer rebalance rate
+      - record: app:kafka:rebalance_rate
+        expr: sum(rate(kafka_consumer_group_rebalances_total[15m])) by (tenant, consumer_group)
+      
+      # Partition skew (max lag / avg lag per topic)
+      - record: app:kafka:partition_skew
+        expr: |
+          max(kafka_consumer_lag) by (tenant, consumer_group, topic)
+          /
+          avg(kafka_consumer_lag) by (tenant, consumer_group, topic)

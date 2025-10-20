@@ -1,0 +1,41 @@
+groups:
+  - name: axiom_http_recording
+    interval: 30s
+    rules:
+      # Latency quantiles (5m window)
+      - record: app:http_requests:latency_p50
+        expr: histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (tenant, service, endpoint, le))
+      
+      - record: app:http_requests:latency_p95
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (tenant, service, endpoint, le))
+      
+      - record: app:http_requests:latency_p99
+        expr: histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (tenant, service, endpoint, le))
+      
+      - record: app:http_requests:latency_p999
+        expr: histogram_quantile(0.999, sum(rate(http_server_requests_seconds_bucket[5m])) by (tenant, service, endpoint, le))
+      
+      # Request rate by status (5m window)
+      - record: app:http_requests:rate_2xx
+        expr: sum(rate(http_server_requests_seconds_count{status=~"2.."}[5m])) by (tenant, service, namespace)
+      
+      - record: app:http_requests:rate_4xx
+        expr: sum(rate(http_server_requests_seconds_count{status=~"4.."}[5m])) by (tenant, service, namespace)
+      
+      - record: app:http_requests:rate_5xx
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (tenant, service, namespace)
+      
+      # Total request rate
+      - record: app:http_requests:rate_total
+        expr: sum(rate(http_server_requests_seconds_count[5m])) by (tenant, service, namespace)
+      
+      # Request rate per endpoint (top N)
+      - record: app:http_requests:rate_by_endpoint
+        expr: sum(rate(http_server_requests_seconds_count[5m])) by (tenant, service, endpoint)
+      
+      # Slow requests (>1s)
+      - record: app:http_requests:slow_rate
+        expr: |
+          sum(rate(http_server_requests_seconds_count[5m])) by (tenant, service, endpoint)
+          -
+          sum(rate(http_server_requests_seconds_bucket{le="1.0"}[5m])) by (tenant, service, endpoint)

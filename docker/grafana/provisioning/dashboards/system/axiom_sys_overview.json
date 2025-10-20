@@ -1,0 +1,547 @@
+{
+  "uid": "axiom_sys_overview",
+  "title": "System Overview",
+  "tags": ["axiom", "system", "overview", "slo"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["10s", "30s", "1m", "5m", "15m", "30m", "1h"]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "Tenant",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(http_server_requests_seconds_count, tenant)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {},
+        "refresh": 1
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(http_server_requests_seconds_count{tenant=~\"$tenant\"}, service)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {},
+        "refresh": 1
+      },
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "query": "label_values(http_server_requests_seconds_count{tenant=~\"$tenant\",service=~\"$service\"}, namespace)",
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "refresh": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "type": "stat",
+      "title": "Availability (SLO 99.9%)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:slo:availability5m{tenant=~\"$tenant\",service=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "red"},
+              {"value": 0.999, "color": "green"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 2,
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "type": "stat",
+      "title": "Error Budget Remaining",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:slo:error_budget_remaining{tenant=~\"$tenant\",service=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "red"},
+              {"value": 0.1, "color": "yellow"},
+              {"value": 0.5, "color": "green"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "type": "stat",
+      "title": "5xx Error Rate (5m)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:http_requests:error_rate5m{tenant=~\"$tenant\",service=~\"$service\",namespace=\"$namespace\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 0.001, "color": "yellow"},
+              {"value": 0.01, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "type": "stat",
+      "title": "Latency p95 (5m)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:http_requests:latency_p95{tenant=~\"$tenant\",service=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 1, "color": "yellow"},
+              {"value": 2, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "type": "timeseries",
+      "title": "Request Rate by Status",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:http_requests:rate_2xx{tenant=~\"$tenant\",service=~\"$service\",namespace=\"$namespace\"}",
+          "legendFormat": "2xx Success",
+          "refId": "A"
+        },
+        {
+          "expr": "app:http_requests:rate_4xx{tenant=~\"$tenant\",service=~\"$service\",namespace=\"$namespace\"}",
+          "legendFormat": "4xx Client Error",
+          "refId": "B"
+        },
+        {
+          "expr": "app:http_requests:rate_5xx{tenant=~\"$tenant\",service=~\"$service\",namespace=\"$namespace\"}",
+          "legendFormat": "5xx Server Error",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "stacking": {"mode": "normal"}
+          },
+          "color": {"mode": "palette-classic"}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "2xx Success"}, "properties": [{"id": "color", "value": {"fixedColor": "green"}}]},
+          {"matcher": {"id": "byName", "options": "4xx Client Error"}, "properties": [{"id": "color", "value": {"fixedColor": "yellow"}}]},
+          {"matcher": {"id": "byName", "options": "5xx Server Error"}, "properties": [{"id": "color", "value": {"fixedColor": "red"}}]}
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 6,
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "type": "timeseries",
+      "title": "Latency Quantiles",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:http_requests:latency_p50{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "app:http_requests:latency_p95{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "app:http_requests:latency_p99{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "p99",
+          "refId": "C"
+        },
+        {
+          "expr": "app:http_requests:latency_p999{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "p99.9",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 0
+          }
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "p50"}, "properties": [{"id": "color", "value": {"fixedColor": "blue"}}]},
+          {"matcher": {"id": "byName", "options": "p95"}, "properties": [{"id": "color", "value": {"fixedColor": "orange"}}]},
+          {"matcher": {"id": "byName", "options": "p99"}, "properties": [{"id": "color", "value": {"fixedColor": "red"}}]},
+          {"matcher": {"id": "byName", "options": "p99.9"}, "properties": [{"id": "color", "value": {"fixedColor": "purple"}}]}
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+      "type": "table",
+      "title": "Top 10 Errors (Loki)",
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "targets": [
+        {
+          "expr": "{tenant=~\"$tenant\",service=~\"$service\",level=\"ERROR\"} | json | line_format \"{{.message}}\"",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {},
+            "renameByName": {
+              "Time": "Timestamp",
+              "Line": "Error Message",
+              "requestId": "Request ID",
+              "endpoint": "Endpoint"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {"show": false}
+      }
+    },
+    {
+      "id": 8,
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 20},
+      "type": "stat",
+      "title": "Database Pool Saturation",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:db:pool_saturation",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 0.8, "color": "yellow"},
+              {"value": 0.9, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 9,
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 20},
+      "type": "stat",
+      "title": "Redis Hit Rate",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:redis:hit_rate{tenant=~\"$tenant\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "red"},
+              {"value": 0.8, "color": "yellow"},
+              {"value": 0.95, "color": "green"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 10,
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 20},
+      "type": "stat",
+      "title": "Kafka Consumer Lag (Total)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(app:kafka:consumer_lag_total{tenant=~\"$tenant\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 10000, "color": "yellow"},
+              {"value": 50000, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "links": [
+        {
+          "title": "Kafka Lag Details",
+          "url": "/d/axiom_kafka_lag?var-tenant=$tenant"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
+      "type": "row",
+      "title": "JVM & Runtime",
+      "collapsed": true,
+      "panels": []
+    },
+    {
+      "id": 12,
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 27},
+      "type": "timeseries",
+      "title": "Heap Memory Utilization",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:jvm:heap_utilization{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 0.8, "color": "yellow"},
+              {"value": 0.9, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    },
+    {
+      "id": 13,
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 27},
+      "type": "timeseries",
+      "title": "GC Pause Time (p95)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:jvm:gc_pause_p95{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "{{action}} - {{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 0
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      }
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+        "enable": true,
+        "expr": "{service=\"ci\"} |= \"deployment\" | json",
+        "tagKeys": "service,version",
+        "textFormat": "{{service}} {{version}}",
+        "iconColor": "blue"
+      },
+      {
+        "name": "Alerts",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "enable": true,
+        "expr": "ALERTS{alertstate=\"firing\",severity=\"critical\"}",
+        "tagKeys": "alertname,service",
+        "titleFormat": "{{alertname}}",
+        "textFormat": "{{service}}",
+        "iconColor": "red"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Error Analysis",
+      "url": "/d/axiom_sys_errors?var-tenant=$tenant&var-service=$service",
+      "icon": "doc",
+      "type": "link"
+    },
+    {
+      "title": "Latency Analysis",
+      "url": "/d/axiom_sys_latency?var-tenant=$tenant&var-service=$service",
+      "icon": "doc",
+      "type": "link"
+    },
+    {
+      "title": "Advanced Runtime",
+      "url": "/d/axiom_adv_runtime?var-tenant=$tenant&var-service=$service",
+      "icon": "doc",
+      "type": "link"
+    }
+  ]
+}

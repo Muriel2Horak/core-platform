@@ -1,0 +1,33 @@
+groups:
+  - name: axiom_slo_recording
+    interval: 30s
+    rules:
+      # Error rate per service (5m window)
+      - record: app:http_requests:error_rate5m
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (tenant, service, namespace)
+          /
+          sum(rate(http_server_requests_seconds_count[5m])) by (tenant, service, namespace)
+      
+      # SLO burn rate (1h window, 99.9% SLO = 0.1% error budget)
+      - record: app:slo:burn_rate1h
+        expr: |
+          app:http_requests:error_rate5m / 0.001
+      
+      # Error budget remaining (30d window, 99.9% SLO)
+      - record: app:slo:error_budget_remaining
+        expr: |
+          1 - (
+            sum(increase(http_server_requests_seconds_count{status=~"5.."}[30d])) by (tenant, service)
+            /
+            sum(increase(http_server_requests_seconds_count[30d])) by (tenant, service)
+          ) / 0.001
+      
+      # Availability (uptime percentage, 5m window)
+      - record: app:slo:availability5m
+        expr: |
+          1 - (
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (tenant, service)
+            /
+            sum(rate(http_server_requests_seconds_count[5m])) by (tenant, service)
+          )

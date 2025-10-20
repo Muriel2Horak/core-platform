@@ -1,0 +1,54 @@
+groups:
+  - name: axiom_jvm_alerts
+    rules:
+      - alert: JVMHeapUtilizationHigh
+        expr: app:jvm:heap_utilization > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          category: jvm
+          runbook: jvm-heap-utilization-high
+        annotations:
+          summary: "High JVM heap utilization for {{ $labels.service }}"
+          description: "Heap utilization is {{ $value | humanizePercentage }}. Instance: {{ $labels.instance }}, Service: {{ $labels.service }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/jvm-heap-utilization-high"
+          dashboard_url: "/d/axiom_adv_runtime?var-service={{ $labels.service }}&var-instance={{ $labels.instance }}"
+      
+      - alert: JVMHeapUtilizationCritical
+        expr: app:jvm:heap_utilization > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: jvm
+          runbook: jvm-heap-utilization-critical
+        annotations:
+          summary: "Critical JVM heap utilization for {{ $labels.service }}"
+          description: "Heap utilization is {{ $value | humanizePercentage }}. OOM risk. Instance: {{ $labels.instance }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/jvm-heap-utilization-critical"
+          dashboard_url: "/d/axiom_adv_runtime?var-service={{ $labels.service }}&var-instance={{ $labels.instance }}"
+      
+      - alert: JVMGCPauseHigh
+        expr: app:jvm:gc_pause_p95 > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: jvm
+          runbook: jvm-gc-pause-high
+        annotations:
+          summary: "High GC pause time for {{ $labels.service }}"
+          description: "p95 GC pause is {{ $value }}s. Action: {{ $labels.action }}, Service: {{ $labels.service }}, Instance: {{ $labels.instance }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/jvm-gc-pause-high"
+          dashboard_url: "/d/axiom_adv_runtime?var-service={{ $labels.service }}&var-instance={{ $labels.instance }}"
+      
+      - alert: JVMGCFrequent
+        expr: app:jvm:gc_pause_rate > 5
+        for: 10m
+        labels:
+          severity: warning
+          category: jvm
+          runbook: jvm-gc-frequent
+        annotations:
+          summary: "Frequent GC for {{ $labels.service }}"
+          description: "{{ $value }} GC pauses/sec. Action: {{ $labels.action }}, Service: {{ $labels.service }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/jvm-gc-frequent"
+          dashboard_url: "/d/axiom_adv_runtime?var-service={{ $labels.service }}"

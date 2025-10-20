@@ -1,0 +1,34 @@
+groups:
+  - name: axiom_jvm_recording
+    interval: 30s
+    rules:
+      # Heap memory utilization
+      - record: app:jvm:heap_utilization
+        expr: |
+          sum(jvm_memory_used_bytes{area="heap"}) by (tenant, service, instance)
+          /
+          sum(jvm_memory_max_bytes{area="heap"}) by (tenant, service, instance)
+      
+      # Non-heap memory utilization
+      - record: app:jvm:nonheap_utilization
+        expr: |
+          sum(jvm_memory_used_bytes{area="nonheap"}) by (tenant, service, instance)
+          /
+          sum(jvm_memory_max_bytes{area="nonheap"}) by (tenant, service, instance)
+      
+      # GC pause time (p95, 5m window)
+      - record: app:jvm:gc_pause_p95
+        expr: histogram_quantile(0.95, sum(rate(jvm_gc_pause_seconds_bucket[5m])) by (tenant, service, action, le))
+      
+      # GC pause rate
+      - record: app:jvm:gc_pause_rate
+        expr: sum(rate(jvm_gc_pause_seconds_count[5m])) by (tenant, service, action, cause)
+      
+      # Thread count
+      - record: app:jvm:threads_live
+        expr: jvm_threads_live
+      
+      # Thread pool saturation (common pools)
+      - record: app:jvm:thread_pool_saturation
+        expr: |
+          jvm_threads_live / jvm_threads_peak

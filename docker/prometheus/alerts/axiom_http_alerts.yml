@@ -1,0 +1,67 @@
+groups:
+  - name: axiom_http_alerts
+    rules:
+      - alert: HighLatencyP95
+        expr: app:http_requests:latency_p95 > 2
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+          runbook: high-latency-p95
+        annotations:
+          summary: "High p95 latency for {{ $labels.service }}"
+          description: "p95 latency is {{ $value | humanizeDuration }}. Service: {{ $labels.service }}, Endpoint: {{ $labels.endpoint }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/high-latency-p95"
+          dashboard_url: "/d/axiom_sys_latency?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: HighLatencyP99Critical
+        expr: app:http_requests:latency_p99 > 5
+        for: 5m
+        labels:
+          severity: critical
+          category: performance
+          runbook: high-latency-p99-critical
+        annotations:
+          summary: "Critical p99 latency for {{ $labels.service }}"
+          description: "p99 latency is {{ $value | humanizeDuration }}. Service: {{ $labels.service }}, Endpoint: {{ $labels.endpoint }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/high-latency-p99-critical"
+          dashboard_url: "/d/axiom_sys_latency?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: HighErrorRate
+        expr: app:http_requests:error_rate5m > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+          runbook: high-error-rate
+        annotations:
+          summary: "High 5xx error rate for {{ $labels.service }}"
+          description: "5xx error rate is {{ $value | humanizePercentage }}. Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}, Namespace: {{ $labels.namespace }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/high-error-rate"
+          dashboard_url: "/d/axiom_sys_errors?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: HighClientErrorRate
+        expr: app:http_requests:rate_4xx > 50
+        for: 10m
+        labels:
+          severity: warning
+          category: availability
+          runbook: high-client-error-rate
+        annotations:
+          summary: "High 4xx error rate for {{ $labels.service }}"
+          description: "4xx error rate is {{ $value }} req/sec. Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/high-client-error-rate"
+          dashboard_url: "/d/axiom_sys_errors?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: SlowRequestsHigh
+        expr: app:http_requests:slow_rate > 10
+        for: 15m
+        labels:
+          severity: warning
+          category: performance
+          runbook: slow-requests-high
+        annotations:
+          summary: "High slow request rate for {{ $labels.service }}"
+          description: "{{ $value }} requests/sec taking >1s. Service: {{ $labels.service }}, Endpoint: {{ $labels.endpoint }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/slow-requests-high"
+          dashboard_url: "/d/axiom_adv_http?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"

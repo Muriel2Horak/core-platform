@@ -1,0 +1,36 @@
+groups:
+  - name: axiom_db_recording
+    interval: 30s
+    rules:
+      # Connection pool saturation
+      - record: app:db:pool_saturation
+        expr: |
+          hikaricp_connections_active / hikaricp_connections_max
+      
+      # Connection pool utilization percentage
+      - record: app:db:pool_utilization_percent
+        expr: |
+          (hikaricp_connections_active / hikaricp_connections_max) * 100
+      
+      # Pending connections (waiting for connection)
+      - record: app:db:pool_pending
+        expr: hikaricp_connections_pending
+      
+      # Connection acquisition time (p95)
+      - record: app:db:connection_acquisition_p95
+        expr: histogram_quantile(0.95, sum(rate(hikaricp_connection_acquired_nanos_bucket[5m])) by (pool, le)) / 1000000
+      
+      # Slow queries rate (>1s, inferred from HTTP latency)
+      - record: app:db:slow_queries_rate
+        expr: |
+          sum(rate(http_server_requests_seconds_count[5m])) by (tenant, service)
+          -
+          sum(rate(http_server_requests_seconds_bucket{le="1.0"}[5m])) by (tenant, service)
+      
+      # Connection timeout rate
+      - record: app:db:connection_timeout_rate
+        expr: rate(hikaricp_connections_timeout_total[5m])
+      
+      # Connection creation rate
+      - record: app:db:connection_creation_rate
+        expr: rate(hikaricp_connections_creation_total[5m])

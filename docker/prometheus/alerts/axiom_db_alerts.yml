@@ -1,0 +1,67 @@
+groups:
+  - name: axiom_db_alerts
+    rules:
+      - alert: DatabasePoolSaturationHigh
+        expr: app:db:pool_saturation > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          category: database
+          runbook: database-pool-saturation-high
+        annotations:
+          summary: "High database connection pool saturation"
+          description: "Pool saturation is {{ $value | humanizePercentage }}. Pool: {{ $labels.pool }}. Risk of connection exhaustion."
+          runbook_url: "https://docs.core-platform.io/runbooks/database-pool-saturation-high"
+          dashboard_url: "/d/axiom_adv_db"
+      
+      - alert: DatabasePoolSaturationCritical
+        expr: app:db:pool_saturation > 0.95
+        for: 5m
+        labels:
+          severity: critical
+          category: database
+          runbook: database-pool-saturation-critical
+        annotations:
+          summary: "Critical database connection pool saturation"
+          description: "Pool saturation is {{ $value | humanizePercentage }}. Pool: {{ $labels.pool }}. Connections will be rejected."
+          runbook_url: "https://docs.core-platform.io/runbooks/database-pool-saturation-critical"
+          dashboard_url: "/d/axiom_adv_db"
+      
+      - alert: DatabaseConnectionTimeoutsHigh
+        expr: app:db:connection_timeout_rate > 1
+        for: 5m
+        labels:
+          severity: critical
+          category: database
+          runbook: database-connection-timeouts-high
+        annotations:
+          summary: "High database connection timeouts"
+          description: "{{ $value }} connection timeouts/sec. Pool: {{ $labels.pool }}. Check DB health or increase pool size."
+          runbook_url: "https://docs.core-platform.io/runbooks/database-connection-timeouts-high"
+          dashboard_url: "/d/axiom_adv_db"
+      
+      - alert: DatabaseSlowQueriesHigh
+        expr: app:db:slow_queries_rate > 10
+        for: 10m
+        labels:
+          severity: warning
+          category: database
+          runbook: database-slow-queries-high
+        annotations:
+          summary: "High slow query rate"
+          description: "{{ $value }} queries/sec taking >1s. Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/database-slow-queries-high"
+          dashboard_url: "/d/axiom_adv_db?var-service={{ $labels.service }}"
+      
+      - alert: DatabaseConnectionAcquisitionSlow
+        expr: app:db:connection_acquisition_p95 > 1000
+        for: 10m
+        labels:
+          severity: warning
+          category: database
+          runbook: database-connection-acquisition-slow
+        annotations:
+          summary: "Slow database connection acquisition"
+          description: "p95 connection acquisition time is {{ $value }}ms. Pool: {{ $labels.pool }}. Pool may be undersized."
+          runbook_url: "https://docs.core-platform.io/runbooks/database-connection-acquisition-slow"
+          dashboard_url: "/d/axiom_adv_db"

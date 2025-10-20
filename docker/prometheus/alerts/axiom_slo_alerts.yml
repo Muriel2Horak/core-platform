@@ -1,0 +1,54 @@
+groups:
+  - name: axiom_slo_alerts
+    rules:
+      - alert: SLOBurnRateCritical
+        expr: app:slo:burn_rate1h > 14.4
+        for: 5m
+        labels:
+          severity: critical
+          category: slo
+          runbook: slo-burn-rate-critical
+        annotations:
+          summary: "Critical SLO burn rate for {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanize }}x the error budget (99.9% SLO). Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}, Namespace: {{ $labels.namespace }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/slo-burn-rate-critical"
+          dashboard_url: "/d/axiom_sys_overview?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: SLOBurnRateWarning
+        expr: app:slo:burn_rate1h > 6
+        for: 15m
+        labels:
+          severity: warning
+          category: slo
+          runbook: slo-burn-rate-warning
+        annotations:
+          summary: "Elevated SLO burn rate for {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanize }}x the error budget. Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/slo-burn-rate-warning"
+          dashboard_url: "/d/axiom_sys_overview?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: ErrorBudgetExhausted
+        expr: app:slo:error_budget_remaining < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          category: slo
+          runbook: error-budget-exhausted
+        annotations:
+          summary: "Error budget near exhaustion for {{ $labels.service }}"
+          description: "Only {{ $value | humanizePercentage }} error budget remaining (99.9% SLO). Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/error-budget-exhausted"
+          dashboard_url: "/d/axiom_sys_overview?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: AvailabilityLow
+        expr: app:slo:availability5m < 0.999
+        for: 10m
+        labels:
+          severity: critical
+          category: slo
+          runbook: availability-low
+        annotations:
+          summary: "Service availability below SLO for {{ $labels.service }}"
+          description: "Availability is {{ $value | humanizePercentage }} (target: 99.9%). Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/availability-low"
+          dashboard_url: "/d/axiom_sys_overview?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"

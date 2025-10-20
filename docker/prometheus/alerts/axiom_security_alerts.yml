@@ -1,0 +1,106 @@
+groups:
+  - name: axiom_security_alerts
+    rules:
+      - alert: FailedLoginSpike
+        expr: app:security:failed_logins_rate > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          runbook: failed-login-spike
+        annotations:
+          summary: "Failed login spike detected"
+          description: "{{ $value }} failed logins/sec. Possible brute force attack. Tenant: {{ $labels.tenant }}, Realm: {{ $labels.realm }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/failed-login-spike"
+          dashboard_url: "/d/axiom_security?var-tenant={{ $labels.tenant }}"
+      
+      - alert: LoginFailureRateHigh
+        expr: app:security:login_failure_percent > 50
+        for: 10m
+        labels:
+          severity: critical
+          category: security
+          runbook: login-failure-rate-high
+        annotations:
+          summary: "High login failure percentage"
+          description: "{{ $value | humanizePercentage }} of login attempts failing. Check Keycloak/auth service. Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/login-failure-rate-high"
+          dashboard_url: "/d/axiom_security?var-tenant={{ $labels.tenant }}"
+      
+      - alert: ForbiddenRateHigh
+        expr: app:security:forbidden_rate > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          runbook: forbidden-rate-high
+        annotations:
+          summary: "High 403 rate for {{ $labels.service }}"
+          description: "{{ $value }} forbidden requests/sec. Possible authorization issue or misconfiguration. Endpoint: {{ $labels.endpoint }}, Service: {{ $labels.service }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/forbidden-rate-high"
+          dashboard_url: "/d/axiom_security?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: UnauthorizedRateHigh
+        expr: app:security:unauthorized_rate > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          runbook: unauthorized-rate-high
+        annotations:
+          summary: "High 401 rate for {{ $labels.service }}"
+          description: "{{ $value }} unauthorized requests/sec. Check JWT validation or session expiry. Endpoint: {{ $labels.endpoint }}, Service: {{ $labels.service }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/unauthorized-rate-high"
+          dashboard_url: "/d/axiom_security?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: RateLimitHitsHigh
+        expr: app:security:rate_limit_hits > 20
+        for: 10m
+        labels:
+          severity: warning
+          category: security
+          runbook: rate-limit-hits-high
+        annotations:
+          summary: "High rate limit hits for {{ $labels.service }}"
+          description: "{{ $value }} requests/sec hitting rate limit (429). Possible bot traffic or DDoS. Service: {{ $labels.service }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/rate-limit-hits-high"
+          dashboard_url: "/d/axiom_security?var-tenant={{ $labels.tenant }}&var-service={{ $labels.service }}"
+      
+      - alert: JWTValidationErrorsHigh
+        expr: app:security:jwt_errors_rate > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          runbook: jwt-validation-errors-high
+        annotations:
+          summary: "High JWT validation errors"
+          description: "{{ $value }} JWT errors/sec. Error Type: {{ $labels.error_type }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/jwt-validation-errors-high"
+          dashboard_url: "/d/axiom_security?var-tenant={{ $labels.tenant }}"
+      
+      - alert: TLSCertificateExpiring
+        expr: app:security:tls_cert_expiry_days < 30
+        for: 1h
+        labels:
+          severity: warning
+          category: security
+          runbook: tls-certificate-expiring
+        annotations:
+          summary: "TLS certificate expiring soon"
+          description: "Certificate expires in {{ $value }} days. Instance: {{ $labels.instance }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/tls-certificate-expiring"
+          dashboard_url: "/d/axiom_security_certs"
+      
+      - alert: TLSCertificateExpiringSoon
+        expr: app:security:tls_cert_expiry_days < 7
+        for: 30m
+        labels:
+          severity: critical
+          category: security
+          runbook: tls-certificate-expiring-soon
+        annotations:
+          summary: "TLS certificate expiring in {{ $value }} days"
+          description: "URGENT: Certificate expires in {{ $value }} days. Instance: {{ $labels.instance }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/tls-certificate-expiring-soon"
+          dashboard_url: "/d/axiom_security_certs"

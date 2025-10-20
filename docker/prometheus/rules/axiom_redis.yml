@@ -1,0 +1,34 @@
+groups:
+  - name: axiom_redis_recording
+    interval: 30s
+    rules:
+      # Hit rate (cache effectiveness)
+      - record: app:redis:hit_rate
+        expr: |
+          sum(rate(redis_keyspace_hits_total[5m])) by (tenant)
+          /
+          (sum(rate(redis_keyspace_hits_total[5m])) by (tenant) + sum(rate(redis_keyspace_misses_total[5m])) by (tenant))
+      
+      # Miss rate
+      - record: app:redis:miss_rate
+        expr: |
+          sum(rate(redis_keyspace_misses_total[5m])) by (tenant)
+          /
+          (sum(rate(redis_keyspace_hits_total[5m])) by (tenant) + sum(rate(redis_keyspace_misses_total[5m])) by (tenant))
+      
+      # Total command rate
+      - record: app:redis:commands_rate
+        expr: sum(rate(redis_commands_total[5m])) by (tenant, command)
+      
+      # Eviction rate
+      - record: app:redis:evictions_rate
+        expr: rate(redis_evicted_keys_total[5m])
+      
+      # Memory utilization
+      - record: app:redis:memory_utilization
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes
+      
+      # Connected clients
+      - record: app:redis:connected_clients
+        expr: redis_connected_clients

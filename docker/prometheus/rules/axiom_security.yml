@@ -1,0 +1,39 @@
+groups:
+  - name: axiom_security_recording
+    interval: 30s
+    rules:
+      # Failed login rate (5m window)
+      - record: app:security:failed_logins_rate
+        expr: sum(rate(keycloak_failed_login_attempts_total[5m])) by (tenant, realm)
+      
+      # Successful login rate
+      - record: app:security:successful_logins_rate
+        expr: sum(rate(keycloak_successful_logins_total[5m])) by (tenant, realm)
+      
+      # Login failure percentage
+      - record: app:security:login_failure_percent
+        expr: |
+          sum(rate(keycloak_failed_login_attempts_total[5m])) by (tenant, realm)
+          /
+          (sum(rate(keycloak_failed_login_attempts_total[5m])) by (tenant, realm) + sum(rate(keycloak_successful_logins_total[5m])) by (tenant, realm))
+          * 100
+      
+      # 403 rate (authorization failures)
+      - record: app:security:forbidden_rate
+        expr: sum(rate(http_server_requests_seconds_count{status="403"}[5m])) by (tenant, service, endpoint)
+      
+      # 401 rate (authentication failures)
+      - record: app:security:unauthorized_rate
+        expr: sum(rate(http_server_requests_seconds_count{status="401"}[5m])) by (tenant, service, endpoint)
+      
+      # 429 rate (rate limit hits)
+      - record: app:security:rate_limit_hits
+        expr: sum(rate(http_server_requests_seconds_count{status="429"}[5m])) by (tenant, service)
+      
+      # JWT validation errors
+      - record: app:security:jwt_errors_rate
+        expr: sum(rate(jwt_validation_errors_total[5m])) by (tenant, error_type)
+      
+      # TLS certificate expiry (days remaining)
+      - record: app:security:tls_cert_expiry_days
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400

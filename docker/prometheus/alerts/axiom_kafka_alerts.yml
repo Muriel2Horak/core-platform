@@ -1,0 +1,93 @@
+groups:
+  - name: axiom_kafka_alerts
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: app:kafka:consumer_lag_total > 10000
+        for: 10m
+        labels:
+          severity: warning
+          category: streaming
+          runbook: kafka-consumer-lag-high
+        annotations:
+          summary: "High consumer lag for {{ $labels.consumer_group }}"
+          description: "Consumer lag is {{ $value }} messages. Topic: {{ $labels.topic }}, Group: {{ $labels.consumer_group }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-consumer-lag-high"
+          dashboard_url: "/d/axiom_kafka_lag?var-tenant={{ $labels.tenant }}&var-consumer_group={{ $labels.consumer_group }}"
+      
+      - alert: KafkaConsumerLagCritical
+        expr: app:kafka:consumer_lag_total > 50000
+        for: 5m
+        labels:
+          severity: critical
+          category: streaming
+          runbook: kafka-consumer-lag-critical
+        annotations:
+          summary: "Critical consumer lag for {{ $labels.consumer_group }}"
+          description: "Consumer lag is {{ $value }} messages. Risk of partition rebalancing. Topic: {{ $labels.topic }}, Group: {{ $labels.consumer_group }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-consumer-lag-critical"
+          dashboard_url: "/d/axiom_kafka_lag?var-tenant={{ $labels.tenant }}&var-consumer_group={{ $labels.consumer_group }}"
+      
+      - alert: KafkaLagIncreasing
+        expr: app:kafka:lag_velocity > 100
+        for: 15m
+        labels:
+          severity: warning
+          category: streaming
+          runbook: kafka-lag-increasing
+        annotations:
+          summary: "Consumer lag increasing for {{ $labels.consumer_group }}"
+          description: "Lag velocity is {{ $value }} messages/sec (consumers slower than producers). Topic: {{ $labels.topic }}, Group: {{ $labels.consumer_group }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-lag-increasing"
+          dashboard_url: "/d/axiom_kafka_lag?var-tenant={{ $labels.tenant }}&var-consumer_group={{ $labels.consumer_group }}"
+      
+      - alert: KafkaDLQGrowth
+        expr: app:kafka:dlq_rate > 10
+        for: 5m
+        labels:
+          severity: critical
+          category: streaming
+          runbook: kafka-dlq-growth
+        annotations:
+          summary: "DLQ growing for {{ $labels.topic }}"
+          description: "DLQ receiving {{ $value }} messages/sec. Source Topic: {{ $labels.topic }}, DLQ: {{ $labels.dlq_topic }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-dlq-growth"
+          dashboard_url: "/d/axiom_kafka_dlq?var-tenant={{ $labels.tenant }}&var-kafka_topic={{ $labels.topic }}"
+      
+      - alert: KafkaDLQAgeHigh
+        expr: app:kafka:dlq_age_seconds > 3600
+        for: 30m
+        labels:
+          severity: warning
+          category: streaming
+          runbook: kafka-dlq-age-high
+        annotations:
+          summary: "Old messages in DLQ for {{ $labels.dlq_topic }}"
+          description: "Oldest DLQ message age is {{ $value | humanizeDuration }}. DLQ: {{ $labels.dlq_topic }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-dlq-age-high"
+          dashboard_url: "/d/axiom_kafka_dlq?var-tenant={{ $labels.tenant }}"
+      
+      - alert: KafkaRebalancesFrequent
+        expr: app:kafka:rebalance_rate > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          category: streaming
+          runbook: kafka-rebalances-frequent
+        annotations:
+          summary: "Frequent rebalances for {{ $labels.consumer_group }}"
+          description: "{{ $value }} rebalances/sec. Check consumer stability. Group: {{ $labels.consumer_group }}, Tenant: {{ $labels.tenant }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-rebalances-frequent"
+          dashboard_url: "/d/axiom_kafka_streaming?var-tenant={{ $labels.tenant }}&var-consumer_group={{ $labels.consumer_group }}"
+      
+      - alert: KafkaPartitionSkewHigh
+        expr: app:kafka:partition_skew > 5
+        for: 20m
+        labels:
+          severity: warning
+          category: streaming
+          runbook: kafka-partition-skew-high
+        annotations:
+          summary: "High partition skew for {{ $labels.topic }}"
+          description: "Max lag is {{ $value }}x avg lag. Uneven load distribution. Topic: {{ $labels.topic }}, Group: {{ $labels.consumer_group }}"
+          runbook_url: "https://docs.core-platform.io/runbooks/kafka-partition-skew-high"
+          dashboard_url: "/d/axiom_kafka_streaming?var-tenant={{ $labels.tenant }}&var-kafka_topic={{ $labels.topic }}"

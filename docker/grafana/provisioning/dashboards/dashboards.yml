@@ -13,7 +13,7 @@ providers:
       path: /etc/grafana/provisioning/dashboards
       foldersFromFilesStructure: false
   
-  # Monitoring BFF dashboards
+  # Monitoring BFF dashboards (legacy)
   - name: 'monitoring-bff'
     orgId: 1
     folder: 'Monitoring'
@@ -25,3 +25,69 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards/monitoring-bff
       foldersFromFilesStructure: false
+  
+  # System Monitoring (Axiom Package)
+  - name: 'System Monitoring'
+    orgId: 1
+    folder: 'System Monitoring'
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/system
+      foldersFromFilesStructure: false
+      
+  # Advanced Monitoring (Axiom Package)
+  - name: 'Advanced Monitoring'
+    orgId: 1
+    folder: 'Advanced Monitoring'
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/advanced
+      foldersFromFilesStructure: false
+      
+  # Streaming Operations (Axiom Package)
+  - name: 'Streaming Operations'
+    orgId: 1
+    folder: 'Streaming Operations'
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/streaming
+      foldersFromFilesStructure: false
+      
+  # Security & Compliance (Axiom Package)
+  - name: 'Security & Compliance'
+    orgId: 1
+    folder: 'Security & Compliance'
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/security
+      foldersFromFilesStructure: false
+      
+  # Audit & Governance (Axiom Package)
+  - name: 'Audit & Governance'
+    orgId: 1
+    folder: 'Audit & Governance'
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/audit
+      foldersFromFilesStructure: false
+

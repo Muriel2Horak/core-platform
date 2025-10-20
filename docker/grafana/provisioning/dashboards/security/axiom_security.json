@@ -1,0 +1,338 @@
+{
+  "uid": "axiom_security",
+  "title": "Security & Compliance",
+  "tags": ["axiom", "security", "auth", "compliance"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "Tenant",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(http_server_requests_seconds_count, tenant)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "refresh": 1
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(http_server_requests_seconds_count{tenant=~\"$tenant\"}, service)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "refresh": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "type": "stat",
+      "title": "Failed Logins (5m rate)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(app:security:failed_logins_rate{tenant=~\"$tenant\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 5, "color": "yellow"},
+              {"value": 10, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 2,
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "type": "stat",
+      "title": "Login Failure %",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "avg(app:security:login_failure_percent{tenant=~\"$tenant\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 10, "color": "yellow"},
+              {"value": 50, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "type": "stat",
+      "title": "403 Forbidden (5m rate)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(app:security:forbidden_rate{tenant=~\"$tenant\",service=~\"$service\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 2, "color": "yellow"},
+              {"value": 5, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "type": "stat",
+      "title": "401 Unauthorized (5m rate)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "sum(app:security:unauthorized_rate{tenant=~\"$tenant\",service=~\"$service\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"value": null, "color": "green"},
+              {"value": 5, "color": "yellow"},
+              {"value": 10, "color": "red"}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 5,
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "type": "timeseries",
+      "title": "Failed Login Attempts",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:security:failed_logins_rate{tenant=~\"$tenant\"}",
+          "legendFormat": "{{realm}} - {{tenant}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}
+        }
+      },
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {"params": [10], "type": "gt"},
+            "operator": {"type": "and"},
+            "query": {"params": ["A", "5m", "now"]},
+            "reducer": {"params": [], "type": "avg"},
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "name": "Failed Login Spike",
+        "noDataState": "no_data",
+        "notifications": []
+      }
+    },
+    {
+      "id": 6,
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "type": "timeseries",
+      "title": "Authorization Failures (403)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:security:forbidden_rate{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "{{endpoint}} - {{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}
+        }
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "type": "timeseries",
+      "title": "Authentication Failures (401)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:security:unauthorized_rate{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "{{endpoint}} - {{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}
+        }
+      }
+    },
+    {
+      "id": 8,
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "type": "timeseries",
+      "title": "Rate Limit Hits (429)",
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "targets": [
+        {
+          "expr": "app:security:rate_limit_hits{tenant=~\"$tenant\",service=~\"$service\"}",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {"drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10}
+        }
+      }
+    },
+    {
+      "id": 9,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "type": "table",
+      "title": "Recent Failed Logins (Loki)",
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "targets": [
+        {
+          "expr": "{tenant=~\"$tenant\",service=\"keycloak\"} |= \"login\" |= \"failed\" | json",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Time": "Timestamp",
+              "username": "Username",
+              "ip": "IP Address",
+              "realm": "Realm",
+              "error": "Error"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+      "type": "table",
+      "title": "Recent 403 Forbidden (Loki)",
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "targets": [
+        {
+          "expr": "{tenant=~\"$tenant\",service=~\"$service\",status=\"403\"} | json",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Time": "Timestamp",
+              "endpoint": "Endpoint",
+              "user": "User",
+              "requestId": "Request ID"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "Security Alerts",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "enable": true,
+        "expr": "ALERTS{alertstate=\"firing\",category=\"security\"}",
+        "tagKeys": "alertname,severity",
+        "titleFormat": "{{alertname}}",
+        "iconColor": "red"
+      }
+    ]
+  }
+}
