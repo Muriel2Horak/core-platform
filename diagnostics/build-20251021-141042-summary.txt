@@ -1,0 +1,13 @@
+BUILD SUMMARY - Tue Oct 21 14:10:46 CEST 2025
+================================
+
+Build Type: clean
+Duration: 0m 1s
+Log File: diagnostics/build-20251021-141042.log
+
+Errors Found: 0
+Containers Running:       17
+Healthy:        7
+Unhealthy:        1
+
+Full details above.
