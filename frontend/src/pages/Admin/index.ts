@@ -1,5 +1,3 @@
-export { default as MonitoringPage } from './MonitoringPage';
-export { default as MonitoringComprehensivePage } from './MonitoringComprehensivePage';
 export { default as AxiomMonitoringPage } from './AxiomMonitoringPage';
 export { default as AdminUsersPage } from './AdminUsersPage';
 export { default as AdminRolesPage } from './AdminRolesPage';

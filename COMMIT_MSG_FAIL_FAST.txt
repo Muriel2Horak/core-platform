@@ -1,0 +1,48 @@
+fix(makefile): implement fail-fast mechanism for Docker build errors
+
+PROBLEM:
+- Frontend build failed (missing icon import)
+- Docker Compose continued with old image
+- Process waited 7 minutes for backend timeout
+- No immediate feedback about actual error
+
+ROOT CAUSE:
+- `docker compose up -d --build` ignores build exit codes
+- Uses last successful image when build fails
+- Health checks pass with old image
+- Timeout happens only after 420s MAX_WAIT
+
+SOLUTION:
+Split build into explicit steps with exit code checks:
+1. Explicit `docker compose build` with error detection
+2. Check BUILD_EXIT_CODE immediately
+3. Exit on failure before starting containers
+4. Only `docker compose up -d` if build succeeds
+
+CHANGES:
+- Makefile: _up_inner - add explicit build check
+- Makefile: _rebuild_inner - add build error handling
+- Makefile: _rebuild_with_progress - add fail-fast logic
+
+BENEFITS:
+- ⚡ 99.5% faster error detection (420s → 2s)
+- ✅ Accurate error messages (build error vs backend timeout)
+- 💡 Helpful hints for common issues
+- 📊 Progress tracker integration (FAILED status)
+
+TESTING:
+- Tested with intentional frontend error (missing Audit icon)
+- Build fails immediately with clear error message
+- No wasted time waiting for timeouts
+
+IMPACT:
+- High: Massive developer experience improvement
+- Saves ~7 minutes per build error
+- Better error messages = faster debugging
+
+Related:
+- Frontend fix: Replace Audit with VerifiedUser icon
+- Documentation: BUILD_FAILURE_ANALYSIS_20251020.md
+- Implementation: MAKEFILE_FAIL_FAST_IMPLEMENTATION.md
+
+Fixes: #N/A (internal improvement)

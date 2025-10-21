@@ -20,7 +20,7 @@ export const AdminAuditPage = () => {
           <AiHelpWidget routeId={routeId} />
         </Box>
       </Box>
-      <GrafanaEmbed path="/d/axiom_audit?orgId=1&theme=light&kiosk" height="800px" />
+      <GrafanaEmbed path="/d/axiom_audit?orgId=1&theme=light&kiosk" height={800} />
     </Container>
   );
 };

@@ -41,7 +41,7 @@ export const AxiomMonitoringPage = () => {
     setTabValue(newValue);
   };
 
-  // Dashboard UIDs podle Axiom Package
+  // Dashboard UIDs - Consolidated from all monitoring pages
   const dashboards = {
     system: 'axiom_sys_overview',
     runtime: 'axiom_adv_runtime',
@@ -50,6 +50,9 @@ export const AxiomMonitoringPage = () => {
     kafkaLag: 'axiom_kafka_lag',
     security: 'axiom_security',
     audit: 'axiom_audit',
+    logs: 'loki-overview',
+    performance: 'performance-dashboard',
+    platformHealth: 'core-platform-status',
   };
 
   return (
@@ -113,6 +116,21 @@ export const AxiomMonitoringPage = () => {
             iconPosition="start" 
             label="Audit" 
           />
+          <Tab 
+            icon={<Assessment />} 
+            iconPosition="start" 
+            label="Performance" 
+          />
+          <Tab 
+            icon={<DashboardIcon />} 
+            iconPosition="start" 
+            label="Platform Health" 
+          />
+          <Tab 
+            icon={<Assessment />} 
+            iconPosition="start" 
+            label="Logs" 
+          />
         </Tabs>
 
         {/* System Overview Tab */}
@@ -135,9 +153,9 @@ export const AxiomMonitoringPage = () => {
               Full Screen
             </Button>
           </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.system}?orgId=1&theme=light&kiosk=tv`} 
-            height="900px" 
+          <GrafanaEmbed
+            path={`/d/${dashboards.system}?orgId=1&theme=light&kiosk=tv`}
+            height={900}
           />
         </TabPanel>
 
@@ -156,7 +174,7 @@ export const AxiomMonitoringPage = () => {
             </Typography>
             <GrafanaEmbed 
               path={`/d/${dashboards.runtime}?orgId=1&theme=light&kiosk=tv`} 
-              height="600px" 
+              height={600} 
             />
           </Box>
 
@@ -166,7 +184,7 @@ export const AxiomMonitoringPage = () => {
             </Typography>
             <GrafanaEmbed 
               path={`/d/${dashboards.database}?orgId=1&theme=light&kiosk=tv`} 
-              height="600px" 
+              height={600} 
             />
           </Box>
 
@@ -176,7 +194,7 @@ export const AxiomMonitoringPage = () => {
             </Typography>
             <GrafanaEmbed 
               path={`/d/${dashboards.redis}?orgId=1&theme=light&kiosk=tv`} 
-              height="600px" 
+              height={600} 
             />
           </Box>
         </TabPanel>
@@ -203,7 +221,7 @@ export const AxiomMonitoringPage = () => {
           </Box>
           <GrafanaEmbed 
             path={`/d/${dashboards.kafkaLag}?orgId=1&theme=light&kiosk=tv`} 
-            height="900px" 
+            height={900} 
           />
         </TabPanel>
 
@@ -229,7 +247,7 @@ export const AxiomMonitoringPage = () => {
           </Box>
           <GrafanaEmbed 
             path={`/d/${dashboards.security}?orgId=1&theme=light&kiosk=tv`} 
-            height="900px" 
+            height={900} 
           />
         </TabPanel>
 
@@ -255,7 +273,85 @@ export const AxiomMonitoringPage = () => {
           </Box>
           <GrafanaEmbed 
             path={`/d/${dashboards.audit}?orgId=1&theme=light&kiosk=tv`} 
-            height="900px" 
+            height={900} 
+          />
+        </TabPanel>
+
+        {/* Performance Tab */}
+        <TabPanel value={tabValue} index={5}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Application Performance (RED Method)
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Request Rate, Error Rate, Duration - Performance monitoring across all services
+              </Typography>
+            </Box>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<OpenInNew />}
+              onClick={() => openFullGrafana(dashboards.performance)}
+            >
+              Full Screen
+            </Button>
+          </Box>
+          <GrafanaEmbed 
+            path={`/d/${dashboards.performance}?orgId=1&theme=light&kiosk=tv`} 
+            height={900} 
+          />
+        </TabPanel>
+
+        {/* Platform Health Tab */}
+        <TabPanel value={tabValue} index={6}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Platform Health & SLI/SLO
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Overall platform status, service level indicators and objectives
+              </Typography>
+            </Box>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<OpenInNew />}
+              onClick={() => openFullGrafana(dashboards.platformHealth)}
+            >
+              Full Screen
+            </Button>
+          </Box>
+          <GrafanaEmbed 
+            path={`/d/${dashboards.platformHealth}?orgId=1&theme=light&kiosk=tv`} 
+            height={900} 
+          />
+        </TabPanel>
+
+        {/* Logs Tab */}
+        <TabPanel value={tabValue} index={7}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Log Analysis (Loki)
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Centralized log search and analysis with Loki
+              </Typography>
+            </Box>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<OpenInNew />}
+              onClick={() => openFullGrafana(dashboards.logs)}
+            >
+              Full Screen
+            </Button>
+          </Box>
+          <GrafanaEmbed 
+            path={`/d/${dashboards.logs}?orgId=1&theme=light&kiosk=tv`} 
+            height={900} 
           />
         </TabPanel>
       </GlassPaper>
