@@ -2,6 +2,8 @@ package cz.muriel.core.monitoring;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import cz.muriel.core.auth.KeycloakClient;
+import cz.muriel.core.monitoring.bff.model.TenantBinding;
+import cz.muriel.core.monitoring.bff.service.TenantOrgService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,12 +39,14 @@ public class AuthRequestController {
   private final GrafanaJwtService jwtService;
   private final JwtDecoder jwtDecoder;
   private final KeycloakClient keycloakClient;
+  private final TenantOrgService tenantOrgService;
 
   public AuthRequestController(GrafanaJwtService jwtService, JwtDecoder jwtDecoder,
-      KeycloakClient keycloakClient) {
+      KeycloakClient keycloakClient, TenantOrgService tenantOrgService) {
     this.jwtService = jwtService;
     this.jwtDecoder = jwtDecoder;
     this.keycloakClient = keycloakClient;
+    this.tenantOrgService = tenantOrgService;
   }
 
   /**
@@ -129,10 +133,20 @@ public class AuthRequestController {
       log.debug("Grafana auth request successful for user: {}",
           jwt.getClaimAsString("preferred_username"));
 
-      // CRITICAL: Nginx expects this header name (auth_request_set $grafana_token
-      // $upstream_http_grafana_jwt)
-      // Nginx converts to lowercase: Grafana-Jwt becomes grafana_jwt
-      return ResponseEntity.ok().header("Grafana-Jwt", token).build();
+      // Resolve tenant → Grafana org mapping
+      TenantBinding binding = tenantOrgService.resolve(jwt);
+      Long grafanaOrgId = binding.getGrafanaOrgId();
+
+      log.debug("✅ Resolved user {} to Grafana org {}", 
+          jwt.getClaimAsString("preferred_username"), grafanaOrgId);
+
+      // CRITICAL: Nginx expects these headers
+      // - Grafana-Jwt becomes grafana_jwt (lowercase)
+      // - Grafana-Org-Id becomes grafana_org_id (lowercase)
+      return ResponseEntity.ok()
+          .header("Grafana-Jwt", token)
+          .header("Grafana-Org-Id", String.valueOf(grafanaOrgId))
+          .build();
 
     } catch (Exception e) {
       log.error("Failed to validate JWT for Grafana: {}", e.getMessage());
