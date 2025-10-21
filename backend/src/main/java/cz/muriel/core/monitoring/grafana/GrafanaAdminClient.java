@@ -510,4 +510,97 @@ public class GrafanaAdminClient {
         datasourceName, orgId, e);
     throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
   }
+
+  /**
+   * 👤 LIST USERS IN ORGANIZATION Gets all users in a specific organization
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "listOrgUsersFallback")
+  public List<OrgUserInfo> listOrgUsers(Long orgId) {
+    log.debug("👥 Listing users in Grafana org: {}", orgId);
+
+    String url = grafanaUrl + "/api/orgs/" + orgId + "/users";
+    HttpHeaders headers = createAuthHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ResponseEntity<List<OrgUserInfo>> response = restTemplate.exchange(url, HttpMethod.GET,
+          entity, new ParameterizedTypeReference<List<OrgUserInfo>>() {
+          });
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        log.debug("✅ Found {} users in org {}", response.getBody().size(), orgId);
+        return response.getBody();
+      }
+
+      log.warn("⚠️  Unexpected response from Grafana: {}", response.getStatusCode());
+      return List.of();
+    } catch (Exception e) {
+      log.error("❌ Failed to list users in org {}: {}", orgId, e.getMessage());
+      return List.of();
+    }
+  }
+
+  /**
+   * ➕ ADD USER TO ORGANIZATION Adds an existing user to a specific organization
+   * with given role
+   * 
+   * ✨ IDEMPOTENT: If user is already member, returns success
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "addUserToOrgFallback")
+  public AddOrgUserResponse addUserToOrg(Long orgId, String loginOrEmail, String role) {
+    log.info("➕ Adding user {} to Grafana org {} with role {}", loginOrEmail, orgId, role);
+
+    // Check if user is already a member
+    try {
+      List<OrgUserInfo> existingUsers = listOrgUsers(orgId);
+      boolean alreadyMember = existingUsers.stream().anyMatch(
+          user -> user.getLogin().equals(loginOrEmail) || user.getEmail().equals(loginOrEmail));
+
+      if (alreadyMember) {
+        log.info("ℹ️  User {} is already member of org {}", loginOrEmail, orgId);
+        AddOrgUserResponse response = new AddOrgUserResponse();
+        response.setMessage("User is already member of organization");
+        return response;
+      }
+    } catch (Exception e) {
+      log.debug("Could not check existing membership (will try to add): {}", e.getMessage());
+    }
+
+    String url = grafanaUrl + "/api/orgs/" + orgId + "/users";
+    HttpHeaders headers = createAuthHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    AddOrgUserRequest request = new AddOrgUserRequest(loginOrEmail, role);
+    HttpEntity<AddOrgUserRequest> entity = new HttpEntity<>(request, headers);
+
+    try {
+      ResponseEntity<AddOrgUserResponse> response = restTemplate.exchange(url, HttpMethod.POST,
+          entity, AddOrgUserResponse.class);
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        log.info("✅ User {} added to org {} with role {}", loginOrEmail, orgId, role);
+        return response.getBody();
+      }
+
+      log.warn("⚠️  Unexpected response from Grafana: {}", response.getStatusCode());
+      throw new GrafanaApiException("Failed to add user to org: " + response.getStatusCode());
+    } catch (Exception e) {
+      log.error("❌ Failed to add user {} to org {}: {}", loginOrEmail, orgId, e.getMessage());
+      throw new GrafanaApiException("Failed to add user to organization", e);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  private List<OrgUserInfo> listOrgUsersFallback(Long orgId, Exception e) {
+    log.error("⚠️ Circuit breaker: listOrgUsers fallback for orgId: {}", orgId, e);
+    return List.of();
+  }
+
+  @SuppressWarnings("unused")
+  private AddOrgUserResponse addUserToOrgFallback(Long orgId, String loginOrEmail, String role,
+      Exception e) {
+    log.error("⚠️ Circuit breaker: addUserToOrg fallback for user {} in orgId: {}", loginOrEmail,
+        orgId, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
 }

@@ -22,6 +22,8 @@ services:
         condition: service_started
       keycloak:
         condition: service_started
+      grafana:
+        condition: service_started
     networks:
       - core-net
     restart: unless-stopped
@@ -320,7 +322,16 @@ services:
     image: core-grafana:custom
     container_name: core-grafana
     environment:
-      # 🔐 JWT Authentication (Primary - for iframe embedding)
+      # 🗄️ PostgreSQL Database (instead of SQLite for persistence across restarts)
+      # Dedicated grafana user/database (same pattern as keycloak)
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=db:5432
+      - GF_DATABASE_NAME=${GRAFANA_DB_NAME}
+      - GF_DATABASE_USER=${GRAFANA_DB_USERNAME}
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - GF_DATABASE_SSL_MODE=disable
+      
+      # �🔐 JWT Authentication (Primary - for iframe embedding)
       - GF_AUTH_JWT_ENABLED=true
       - GF_AUTH_JWT_HEADER_NAME=X-Org-JWT
       - GF_AUTH_JWT_USERNAME_CLAIM=preferred_username
@@ -388,8 +399,12 @@ services:
     networks:
       - core-net
     depends_on:
-      - keycloak
-      - loki
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+      loki:
+        condition: service_started
 
   loki:
     image: grafana/loki:3.0.0

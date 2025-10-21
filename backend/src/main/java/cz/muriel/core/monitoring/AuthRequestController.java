@@ -40,13 +40,16 @@ public class AuthRequestController {
   private final JwtDecoder jwtDecoder;
   private final KeycloakClient keycloakClient;
   private final TenantOrgService tenantOrgService;
+  private final cz.muriel.core.monitoring.grafana.GrafanaAdminClient grafanaAdminClient;
 
   public AuthRequestController(GrafanaJwtService jwtService, JwtDecoder jwtDecoder,
-      KeycloakClient keycloakClient, TenantOrgService tenantOrgService) {
+      KeycloakClient keycloakClient, TenantOrgService tenantOrgService,
+      cz.muriel.core.monitoring.grafana.GrafanaAdminClient grafanaAdminClient) {
     this.jwtService = jwtService;
     this.jwtDecoder = jwtDecoder;
     this.keycloakClient = keycloakClient;
     this.tenantOrgService = tenantOrgService;
+    this.grafanaAdminClient = grafanaAdminClient;
   }
 
   /**
@@ -65,6 +68,20 @@ public class AuthRequestController {
     // Read JWT token from HTTP-only cookie
     String token = getCookieValue(request, ACCESS_COOKIE);
     String refreshToken = getCookieValue(request, REFRESH_COOKIE);
+
+    // DEBUG: Log all cookies and headers
+    log.info("🔍 Grafana auth request - Cookie header: {}", request.getHeader("Cookie"));
+    log.info("🔍 Grafana auth request - Available cookies: {}",
+        request.getCookies() != null ? request.getCookies().length : 0);
+    if (request.getCookies() != null) {
+      for (Cookie cookie : request.getCookies()) {
+        log.info("🔍 Cookie: {} = {} (length: {})", cookie.getName(),
+            cookie.getValue().substring(0, Math.min(20, cookie.getValue().length())) + "...",
+            cookie.getValue().length());
+      }
+    }
+    log.info("🔍 Extracted token: {} (length: {})", token != null ? "present" : "null",
+        token != null ? token.length() : 0);
 
     if (token == null || token.isEmpty()) {
       log.debug("Grafana auth request failed: no auth cookie found");
@@ -130,15 +147,27 @@ public class AuthRequestController {
         }
       }
 
-      log.debug("Grafana auth request successful for user: {}",
-          jwt.getClaimAsString("preferred_username"));
+      String username = jwt.getClaimAsString("preferred_username");
+      log.debug("Grafana auth request successful for user: {}", username);
 
       // Resolve tenant → Grafana org mapping
       TenantBinding binding = tenantOrgService.resolve(jwt);
       Long grafanaOrgId = binding.orgId();
 
-      log.debug("✅ Resolved user {} to Grafana org {}", jwt.getClaimAsString("preferred_username"),
-          grafanaOrgId);
+      log.debug("✅ Resolved user {} to Grafana org {}", username, grafanaOrgId);
+
+      // 🆕 CRITICAL FIX: Ensure JWT user is member of tenant org
+      // Grafana JWT auto_sign_up creates users ONLY in org 1 (Main Org)
+      // We must manually add them to their tenant org on first request
+      try {
+        grafanaAdminClient.addUserToOrg(grafanaOrgId, username, "Admin");
+        log.debug("✅ Ensured user {} is member of org {}", username, grafanaOrgId);
+      } catch (Exception e) {
+        log.warn("⚠️  Failed to ensure user {} in org {} (may already exist): {}", username,
+            grafanaOrgId, e.getMessage());
+        // Continue - user might already be member, or Grafana might be temporarily
+        // unavailable
+      }
 
       // CRITICAL: Nginx expects these headers
       // - Grafana-Jwt becomes grafana_jwt (lowercase)

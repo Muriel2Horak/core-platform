@@ -141,6 +141,17 @@ for TENANT in $TENANTS; do
   
   echo "  ✅ Token created (length: ${#TOKEN})"
   
+  # Step 3.5: Switch admin user to tenant org (CRITICAL for datasource creation)
+  echo "  🔄 Switching admin user to org $ORG_ID..."
+  SWITCH_RESPONSE=$(curl -s -u "$GRAFANA_ADMIN_USER:$GRAFANA_ADMIN_PASSWORD" \
+    -X POST "$GRAFANA_URL/api/user/using/$ORG_ID")
+  
+  if echo "$SWITCH_RESPONSE" | grep -q "Active organization changed"; then
+    echo "  ✅ Admin user switched to org $ORG_ID"
+  else
+    echo "  ⚠️  Org switch response: $SWITCH_RESPONSE"
+  fi
+  
   # Step 4: Create datasources in the tenant org
   echo "  📊 Creating datasources in org $ORG_ID..."
   
