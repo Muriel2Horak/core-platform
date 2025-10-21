@@ -15,30 +15,42 @@ DB_NAME="${DB_NAME:-core}"
 DB_USER="${DB_USER:-core}"
 DB_PASSWORD="${DB_PASSWORD:-core}"
 
+# ⚠️ DEPRECATED: Hardcoded tenants list (fallback only)
 # Tenants to provision (space-separated)
-TENANTS="${TENANTS:-admin test-tenant company-b}"
+# TENANTS="${TENANTS:-admin test-tenant company-b}"
 
 echo "🚀 Starting Grafana tenant provisioning..."
 echo "📍 Grafana URL: $GRAFANA_URL"
 echo "📍 Database: $DB_HOST:$DB_PORT/$DB_NAME"
-echo "📍 Tenants: $TENANTS"
 
-# Wait for Grafana to be ready
-echo "⏳ Waiting for Grafana to be ready..."
+# Wait for database to be ready FIRST (need to query tenants)
+echo "⏳ Waiting for database to be ready..."
 for i in {1..30}; do
-  if curl -s -f -u "$GRAFANA_ADMIN_USER:$GRAFANA_ADMIN_PASSWORD" "$GRAFANA_URL/api/health" > /dev/null 2>&1; then
-    echo "✅ Grafana is ready!"
+  if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" > /dev/null 2>&1; then
+    echo "✅ Database is ready!"
     break
   fi
   echo "   Attempt $i/30..."
   sleep 2
 done
 
-# Wait for database to be ready
-echo "⏳ Waiting for database to be ready..."
+# 🔥 NEW: Load tenants dynamically from database
+echo "🔍 Loading tenants from database..."
+TENANTS=$(PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COALESCE(string_agg(key, ' '), 'admin') FROM tenants;" | xargs)
+
+if [ -z "$TENANTS" ]; then
+  echo "⚠️  No tenants found in database, using fallback: admin"
+  TENANTS="admin"
+fi
+
+echo "� Tenants to provision: $TENANTS"
+echo ""
+
+# Wait for Grafana to be ready
+echo "⏳ Waiting for Grafana to be ready..."
 for i in {1..30}; do
-  if PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1" > /dev/null 2>&1; then
-    echo "✅ Database is ready!"
+  if curl -s -f -u "$GRAFANA_ADMIN_USER:$GRAFANA_ADMIN_PASSWORD" "$GRAFANA_URL/api/health" > /dev/null 2>&1; then
+    echo "✅ Grafana is ready!"
     break
   fi
   echo "   Attempt $i/30..."

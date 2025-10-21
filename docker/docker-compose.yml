@@ -288,7 +288,8 @@ services:
       - DB_NAME=${DB_INTERNAL_NAME:-core}
       - DB_USER=${DB_INTERNAL_USERNAME:-core}
       - DB_PASSWORD=${DB_INTERNAL_PASSWORD:-core}
-      - TENANTS=admin test-tenant company-b
+      # ℹ️ TENANTS is now loaded dynamically from database (tenants table)
+      # - TENANTS=admin test-tenant company-b  # DEPRECATED
     volumes:
       - ./grafana/provision-tenants.sh:/tmp/provision-tenants.sh:ro
     command: >
@@ -382,6 +383,8 @@ services:
       - ./grafana/jwt-secret.key:/etc/grafana/jwt-secret.key:ro
       # DISABLED: grafana.ini mount - using env vars only
       # - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+    ports:
+      - "3001:3000"  # Temporary for datasource setup
     networks:
       - core-net
     depends_on:
