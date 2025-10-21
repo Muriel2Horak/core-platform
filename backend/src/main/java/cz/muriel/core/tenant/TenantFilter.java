@@ -29,7 +29,7 @@ public class TenantFilter extends OncePerRequestFilter {
     try {
       // Get request URI for special handling
       String requestUri = request.getRequestURI();
-      
+
       // Only process authenticated requests
       Authentication auth = SecurityContextHolder.getContext().getAuthentication();
       if (auth != null && auth.isAuthenticated() && !isAnonymous(auth)) {
@@ -46,16 +46,16 @@ public class TenantFilter extends OncePerRequestFilter {
       } else {
         // 🔧 Set special tenant labels for unauthenticated requests
         String specialTenant = "admin"; // Default to admin
-        
+
         if (requestUri.startsWith("/actuator/")) {
           specialTenant = "system"; // Health checks, metrics
         } else if (requestUri.startsWith("/api/public/")) {
           specialTenant = "public"; // Public API
         }
-        
+
         TenantContext.setTenantKey(specialTenant);
         MDC.put("tenant", specialTenant);
-        
+
         log.trace("🔓 Unauthenticated request: tenant={}, uri={}", specialTenant, requestUri);
       }
 
