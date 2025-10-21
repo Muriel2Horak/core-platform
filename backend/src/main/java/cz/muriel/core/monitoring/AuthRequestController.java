@@ -135,18 +135,16 @@ public class AuthRequestController {
 
       // Resolve tenant → Grafana org mapping
       TenantBinding binding = tenantOrgService.resolve(jwt);
-      Long grafanaOrgId = binding.getGrafanaOrgId();
+      Long grafanaOrgId = binding.orgId();
 
-      log.debug("✅ Resolved user {} to Grafana org {}", 
-          jwt.getClaimAsString("preferred_username"), grafanaOrgId);
+      log.debug("✅ Resolved user {} to Grafana org {}", jwt.getClaimAsString("preferred_username"),
+          grafanaOrgId);
 
       // CRITICAL: Nginx expects these headers
       // - Grafana-Jwt becomes grafana_jwt (lowercase)
       // - Grafana-Org-Id becomes grafana_org_id (lowercase)
-      return ResponseEntity.ok()
-          .header("Grafana-Jwt", token)
-          .header("Grafana-Org-Id", String.valueOf(grafanaOrgId))
-          .build();
+      return ResponseEntity.ok().header("Grafana-Jwt", token)
+          .header("Grafana-Org-Id", String.valueOf(grafanaOrgId)).build();
 
     } catch (Exception e) {
       log.error("Failed to validate JWT for Grafana: {}", e.getMessage());

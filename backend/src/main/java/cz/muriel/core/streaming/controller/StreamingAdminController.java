@@ -58,17 +58,11 @@ public class StreamingAdminController {
     long processingCount = commandQueueRepository.countByStatus("processing");
     long dlqCount = commandQueueRepository.countByStatus("dlq");
     long completedCount = commandQueueRepository.countByStatus("completed");
-    
-    Map<String, Object> metrics = Map.of(
-      "queueStatus", Map.of(
-        "pending", pendingCount,
-        "processing", processingCount,
-        "dlq", dlqCount,
-        "completed", completedCount
-      ),
-      "timestamp", System.currentTimeMillis()
-    );
-    
+
+    Map<String, Object> metrics = Map.of("queueStatus", Map.of("pending", pendingCount,
+        "processing", processingCount, "dlq", dlqCount, "completed", completedCount), "timestamp",
+        System.currentTimeMillis());
+
     return ResponseEntity.ok(metrics);
   }
 
