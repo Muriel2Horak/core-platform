@@ -278,12 +278,12 @@ export const MonitoringComprehensivePage = () => {
 
       {/* Tab 3: Security */}
       <TabPanel value={tabValue} index={3}>
-        <GrafanaEmbed path="/d/security-dashboard?orgId=1&theme=light&kiosk" height="1000px" />
+        <GrafanaEmbed path="/d/axiom_security?orgId=1&theme=light&kiosk" height="1000px" />
       </TabPanel>
 
       {/* Tab 4: Audit */}
       <TabPanel value={tabValue} index={4}>
-        <GrafanaEmbed path="/d/audit-dashboard?orgId=1&theme=light&kiosk" height="1000px" />
+        <GrafanaEmbed path="/d/axiom_audit?orgId=1&theme=light&kiosk" height="1000px" />
       </TabPanel>
 
       {/* Tab 5: Logs */}

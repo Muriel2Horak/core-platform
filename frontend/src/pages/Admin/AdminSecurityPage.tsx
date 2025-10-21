@@ -20,7 +20,7 @@ export const AdminSecurityPage = () => {
           <AiHelpWidget routeId={routeId} />
         </Box>
       </Box>
-      <GrafanaEmbed path="/d/security-dashboard?orgId=1&theme=light&kiosk" height="800px" />
+      <GrafanaEmbed path="/d/axiom_security?orgId=1&theme=light&kiosk" height="800px" />
     </Container>
   );
 };

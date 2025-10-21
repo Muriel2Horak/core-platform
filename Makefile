@@ -488,18 +488,25 @@ _rebuild_with_progress:
 	CURRENT=$$((CURRENT + 1)); \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "IN_PROGRESS" ""; \
 	BUILD_START=$$(date +%s); \
-	BUILD_OUTPUT=""; \
+	BUILD_LOG_FILE="/tmp/docker-build-$$$$.log"; \
 	BUILD_EXIT_CODE=0; \
 	if [ "$${NO_CACHE:-false}" = "true" ]; then \
 		echo "🔨 Building with --no-cache (ensures all code changes included)..."; \
-		BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1); \
-		BUILD_EXIT_CODE=$$?; \
+		echo "📊 Streaming build progress (this may take 5-10 minutes)..."; \
+		echo ""; \
+		DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel --no-cache 2>&1 | tee $$BUILD_LOG_FILE | \
+			grep --line-buffered -E "(#[0-9]+ |Building|built|CACHED|exporting|ERROR|failed|finished|Step [0-9]+/|RUN |COPY )" | \
+			sed -u 's/^/  /'; \
+		BUILD_EXIT_CODE=$${PIPESTATUS[0]}; \
 	else \
 		echo "🔨 Building with cache (faster but may miss changes)..."; \
-		BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1); \
-		BUILD_EXIT_CODE=$$?; \
+		echo "📊 Streaming build progress..."; \
+		echo ""; \
+		DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | tee $$BUILD_LOG_FILE | \
+			grep --line-buffered -E "(#[0-9]+ |Building|built|CACHED|exporting|ERROR|failed|finished|Step [0-9]+/|RUN |COPY )" | \
+			sed -u 's/^/  /'; \
+		BUILD_EXIT_CODE=$${PIPESTATUS[0]}; \
 	fi; \
-	echo "$$BUILD_OUTPUT" | grep -E "(Building|built|CACHED|exporting|ERROR|failed)" | tail -30; \
 	BUILD_END=$$(date +%s); \
 	BUILD_TIME=$$((BUILD_END - BUILD_START)); \
 	if [ $$BUILD_EXIT_CODE -ne 0 ]; then \
@@ -508,10 +515,12 @@ _rebuild_with_progress:
 		echo "❌ Docker build failed with exit code $$BUILD_EXIT_CODE"; \
 		echo ""; \
 		echo "🔍 Last 50 lines of build output:"; \
-		echo "$$BUILD_OUTPUT" | tail -50; \
+		tail -50 $$BUILD_LOG_FILE; \
 		echo ""; \
+		rm -f $$BUILD_LOG_FILE; \
 		exit 1; \
 	fi; \
+	rm -f $$BUILD_LOG_FILE; \
 	bash scripts/build/build-progress-tracker.sh update $$CURRENT "DONE" "$${BUILD_TIME}s"; \
 	sleep 0.5; \
 	\
@@ -609,15 +618,19 @@ _rebuild_inner:
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "📍 STEP 2/6: Building Docker Images"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@BUILD_OUTPUT=$$(DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1); \
-	BUILD_EXIT_CODE=$$?; \
-	echo "$$BUILD_OUTPUT" | grep -E "(Building|built|CACHED|exporting|ERROR|failed)" | tail -30; \
+	@BUILD_LOG_FILE="/tmp/docker-build-rebuild-$$$$.log"; \
+	echo "📊 Streaming build progress (backend + frontend in parallel)..."; \
+	echo ""; \
+	DOCKER_BUILDKIT=1 docker compose -f docker/docker-compose.yml --env-file .env build --parallel 2>&1 | tee $$BUILD_LOG_FILE | \
+		grep --line-buffered -E "(#[0-9]+ |Building|built|CACHED|exporting|ERROR|failed|finished|Step [0-9]+/|RUN |COPY )" | \
+		sed -u 's/^/  /'; \
+	BUILD_EXIT_CODE=$${PIPESTATUS[0]}; \
 	if [ $$BUILD_EXIT_CODE -ne 0 ]; then \
 		echo ""; \
 		echo "❌ Docker build failed with exit code $$BUILD_EXIT_CODE"; \
 		echo ""; \
-		echo "🔍 Full build output:"; \
-		echo "$$BUILD_OUTPUT" | tail -50; \
+		echo "🔍 Last 50 lines of build output:"; \
+		tail -50 $$BUILD_LOG_FILE; \
 		echo ""; \
 		echo "💡 Common issues:"; \
 		echo "   - Missing dependencies in package.json"; \
@@ -625,8 +638,10 @@ _rebuild_inner:
 		echo "   - TypeScript compilation errors"; \
 		echo "   - Java compilation errors"; \
 		echo ""; \
+		rm -f $$BUILD_LOG_FILE; \
 		exit 1; \
-	fi
+	fi; \
+	rm -f $$BUILD_LOG_FILE
 	@echo "  ✅ Images built successfully"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
