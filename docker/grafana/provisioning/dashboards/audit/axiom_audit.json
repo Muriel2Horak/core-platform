@@ -9,9 +9,9 @@
   "time": {"from": "now-6h", "to": "now"},
   "templating": {
     "list": [
-      {"name": "tenant", "label": "Tenant", "type": "query", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "query": "label_values(audit_events_total, tenant)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1},
-      {"name": "entity_type", "label": "Entity Type", "type": "query", "datasource": {"type": "loki", "uid": "${DS_LOKI}"}, "query": "label_values({tenant=~\"$tenant\"}, entity_type)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1},
-      {"name": "operation", "label": "Operation", "type": "custom", "options": ["CREATE", "UPDATE", "DELETE", "BULK_UPDATE", "BULK_DELETE"], "multi": true, "includeAll": true, "allValue": ".*"}
+      {"name": "tenant", "label": "Tenant", "type": "query", "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}, "query": "label_values(audit_events_total, tenant)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1, "current": {"selected": false, "text": "All", "value": "$__all"}},
+      {"name": "entity_type", "label": "Entity Type", "type": "query", "datasource": {"type": "loki", "uid": "${DS_LOKI}"}, "query": "label_values({tenant=~\"$tenant\"}, entity_type)", "multi": true, "includeAll": true, "allValue": ".*", "refresh": 1, "current": {"selected": false, "text": "All", "value": "$__all"}},
+      {"name": "operation", "label": "Operation", "type": "custom", "query": "CREATE,UPDATE,DELETE,BULK_UPDATE,BULK_DELETE", "multi": true, "includeAll": true, "allValue": ".*", "current": {"selected": false, "text": "All", "value": "$__all"}}
     ]
   },
   "panels": [

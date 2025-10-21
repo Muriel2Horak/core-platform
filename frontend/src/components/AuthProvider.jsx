@@ -60,6 +60,13 @@ export const AuthProvider = ({ children }) => {
       
       setUser(completeUserInfo);
       
+      // 🔥 CRITICAL: Initialize logger with tenant context
+      logger.setTenantContext(
+        completeUserInfo.tenant || 'unknown',
+        completeUserInfo.username || 'anonymous'
+      );
+      logger.setAuthenticated(true);
+      
       // Initialize CDC timestamp
       lastCheckTimestamp.current = Date.now();
       
@@ -73,6 +80,14 @@ export const AuthProvider = ({ children }) => {
       if (jwtUserInfo) {
         logger.warn('⚠️ Using JWT fallback for user info');
         setUser(jwtUserInfo);
+        
+        // 🔥 Initialize logger even with JWT fallback
+        logger.setTenantContext(
+          jwtUserInfo.tenant || 'unknown',
+          jwtUserInfo.username || 'anonymous'
+        );
+        logger.setAuthenticated(true);
+        
         return jwtUserInfo;
       }
       

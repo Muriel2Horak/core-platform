@@ -27,6 +27,9 @@ public class TenantFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
 
     try {
+      // Get request URI for special handling
+      String requestUri = request.getRequestURI();
+      
       // Only process authenticated requests
       Authentication auth = SecurityContextHolder.getContext().getAuthentication();
       if (auth != null && auth.isAuthenticated() && !isAnonymous(auth)) {
@@ -40,6 +43,20 @@ public class TenantFilter extends OncePerRequestFilter {
         MDC.put("tenant", tenantKey);
 
         log.debug("🔒 Tenant context established from JWT: {}", tenantKey);
+      } else {
+        // 🔧 Set special tenant labels for unauthenticated requests
+        String specialTenant = "admin"; // Default to admin
+        
+        if (requestUri.startsWith("/actuator/")) {
+          specialTenant = "system"; // Health checks, metrics
+        } else if (requestUri.startsWith("/api/public/")) {
+          specialTenant = "public"; // Public API
+        }
+        
+        TenantContext.setTenantKey(specialTenant);
+        MDC.put("tenant", specialTenant);
+        
+        log.trace("🔓 Unauthenticated request: tenant={}, uri={}", specialTenant, requestUri);
       }
 
       filterChain.doFilter(request, response);

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { AuthProvider, useAuth } from './components/AuthProvider.jsx';
 import { corePlatformTheme } from './shared/theme/theme.ts';
+import logger from './services/logger.js';
 
 // Import komponent
 import Dashboard from './components/Dashboard.jsx';
