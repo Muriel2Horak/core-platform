@@ -118,14 +118,22 @@ services:
       - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
       # 📊 Grafana SSO Integration
       - GRAFANA_JWT_SECRET=${GRAFANA_JWT_SECRET:-change-me-in-production-to-secure-random-256bit-key}
+      # 📊 Loki Configuration (aplikační logging přes Logback)
+      - LOKI_URL=http://core-loki:3100/loki/api/v1/push
     volumes:
       # 🔒 Updated to use new wildcard SSL certificates
       - ../ssl:/etc/ssl/backend:ro
+    # ✅ Docker logging driver VYPNUT - používáme aplikační logging (Logback + Loki4j)
+    # Výhody:
+    # - Funguje v K8s/cloud (neváže se na localhost)
+    # - Lepší strukturované logy (JSON s MDC kontextem)
+    # - Asynchronní batching (neblokuje aplikaci)
+    # - Tenant context v každém logu
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "http://core-loki:3100/loki/api/v1/push"
-        loki-external-labels: "service=backend,environment=${ENVIRONMENT:-development}"
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 10s
@@ -159,11 +167,14 @@ services:
         condition: service_started
       loki:
         condition: service_started
+    # ✅ Docker logging driver VYPNUT - frontend posílá logy přes HTTP API
+    # Frontend má vlastní logger service který posílá logy do BE API endpoint
+    # Backend pak forwarduje do Loki s tenant kontextem
     logging:
-      driver: loki
+      driver: json-file
       options:
-        loki-url: "http://core-loki:3100/loki/api/v1/push"
-        loki-external-labels: "service=frontend,environment=production"
+        max-size: "10m"
+        max-file: "3"
     networks:
       - core-net
     restart: unless-stopped
@@ -362,6 +373,9 @@ services:
       # 🔄 Redirect configuration - relative path for multi-tenant support
       # Browser will use current domain (admin.core-platform.local or ten.core-platform.local)
       - GF_AUTH_SIGNOUT_REDIRECT_URL=/realms/admin/protocol/openid-connect/logout?redirect_uri=/core-admin/monitoring/
+      
+      # 📂 Provisioning paths
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
