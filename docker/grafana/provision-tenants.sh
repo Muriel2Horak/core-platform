@@ -141,7 +141,38 @@ for TENANT in $TENANTS; do
   
   echo "  ✅ Token created (length: ${#TOKEN})"
   
-  # Step 4: Save to database
+  # Step 4: Create datasources in the tenant org
+  echo "  📊 Creating datasources in org $ORG_ID..."
+  
+  # Create Loki datasource
+  echo "    → Creating Loki datasource (DS_LOKI)..."
+  LOKI_RESPONSE=$(curl -s -u "$GRAFANA_ADMIN_USER:$GRAFANA_ADMIN_PASSWORD" \
+    -H "X-Grafana-Org-Id: $ORG_ID" \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"name":"Loki","type":"loki","uid":"DS_LOKI","access":"proxy","url":"http://loki:3100","isDefault":true}' \
+    "$GRAFANA_URL/api/datasources")
+  
+  if echo "$LOKI_RESPONSE" | grep -q "Datasource added\|already exists"; then
+    echo "    ✅ Loki datasource ready"
+  else
+    echo "    ⚠️  Loki datasource: $LOKI_RESPONSE"
+  fi
+  
+  # Create Prometheus datasource
+  echo "    → Creating Prometheus datasource (DS_PROMETHEUS)..."
+  PROM_RESPONSE=$(curl -s -u "$GRAFANA_ADMIN_USER:$GRAFANA_ADMIN_PASSWORD" \
+    -H "X-Grafana-Org-Id: $ORG_ID" \
+    -X POST -H "Content-Type: application/json" \
+    -d '{"name":"Prometheus","type":"prometheus","uid":"DS_PROMETHEUS","access":"proxy","url":"http://prometheus:9090","isDefault":false}' \
+    "$GRAFANA_URL/api/datasources")
+  
+  if echo "$PROM_RESPONSE" | grep -q "Datasource added\|already exists"; then
+    echo "    ✅ Prometheus datasource ready"
+  else
+    echo "    ⚠️  Prometheus datasource: $PROM_RESPONSE"
+  fi
+  
+  # Step 5: Save to database
   echo "  💾 Saving to database..."
   PGPASSWORD=$DB_PASSWORD psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" <<EOF
 INSERT INTO grafana_tenant_bindings 

@@ -6,6 +6,7 @@ import cz.muriel.core.metamodel.schema.StreamingEntityConfig;
 import cz.muriel.core.metamodel.schema.StreamingGlobalConfig;
 import cz.muriel.core.streaming.dto.*;
 import cz.muriel.core.streaming.entity.CommandQueue;
+import cz.muriel.core.streaming.metrics.StreamingMetrics;
 import cz.muriel.core.streaming.repository.CommandQueueRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class StreamingAdminController {
 
   private final MetamodelLoader metamodelLoader;
   private final CommandQueueRepository commandQueueRepository;
+  private final StreamingMetrics streamingMetrics;
 
   @GetMapping("/config")
   public ResponseEntity<StreamingConfigResponse> getConfig() {
@@ -47,6 +49,27 @@ public class StreamingAdminController {
         .entities(entities).build();
 
     return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/metrics")
+  public ResponseEntity<Map<String, Object>> getMetrics() {
+    // Get metrics from StreamingMetrics and CommandQueue repository
+    long pendingCount = commandQueueRepository.countByStatus("pending");
+    long processingCount = commandQueueRepository.countByStatus("processing");
+    long dlqCount = commandQueueRepository.countByStatus("dlq");
+    long completedCount = commandQueueRepository.countByStatus("completed");
+    
+    Map<String, Object> metrics = Map.of(
+      "queueStatus", Map.of(
+        "pending", pendingCount,
+        "processing", processingCount,
+        "dlq", dlqCount,
+        "completed", completedCount
+      ),
+      "timestamp", System.currentTimeMillis()
+    );
+    
+    return ResponseEntity.ok(metrics);
   }
 
   @GetMapping("/dlq")

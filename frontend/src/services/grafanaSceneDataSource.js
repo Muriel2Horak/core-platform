@@ -17,14 +17,14 @@ export class GrafanaSceneDataSource {
    * Proxies request through /api/monitoring/ds/query
    */
   async query(request) {
-    console.log('[GrafanaSceneDataSource] 📊 Query request:', {
-      targets: request.targets?.length,
-      range: request.range,
-      intervalMs: request.intervalMs,
-    });
+    // console.log('[GrafanaSceneDataSource] 📊 Query request:', {
+    //   targets: request.targets?.length,
+    //   range: request.range,
+    //   intervalMs: request.intervalMs,
+    // });
     
     try {
-      console.log('[GrafanaSceneDataSource] 🌐 Sending POST to /api/monitoring/ds/query...');
+      // console.log('[GrafanaSceneDataSource] 🌐 Sending POST to /api/monitoring/ds/query...');
       const response = await axios.post('/api/monitoring/ds/query', {
         queries: request.targets.map(target => ({
           refId: target.refId,
@@ -52,10 +52,10 @@ export class GrafanaSceneDataSource {
         withCredentials: true,
       });
 
-      console.log('[GrafanaSceneDataSource] ✅ Query response:', {
-        status: response.status,
-        dataCount: response.data.results?.length,
-      });
+      // console.log('[GrafanaSceneDataSource] ✅ Query response:', {
+      //   status: response.status,
+      //   dataCount: response.data.results?.length,
+      // });
 
       return {
         data: response.data.results || [],
