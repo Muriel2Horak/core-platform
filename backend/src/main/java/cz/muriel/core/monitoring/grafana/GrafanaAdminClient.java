@@ -603,4 +603,171 @@ public class GrafanaAdminClient {
         orgId, e);
     throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
   }
+
+  // ==================== USER MANAGEMENT METHODS ====================
+
+  /**
+   * 🔍 LOOKUP USER BY EMAIL
+   * GET /api/users/lookup?loginOrEmail={email}
+   * Returns user info or throws 404 if not found
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "lookupUserFallback")
+  public Optional<UserLookupResponse> lookupUser(String loginOrEmail) {
+    log.debug("🔍 Looking up Grafana user: {}", loginOrEmail);
+
+    String url = grafanaUrl + "/api/users/lookup?loginOrEmail=" + loginOrEmail;
+    HttpHeaders headers = createAuthHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ResponseEntity<UserLookupResponse> response = restTemplate.exchange(
+          url, HttpMethod.GET, entity, UserLookupResponse.class);
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        UserLookupResponse user = response.getBody();
+        log.debug("✅ Found user: {} (id: {})", loginOrEmail, user.getId());
+        return Optional.of(user);
+      }
+
+      return Optional.empty();
+    } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+      log.debug("❌ User not found: {}", loginOrEmail);
+      return Optional.empty();
+    } catch (Exception e) {
+      log.error("❌ Failed to lookup user {}: {}", loginOrEmail, e.getMessage());
+      throw new GrafanaApiException("Failed to lookup user", e);
+    }
+  }
+
+  /**
+   * ➕ CREATE USER
+   * POST /api/admin/users
+   * Creates new Grafana user with email, name, and random password
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "createUserFallback")
+  public CreateUserResponse createUser(String email, String name) {
+    log.info("➕ Creating Grafana user: {} ({})", email, name);
+
+    String url = grafanaUrl + "/api/admin/users";
+    HttpHeaders headers = createAuthHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    // Generate random password (user will use SSO anyway)
+    String randomPassword = java.util.UUID.randomUUID().toString();
+    
+    CreateUserRequest request = new CreateUserRequest(email, name, email, randomPassword);
+    HttpEntity<CreateUserRequest> entity = new HttpEntity<>(request, headers);
+
+    try {
+      ResponseEntity<CreateUserResponse> response = restTemplate.exchange(
+          url, HttpMethod.POST, entity, CreateUserResponse.class);
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        CreateUserResponse body = response.getBody();
+        log.info("✅ User created: {} (id: {})", email, body.getId());
+        return body;
+      }
+
+      throw new GrafanaApiException("Unexpected response: " + response.getStatusCode());
+    } catch (org.springframework.web.client.HttpClientErrorException.Conflict e) {
+      // User already exists - lookup and return
+      log.warn("⚠️  User {} already exists (409), looking up existing user", email);
+      Optional<UserLookupResponse> existing = lookupUser(email);
+      if (existing.isPresent()) {
+        CreateUserResponse response = new CreateUserResponse();
+        response.setId(existing.get().getId());
+        response.setMessage("User already exists");
+        return response;
+      }
+      throw new GrafanaApiException("User exists but lookup failed", e);
+    } catch (Exception e) {
+      log.error("❌ Failed to create user {}: {}", email, e.getMessage());
+      throw new GrafanaApiException("Failed to create user", e);
+    }
+  }
+
+  /**
+   * 📋 GET USER ORGANIZATIONS
+   * GET /api/users/{userId}/orgs
+   * Returns list of organizations user belongs to
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "getUserOrgsFallback")
+  public List<UserOrgInfo> getUserOrgs(Long userId) {
+    log.debug("📋 Getting organizations for user: {}", userId);
+
+    String url = grafanaUrl + "/api/users/" + userId + "/orgs";
+    HttpHeaders headers = createAuthHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ResponseEntity<List<UserOrgInfo>> response = restTemplate.exchange(
+          url, HttpMethod.GET, entity, new ParameterizedTypeReference<List<UserOrgInfo>>() {});
+
+      if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+        log.debug("✅ User {} is member of {} orgs", userId, response.getBody().size());
+        return response.getBody();
+      }
+
+      return List.of();
+    } catch (Exception e) {
+      log.error("❌ Failed to get orgs for user {}: {}", userId, e.getMessage());
+      return List.of();
+    }
+  }
+
+  /**
+   * 🔄 SET USER ACTIVE ORGANIZATION
+   * POST /api/users/{userId}/using/{orgId}
+   * Sets the active/default organization for user's UI session
+   * 
+   * ✨ IDEMPOTENT: Can be called multiple times safely
+   */
+  @CircuitBreaker(name = "grafana", fallbackMethod = "setUserActiveOrgFallback")
+  public void setUserActiveOrg(Long userId, Long orgId) {
+    log.info("🔄 Setting active org {} for user {}", orgId, userId);
+
+    String url = grafanaUrl + "/api/users/" + userId + "/using/" + orgId;
+    HttpHeaders headers = createAuthHeaders();
+    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+    try {
+      ResponseEntity<SwitchOrgResponse> response = restTemplate.exchange(
+          url, HttpMethod.POST, entity, SwitchOrgResponse.class);
+
+      if (response.getStatusCode() == HttpStatus.OK) {
+        log.info("✅ Active org set to {} for user {}", orgId, userId);
+      } else {
+        log.warn("⚠️  Unexpected response: {}", response.getStatusCode());
+      }
+    } catch (Exception e) {
+      log.error("❌ Failed to set active org {} for user {}: {}", orgId, userId, e.getMessage());
+      throw new GrafanaApiException("Failed to set active org", e);
+    }
+  }
+
+  // ==================== FALLBACK METHODS FOR USER MANAGEMENT ====================
+
+  @SuppressWarnings("unused")
+  private Optional<UserLookupResponse> lookupUserFallback(String loginOrEmail, Exception e) {
+    log.error("⚠️ Circuit breaker: lookupUser fallback for {}", loginOrEmail, e);
+    return Optional.empty();
+  }
+
+  @SuppressWarnings("unused")
+  private CreateUserResponse createUserFallback(String email, String name, Exception e) {
+    log.error("⚠️ Circuit breaker: createUser fallback for {}", email, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
+
+  @SuppressWarnings("unused")
+  private List<UserOrgInfo> getUserOrgsFallback(Long userId, Exception e) {
+    log.error("⚠️ Circuit breaker: getUserOrgs fallback for user {}", userId, e);
+    return List.of();
+  }
+
+  @SuppressWarnings("unused")
+  private void setUserActiveOrgFallback(Long userId, Long orgId, Exception e) {
+    log.error("⚠️ Circuit breaker: setUserActiveOrg fallback for user {} org {}", userId, orgId, e);
+    throw new GrafanaApiException("Grafana service unavailable (circuit open)", e);
+  }
 }
