@@ -99,16 +99,6 @@ providers:
   # ==========================================
   # ORG 2 - Tenant: admin (tenant-specific dashboards)
   # ==========================================
-  
-  # System Monitoring (Axiom Package) - Org 2
-  - name: 'System Monitoring (Org 2)'
-    orgId: 2
-    folder: 'System Monitoring'
-    type: file
-    disableDeletion: true
-    editable: false
-    updateIntervalSeconds: 30
-    allowUiUpdates: false
-    options:
-      path: /etc/grafana/provisioning/dashboards/system
-      foldersFromFilesStructure: false
+  # NOTE: Org 2 dashboards are provisioned via entrypoint.sh background job
+  # Static provisioning removed to avoid race condition (Org 2 may not exist yet)
+
