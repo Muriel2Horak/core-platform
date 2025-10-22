@@ -178,7 +178,7 @@ public class AuthRequestController {
       // - BFF signs with RS256 private key
       // - Grafana verifies via BFF JWKS endpoint
       // - Includes orgId claim for multi-tenant support
-      // - TTL: 120s (short-lived for security)
+      // - TTL: 300s (5 min, matches Keycloak access token lifespan)
       String grafanaJwt = jwtService.mintGrafanaJwtFromKeycloakJwt(jwt);
 
       // CRITICAL: Nginx expects these headers

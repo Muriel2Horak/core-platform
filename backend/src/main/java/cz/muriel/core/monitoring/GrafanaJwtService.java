@@ -24,8 +24,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Service for minting short-lived Grafana JWT tokens from Keycloak identity
  * 
- * Security: - TTL: 120 seconds - JTI replay protection via Redis - HS256
- * signature (shared secret with Grafana) - Rate limiting in controller
+ * Security:
+ * - TTL: 300 seconds (5 min, matches Keycloak access token)
+ * - JTI replay protection via Redis
+ * - RS256 signature (asymmetric, verified via BFF JWKS)
+ * - Multi-realm support (realm-agnostic issuer)
+ * - Rate limiting in controller
  */
 @Service @Slf4j
 public class GrafanaJwtService {
@@ -34,7 +38,7 @@ public class GrafanaJwtService {
   private final GrafanaTenantRegistry tenantRegistry;
   private final JwksKeyProvider keyProvider;
 
-  @Value("${grafana.jwt.ttl:120}")
+  @Value("${grafana.jwt.ttl:300}")
   private int jwtTtl;
 
   @Value("${grafana.jwt.issuer:https://admin.core-platform.local/bff}")
