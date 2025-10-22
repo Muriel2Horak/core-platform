@@ -174,11 +174,16 @@ public class AuthRequestController {
         // Continue - Grafana JWT auth might still work via auto_sign_up
       }
 
+      // Generate Grafana-specific JWT with orgId claim
+      String grafanaJwt = jwtService.mintGrafanaJwtFromKeycloakJwt(jwt);
+
+      log.debug("✅ Minted Grafana JWT for user {} with orgId {}", username, grafanaOrgId);
+
       // CRITICAL: Nginx expects these headers
       // - Grafana-Jwt becomes grafana_jwt (lowercase)
       // - Grafana-Org-Id becomes grafana_org_id (lowercase)
       // - X-Grafana-Org-Id is passed directly to Grafana
-      return ResponseEntity.ok().header("Grafana-Jwt", token)
+      return ResponseEntity.ok().header("Grafana-Jwt", grafanaJwt)
           .header("Grafana-Org-Id", String.valueOf(grafanaOrgId))
           .header("X-Grafana-Org-Id", String.valueOf(grafanaOrgId)).build();
 
