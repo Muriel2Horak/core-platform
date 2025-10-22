@@ -1,6 +1,10 @@
 apiVersion: 1
 
 providers:
+  # ==========================================
+  # ORG 1 - Main Org (admin/system dashboards)
+  # ==========================================
+  
   # Custom dashboards (application-specific)
   - name: 'Custom'
     orgId: 1
@@ -27,7 +31,7 @@ providers:
       path: /etc/grafana/provisioning/dashboards/monitoring-bff
       foldersFromFilesStructure: false
   
-  # System Monitoring (Axiom Package)
+  # System Monitoring (Axiom Package) - Org 1
   - name: 'System Monitoring'
     orgId: 1
     folder: 'System Monitoring'
@@ -40,7 +44,7 @@ providers:
       path: /etc/grafana/provisioning/dashboards/system
       foldersFromFilesStructure: false
       
-  # Advanced Monitoring (Axiom Package)
+  # Advanced Monitoring (Axiom Package) - Org 1
   - name: 'Advanced Monitoring'
     orgId: 1
     folder: 'Advanced Monitoring'
@@ -79,7 +83,7 @@ providers:
       path: /etc/grafana/provisioning/dashboards/security
       foldersFromFilesStructure: false
       
-  # Audit (Axiom Package)
+  # Audit (Axiom Package) - Org 1
   - name: 'Audit'
     orgId: 1
     folder: 'Audit'
@@ -92,3 +96,19 @@ providers:
       path: /etc/grafana/provisioning/dashboards/audit
       foldersFromFilesStructure: false
 
+  # ==========================================
+  # ORG 2 - Tenant: admin (tenant-specific dashboards)
+  # ==========================================
+  
+  # System Monitoring (Axiom Package) - Org 2
+  - name: 'System Monitoring (Org 2)'
+    orgId: 2
+    folder: 'System Monitoring'
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/system
+      foldersFromFilesStructure: false

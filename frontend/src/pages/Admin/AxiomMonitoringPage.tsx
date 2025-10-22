@@ -41,18 +41,18 @@ export const AxiomMonitoringPage = () => {
     setTabValue(newValue);
   };
 
-  // Dashboard UIDs - Consolidated from all monitoring pages
+  // Dashboard UIDs with slugs - Grafana requires full path including slug
   const dashboards = {
-    system: 'axiom_sys_overview',
-    runtime: 'axiom_adv_runtime',
-    database: 'axiom_adv_db',
-    redis: 'axiom_adv_redis',
-    kafkaLag: 'axiom_kafka_lag',
-    security: 'axiom_security',
-    audit: 'axiom_audit',
-    logs: 'loki-overview',
-    performance: 'performance-dashboard',
-    platformHealth: 'core-platform-status',
+    system: 'axiom_sys_overview/system-overview',
+    runtime: 'axiom_adv_runtime/runtime-monitoring',
+    database: 'axiom_adv_db/database-monitoring',
+    redis: 'axiom_adv_redis/redis-monitoring',
+    kafkaLag: 'axiom_kafka_lag/kafka-lag-monitoring',
+    security: 'axiom_security/security-monitoring',
+    audit: 'axiom_audit/audit-monitoring',
+    logs: 'loki-overview/loki-overview',
+    performance: 'performance-dashboard/performance-dashboard',
+    platformHealth: 'core-platform-status/platform-health',
   };
 
   return (
@@ -154,7 +154,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed
-            path={`/d/${dashboards.system}?orgId=1&theme=light&kiosk=tv`}
+            path={`/d/${dashboards.system}`}
             height={900}
           />
         </TabPanel>
@@ -173,7 +173,7 @@ export const AxiomMonitoringPage = () => {
               Runtime & JVM
             </Typography>
             <GrafanaEmbed 
-              path={`/d/${dashboards.runtime}?orgId=1&theme=light&kiosk=tv`} 
+              path={`/d/${dashboards.runtime}`} 
               height={600} 
             />
           </Box>
@@ -183,7 +183,7 @@ export const AxiomMonitoringPage = () => {
               Database Operations
             </Typography>
             <GrafanaEmbed 
-              path={`/d/${dashboards.database}?orgId=1&theme=light&kiosk=tv`} 
+              path={`/d/${dashboards.database}`} 
               height={600} 
             />
           </Box>
@@ -193,7 +193,7 @@ export const AxiomMonitoringPage = () => {
               Redis Cache
             </Typography>
             <GrafanaEmbed 
-              path={`/d/${dashboards.redis}?orgId=1&theme=light&kiosk=tv`} 
+              path={`/d/${dashboards.redis}`} 
               height={600} 
             />
           </Box>
@@ -220,7 +220,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed 
-            path={`/d/${dashboards.kafkaLag}?orgId=1&theme=light&kiosk=tv`} 
+            path={`/d/${dashboards.kafkaLag}`} 
             height={900} 
           />
         </TabPanel>
@@ -246,7 +246,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed 
-            path={`/d/${dashboards.security}?orgId=1&theme=light&kiosk=tv`} 
+            path={`/d/${dashboards.security}`} 
             height={900} 
           />
         </TabPanel>
@@ -272,7 +272,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed 
-            path={`/d/${dashboards.audit}?orgId=1&theme=light&kiosk=tv`} 
+            path={`/d/${dashboards.audit}`} 
             height={900} 
           />
         </TabPanel>
@@ -298,7 +298,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed 
-            path={`/d/${dashboards.performance}?orgId=1&theme=light&kiosk=tv`} 
+            path={`/d/${dashboards.performance}`} 
             height={900} 
           />
         </TabPanel>
@@ -324,7 +324,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed 
-            path={`/d/${dashboards.platformHealth}?orgId=1&theme=light&kiosk=tv`} 
+            path={`/d/${dashboards.platformHealth}`} 
             height={900} 
           />
         </TabPanel>
@@ -350,7 +350,7 @@ export const AxiomMonitoringPage = () => {
             </Button>
           </Box>
           <GrafanaEmbed 
-            path={`/d/${dashboards.logs}?orgId=1&theme=light&kiosk=tv`} 
+            path={`/d/${dashboards.logs}`} 
             height={900} 
           />
         </TabPanel>

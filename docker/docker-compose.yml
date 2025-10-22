@@ -119,6 +119,7 @@ services:
       - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
       - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
       # 📊 Grafana SSO Integration
+      - GRAFANA_JWT_TTL=${GRAFANA_JWT_TTL:-300}  # Must match Keycloak access token lifespan (5 min)
       - GRAFANA_JWT_SECRET=${GRAFANA_JWT_SECRET:-change-me-in-production-to-secure-random-256bit-key}
       # 📊 Loki Configuration (aplikační logging přes Logback)
       - LOKI_URL=http://core-loki:3100/loki/api/v1/push
@@ -342,11 +343,15 @@ services:
       # PRODUCTION READY: Use HTTPS with mounted SSL cert
       - GF_AUTH_JWT_JWK_SET_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
       - GF_AUTH_JWT_URL_LOGIN=false
-      - GF_AUTH_JWT_CACHE_TTL=60m
+      # ⚠️ CRITICAL: Must match backend grafana.jwt.ttl (300s = 5 min)
+      # Set to 0s to disable caching for maximum security (validates every request)
+      - GF_AUTH_JWT_CACHE_TTL=${GRAFANA_JWT_CACHE_TTL:-5m}
       - GF_AUTH_JWT_AUTO_SIGN_UP=true
       # 🎭 Role mapping based on Keycloak roles
       - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_MONITORING') && 'Editor' || contains(realm_access.roles[*], 'CORE_TENANT_ADMIN') && 'Editor' || contains(realm_access.roles[*], 'CORE_ROLE_TENANT_MONITORING') && 'Viewer' || 'Viewer'
       - GF_AUTH_JWT_SKIP_ORG_ROLE_SYNC=false
+      # 🏢 CRITICAL: Org ID claim - maps JWT orgId claim to Grafana organization
+      - GF_AUTH_JWT_ORG_ID_CLAIM=orgId
       
       # 🔓 DŮLEŽITÉ: Povolit login form pro fallback + admin přístup
       - GF_AUTH_DISABLE_LOGIN_FORM=false

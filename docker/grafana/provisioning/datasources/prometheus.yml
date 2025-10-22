@@ -1,8 +1,10 @@
 apiVersion: 1
 
 datasources:
+  # ORG 1 - Main Org
   - name: Prometheus
     uid: DS_PROMETHEUS
+    orgId: 1
     type: prometheus
     access: proxy
     url: http://prometheus:9090
