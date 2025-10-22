@@ -272,11 +272,18 @@
 			</exclusions>
 		</dependency>
 
-		<!-- Auth0 JWT library for Grafana JWT minting -->
+		<!-- Auth0 JWT library for Grafana JWT minting (legacy HMAC) -->
 		<dependency>
 			<groupId>com.auth0</groupId>
 			<artifactId>java-jwt</artifactId>
 			<version>4.4.0</version>
+		</dependency>
+
+		<!-- Nimbus JOSE+JWT for RS256 signing and JWKS support -->
+		<dependency>
+			<groupId>com.nimbusds</groupId>
+			<artifactId>nimbus-jose-jwt</artifactId>
+			<version>9.37.3</version>
 		</dependency>
 
 		<!-- Testcontainers pro integration testy -->

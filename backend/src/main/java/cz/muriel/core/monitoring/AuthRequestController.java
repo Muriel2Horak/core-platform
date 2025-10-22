@@ -174,17 +174,18 @@ public class AuthRequestController {
         // Continue - Grafana JWT auth might still work via auto_sign_up
       }
 
-      // Generate Grafana-specific JWT with orgId claim
+      // 🔑 MINT SHORT-LIVED GRAFANA JWT (RS256)
+      // - BFF signs with RS256 private key
+      // - Grafana verifies via BFF JWKS endpoint
+      // - Includes orgId claim for multi-tenant support
+      // - TTL: 120s (short-lived for security)
       String grafanaJwt = jwtService.mintGrafanaJwtFromKeycloakJwt(jwt);
 
-      log.debug("✅ Minted Grafana JWT for user {} with orgId {}", username, grafanaOrgId);
-
       // CRITICAL: Nginx expects these headers
-      // - Grafana-Jwt becomes grafana_jwt (lowercase)
-      // - Grafana-Org-Id becomes grafana_org_id (lowercase)
-      // - X-Grafana-Org-Id is passed directly to Grafana
+      // - Grafana-Jwt: BFF-minted JWT with orgId claim (RS256)
+      // - X-Grafana-Org-Id: Redundant but explicit org selection
+      // Grafana-Jwt becomes grafana_jwt (lowercase), X-Grafana-Org-Id passed directly
       return ResponseEntity.ok().header("Grafana-Jwt", grafanaJwt)
-          .header("Grafana-Org-Id", String.valueOf(grafanaOrgId))
           .header("X-Grafana-Org-Id", String.valueOf(grafanaOrgId)).build();
 
     } catch (Exception e) {

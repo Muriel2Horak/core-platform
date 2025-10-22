@@ -337,11 +337,11 @@ services:
       - GF_AUTH_JWT_HEADER_NAME=X-Org-JWT
       - GF_AUTH_JWT_USERNAME_CLAIM=preferred_username
       - GF_AUTH_JWT_EMAIL_CLAIM=email
-      # 🔑 JWT Verification via JWK Set URL
-      # Backend passes Keycloak JWT - Grafana verifies with Keycloak's public key
-      # Using Keycloak's JWK endpoint for signature verification
-      # PRODUCTION READY: Use HTTPS with mounted SSL cert
-      - GF_AUTH_JWT_JWK_SET_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
+      # 🔑 JWT Verification - Use BFF's public key (RS256)
+      # BFF mints short-lived JWT (120s) with orgId claim
+      # Grafana verifies signature via BFF JWKS endpoint (internal HTTP)
+      # This solves multi-realm problem: one JWKS for all tenants
+      - GF_AUTH_JWT_JWK_SET_URL=http://backend:8080/.well-known/jwks.json
       - GF_AUTH_JWT_URL_LOGIN=false
       # ⚠️ CRITICAL: Must match backend grafana.jwt.ttl (300s = 5 min)
       # Set to 0s to disable caching for maximum security (validates every request)
