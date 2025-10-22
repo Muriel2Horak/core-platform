@@ -339,9 +339,9 @@ services:
       - GF_AUTH_JWT_EMAIL_CLAIM=email
       # 🔑 JWT Verification - Use BFF's public key (RS256)
       # BFF mints short-lived JWT (300s = 5 min) with orgId claim
-      # Grafana verifies signature via BFF JWKS endpoint (internal HTTP)
+      # Grafana verifies signature via BFF JWKS endpoint (HTTPS via Nginx proxy)
       # This solves multi-realm problem: one JWKS for all tenants
-      - GF_AUTH_JWT_JWK_SET_URL=http://backend:8080/.well-known/jwks.json
+      - GF_AUTH_JWT_JWK_SET_URL=https://admin.${DOMAIN:-core-platform.local}/.well-known/jwks.json
       - GF_AUTH_JWT_URL_LOGIN=false
       # ⚠️ CRITICAL: JWT TTL and cache must align (both 300s = 5 min)
       # - Backend: ${GRAFANA_JWT_TTL} (from .env, default 300)
