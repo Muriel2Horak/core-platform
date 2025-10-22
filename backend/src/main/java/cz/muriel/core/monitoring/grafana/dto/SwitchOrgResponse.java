@@ -6,8 +6,7 @@ import lombok.Data;
 /**
  * Response from POST /api/users/{userId}/using/{orgId}
  */
-@Data
-@JsonIgnoreProperties(ignoreUnknown = true)
+@Data @JsonIgnoreProperties(ignoreUnknown = true)
 public class SwitchOrgResponse {
-    private String message;
+  private String message;
 }

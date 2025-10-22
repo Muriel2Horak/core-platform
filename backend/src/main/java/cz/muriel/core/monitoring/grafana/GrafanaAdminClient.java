@@ -607,9 +607,8 @@ public class GrafanaAdminClient {
   // ==================== USER MANAGEMENT METHODS ====================
 
   /**
-   * 🔍 LOOKUP USER BY EMAIL
-   * GET /api/users/lookup?loginOrEmail={email}
-   * Returns user info or throws 404 if not found
+   * 🔍 LOOKUP USER BY EMAIL GET /api/users/lookup?loginOrEmail={email} Returns
+   * user info or throws 404 if not found
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "lookupUserFallback")
   public Optional<UserLookupResponse> lookupUser(String loginOrEmail) {
@@ -620,8 +619,8 @@ public class GrafanaAdminClient {
     HttpEntity<Void> entity = new HttpEntity<>(headers);
 
     try {
-      ResponseEntity<UserLookupResponse> response = restTemplate.exchange(
-          url, HttpMethod.GET, entity, UserLookupResponse.class);
+      ResponseEntity<UserLookupResponse> response = restTemplate.exchange(url, HttpMethod.GET,
+          entity, UserLookupResponse.class);
 
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         UserLookupResponse user = response.getBody();
@@ -640,9 +639,8 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * ➕ CREATE USER
-   * POST /api/admin/users
-   * Creates new Grafana user with email, name, and random password
+   * ➕ CREATE USER POST /api/admin/users Creates new Grafana user with email,
+   * name, and random password
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "createUserFallback")
   public CreateUserResponse createUser(String email, String name) {
@@ -654,13 +652,13 @@ public class GrafanaAdminClient {
 
     // Generate random password (user will use SSO anyway)
     String randomPassword = java.util.UUID.randomUUID().toString();
-    
+
     CreateUserRequest request = new CreateUserRequest(email, name, email, randomPassword);
     HttpEntity<CreateUserRequest> entity = new HttpEntity<>(request, headers);
 
     try {
-      ResponseEntity<CreateUserResponse> response = restTemplate.exchange(
-          url, HttpMethod.POST, entity, CreateUserResponse.class);
+      ResponseEntity<CreateUserResponse> response = restTemplate.exchange(url, HttpMethod.POST,
+          entity, CreateUserResponse.class);
 
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         CreateUserResponse body = response.getBody();
@@ -687,9 +685,8 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 📋 GET USER ORGANIZATIONS
-   * GET /api/users/{userId}/orgs
-   * Returns list of organizations user belongs to
+   * 📋 GET USER ORGANIZATIONS GET /api/users/{userId}/orgs Returns list of
+   * organizations user belongs to
    */
   @CircuitBreaker(name = "grafana", fallbackMethod = "getUserOrgsFallback")
   public List<UserOrgInfo> getUserOrgs(Long userId) {
@@ -700,8 +697,9 @@ public class GrafanaAdminClient {
     HttpEntity<Void> entity = new HttpEntity<>(headers);
 
     try {
-      ResponseEntity<List<UserOrgInfo>> response = restTemplate.exchange(
-          url, HttpMethod.GET, entity, new ParameterizedTypeReference<List<UserOrgInfo>>() {});
+      ResponseEntity<List<UserOrgInfo>> response = restTemplate.exchange(url, HttpMethod.GET,
+          entity, new ParameterizedTypeReference<List<UserOrgInfo>>() {
+          });
 
       if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
         log.debug("✅ User {} is member of {} orgs", userId, response.getBody().size());
@@ -716,9 +714,8 @@ public class GrafanaAdminClient {
   }
 
   /**
-   * 🔄 SET USER ACTIVE ORGANIZATION
-   * POST /api/users/{userId}/using/{orgId}
-   * Sets the active/default organization for user's UI session
+   * 🔄 SET USER ACTIVE ORGANIZATION POST /api/users/{userId}/using/{orgId} Sets
+   * the active/default organization for user's UI session
    * 
    * ✨ IDEMPOTENT: Can be called multiple times safely
    */
@@ -731,8 +728,8 @@ public class GrafanaAdminClient {
     HttpEntity<Void> entity = new HttpEntity<>(headers);
 
     try {
-      ResponseEntity<SwitchOrgResponse> response = restTemplate.exchange(
-          url, HttpMethod.POST, entity, SwitchOrgResponse.class);
+      ResponseEntity<SwitchOrgResponse> response = restTemplate.exchange(url, HttpMethod.POST,
+          entity, SwitchOrgResponse.class);
 
       if (response.getStatusCode() == HttpStatus.OK) {
         log.info("✅ Active org set to {} for user {}", orgId, userId);
@@ -745,7 +742,8 @@ public class GrafanaAdminClient {
     }
   }
 
-  // ==================== FALLBACK METHODS FOR USER MANAGEMENT ====================
+  // ==================== FALLBACK METHODS FOR USER MANAGEMENT
+  // ====================
 
   @SuppressWarnings("unused")
   private Optional<UserLookupResponse> lookupUserFallback(String loginOrEmail, Exception e) {

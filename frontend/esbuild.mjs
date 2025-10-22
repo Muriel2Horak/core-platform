@@ -117,11 +117,32 @@ if (isDev) {
   console.log(`🚀 Dev server running at http://${host}:${port}`);
   console.log('👀 Watching for changes (main app)...');
 } else {
-  // Production build - single bundle only
+  // Production build - single bundle with cache busting
   try {
     console.log('🏗️  Building main app (includes scenes)...');
     await build(mainAppBuildOptions);
     console.log('✅ Main app built successfully!');
+    
+    // Generate index.html with cache-busted bundle reference
+    const buildTimestamp = Date.now();
+    const { readFileSync, writeFileSync } = await import('fs');
+    
+    // Read template index.html from public/
+    let indexHtml = readFileSync('public/index.html', 'utf-8');
+    
+    // Replace bundle.js with cache-busted version
+    indexHtml = indexHtml.replace(
+      /bundle\.js/g,
+      `bundle.js?v=${buildTimestamp}`
+    );
+    indexHtml = indexHtml.replace(
+      /bundle\.css/g,
+      `bundle.css?v=${buildTimestamp}`
+    );
+    
+    // Write to dist/
+    writeFileSync('dist/index.html', indexHtml);
+    console.log(`✅ index.html generated with cache-bust timestamp: ${buildTimestamp}`);
     
     console.log('✅ Build completed successfully!');
   } catch (err) {

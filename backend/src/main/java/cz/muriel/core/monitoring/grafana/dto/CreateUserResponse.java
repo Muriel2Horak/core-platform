@@ -6,9 +6,8 @@ import lombok.Data;
 /**
  * Response from Grafana POST /api/admin/users
  */
-@Data
-@JsonIgnoreProperties(ignoreUnknown = true)
+@Data @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateUserResponse {
-    private Long id;
-    private String message;
+  private Long id;
+  private String message;
 }
