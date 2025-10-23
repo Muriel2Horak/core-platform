@@ -23,7 +23,7 @@ services:
       keycloak:
         condition: service_started
       grafana:
-        condition: service_started
+        condition: service_healthy  # ✅ FIX: Čeká na Grafana health check
     networks:
       - core-net
     restart: unless-stopped
@@ -423,6 +423,12 @@ services:
         condition: service_started
       jwks-refresher:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   jwks-refresher:
     image: curlimages/curl:8.10.1
