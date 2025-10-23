@@ -5,6 +5,9 @@ echo "================================================"
 echo "  Grafana Multi-Tenant Initialization"
 echo "================================================"
 
+# NOTE: JWKS fetch is now handled by separate jwks-refresher sidecar container
+# No need to fetch here or run background loop
+
 # Wait for PostgreSQL
 echo "⏳ Waiting for PostgreSQL..."
 until PGPASSWORD="${GF_DATABASE_PASSWORD}" psql -h "${GF_DATABASE_HOST%%:*}" -U "${GF_DATABASE_USER}" -d "${GF_DATABASE_NAME}" -c '\q' 2>/dev/null; do
@@ -12,6 +15,24 @@ until PGPASSWORD="${GF_DATABASE_PASSWORD}" psql -h "${GF_DATABASE_HOST%%:*}" -U 
     sleep 2
 done
 echo "✅ PostgreSQL is ready"
+
+# Wait for JWKS file from refresher sidecar
+echo "⏳ Waiting for JWKS file from refresher..."
+RETRY=0
+MAX_RETRIES=30
+while [ $RETRY -lt $MAX_RETRIES ]; do
+    if [ -f "/var/lib/grafana/jwks.json" ]; then
+        echo "✅ JWKS file found"
+        break
+    fi
+    echo "   JWKS not ready yet - sleeping"
+    sleep 2
+    RETRY=$((RETRY + 1))
+done
+
+if [ ! -f "/var/lib/grafana/jwks.json" ]; then
+    echo "⚠️  WARNING: JWKS file not found after waiting, Grafana may fail JWT validation"
+fi
 
 # Background job to create organizations after Grafana starts
 (

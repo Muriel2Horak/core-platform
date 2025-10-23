@@ -17,18 +17,13 @@ import java.util.UUID;
 /**
  * Provides RS256 keypair for Grafana JWT signing
  * 
- * Key rotation:
- * - In-memory keys (generated on startup)
- * - TODO: Load from K8s secret in production
- * - TODO: Support multiple kids for zero-downtime rotation
+ * Key rotation: - In-memory keys (generated on startup) - TODO: Load from K8s
+ * secret in production - TODO: Support multiple kids for zero-downtime rotation
  * 
- * Security:
- * - Private key never leaves BFF
- * - Public key exposed via JWKS endpoint
- * - 2048-bit RSA (industry standard)
+ * Security: - Private key never leaves BFF - Public key exposed via JWKS
+ * endpoint - 2048-bit RSA (industry standard)
  */
-@Component
-@Slf4j
+@Component @Slf4j
 public class JwksKeyProvider {
 
   @Value("${grafana.jwt.key-id:grafana-bff-key-1}")
@@ -47,13 +42,14 @@ public class JwksKeyProvider {
       RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
       RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-      // Build JWK with kid
+      // Build JWK with kid and algorithm (required for Grafana go-jose library)
       this.rsaKey = new RSAKey.Builder(publicKey)
           .privateKey(privateKey)
           .keyID(keyId)
+          .algorithm(com.nimbusds.jose.JWSAlgorithm.RS256)  // Explicit alg for JWKS
           .build();
 
-      log.info("✅ Generated RSA-2048 keypair for Grafana JWT signing (kid={})", keyId);
+      log.info("✅ Generated RSA-2048 keypair for Grafana JWT signing (kid={}, alg=RS256)", keyId);
 
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("Failed to generate RSA keypair", e);

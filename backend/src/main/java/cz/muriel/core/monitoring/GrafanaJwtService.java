@@ -24,12 +24,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * Service for minting short-lived Grafana JWT tokens from Keycloak identity
  * 
- * Security:
- * - TTL: 300 seconds (5 min, matches Keycloak access token)
- * - JTI replay protection via Redis
- * - RS256 signature (asymmetric, verified via BFF JWKS)
- * - Multi-realm support (realm-agnostic issuer)
- * - Rate limiting in controller
+ * Security: - TTL: 300 seconds (5 min, matches Keycloak access token) - JTI
+ * replay protection via Redis - RS256 signature (asymmetric, verified via BFF
+ * JWKS) - Multi-realm support (realm-agnostic issuer) - Rate limiting in
+ * controller
  */
 @Service @Slf4j
 public class GrafanaJwtService {
@@ -44,8 +42,7 @@ public class GrafanaJwtService {
   @Value("${grafana.jwt.issuer:https://admin.core-platform.local/bff}")
   private String issuer;
 
-  public GrafanaJwtService(StringRedisTemplate redisTemplate,
-      GrafanaTenantRegistry tenantRegistry,
+  public GrafanaJwtService(StringRedisTemplate redisTemplate, GrafanaTenantRegistry tenantRegistry,
       JwksKeyProvider keyProvider) {
     this.redisTemplate = redisTemplate;
     this.tenantRegistry = tenantRegistry;
@@ -53,9 +50,9 @@ public class GrafanaJwtService {
   }
 
   /**
-   * Mint short-lived Grafana JWT from Keycloak authentication
-   * DEPRECATED: Use mintGrafanaJwtFromKeycloakJwt() instead
-   * Kept for backward compatibility with old endpoints
+   * Mint short-lived Grafana JWT from Keycloak authentication DEPRECATED: Use
+   * mintGrafanaJwtFromKeycloakJwt() instead Kept for backward compatibility with
+   * old endpoints
    */
   @Deprecated
   public String mintGrafanaJwt(Authentication authentication) {
@@ -149,23 +146,15 @@ public class GrafanaJwtService {
       Instant expiry = now.plusSeconds(jwtTtl);
 
       // Build JWT header with kid
-      JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
-          .keyID(keyProvider.getKeyId())
+      JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keyProvider.getKeyId())
           .build();
 
       // Build JWT claims
-      JWTClaimsSet claims = new JWTClaimsSet.Builder()
-          .issuer(issuer)
-          .subject(username)
-          .claim("email", email)
-          .claim("name", name != null ? name : username)
-          .claim("preferred_username", username)
-          .claim("orgId", grafanaOrgId)
-          .claim("role", grafanaRole)
-          .issueTime(Date.from(now))
-          .expirationTime(Date.from(expiry))
-          .jwtID(jti)
-          .build();
+      JWTClaimsSet claims = new JWTClaimsSet.Builder().issuer(issuer).subject(username)
+          .claim("email", email).claim("name", name != null ? name : username)
+          .claim("preferred_username", username).claim("orgId", grafanaOrgId)
+          .claim("role", grafanaRole).issueTime(Date.from(now)).expirationTime(Date.from(expiry))
+          .jwtID(jti).build();
 
       // Sign JWT with RS256
       SignedJWT signedJWT = new SignedJWT(header, claims);
@@ -177,7 +166,8 @@ public class GrafanaJwtService {
       // Store JTI for replay protection
       redisTemplate.opsForValue().set("grafana:jti:" + jti, "used", jwtTtl, TimeUnit.SECONDS);
 
-      log.debug("✅ Minted RS256 Grafana JWT for user={}, tenant={}, orgId={}, role={}, ttl={}s, kid={}", 
+      log.debug(
+          "✅ Minted RS256 Grafana JWT for user={}, tenant={}, orgId={}, role={}, ttl={}s, kid={}",
           username, tenantId, grafanaOrgId, grafanaRole, jwtTtl, keyProvider.getKeyId());
 
       return jwt;

@@ -87,8 +87,10 @@ http {
         location = /_auth/grafana {
             internal;
             proxy_pass http://backend/internal/auth/grafana;
-            # CRITICAL: Pass 'at' cookie explicitly (auth_request doesn't forward cookies automatically)
-            proxy_set_header Cookie "at=$cookie_at";
+            # CRITICAL: Pass ALL cookies from original request (auth_request doesn't forward cookies automatically)
+            # $http_cookie is from the PARENT request, not the subrequest
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header X-Original-URI $request_uri;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_pass_request_body off;
             proxy_set_header Content-Length "";
@@ -280,6 +282,21 @@ http {
             proxy_ssl_verify off;
         }
         
+        # 🔗 BACKEND INTERNAL ENDPOINTS - pro auth_request a další internal použití
+        location /internal/ {
+            proxy_pass http://backend;
+            
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Port 443;
+            
+            # Pass cookies for session validation
+            proxy_set_header Cookie $http_cookie;
+        }
+        
         # 🔗 BACKEND API - transparentně pro všechny subdomény
         location /api/ {
             proxy_pass http://backend;
@@ -292,27 +309,17 @@ http {
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-Port 443;
             
-            # CORS headers - dynamické pro aktuální host
-            add_header 'Access-Control-Allow-Origin' 'https://$host' always;
-            add_header 'Access-Control-Allow-Credentials' 'true' always;
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
-            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            # 🔐 Cookie security hardening for iFrame SSO
+            # SameSite=None required for cross-site iFrame embedding
+            # Secure flag ensures HTTPS-only transmission
+            proxy_cookie_flags ~ secure samesite=none;
             
-            # CORS preflight
-            if ($request_method = 'OPTIONS') {
-                add_header 'Access-Control-Allow-Origin' 'https://$host';
-                add_header 'Access-Control-Allow-Credentials' 'true';
-                add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS';
-                add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization';
-                add_header 'Access-Control-Max-Age' 86400;
-                add_header 'Content-Type' 'text/plain charset=UTF-8';
-                add_header 'Content-Length' 0;
-                return 204;
-            }
+            # Cookie domain configuration for multi-tenant support
+            # Rewrite domain to match current subdomain (admin.*, ten.*, etc.)
+            proxy_cookie_domain backend $host;
             
-            proxy_connect_timeout 30s;
-            proxy_send_timeout 30s;
-            proxy_read_timeout 30s;
+            # Ensure cookie path is scoped correctly
+            proxy_cookie_path / /;
         }
         
         # 🌐 FRONTEND - transparentně pro všechny subdomény (nejnižší priorita)

@@ -14,15 +14,10 @@ import java.util.Map;
  * 
  * Exposes BFF's public key so Grafana can verify JWT signatures
  * 
- * Security:
- * - Public endpoint (no auth required)
- * - Read-only (GET only)
- * - No sensitive data (only public key)
- * - Cached by Grafana (TTL: 5 min)
+ * Security: - Public endpoint (no auth required) - Read-only (GET only) - No
+ * sensitive data (only public key) - Cached by Grafana (TTL: 5 min)
  */
-@RestController
-@RequestMapping("/.well-known")
-@Slf4j
+@RestController @RequestMapping("/.well-known") @Slf4j
 public class JwksController {
 
   private final RSAKey publicJwk;
@@ -35,8 +30,8 @@ public class JwksController {
   /**
    * Standard JWKS endpoint for JWT verification
    * 
-   * Returns public key in JWK format
-   * Format: https://datatracker.ietf.org/doc/html/rfc7517
+   * Returns public key in JWK format Format:
+   * https://datatracker.ietf.org/doc/html/rfc7517
    */
   @GetMapping("/jwks.json")
   public Map<String, Object> getJwks() {

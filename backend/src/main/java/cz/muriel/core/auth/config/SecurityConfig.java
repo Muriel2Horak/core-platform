@@ -73,6 +73,7 @@ public class SecurityConfig {
             .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico")
             .permitAll().requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+            .requestMatchers("/api/admin/logs/export/test").permitAll() // E2E test endpoint
 
             // All other API endpoints require authentication
             .requestMatchers("/api/**").authenticated().anyRequest().permitAll())

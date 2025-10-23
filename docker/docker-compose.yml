@@ -320,7 +320,9 @@ services:
     build:
       context: .
       dockerfile: grafana/Dockerfile
-    image: core-grafana:custom
+      args:
+        GRAFANA_VERSION: "11.3.0"
+    image: core-grafana:11.3.0-custom
     container_name: core-grafana
     environment:
       # 🗄️ PostgreSQL Database (instead of SQLite for persistence across restarts)
@@ -332,16 +334,17 @@ services:
       - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
       - GF_DATABASE_SSL_MODE=disable
       
-      # �🔐 JWT Authentication (Primary - for iframe embedding)
+      # 🔐 JWT Authentication (Primary - for iframe embedding)
       - GF_AUTH_JWT_ENABLED=true
       - GF_AUTH_JWT_HEADER_NAME=X-Org-JWT
       - GF_AUTH_JWT_USERNAME_CLAIM=preferred_username
       - GF_AUTH_JWT_EMAIL_CLAIM=email
       # 🔑 JWT Verification - Use BFF's public key (RS256)
       # BFF mints short-lived JWT (300s = 5 min) with orgId claim
-      # Grafana verifies signature via BFF JWKS endpoint (HTTPS via Nginx proxy)
-      # This solves multi-realm problem: one JWKS for all tenants
-      - GF_AUTH_JWT_JWK_SET_URL=https://admin.${DOMAIN:-core-platform.local}/.well-known/jwks.json
+      # Grafana verifies signature via BFF JWKS endpoint (Docker internal network)
+      # WORKAROUND: Grafana 11.3 requires HTTPS for jwk_set_url but doesn't support tls_skip_verify
+      # Solution: Use jwk_set_file with periodic HTTP fetch from backend (secure within Docker network)
+      - GF_AUTH_JWT_JWK_SET_FILE=/var/lib/grafana/jwks.json
       - GF_AUTH_JWT_URL_LOGIN=false
       # ⚠️ CRITICAL: JWT TTL and cache must align (both 300s = 5 min)
       # - Backend: ${GRAFANA_JWT_TTL} (from .env, default 300)
@@ -353,6 +356,12 @@ services:
       - GF_AUTH_JWT_SKIP_ORG_ROLE_SYNC=false
       # 🏢 CRITICAL: Org ID claim - maps JWT orgId claim to Grafana organization
       - GF_AUTH_JWT_ORG_ID_CLAIM=orgId
+      # 🔒 JWT Validation - issuer validation (recommended for security)
+      # Grafana 11.x supports expect_claims as JSON object
+      # NOTE: Removed aud validation - BFF JWT doesn't include audience claim
+      - GF_AUTH_JWT_EXPECT_CLAIMS={"iss":"https://admin.core-platform.local/bff"}
+      # 📊 Enhanced logging for JWT auth debugging
+      - GF_LOG_FILTERS=auth.jwt:debug
       
       # 🔓 DŮLEŽITÉ: Povolit login form pro fallback + admin přístup
       - GF_AUTH_DISABLE_LOGIN_FORM=false
@@ -396,6 +405,7 @@ services:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./ssl/cert.pem:/etc/grafana/ssl/cert.pem:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/jwt-secret.key:/etc/grafana/jwt-secret.key:ro
       # DISABLED: grafana.ini mount - using env vars only
@@ -411,6 +421,64 @@ services:
         condition: service_started
       loki:
         condition: service_started
+      jwks-refresher:
+        condition: service_healthy
+
+  jwks-refresher:
+    image: curlimages/curl:8.10.1
+    container_name: core-jwks-refresher
+    user: root  # Required for jq installation and script execution
+    environment:
+      - JWKS_URL=http://backend:8080/.well-known/jwks.json
+      - JWKS_FILE=/var/lib/grafana/jwks.json
+      - REFRESH_INTERVAL=300
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/scripts/fetch-jwks.sh:/usr/local/bin/fetch-jwks.sh:ro
+    networks:
+      - core-net
+    depends_on:
+      backend:
+        condition: service_started
+    command: >
+      sh -c '
+        # Make script executable (readonly mount workaround)
+        cp /usr/local/bin/fetch-jwks.sh /tmp/fetch-jwks.sh;
+        chmod +x /tmp/fetch-jwks.sh;
+        
+        echo "🚀 JWKS Refresher starting...";
+        echo "   JWKS_URL: $$JWKS_URL";
+        echo "   JWKS_FILE: $$JWKS_FILE";
+        echo "   REFRESH_INTERVAL: $${REFRESH_INTERVAL}s";
+        
+        # Install jq for JSON validation
+        apk add --no-cache jq >/dev/null 2>&1 || echo "⚠️  jq installation failed, validation disabled";
+        
+        # Initial fetch (retry until backend is ready)
+        echo "📥 Waiting for backend to be ready...";
+        for i in $$(seq 1 30); do
+          if /tmp/fetch-jwks.sh; then
+            echo "✅ Initial JWKS fetch successful";
+            break;
+          else
+            echo "   Attempt $$i failed, retrying in 5s...";
+            sleep 5;
+          fi;
+        done;
+        
+        # Background refresh loop
+        echo "🔄 Starting refresh loop (every $${REFRESH_INTERVAL}s)";
+        while true; do
+          sleep $${REFRESH_INTERVAL};
+          /tmp/fetch-jwks.sh || echo "⚠️  Refresh failed, will retry in $${REFRESH_INTERVAL}s";
+        done
+      '
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "test", "-f", "/var/lib/grafana/jwks.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   loki:
     image: grafana/loki:3.0.0

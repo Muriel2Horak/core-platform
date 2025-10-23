@@ -1,4 +1,5 @@
-FROM grafana/grafana:10.4.0
+ARG GRAFANA_VERSION=11.3.0
+FROM grafana/grafana:${GRAFANA_VERSION}
 
 USER root
 
@@ -13,7 +14,8 @@ RUN update-ca-certificates
 
 # Copy custom entrypoint script
 COPY grafana/scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY grafana/scripts/fetch-jwks.sh /usr/local/bin/fetch-jwks.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/fetch-jwks.sh
 
 # Switch back to grafana user
 USER grafana
