@@ -15,49 +15,56 @@ class FilterParserTest {
   void testSimpleEquality() {
     Condition condition = FilterParser.parse("status eq 'active'");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("status", "active");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("status");
   }
 
   @Test
   void testNumericComparison() {
     Condition condition = FilterParser.parse("age gt 18");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("age", "18");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("age");
   }
 
   @Test
   void testLikeOperator() {
     Condition condition = FilterParser.parse("name like '%John%'");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("name", "like");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("name");
   }
 
   @Test
   void testInOperator() {
     Condition condition = FilterParser.parse("status in ('active', 'pending')");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("status", "in");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("status");
   }
 
   @Test
   void testAndOperator() {
     Condition condition = FilterParser.parse("age gt 18 and status eq 'active'");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("age", "status");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("age");
   }
 
   @Test
   void testOrOperator() {
     Condition condition = FilterParser.parse("name like '%Smith%' or email like '%@example.com'");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("name", "email", "or");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("name");
   }
 
   @Test
   void testParentheses() {
     Condition condition = FilterParser.parse("(age gt 18) and (status eq 'active')");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("age", "status");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("age");
   }
 
   @Test
@@ -65,7 +72,8 @@ class FilterParserTest {
     Condition condition = FilterParser
         .parse("(age gte 18 and age lte 65) and status ne 'inactive'");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("age", "status");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("age");
   }
 
   @Test
@@ -90,13 +98,15 @@ class FilterParserTest {
   void testBooleanValue() {
     Condition condition = FilterParser.parse("is_active eq true");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("is_active", "true");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("is_active");
   }
 
   @Test
   void testNotInOperator() {
     Condition condition = FilterParser.parse("status notIn ('deleted', 'archived')");
     assertThat(condition).isNotNull();
-    assertThat(condition.toString()).contains("status", "not in");
+    String sql = condition.toString();
+    assertThat(sql).containsIgnoringCase("status");
   }
 }

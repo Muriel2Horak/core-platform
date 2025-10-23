@@ -43,10 +43,8 @@ public class JwksKeyProvider {
       RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
       // Build JWK with kid and algorithm (required for Grafana go-jose library)
-      this.rsaKey = new RSAKey.Builder(publicKey)
-          .privateKey(privateKey)
-          .keyID(keyId)
-          .algorithm(com.nimbusds.jose.JWSAlgorithm.RS256)  // Explicit alg for JWKS
+      this.rsaKey = new RSAKey.Builder(publicKey).privateKey(privateKey).keyID(keyId)
+          .algorithm(com.nimbusds.jose.JWSAlgorithm.RS256) // Explicit alg for JWKS
           .build();
 
       log.info("✅ Generated RSA-2048 keypair for Grafana JWT signing (kid={}, alg=RS256)", keyId);

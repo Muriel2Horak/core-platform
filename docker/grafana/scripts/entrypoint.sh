@@ -107,31 +107,34 @@ fi
                     echo "ℹ️  Prometheus datasource may already exist"
                 fi
                 
-                # Provision System Monitoring dashboards for Org 2
+                # Provision dashboards from ALL categories for Org 2
                 echo "📊 Provisioning dashboards for Org $ORG_ID..."
-                DASHBOARD_PATH="/etc/grafana/provisioning/dashboards/system"
+                DASHBOARD_BASE="/etc/grafana/provisioning/dashboards"
                 
-                if [ -d "$DASHBOARD_PATH" ]; then
-                    for dashboard_file in "$DASHBOARD_PATH"/*.json; do
-                        if [ -f "$dashboard_file" ]; then
-                            echo "  📄 Importing $(basename "$dashboard_file")..."
-                            
-                            # Read dashboard JSON and wrap it in required format
-                            DASHBOARD_JSON=$(jq -c '{dashboard: ., overwrite: true, folderId: 0}' "$dashboard_file")
-                            
-                            curl -s -X POST \
-                                -H "Content-Type: application/json" \
-                                -H "X-Grafana-Org-Id: $ORG_ID" \
-                                -u admin:admin \
-                                "http://localhost:3000/api/dashboards/db" \
-                                -d "$DASHBOARD_JSON" > /dev/null 2>&1
-                            
-                            echo "  ✅ Imported $(basename "$dashboard_file")"
-                        fi
-                    done
-                else
-                    echo "  ⚠️  Dashboard path not found: $DASHBOARD_PATH"
-                fi
+                # Import dashboards from all subdirectories (system, streaming, security, etc.)
+                for category_dir in "$DASHBOARD_BASE"/*; do
+                    if [ -d "$category_dir" ] && [ "$(basename "$category_dir")" != "disabled" ]; then
+                        echo "  📁 Category: $(basename "$category_dir")"
+                        
+                        for dashboard_file in "$category_dir"/*.json; do
+                            if [ -f "$dashboard_file" ]; then
+                                echo "    📄 Importing $(basename "$dashboard_file")..."
+                                
+                                # Read dashboard JSON and wrap it in required format
+                                DASHBOARD_JSON=$(jq -c '{dashboard: ., overwrite: true, folderId: 0}' "$dashboard_file")
+                                
+                                curl -s -X POST \
+                                    -H "Content-Type: application/json" \
+                                    -H "X-Grafana-Org-Id: $ORG_ID" \
+                                    -u admin:admin \
+                                    "http://localhost:3000/api/dashboards/db" \
+                                    -d "$DASHBOARD_JSON" > /dev/null 2>&1
+                                
+                                echo "    ✅ Imported $(basename "$dashboard_file")"
+                            fi
+                        done
+                    fi
+                done
                 
                 echo "🎉 Grafana initialization complete!"
                 echo "================================================"
