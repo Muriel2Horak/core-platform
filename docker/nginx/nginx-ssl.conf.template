@@ -113,7 +113,7 @@ http {
             # Authenticate via BFF
             auth_request /_auth/grafana;
             auth_request_set $grafana_token $upstream_http_grafana_jwt;
-            auth_request_set $grafana_org_id $upstream_http_grafana_org_id;
+            auth_request_set $grafana_org_id $upstream_http_x_grafana_org_id;
             
             # Pass JWT and Org ID to Grafana
             proxy_set_header X-Org-JWT $grafana_token;
