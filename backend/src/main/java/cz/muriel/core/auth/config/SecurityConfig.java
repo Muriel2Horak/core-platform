@@ -72,6 +72,7 @@ public class SecurityConfig {
             // Public endpoints
             .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/favicon.ico")
             .permitAll().requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers("/api/frontend-logs").permitAll() // Frontend logging
             .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
             .requestMatchers("/api/admin/logs/export/test").permitAll() // E2E test endpoint
 

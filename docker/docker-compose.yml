@@ -408,8 +408,7 @@ services:
       - ./ssl/cert.pem:/etc/grafana/ssl/cert.pem:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/jwt-secret.key:/etc/grafana/jwt-secret.key:ro
-      # DISABLED: grafana.ini mount - using env vars only
-      # - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     ports:
       - "3001:3000"  # Temporary for datasource setup
     networks:

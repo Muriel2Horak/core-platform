@@ -50,6 +50,13 @@ public class GrafanaJwtService {
   }
 
   /**
+   * Get tenant registry (for controller access)
+   */
+  public GrafanaTenantRegistry getTenantRegistry() {
+    return tenantRegistry;
+  }
+
+  /**
    * Mint short-lived Grafana JWT from Keycloak authentication DEPRECATED: Use
    * mintGrafanaJwtFromKeycloakJwt() instead Kept for backward compatibility with
    * old endpoints

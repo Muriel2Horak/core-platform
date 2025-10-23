@@ -19,8 +19,9 @@ public class GrafanaTenantRegistry {
 
   public GrafanaTenantRegistry() {
     // Initialize default mappings
-    // NOTE: Org 1 = Main Org (Grafana default), Org 2 = "Tenant: admin" (created by entrypoint.sh)
-    tenantToOrgId.put("admin", 2);  // ✅ FIXED: admin tenant uses Org 2
+    // NOTE: Org 1 = Main Org (Grafana default), Org 2 = "Tenant: admin" (created by
+    // entrypoint.sh)
+    tenantToOrgId.put("admin", 2); // ✅ FIXED: admin tenant uses Org 2
     tenantToOrgId.put("test-tenant", 3);
     tenantToOrgId.put("company-b", 4);
   }
