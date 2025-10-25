@@ -5,6 +5,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -18,11 +19,17 @@ import java.util.Optional;
 /**
  * 🔧 GRAFANA ADMIN API CLIENT
  * 
+ * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native Loki UI
+ * This client is disabled by default via monitoring.grafana.enabled=false
+ * 
  * REST klient pro Grafana Admin API s podporou: - Organization management
  * (create/delete) - Service Account management (create/delete/list) - Service
  * Account Token generation - Circuit breaker pro resilience
  */
-@Slf4j @Component @RequiredArgsConstructor
+@Slf4j 
+@Component 
+@RequiredArgsConstructor
+@ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
 public class GrafanaAdminClient {
 
   private final RestTemplate restTemplate;

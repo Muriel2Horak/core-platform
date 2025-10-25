@@ -1,9 +1,8 @@
-import { Box, Container, Typography, Tabs, Tab, Button, Chip } from '@mui/material';
-import { Assessment, OpenInNew, Security, Stream, VerifiedUser, Settings, Dashboard as DashboardIcon } from '@mui/icons-material';
+import { Box, Container, Typography, Tabs, Tab, Chip, Paper, Alert } from '@mui/material';
+import { Assessment, Security, Stream, VerifiedUser, Settings, Dashboard as DashboardIcon, Construction } from '@mui/icons-material';
 import { useState } from 'react';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -30,29 +29,8 @@ export const AxiomMonitoringPage = () => {
   const [tabValue, setTabValue] = useState(0);
   const routeId = 'admin.axiom-monitoring';
 
-  const openFullGrafana = (dashboardUid: string) => {
-    const protocol = window.location.protocol;
-    const host = window.location.host;
-    const path = `/core-admin/monitoring/d/${dashboardUid}`;
-    window.open(`${protocol}//${host}${path}?orgId=1`, '_blank');
-  };
-
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
-
-  // Dashboard UIDs with slugs - Grafana requires full path including slug
-  const dashboards = {
-    system: 'axiom_sys_overview/system-overview',
-    runtime: 'axiom_adv_runtime/runtime-monitoring',
-    database: 'axiom_adv_db/database-monitoring',
-    redis: 'axiom_adv_redis/redis-monitoring',
-    kafkaLag: 'axiom_kafka_lag/kafka-lag-monitoring',
-    security: 'axiom_security/security-monitoring',
-    audit: 'axiom_audit/audit-monitoring',
-    logs: 'loki-overview/loki-overview',
-    performance: 'performance-dashboard/performance-dashboard',
-    platformHealth: 'core-platform-status/platform-health',
   };
 
   return (
@@ -70,17 +48,7 @@ export const AxiomMonitoringPage = () => {
             </Typography>
           </Box>
         </Box>
-        <Box display="flex" gap={1}>
-          <AiHelpWidget routeId={routeId} />
-          <Button
-            variant="outlined"
-            startIcon={<OpenInNew />}
-            onClick={() => openFullGrafana(dashboards.system)}
-            size="small"
-          >
-            Open in Grafana
-          </Button>
-        </Box>
+        <AiHelpWidget routeId={routeId} />
       </Box>
 
       <GlassPaper>
@@ -135,224 +103,106 @@ export const AxiomMonitoringPage = () => {
 
         {/* System Overview Tab */}
         <TabPanel value={tabValue} index={0}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                System Overview
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                KPI cards, SLO tracking (99.9%), error budget, latency p95/p99, dependencies
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.system)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed
-            path={`/d/${dashboards.system}`}
-            height={900}
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - System Overview Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         {/* Advanced Tab - Sub-dashboards */}
         <TabPanel value={tabValue} index={1}>
-          <Typography variant="h6" gutterBottom>
-            Advanced Monitoring
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={3}>
-            Deep-dive into Runtime (JVM), Database, Redis, HTTP, Nginx
-          </Typography>
-          
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-              Runtime & JVM
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Advanced Monitoring Dashboards
             </Typography>
-            <GrafanaEmbed 
-              path={`/d/${dashboards.runtime}`} 
-              height={600} 
-            />
-          </Box>
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-              Database Operations
-            </Typography>
-            <GrafanaEmbed 
-              path={`/d/${dashboards.database}`} 
-              height={600} 
-            />
-          </Box>
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom fontWeight="bold">
-              Redis Cache
-            </Typography>
-            <GrafanaEmbed 
-              path={`/d/${dashboards.redis}`} 
-              height={600} 
-            />
-          </Box>
+          </Paper>
         </TabPanel>
 
         {/* Streaming (Kafka) Tab */}
         <TabPanel value={tabValue} index={2}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Kafka Consumer Lag Analysis
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Consumer lag per topic/partition, produce/consume rate, lag velocity, DLQ monitoring
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.kafkaLag)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.kafkaLag}`} 
-            height={900} 
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Kafka Lag Analysis Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         {/* Security Tab */}
         <TabPanel value={tabValue} index={3}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Security & Compliance
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Failed logins, 403/401/429 spikes, JWT errors, anomalies, TLS cert expiry
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.security)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.security}`} 
-            height={900} 
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Security Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         {/* Audit Tab */}
         <TabPanel value={tabValue} index={4}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Audit & Governance
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                CRUD events, workflow transitions, bulk operations, Grafana access, FE events
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.audit)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.audit}`} 
-            height={900} 
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Audit Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         {/* Performance Tab */}
         <TabPanel value={tabValue} index={5}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Application Performance (RED Method)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Request Rate, Error Rate, Duration - Performance monitoring across all services
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.performance)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.performance}`} 
-            height={900} 
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Performance Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         {/* Platform Health Tab */}
         <TabPanel value={tabValue} index={6}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Platform Health & SLI/SLO
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Overall platform status, service level indicators and objectives
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.platformHealth)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.platformHealth}`} 
-            height={900} 
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Platform Health Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         {/* Logs Tab */}
         <TabPanel value={tabValue} index={7}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Log Analysis (Loki)
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Centralized log search and analysis with Loki
-              </Typography>
-            </Box>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<OpenInNew />}
-              onClick={() => openFullGrafana(dashboards.logs)}
-            >
-              Full Screen
-            </Button>
-          </Box>
-          <GrafanaEmbed 
-            path={`/d/${dashboards.logs}`} 
-            height={900} 
-          />
+          <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+            Migrace na nativní Loki UI probíhá - ETA S4 fáze
+          </Alert>
+          <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Logs Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
       </GlassPaper>
     </Container>

@@ -10,6 +10,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -24,6 +25,9 @@ import java.util.Optional;
 /**
  * Internal endpoint for Nginx auth_request
  * 
+ * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native Loki UI
+ * This controller is disabled by default via monitoring.grafana.enabled=false
+ * 
  * Returns 200 + Grafana-JWT header if authenticated Returns 401 if not
  * authenticated
  * 
@@ -31,7 +35,10 @@ import java.util.Optional;
  * restrict access) - No PII in logs - Reads JWT from HTTP-only cookie (not
  * Authorization header) - Auto-refreshes tokens before expiration
  */
-@RestController @RequestMapping("/internal/auth") @Slf4j
+@RestController 
+@RequestMapping("/internal/auth") 
+@Slf4j
+@ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
 public class AuthRequestController {
 
   private static final String ACCESS_COOKIE = "at"; // Access token cookie

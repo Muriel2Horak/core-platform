@@ -6,16 +6,23 @@ import cz.muriel.core.monitoring.grafana.repository.GrafanaTenantBindingReposito
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 🚀 GRAFANA PROVISIONING SERVICE
  * 
+ * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native Loki UI
+ * This service is disabled by default via monitoring.grafana.enabled=false
+ * 
  * Orchestruje automatické zakládání Grafana organizací, service accounts a
  * tokenů při vytváření nových tenantů
  */
-@Slf4j @Service @RequiredArgsConstructor
+@Slf4j 
+@Service 
+@RequiredArgsConstructor
+@ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
 public class GrafanaProvisioningService {
 
   private final GrafanaAdminClient grafanaAdminClient;

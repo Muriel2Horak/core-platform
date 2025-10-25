@@ -24,8 +24,9 @@ import {
   Typography, 
   Tabs, 
   Tab,
-  Button,
   Chip,
+  Paper,
+  Alert,
   useTheme
 } from '@mui/material';
 import { 
@@ -36,11 +37,10 @@ import {
   Security as SecurityIcon,
   Gavel as AuditIcon,
   Article as LogsIcon,
-  OpenInNew
+  Construction
 } from '@mui/icons-material';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -67,12 +67,6 @@ export const MonitoringComprehensivePage = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
   const routeId = 'admin.monitoring.comprehensive';
-
-  const openFullGrafana = () => {
-    const protocol = 'https:';
-    const host = window.location.host;
-    window.open(`${protocol}//${host}/monitoring`, '_blank');
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -148,13 +142,6 @@ export const MonitoringComprehensivePage = () => {
         </Box>
         <Box display="flex" gap={1}>
           <AiHelpWidget routeId={routeId} />
-          <Button
-            variant="contained"
-            startIcon={<OpenInNew />}
-            onClick={openFullGrafana}
-          >
-            Otevřít v Grafaně
-          </Button>
         </Box>
       </Box>
 
@@ -263,32 +250,80 @@ export const MonitoringComprehensivePage = () => {
       
       {/* Tab 0: System Resources (USE) */}
       <TabPanel value={tabValue} index={0}>
-        <GrafanaEmbed path="/d/infra-overview?orgId=1&theme=light&kiosk" height={1200} />
+        <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+          Migrace na nativní Loki UI probíhá - ETA S4 fáze
+        </Alert>
+        <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+          <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Coming Soon - System Resources Dashboard
+          </Typography>
+        </Paper>
       </TabPanel>
 
       {/* Tab 1: Application Performance (RED) */}
       <TabPanel value={tabValue} index={1}>
-        <GrafanaEmbed path="/d/performance-dashboard?orgId=1&theme=light&kiosk" height={1200} />
+        <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+          Migrace na nativní Loki UI probíhá - ETA S4 fáze
+        </Alert>
+        <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+          <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Coming Soon - Application Performance Dashboard
+          </Typography>
+        </Paper>
       </TabPanel>
 
       {/* Tab 2: Platform Health (SLI/SLO) */}
       <TabPanel value={tabValue} index={2}>
-        <GrafanaEmbed path="/d/core-platform-status?orgId=1&theme=light&kiosk" height={1200} />
+        <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+          Migrace na nativní Loki UI probíhá - ETA S4 fáze
+        </Alert>
+        <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+          <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Coming Soon - Platform Health Dashboard
+          </Typography>
+        </Paper>
       </TabPanel>
 
       {/* Tab 3: Security */}
       <TabPanel value={tabValue} index={3}>
-        <GrafanaEmbed path="/d/axiom_security?orgId=1&theme=light&kiosk" height={1000} />
+        <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+          Migrace na nativní Loki UI probíhá - ETA S4 fáze
+        </Alert>
+        <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+          <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Coming Soon - Security Dashboard
+          </Typography>
+        </Paper>
       </TabPanel>
 
       {/* Tab 4: Audit */}
       <TabPanel value={tabValue} index={4}>
-        <GrafanaEmbed path="/d/axiom_audit?orgId=1&theme=light&kiosk" height={1000} />
+        <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+          Migrace na nativní Loki UI probíhá - ETA S4 fáze
+        </Alert>
+        <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+          <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Coming Soon - Audit Dashboard
+          </Typography>
+        </Paper>
       </TabPanel>
 
       {/* Tab 5: Logs */}
       <TabPanel value={tabValue} index={5}>
-        <GrafanaEmbed path="/d/loki-overview?orgId=1&theme=light&kiosk" height={900} />
+        <Alert severity="info" icon={<Construction />} sx={{ mb: 2 }}>
+          Migrace na nativní Loki UI probíhá - ETA S4 fáze
+        </Alert>
+        <Paper sx={{ p: 4, textAlign: 'center', minHeight: 800 }}>
+          <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary">
+            Coming Soon - Logs Dashboard
+          </Typography>
+        </Paper>
       </TabPanel>
     </Container>
   );

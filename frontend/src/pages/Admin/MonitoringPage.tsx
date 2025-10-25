@@ -1,9 +1,8 @@
-import { Box, Container, Typography, Button, Tabs, Tab } from '@mui/material';
-import { Assessment, OpenInNew } from '@mui/icons-material';
+import { Box, Container, Typography, Tabs, Tab, Alert, Paper } from '@mui/material';
+import { Assessment, Construction } from '@mui/icons-material';
 import { useState } from 'react';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -30,12 +29,6 @@ export const MonitoringPage = () => {
   const [tabValue, setTabValue] = useState(0);
   const routeId = 'admin.monitoring';
 
-  const openFullGrafana = () => {
-    const protocol = 'https:';
-    const host = window.location.host;
-    window.open(`${protocol}//${host}/monitoring`, '_blank');
-  };
-
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
@@ -48,21 +41,23 @@ export const MonitoringPage = () => {
           <Box>
             <Typography variant="h4">Monitoring</Typography>
             <Typography variant="body2" color="text.secondary">
-              Systémový monitoring a metriky
+              Nativní Loki monitoring UI (v přípravě)
             </Typography>
           </Box>
         </Box>
         <Box display="flex" gap={1}>
           <AiHelpWidget routeId={routeId} />
-          <Button
-            variant="contained"
-            startIcon={<OpenInNew />}
-            onClick={openFullGrafana}
-          >
-            Otevřít v Grafaně
-          </Button>
         </Box>
       </Box>
+
+      <Alert severity="info" icon={<Construction />} sx={{ mb: 3 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          🚧 Migrace z Grafana iframe → Native Loki UI
+        </Typography>
+        <Typography variant="body2">
+          Nové monitoring UI s React komponentami nad Loki API - ETA S4 fáze (3-4 dny)
+        </Typography>
+      </Alert>
 
       <GlassPaper>
         <Tabs value={tabValue} onChange={handleTabChange}>
@@ -72,15 +67,30 @@ export const MonitoringPage = () => {
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
-          <GrafanaEmbed path="/d/infra-overview?orgId=1&theme=light&kiosk" height={800} />
+          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - System Monitoring Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <GrafanaEmbed path="/d/axiom_security?orgId=1&theme=light&kiosk" height={800} />
+          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Security Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <GrafanaEmbed path="/d/axiom_audit?orgId=1&theme=light&kiosk" height={800} />
+          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
+            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary">
+              Coming Soon - Audit Log Dashboard
+            </Typography>
+          </Paper>
         </TabPanel>
       </GlassPaper>
     </Container>

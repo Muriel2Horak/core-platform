@@ -1,7 +1,6 @@
-import { Container, Typography, Box } from '@mui/material';
-import { Shield as ShieldIcon } from '@mui/icons-material';
+import { Container, Typography, Box, Paper, Alert } from '@mui/material';
+import { Shield as ShieldIcon, Construction } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 
 export const AdminSecurityPage = () => {
   const routeId = 'admin.security.monitoring';
@@ -13,14 +12,24 @@ export const AdminSecurityPage = () => {
         <Box flex={1}>
           <Typography variant="h4">Bezpečnostní monitoring</Typography>
           <Typography variant="body2" color="text.secondary">
-            Přehled bezpečnostních událostí a hrozeb
+            Nativní Loki security monitoring (v přípravě)
           </Typography>
         </Box>
         <Box>
           <AiHelpWidget routeId={routeId} />
         </Box>
       </Box>
-      <GrafanaEmbed path="/d/axiom_security?orgId=1&theme=light&kiosk" height={800} />
+      
+      <Alert severity="info" icon={<Construction />} sx={{ mb: 3 }}>
+        Migrace na nativní Loki UI probíhá - ETA S4 fáze
+      </Alert>
+      
+      <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
+        <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="h6" color="text.secondary">
+          Coming Soon - Security Dashboard
+        </Typography>
+      </Paper>
     </Container>
   );
 };

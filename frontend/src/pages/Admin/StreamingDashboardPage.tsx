@@ -7,11 +7,9 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Button,
 } from '@mui/material';
-import { Warning, CheckCircle, Error as ErrorIcon, OpenInNew, Stream } from '@mui/icons-material';
+import { Stream, Construction } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { GrafanaEmbed } from '../../components/GrafanaEmbed';
 import axios from 'axios';
 
 interface StreamingMetrics {
@@ -51,10 +49,6 @@ const StreamingDashboardPage: React.FC = () => {
     }
   };
 
-  const openFullGrafana = () => {
-    window.open('https://' + window.location.host + '/monitoring/d/streaming?orgId=1', '_blank');
-  };
-
   return (
     <Box sx={{ p: 3 }} data-route-id={routeId}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -64,9 +58,6 @@ const StreamingDashboardPage: React.FC = () => {
         </Box>
         <Box display="flex" gap={1}>
           <AiHelpWidget routeId={routeId} />
-          <Button variant="contained" startIcon={<OpenInNew />} onClick={openFullGrafana}>
-            Otevřít v Grafaně
-          </Button>
         </Box>
       </Box>
 
@@ -127,7 +118,9 @@ const StreamingDashboardPage: React.FC = () => {
         </Grid>
       )}
 
-      <GrafanaEmbed path="/d/streaming-overview?orgId=1&theme=light&kiosk" height="800px" />
+      <Alert severity="info" icon={<Construction />} sx={{ mt: 3 }}>
+        Streaming metrics Grafana dashboard migrován na nativní Loki UI - ETA S4
+      </Alert>
     </Box>
   );
 };
