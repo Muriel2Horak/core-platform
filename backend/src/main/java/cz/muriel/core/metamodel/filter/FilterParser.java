@@ -107,8 +107,8 @@ public class FilterParser {
       List<Object> valueList = parseValueList(values);
       Field<Object> fieldRef = DSL.field(DSL.name(field));
 
-      // Use val() instead of inline() to preserve type information
-      Object[] typedValues = valueList.toArray();
+      // Convert to DSL.val() for proper type handling
+      Object[] typedValues = valueList.stream().map(v -> DSL.val(v)).toArray();
 
       if ("in".equals(operator)) {
         return fieldRef.in(typedValues);
@@ -136,14 +136,14 @@ public class FilterParser {
   private static Condition createComparison(String fieldName, String operator, Object value) {
     Field<Object> field = DSL.field(DSL.name(fieldName));
 
-    // Use plain values - jOOQ will handle type inference
+    // Wrap value in DSL.val() for proper type handling
     return switch (operator) {
-    case "eq" -> field.eq(value);
-    case "ne" -> field.ne(value);
-    case "lt" -> field.lt(value);
-    case "lte" -> field.le(value);
-    case "gt" -> field.gt(value);
-    case "gte" -> field.ge(value);
+    case "eq" -> field.eq(DSL.val(value));
+    case "ne" -> field.ne(DSL.val(value));
+    case "lt" -> field.lt(DSL.val(value));
+    case "lte" -> field.le(DSL.val(value));
+    case "gt" -> field.gt(DSL.val(value));
+    case "gte" -> field.ge(DSL.val(value));
     case "like" -> field.like(value.toString());
     default -> throw new IllegalArgumentException("Unknown operator: " + operator);
     };
