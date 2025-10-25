@@ -25,7 +25,8 @@ services:
       grafana:
         condition: service_healthy  # ✅ FIX: Čeká na Grafana health check
     networks:
-      - core-net
+      core-net:
+        ipv4_address: 172.18.0.20  # 🔒 Static IP for stable DNS resolution from Grafana
     restart: unless-stopped
 
   # 🗄️ Database
@@ -341,10 +342,10 @@ services:
       - GF_AUTH_JWT_EMAIL_CLAIM=email
       # 🔑 JWT Verification - Use BFF's public key (RS256)
       # BFF mints short-lived JWT (300s = 5 min) with orgId claim
-      # Grafana verifies signature via BFF JWKS endpoint (Docker internal network)
-      # WORKAROUND: Grafana 11.3 requires HTTPS for jwk_set_url but doesn't support tls_skip_verify
-      # Solution: Use jwk_set_file with periodic HTTP fetch from backend (secure within Docker network)
-      - GF_AUTH_JWT_JWK_SET_FILE=/var/lib/grafana/jwks.json
+      # Grafana verifies signature via BFF JWKS endpoint over HTTPS
+      # CRITICAL: jwk_set_url is configured in grafana.ini (not ENV var)
+      # Using internal backend service: http://backend:8080/.well-known/jwks.json
+      # (External domain admin.core-platform.local doesn't resolve inside Docker network)
       - GF_AUTH_JWT_URL_LOGIN=false
       # ⚠️ CRITICAL: JWT TTL and cache must align (both 300s = 5 min)
       # - Backend: ${GRAFANA_JWT_TTL} (from .env, default 300)
@@ -411,6 +412,11 @@ services:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     ports:
       - "3001:3000"  # Temporary for datasource setup
+    # 🔒 DNS override: Map admin.core-platform.local to Nginx static IP
+    # This ensures Grafana can validate JWKS HTTPS cert (CN matches)
+    # while staying inside Docker network (no external routing)
+    extra_hosts:
+      - "admin.core-platform.local:172.18.0.20"
     networks:
       - core-net
     depends_on:
@@ -731,3 +737,7 @@ volumes:
 networks:
   core-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16  # 🔒 Subnet for static IP assignment
+          gateway: 172.18.0.1

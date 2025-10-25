@@ -4,57 +4,67 @@ import { buildGrafanaUrl } from './grafanaUrl';
 describe('buildGrafanaUrl', () => {
   const SUBPATH = '/core-admin/monitoring';
 
-  it('should build basic URL with orgId and defaults', () => {
+  it('should build basic URL WITHOUT orgId (server-side provisioning)', () => {
     const result = buildGrafanaUrl(SUBPATH, '/d/abc', 2);
-    expect(result).toBe('/core-admin/monitoring/d/abc?orgId=2');
+    expect(result).toBe('/core-admin/monitoring/d/abc');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
-  it('should add default theme and kiosk when provided', () => {
+  it('should add default theme and kiosk when provided (no orgId)', () => {
     const result = buildGrafanaUrl(SUBPATH, '/d/abc', 2, { theme: 'light', kiosk: true });
-    expect(result).toBe('/core-admin/monitoring/d/abc?orgId=2&theme=light&kiosk=1');
+    expect(result).toBe('/core-admin/monitoring/d/abc?theme=light&kiosk=1');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
   it('should preserve existing theme parameter', () => {
     const result = buildGrafanaUrl(SUBPATH, '/d/abc?theme=dark', 2, { theme: 'light', kiosk: true });
-    expect(result).toBe('/core-admin/monitoring/d/abc?theme=dark&orgId=2&kiosk=1');
+    expect(result).toBe('/core-admin/monitoring/d/abc?theme=dark&kiosk=1');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
-  it('should always overwrite existing orgId parameter', () => {
+  it('should REMOVE orgId from URL even if present in input path', () => {
     const result = buildGrafanaUrl(SUBPATH, '/d/abc?orgId=1', 2, { theme: 'light', kiosk: true });
-    expect(result).toBe('/core-admin/monitoring/d/abc?orgId=2&theme=light&kiosk=1');
+    // orgId should be stripped from input path (backend handles org via setUserActiveOrg)
+    expect(result).toBe('/core-admin/monitoring/d/abc?theme=light&kiosk=1');
+    expect(result).not.toContain('orgId'); // CRITICAL: orgId must NOT be in URL
   });
 
-  it('should preserve custom query parameters', () => {
+  it('should preserve custom query parameters (no orgId)', () => {
     const result = buildGrafanaUrl(SUBPATH, '/d/abc?var_x=1&var_y=test', 2, { theme: 'light', kiosk: true });
-    expect(result).toBe('/core-admin/monitoring/d/abc?var_x=1&var_y=test&orgId=2&theme=light&kiosk=1');
+    expect(result).toBe('/core-admin/monitoring/d/abc?var_x=1&var_y=test&theme=light&kiosk=1');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
   it('should handle path without leading slash', () => {
     const result = buildGrafanaUrl(SUBPATH, 'd/abc', 2);
-    expect(result).toBe('/core-admin/monitoring/d/abc?orgId=2');
+    expect(result).toBe('/core-admin/monitoring/d/abc');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
   it('should handle baseSubPath with trailing slash', () => {
     const result = buildGrafanaUrl('/core-admin/monitoring/', '/d/abc', 2);
-    expect(result).toBe('/core-admin/monitoring/d/abc?orgId=2');
+    expect(result).toBe('/core-admin/monitoring/d/abc');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
-  it('should merge existing query params correctly', () => {
+  it('should merge existing query params correctly (no orgId)', () => {
     const result = buildGrafanaUrl(
       SUBPATH,
       '/d/abc?var_service=api&refresh=30s',
       2,
       { theme: 'light', kiosk: true }
     );
-    expect(result).toBe('/core-admin/monitoring/d/abc?var_service=api&refresh=30s&orgId=2&theme=light&kiosk=1');
+    expect(result).toBe('/core-admin/monitoring/d/abc?var_service=api&refresh=30s&theme=light&kiosk=1');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
   it('should not add kiosk if not requested', () => {
     const result = buildGrafanaUrl(SUBPATH, '/d/abc', 2, { theme: 'light' });
-    expect(result).toBe('/core-admin/monitoring/d/abc?orgId=2&theme=light');
+    expect(result).toBe('/core-admin/monitoring/d/abc?theme=light');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL
   });
 
-  it('should handle complex dashboard paths', () => {
+  it('should handle complex dashboard paths (no orgId)', () => {
     const result = buildGrafanaUrl(
       SUBPATH,
       '/d/axiom_sys_overview/system-overview?var_tenant=admin&from=now-6h&to=now',
@@ -62,7 +72,7 @@ describe('buildGrafanaUrl', () => {
       { theme: 'light', kiosk: true }
     );
     expect(result).toContain('/core-admin/monitoring/d/axiom_sys_overview/system-overview');
-    expect(result).toContain('orgId=2');
+    expect(result).not.toContain('orgId'); // orgId no longer in URL (backend handles it)
     expect(result).toContain('var_tenant=admin');
     expect(result).toContain('from=now-6h');
     expect(result).toContain('to=now');

@@ -22,12 +22,6 @@ import { OpenInNew } from '@mui/icons-material';
 import { useGrafanaOrgId } from '../hooks/useGrafanaOrgId';
 import { buildGrafanaUrl } from '../utils/grafanaUrl';
 
-import React from 'react';
-import { Box, CircularProgress, Alert, Button } from '@mui/material';
-import { OpenInNew } from '@mui/icons-material';
-import { useGrafanaOrgId } from '../hooks/useGrafanaOrgId';
-import { buildGrafanaUrl } from '../utils/grafanaUrl';
-
 // Grafana subpath - must match NGINX location and Grafana root_url
 const GRAFANA_SUBPATH = '/core-admin/monitoring';
 

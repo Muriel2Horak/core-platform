@@ -112,7 +112,7 @@
       "lastName": "Studio Designer",
       "email": "test.studio@example.com",
       "credentials": [
-        { "type": "password", "value": "Test.1234", "temporary": false }
+        { "type": "password", "value": "${TEST_STUDIO_PASSWORD:Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER", "CORE_ROLE_STUDIO"],
       "requiredActions": [],
@@ -133,7 +133,7 @@
       "lastName": "Data Analyst",
       "email": "test.analyst@example.com",
       "credentials": [
-        { "type": "password", "value": "Test.1234", "temporary": false }
+        { "type": "password", "value": "${TEST_ANALYST_PASSWORD:Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER", "CORE_ROLE_REPORTING"],
       "requiredActions": [],
@@ -195,7 +195,7 @@
             "CORE_ROLE_USER_MANAGER", 
             "CORE_ROLE_TENANT_ADMIN",
             "CORE_ROLE_MONITORING", 
-            "CORE_ROLE_STUDIO",
+            "CORE_ROLE_STUDIO", 
             "CORE_ROLE_REPORTING"
           ]
         }
@@ -260,6 +260,69 @@
             "included.client.audience": "api",
             "id.token.claim": "false",
             "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "email",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "email",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "preferred_username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "given_name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "firstName",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "given_name",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "family_name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "lastName",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "family_name",
+            "jsonType.label": "String"
           }
         }
       ]

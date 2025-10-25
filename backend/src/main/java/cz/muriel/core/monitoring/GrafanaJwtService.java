@@ -142,7 +142,7 @@ public class GrafanaJwtService {
       }
 
       // Map tenant to Grafana org
-      int grafanaOrgId = tenantRegistry.getGrafanaOrgId(tenantId);
+      long grafanaOrgId = tenantRegistry.getGrafanaOrgId(tenantId);
 
       // Map Keycloak roles to Grafana role
       String grafanaRole = mapKeycloakRoleToGrafanaFromJwt(kcToken);
@@ -156,10 +156,10 @@ public class GrafanaJwtService {
       JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keyProvider.getKeyId())
           .build();
 
-      // Build JWT claims
+      // Build JWT claims - orgId MUST be numeric (Long) for Grafana org_id_claim
       JWTClaimsSet claims = new JWTClaimsSet.Builder().issuer(issuer).subject(username)
           .claim("email", email).claim("name", name != null ? name : username)
-          .claim("preferred_username", username).claim("orgId", grafanaOrgId)
+          .claim("preferred_username", username).claim("orgId", Long.valueOf(grafanaOrgId))
           .claim("role", grafanaRole).issueTime(Date.from(now)).expirationTime(Date.from(expiry))
           .jwtID(jti).build();
 

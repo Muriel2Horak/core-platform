@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import cz.muriel.core.auth.KeycloakClient;
 import cz.muriel.core.monitoring.bff.model.TenantBinding;
 import cz.muriel.core.monitoring.bff.service.TenantOrgService;
+import cz.muriel.core.monitoring.grafana.dto.CreateUserResponse;
+import cz.muriel.core.monitoring.grafana.dto.UserLookupResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 /**
  * Internal endpoint for Nginx auth_request
@@ -161,17 +164,24 @@ public class AuthRequestController {
 
       // 🆕 IDEMPOTENT USER PROVISIONING FLOW
       // Ensures: (a) user exists, (b) is member of tenant org, (c) has active org set
+      // CRITICAL: Provisioning MUST succeed - if it fails, return 500 to prevent
+      // session creation in wrong org
       try {
+        log.info("🚀 [Provisioning] START: user={}, email={}, orgId={}", username, email,
+            grafanaOrgId);
+
         Long userId = ensureUser(email, name != null ? name : username);
         ensureOrgMembership(userId, grafanaOrgId, "Admin", email);
         ensureActiveOrg(userId, grafanaOrgId);
 
-        log.debug("✅ User {} (id: {}) fully provisioned for org {}", username, userId,
+        log.info("✅ [Provisioning] SUCCESS: user={}, userId={}, orgId={}", username, userId,
             grafanaOrgId);
       } catch (Exception e) {
-        log.warn("⚠️  Failed to provision user {} for org {}: {}", username, grafanaOrgId,
-            e.getMessage());
-        // Continue - Grafana JWT auth might still work via auto_sign_up
+        log.error("❌ [Provisioning] FAILED for user={}, orgId={}: {}", username, grafanaOrgId,
+            e.getMessage(), e);
+        // Return 500 - Nginx will NOT forward request to Grafana
+        // This prevents session creation in wrong org (better fail than wrong org)
+        return ResponseEntity.status(500).build();
       }
 
       // 🔑 MINT SHORT-LIVED GRAFANA JWT (RS256)
@@ -219,24 +229,19 @@ public class AuthRequestController {
    * 
    * ✨ IDEMPOTENT: Can be called multiple times safely
    */
-  private Long ensureUser(String email, String name) {
-    log.debug("🔍 Ensuring Grafana user exists: {}", email);
+  private Long ensureUser(String email, String displayName) {
+    log.info("🔎 [Provisioning] Step 1/3: ensureUser(email={})", email);
 
-    // Step 1: Try to find existing user
-    var existingUser = grafanaAdminClient.lookupUser(email);
+    Optional<UserLookupResponse> existingUser = grafanaAdminClient.lookupUser(email);
     if (existingUser.isPresent()) {
       Long userId = existingUser.get().getId();
-      log.debug("✅ User {} already exists (id: {})", email, userId);
+      log.info("   ├─ ✓ User exists: userId={}", userId);
       return userId;
     }
 
-    // Step 2: Create new user
-    log.info("➕ Creating new Grafana user: {} ({})", email, name);
-    var createResponse = grafanaAdminClient.createUser(email, name);
-    Long userId = createResponse.getId();
-
-    log.info("✅ User created: {} (id: {})", email, userId);
-    return userId;
+    CreateUserResponse response = grafanaAdminClient.createUser(email, displayName);
+    log.info("   ├─ ✓ User created: userId={}", response.getId());
+    return response.getId();
   }
 
   /**
@@ -246,8 +251,7 @@ public class AuthRequestController {
    * ✨ IDEMPOTENT: Checks existing membership, adds only if needed
    */
   private void ensureOrgMembership(Long userId, Long orgId, String role, String email) {
-    log.debug("👥 Ensuring user {} ({}) is member of org {} with role {}", userId, email, orgId,
-        role);
+    log.info("👥 [Provisioning] Step 2/3: ensureOrgMembership(userId={}, orgId={})", userId, orgId);
 
     // Step 1: Check current membership
     var orgUsers = grafanaAdminClient.listOrgUsers(orgId);
@@ -256,21 +260,20 @@ public class AuthRequestController {
     if (existingMember.isPresent()) {
       String currentRole = existingMember.get().getRole();
       if (currentRole.equals(role)) {
-        log.debug("✅ User {} already member of org {} with role {}", userId, orgId, role);
+        log.info("   ├─ ✓ User already member: role={}", role);
         return;
       }
 
-      log.info("🔄 User {} has role {} but needs {}, updating...", userId, currentRole, role);
+      log.info("   ├─ ⚠ User has role={}, updating to role={}", currentRole, role);
       // TODO: Update role via PATCH /api/orgs/{orgId}/users/{userId}
       // For now, existing membership is good enough
       return;
     }
 
     // Step 2: Add user to org using email
-    log.info("➕ Adding user {} ({}) to org {} with role {}", userId, email, orgId, role);
+    log.info("   ├─ ➕ Adding user to org: email={}, role={}", email, role);
     grafanaAdminClient.addUserToOrg(orgId, email, role);
-
-    log.info("✅ User {} added to org {}", userId, orgId);
+    log.info("   ├─ ✓ User added to org");
   }
 
   /**
@@ -279,10 +282,8 @@ public class AuthRequestController {
    * ✨ IDEMPOTENT: Can be called multiple times safely
    */
   private void ensureActiveOrg(Long userId, Long orgId) {
-    log.debug("🔄 Ensuring active org {} for user {}", orgId, userId);
-
+    log.info("🔄 [Provisioning] Step 3/3: ensureActiveOrg(userId={}, orgId={})", userId, orgId);
     grafanaAdminClient.setUserActiveOrg(userId, orgId);
-
-    log.debug("✅ Active org set to {} for user {}", orgId, userId);
+    log.info("   ├─ ✓ Active org set to orgId={}", orgId);
   }
 }

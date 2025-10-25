@@ -67,7 +67,9 @@ test.describe('Grafana SSO Embed - DoD Verification', () => {
     // Verify iframe src is correct (should be /monitoring/d/performance-dashboard)
     const iframeSrc = await page.locator('iframe[title="Grafana Dashboard"]').getAttribute('src');
     expect(iframeSrc).toContain('/monitoring/d/performance-dashboard');
-    expect(iframeSrc).toContain('orgId=1'); // Admin realm → orgId 1
+    // ❌ REMOVED: orgId no longer in URL - backend setUserActiveOrg handles org selection
+    // expect(iframeSrc).toContain('orgId=1'); // Admin realm → orgId 1
+    expect(iframeSrc).not.toContain('orgId'); // Verify orgId NOT in URL (security: server-side only)
     expect(iframeSrc).toContain('theme=light');
     expect(iframeSrc).toContain('kiosk'); // Kiosk mode
     console.log(`✅ Iframe src correct: ${iframeSrc}`);
@@ -302,7 +304,8 @@ test.describe('Grafana SSO Embed - Error Handling', () => {
     await page.evaluate(() => {
       const iframe = document.querySelector('iframe[title="Grafana Dashboard"]') as HTMLIFrameElement;
       if (iframe) {
-        iframe.src = '/monitoring/d/non-existent-dashboard-uid?orgId=1';
+        // No orgId in URL - backend setUserActiveOrg handles org selection
+        iframe.src = '/monitoring/d/non-existent-dashboard-uid?theme=light&kiosk=1';
       }
     });
 

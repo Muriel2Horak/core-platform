@@ -68,7 +68,7 @@ http {
         # 🔑 BFF JWKS endpoint (for Grafana JWT verification)
         # Grafana requires HTTPS for JWK_SET_URL, so we proxy internal HTTP endpoint via Nginx SSL
         location = /.well-known/jwks.json {
-            proxy_pass http://backend/.well-known/jwks.json;
+            proxy_pass http://core-backend:8080/.well-known/jwks.json;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

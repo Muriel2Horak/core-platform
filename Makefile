@@ -77,6 +77,7 @@ help-advanced:
 	@echo "  test-monitoring-deploy      - Pre-deploy config validation"
 	@echo "  test-monitoring-runtime     - Post-deploy runtime tests"
 	@echo "  test-monitoring             - Full monitoring test suite"
+	@echo "  test-grafana-sso            - Grafana SSO sanity test (provisioning + org)"
 	@echo "  diag-grafana-provisioning   - Grafana provisioning diagnostics"
 	@echo "  validate-dashboard-structure - Validate dashboard file structure"
 	@echo ""
@@ -1752,6 +1753,18 @@ diag-grafana-provisioning:
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@bash scripts/test-grafana-provisioning.sh
+	@echo ""
+
+# Grafana SSO sanity test (provisioning + org setup)
+.PHONY: test-grafana-sso
+test-grafana-sso:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🔐 GRAFANA SSO SANITY TEST                                    ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🧪 Testing: test_admin provisioning, org membership, dashboard access"
+	@echo ""
+	@bash scripts/grafana/sanity-test.sh
 	@echo ""
 
 # Validate Grafana dashboard structure
