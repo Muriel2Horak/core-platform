@@ -1,6 +1,7 @@
-import { Container, Typography, Box, Paper, Alert } from '@mui/material';
-import { BugReport as BugReportIcon, Construction } from '@mui/icons-material';
+import { Container, Typography, Box, Grid } from '@mui/material';
+import { Gavel as AuditIcon } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
+import { LogViewer, MetricCard } from '../../components/Monitoring';
 
 export const AdminAuditPage = () => {
   const routeId = 'admin.audit.log';
@@ -8,11 +9,11 @@ export const AdminAuditPage = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }} data-route-id={routeId}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
-        <BugReportIcon fontSize="large" color="primary" />
+        <AuditIcon fontSize="large" color="primary" />
         <Box flex={1}>
           <Typography variant="h4">Audit Log</Typography>
           <Typography variant="body2" color="text.secondary">
-            Nativní Loki audit log (v přípravě)
+            CRUD events, workflow transitions, system changes
           </Typography>
         </Box>
         <Box>
@@ -20,16 +21,19 @@ export const AdminAuditPage = () => {
         </Box>
       </Box>
       
-      <Alert severity="info" icon={<Construction />} sx={{ mb: 3 }}>
-        Migrace na nativní Loki UI probíhá - ETA S4 fáze
-      </Alert>
-      
-      <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
-        <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          Coming Soon - Audit Log Dashboard
-        </Typography>
-      </Paper>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <MetricCard title="Audit Metrics (24h)" hours={24} />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <LogViewer 
+            defaultQuery='{service="backend"} |~ "(?i)(audit|created|updated|deleted|transition)"'
+            defaultHours={12}
+            showQueryBuilder={true}
+          />
+        </Grid>
+      </Grid>
     </Container>
   );
 };

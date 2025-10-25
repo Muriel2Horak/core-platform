@@ -1,8 +1,9 @@
-import { Box, Container, Typography, Tabs, Tab, Alert, Paper } from '@mui/material';
-import { Assessment, Construction } from '@mui/icons-material';
+import { Box, Container, Typography, Tabs, Tab, Grid } from '@mui/material';
+import { Assessment } from '@mui/icons-material';
 import { useState } from 'react';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
+import { LogViewer, MetricCard } from '../../components/Monitoring';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -41,7 +42,7 @@ export const MonitoringPage = () => {
           <Box>
             <Typography variant="h4">Monitoring</Typography>
             <Typography variant="body2" color="text.secondary">
-              Nativní Loki monitoring UI (v přípravě)
+              Native Loki monitoring - System, Security, Audit
             </Typography>
           </Box>
         </Box>
@@ -50,15 +51,6 @@ export const MonitoringPage = () => {
         </Box>
       </Box>
 
-      <Alert severity="info" icon={<Construction />} sx={{ mb: 3 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          🚧 Migrace z Grafana iframe → Native Loki UI
-        </Typography>
-        <Typography variant="body2">
-          Nové monitoring UI s React komponentami nad Loki API - ETA S4 fáze (3-4 dny)
-        </Typography>
-      </Alert>
-
       <GlassPaper>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Systém" />
@@ -66,31 +58,49 @@ export const MonitoringPage = () => {
           <Tab label="Audit" />
         </Tabs>
 
+        {/* Tab 0: System */}
         <TabPanel value={tabValue} index={0}>
-          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
-            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Coming Soon - System Monitoring Dashboard
-            </Typography>
-          </Paper>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <MetricCard title="System Metrics (1h)" hours={1} />
+            </Grid>
+            <Grid item xs={12}>
+              <LogViewer 
+                defaultQuery='{service=~"backend|frontend|nginx"}'
+                defaultHours={1}
+              />
+            </Grid>
+          </Grid>
         </TabPanel>
 
+        {/* Tab 1: Security */}
         <TabPanel value={tabValue} index={1}>
-          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
-            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Coming Soon - Security Dashboard
-            </Typography>
-          </Paper>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <MetricCard title="Security Metrics (24h)" hours={24} />
+            </Grid>
+            <Grid item xs={12}>
+              <LogViewer 
+                defaultQuery='{service=~".+"} |~ "(?i)(401|403|unauthorized|security)"'
+                defaultHours={24}
+              />
+            </Grid>
+          </Grid>
         </TabPanel>
 
+        {/* Tab 2: Audit */}
         <TabPanel value={tabValue} index={2}>
-          <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
-            <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Coming Soon - Audit Log Dashboard
-            </Typography>
-          </Paper>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <MetricCard title="Audit Metrics (12h)" hours={12} />
+            </Grid>
+            <Grid item xs={12}>
+              <LogViewer 
+                defaultQuery='{service="backend"} |~ "(?i)(audit|created|updated|deleted)"'
+                defaultHours={12}
+              />
+            </Grid>
+          </Grid>
         </TabPanel>
       </GlassPaper>
     </Container>

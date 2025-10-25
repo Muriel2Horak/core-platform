@@ -1,6 +1,7 @@
-import { Container, Typography, Box, Paper, Alert } from '@mui/material';
-import { Shield as ShieldIcon, Construction } from '@mui/icons-material';
+import { Container, Typography, Box, Grid } from '@mui/material';
+import { Shield as ShieldIcon } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
+import { LogViewer, MetricCard } from '../../components/Monitoring';
 
 export const AdminSecurityPage = () => {
   const routeId = 'admin.security.monitoring';
@@ -12,7 +13,7 @@ export const AdminSecurityPage = () => {
         <Box flex={1}>
           <Typography variant="h4">Bezpečnostní monitoring</Typography>
           <Typography variant="body2" color="text.secondary">
-            Nativní Loki security monitoring (v přípravě)
+            Failed logins, 401/403 errors, security events
           </Typography>
         </Box>
         <Box>
@@ -20,16 +21,19 @@ export const AdminSecurityPage = () => {
         </Box>
       </Box>
       
-      <Alert severity="info" icon={<Construction />} sx={{ mb: 3 }}>
-        Migrace na nativní Loki UI probíhá - ETA S4 fáze
-      </Alert>
-      
-      <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default', minHeight: 600 }}>
-        <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          Coming Soon - Security Dashboard
-        </Typography>
-      </Paper>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <MetricCard title="Security Metrics (24h)" hours={24} />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <LogViewer 
+            defaultQuery='{service=~".+"} |~ "(?i)(401|403|unauthorized|failed|denied|security)"'
+            defaultHours={24}
+            showQueryBuilder={true}
+          />
+        </Grid>
+      </Grid>
     </Container>
   );
 };

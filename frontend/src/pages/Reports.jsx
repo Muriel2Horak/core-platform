@@ -1,9 +1,16 @@
 import React from 'react';
-import { Box, Typography, Alert, Tab, Tabs, Container, Paper } from '@mui/material';
-import { Assessment, Construction } from '@mui/icons-material';
+import { Box, Typography, Tab, Tabs, Container, Grid } from '@mui/material';
+import { Assessment } from '@mui/icons-material';
+import { LogViewer, MetricCard } from '../components/Monitoring';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = React.useState(0);
+
+  const TabPanel = ({ children, value, index }) => (
+    <div hidden={value !== index}>
+      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+    </div>
+  );
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -11,23 +18,13 @@ export default function Reports() {
         <Box display="flex" alignItems="center" gap={2}>
           <Assessment fontSize="large" color="primary" />
           <Box>
-            <Typography variant="h4">Reporty</Typography>
+            <Typography variant="h4">Monitoring & Logs</Typography>
             <Typography variant="body2" color="text.secondary">
-              Nativní Loki monitoring (v přípravě)
+              Nativní Loki monitoring - Realtime log analysis
             </Typography>
           </Box>
         </Box>
       </Box>
-
-      <Alert severity="info" icon={<Construction />} sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          🚧 Nové Monitoring UI v přípravě
-        </Typography>
-        <Typography variant="body2">
-          Migrujeme na nativní React komponenty nad Loki API. 
-          Grafana zůstává dostupná jako samostatný admin nástroj.
-        </Typography>
-      </Alert>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
@@ -37,15 +34,50 @@ export default function Reports() {
         </Tabs>
       </Box>
 
-      <Paper sx={{ p: 4, textAlign: 'center', bgcolor: 'background.default' }}>
-        <Construction sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-        <Typography variant="h6" color="text.secondary">
-          Coming Soon - Nativní Loki monitoring UI
-        </Typography>
-        <Typography variant="body2" color="text.secondary" mt={1}>
-          ETA: S4 fáze (3-4 dny)
-        </Typography>
-      </Paper>
+      {/* Tab 0: System Logs */}
+      <TabPanel value={activeTab} index={0}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <MetricCard title="System Metrics" hours={1} />
+          </Grid>
+          <Grid item xs={12}>
+            <LogViewer 
+              defaultQuery='{service=~"backend|frontend|nginx"}'
+              defaultHours={1}
+            />
+          </Grid>
+        </Grid>
+      </TabPanel>
+
+      {/* Tab 1: Application Logs */}
+      <TabPanel value={activeTab} index={1}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <MetricCard title="Application Metrics" hours={3} />
+          </Grid>
+          <Grid item xs={12}>
+            <LogViewer 
+              defaultQuery='{service="backend"} |~ "(?i)(error|exception)"'
+              defaultHours={3}
+            />
+          </Grid>
+        </Grid>
+      </TabPanel>
+
+      {/* Tab 2: Security Logs */}
+      <TabPanel value={activeTab} index={2}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={4}>
+            <MetricCard title="Security Metrics" hours={24} />
+          </Grid>
+          <Grid item xs={12}>
+            <LogViewer 
+              defaultQuery='{service=~".+"} |~ "(?i)(401|403|failed|unauthorized)"'
+              defaultHours={24}
+            />
+          </Grid>
+        </Grid>
+      </TabPanel>
     </Container>
   );
 }

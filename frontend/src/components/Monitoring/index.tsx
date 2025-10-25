@@ -1,2 +1,2 @@
-export { default as GrafanaEmbed } from './GrafanaEmbed';
-export { default as MonitoringDialog } from './MonitoringDialog';
+export { default as LogViewer } from './LogViewer';
+export { default as MetricCard } from './MetricCard';

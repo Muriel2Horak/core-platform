@@ -10,15 +10,14 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Registry for tenant -> Grafana org mapping
  * 
- * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native Loki UI
- * This registry is disabled by default via monitoring.grafana.enabled=false
+ * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native
+ * Loki UI This registry is disabled by default via
+ * monitoring.grafana.enabled=false
  * 
  * In production, this would call Grafana API or database For now, static
  * mapping with admin=1
  */
-@Component 
-@Slf4j
-@ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
+@Component @Slf4j @ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
 public class GrafanaTenantRegistry {
 
   private final Map<String, Integer> tenantToOrgId = new ConcurrentHashMap<>();

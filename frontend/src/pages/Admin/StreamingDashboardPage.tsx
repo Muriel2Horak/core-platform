@@ -8,8 +8,9 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { Stream, Construction } from '@mui/icons-material';
+import { Stream } from '@mui/icons-material';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
+import { LogViewer } from '../../components/Monitoring';
 import axios from 'axios';
 
 interface StreamingMetrics {
@@ -118,9 +119,15 @@ const StreamingDashboardPage: React.FC = () => {
         </Grid>
       )}
 
-      <Alert severity="info" icon={<Construction />} sx={{ mt: 3 }}>
-        Streaming metrics Grafana dashboard migrován na nativní Loki UI - ETA S4
-      </Alert>
+      {/* Streaming Logs */}
+      <Box mt={3}>
+        <Typography variant="h6" mb={2}>Streaming Events & Errors</Typography>
+        <LogViewer 
+          defaultQuery='{service="backend"} |~ "(?i)(streaming|kafka|outbox|dlq)"'
+          defaultHours={3}
+          showQueryBuilder={true}
+        />
+      </Box>
     </Box>
   );
 };

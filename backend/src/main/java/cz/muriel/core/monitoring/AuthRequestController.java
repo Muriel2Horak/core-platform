@@ -25,8 +25,9 @@ import java.util.Optional;
 /**
  * Internal endpoint for Nginx auth_request
  * 
- * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native Loki UI
- * This controller is disabled by default via monitoring.grafana.enabled=false
+ * ⚠️ DEPRECATED: Grafana FE integration is being removed in favor of native
+ * Loki UI This controller is disabled by default via
+ * monitoring.grafana.enabled=false
  * 
  * Returns 200 + Grafana-JWT header if authenticated Returns 401 if not
  * authenticated
@@ -35,10 +36,7 @@ import java.util.Optional;
  * restrict access) - No PII in logs - Reads JWT from HTTP-only cookie (not
  * Authorization header) - Auto-refreshes tokens before expiration
  */
-@RestController 
-@RequestMapping("/internal/auth") 
-@Slf4j
-@ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
+@RestController @RequestMapping("/internal/auth") @Slf4j @ConditionalOnProperty(name = "monitoring.grafana.enabled", havingValue = "true", matchIfMissing = false)
 public class AuthRequestController {
 
   private static final String ACCESS_COOKIE = "at"; // Access token cookie
