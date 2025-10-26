@@ -64,8 +64,8 @@ test.describe('Admin: Roles CRUD', () => {
     await loginAsUser(page, 'test_admin', 'Test.1234'); // Has USER_MANAGER capability
     await navigateToAdminPage(page, '/roles');
 
-    // Should see roles list
-    await expect(page.getByText(/seznam rolí|roles list|role/i)).toBeVisible({ timeout: 10000 });
+    // Should see roles list (use heading to avoid matching navigation menu + description)
+    await expect(page.getByRole('heading', { name: /seznam rolí|roles list/i })).toBeVisible({ timeout: 10000 });
 
     // Should see system roles
     await expect(page.getByText(/CORE_ROLE_USER/i)).toBeVisible();
@@ -210,7 +210,7 @@ test.describe('Admin: Roles CRUD', () => {
       await searchBox.fill('CORE_ROLE_USER');
       await page.waitForTimeout(1000);
 
-      await expect(page.getByText(/CORE_ROLE_USER/i)).toBeVisible();
+      await expect(page.getByText('CORE_ROLE_USER', { exact: true })).toBeVisible();
 
       // Clear search
       await searchBox.clear();
@@ -218,8 +218,8 @@ test.describe('Admin: Roles CRUD', () => {
     }
 
     // Should see multiple roles
-    await expect(page.getByText(/CORE_ROLE_ADMIN/i)).toBeVisible();
-    await expect(page.getByText(/CORE_ROLE_USER/i)).toBeVisible();
+    await expect(page.getByText(/CORE_ROLE_ADMIN/i).first()).toBeVisible();
+    await expect(page.getByText('CORE_ROLE_USER', { exact: true })).toBeVisible();
   });
 
   test('should validate required fields on create', async ({ page }) => {
@@ -271,11 +271,11 @@ test.describe('Admin: Roles CRUD', () => {
     // Should show role details with permissions
     await expect(page.getByText(/oprávnění|permissions|capabilities/i)).toBeVisible({ timeout: 5000 });
 
-    // Should show that it's a composite role
-    await expect(page.getByText(/composite|složená role/i)).toBeVisible();
+    // Should show that it's a composite role (use first() to avoid strict mode violation)
+    await expect(page.getByText(/composite|složená role/i).first()).toBeVisible();
 
     // Should list sub-roles
-    await expect(page.getByText(/CORE_ROLE_USER_MANAGER/i)).toBeVisible();
-    await expect(page.getByText(/CORE_ROLE_TENANT_ADMIN/i)).toBeVisible();
+    await expect(page.getByText(/CORE_ROLE_USER_MANAGER/i).first()).toBeVisible();
+    await expect(page.getByText(/CORE_ROLE_TENANT_ADMIN/i).first()).toBeVisible();
   });
 });

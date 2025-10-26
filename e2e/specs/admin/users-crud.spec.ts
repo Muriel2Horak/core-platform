@@ -247,7 +247,7 @@ test.describe('Admin: Users CRUD', () => {
     await searchBox.fill('test_admin');
     await page.waitForTimeout(1000);
 
-    await expect(page.getByText('test_admin')).toBeVisible();
+    await expect(page.getByText('test_admin').first()).toBeVisible();
 
     // Clear search
     await searchBox.clear();
@@ -256,7 +256,7 @@ test.describe('Admin: Users CRUD', () => {
     // Search by email
     await searchBox.fill('test.admin@');
     await page.waitForTimeout(1000);
-    await expect(page.getByText('test_admin')).toBeVisible();
+    await expect(page.getByText('test_admin').first()).toBeVisible();
   });
 
   test('should validate required fields on create', async ({ page }) => {
@@ -288,9 +288,10 @@ test.describe('Admin: Users CRUD', () => {
     await createButton.click();
 
     await page.getByLabel(/uživatelské jméno|username/i).fill(username);
-    await page.getByLabel(/jméno|first name/i).fill('Duplicate');
+    // FIX: Use exact match to avoid strict mode violation (same as create test)
+    await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Duplicate');
     await page.getByLabel(/příjmení|last name/i).fill('User');
-    await page.getByLabel(/e-mail|email/i).fill(`duplicate@test.local`);
+    await page.getByRole('textbox', { name: /e-mail/i }).fill(`duplicate@test.local`);
 
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();

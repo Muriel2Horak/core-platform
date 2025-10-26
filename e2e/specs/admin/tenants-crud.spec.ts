@@ -43,12 +43,12 @@ test.describe('Admin: Tenants CRUD', () => {
     await expect(createButton).toBeVisible({ timeout: 10000 });
     await createButton.click();
 
-    // Fill tenant form
+    // Fill tenant form (use exact Czech labels as they appear in UI)
     const tenantKey = generateTestName('test_tenant').toLowerCase().replace(/_/g, '-');
     const displayName = `Test Tenant ${Date.now()}`;
     
-    await page.getByLabel(/klíč tenantu|tenant key|key/i).fill(tenantKey);
-    await page.getByLabel(/název|display name|name/i).fill(displayName);
+    await page.getByLabel('ID tenanta *').fill(tenantKey);
+    await page.getByLabel('Název tenanta *').fill(displayName);
 
     // Submit form
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
@@ -100,8 +100,8 @@ test.describe('Admin: Tenants CRUD', () => {
     await loginAsAdmin(page);
     await navigateToAdminPage(page, '/tenants');
 
-    // Should see tenants list
-    await expect(page.getByText(/seznam tenantů|tenants list|tenanty/i)).toBeVisible({ timeout: 10000 });
+    // Should see tenants list (use heading role to be more specific)
+    await expect(page.getByRole('heading', { name: /seznam tenantů|tenants list/i })).toBeVisible({ timeout: 10000 });
 
     // Should see create button
     const createButton = page.getByRole('button', { name: /vytvořit tenant|create tenant|nový tenant/i });
@@ -154,8 +154,8 @@ test.describe('Admin: Tenants CRUD', () => {
     const editButton = page.locator(`text=${tenantKey}`).locator('..').locator('..').getByRole('button', { name: /upravit|edit/i });
     await editButton.click();
 
-    // Update display name
-    await page.getByLabel(/název|display name/i).fill('Updated Tenant Name');
+    // Update display name (using exact Czech label)
+    await page.getByLabel('Název tenanta *').fill('Updated Tenant Name');
 
     // Save changes
     const saveButton = page.getByRole('button', { name: /uložit|save/i });
@@ -302,8 +302,8 @@ test.describe('Admin: Tenants CRUD', () => {
     await createButton.click();
 
     // Try invalid tenant key (with spaces or special chars)
-    await page.getByLabel(/klíč tenantu|tenant key|key/i).fill('Invalid Key 123!');
-    await page.getByLabel(/název|display name/i).fill('Test Tenant');
+    await page.getByLabel('ID tenanta *').fill('Invalid Key 123!');
+    await page.getByLabel('Název tenanta *').fill('Test Tenant');
 
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();
@@ -325,8 +325,8 @@ test.describe('Admin: Tenants CRUD', () => {
     const createButton = page.getByRole('button', { name: /vytvořit tenant|create tenant|nový tenant/i });
     await createButton.click();
 
-    await page.getByLabel(/klíč tenantu|tenant key|key/i).fill(tenantKey);
-    await page.getByLabel(/název|display name/i).fill('Duplicate Tenant');
+    await page.getByLabel('ID tenanta *').fill(tenantKey);
+    await page.getByLabel('Název tenanta *').fill('Duplicate Tenant');
 
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();

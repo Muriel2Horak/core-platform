@@ -68,8 +68,8 @@ test.describe('Admin: Groups CRUD', () => {
     await loginAsUser(page, 'test_admin', 'Test.1234');
     await navigateToAdminPage(page, '/groups');
 
-    // Should see groups list
-    await expect(page.getByText(/seznam skupin|groups list|skupiny/i)).toBeVisible({ timeout: 10000 });
+    // Should see groups list (use heading to avoid matching navigation menu)
+    await expect(page.getByRole('heading', { name: /seznam skupin|groups list/i })).toBeVisible({ timeout: 10000 });
 
     // Should see create button (user_manager can manage groups)
     const createButton = page.getByRole('button', { name: /vytvořit skupinu|create group|nová skupina/i });
