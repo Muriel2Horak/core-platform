@@ -19,19 +19,12 @@ import java.util.Map;
 /**
  * 📊 MONITORING BFF API
  * 
- * Backend-for-Frontend API for Loki monitoring:
- * - Automatic tenant isolation via JWT
- * - LogQL query execution
- * - Label discovery
- * - Metrics summary
+ * Backend-for-Frontend API for Loki monitoring: - Automatic tenant isolation
+ * via JWT - LogQL query execution - Label discovery - Metrics summary
  * 
  * Security: All queries are scoped to user's tenant via {tenant="..."} filter
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/monitoring")
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "monitoring.loki.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @RestController @RequestMapping("/api/monitoring") @RequiredArgsConstructor @ConditionalOnProperty(name = "monitoring.loki.enabled", havingValue = "true", matchIfMissing = false)
 public class MonitoringBffController {
 
   private final LokiClient lokiClient;
@@ -39,7 +32,8 @@ public class MonitoringBffController {
   /**
    * Query logs with automatic tenant isolation
    * 
-   * @param query LogQL query (WITHOUT tenant filter - will be added automatically)
+   * @param query LogQL query (WITHOUT tenant filter - will be added
+   * automatically)
    * @param hours Time range in hours (default: 1)
    * @param limit Max results (default: 100, max: 5000)
    * @param authentication User JWT
@@ -50,8 +44,7 @@ public class MonitoringBffController {
       @RequestParam(required = false, defaultValue = "{service=~\".+\"}") String query,
       @RequestParam(required = false, defaultValue = "1") Integer hours,
       @RequestParam(required = false, defaultValue = "100") Integer limit,
-      Authentication authentication
-  ) {
+      Authentication authentication) {
     String tenant = extractTenant(authentication);
     log.info("📊 Query logs for tenant: {}, query: {}, hours: {}", tenant, query, hours);
 
@@ -61,12 +54,8 @@ public class MonitoringBffController {
     Instant end = Instant.now();
     Instant start = end.minus(hours, ChronoUnit.HOURS);
 
-    LokiQueryRequest request = LokiQueryRequest.builder()
-        .query(tenantQuery)
-        .start(start)
-        .end(end)
-        .limit(Math.min(limit, 5000))
-        .direction("backward") // Most recent first
+    LokiQueryRequest request = LokiQueryRequest.builder().query(tenantQuery).start(start).end(end)
+        .limit(Math.min(limit, 5000)).direction("backward") // Most recent first
         .build();
 
     LokiQueryResponse response = lokiClient.queryLogs(request);
@@ -100,10 +89,8 @@ public class MonitoringBffController {
    * @return List of label values
    */
   @GetMapping("/labels/{label}/values")
-  public ResponseEntity<List<String>> getLabelValues(
-      @PathVariable String label,
-      Authentication authentication
-  ) {
+  public ResponseEntity<List<String>> getLabelValues(@PathVariable String label,
+      Authentication authentication) {
     String tenant = extractTenant(authentication);
     log.info("📋 Get label values for: {} (tenant: {})", label, tenant);
 
@@ -111,12 +98,10 @@ public class MonitoringBffController {
     Instant start = end.minus(24, ChronoUnit.HOURS);
 
     List<String> values = lokiClient.getLabelValues(label, start, end);
-    
+
     // Filter by tenant if querying tenant label
     if ("tenant".equals(label)) {
-      values = values.stream()
-          .filter(v -> v.equals(tenant))
-          .toList();
+      values = values.stream().filter(v -> v.equals(tenant)).toList();
     }
 
     return ResponseEntity.ok(values);
@@ -132,8 +117,7 @@ public class MonitoringBffController {
   @GetMapping("/metrics-summary")
   public ResponseEntity<Map<String, Object>> getMetricsSummary(
       @RequestParam(required = false, defaultValue = "1") Integer hours,
-      Authentication authentication
-  ) {
+      Authentication authentication) {
     String tenant = extractTenant(authentication);
     log.info("📊 Get metrics summary for tenant: {}, hours: {}", tenant, hours);
 
@@ -142,46 +126,33 @@ public class MonitoringBffController {
 
     // Query total logs
     String totalQuery = String.format("{tenant=\"%s\"}", tenant);
-    LokiQueryRequest totalRequest = LokiQueryRequest.builder()
-        .query(totalQuery)
-        .start(start)
-        .end(end)
-        .limit(5000)
-        .build();
+    LokiQueryRequest totalRequest = LokiQueryRequest.builder().query(totalQuery).start(start)
+        .end(end).limit(5000).build();
     LokiQueryResponse totalResponse = lokiClient.queryLogs(totalRequest);
-    
+
     // Query error logs
-    String errorQuery = String.format("{tenant=\"%s\"} |~ \"(?i)(error|exception|failed)\"", tenant);
-    LokiQueryRequest errorRequest = LokiQueryRequest.builder()
-        .query(errorQuery)
-        .start(start)
-        .end(end)
-        .limit(5000)
-        .build();
+    String errorQuery = String.format("{tenant=\"%s\"} |~ \"(?i)(error|exception|failed)\"",
+        tenant);
+    LokiQueryRequest errorRequest = LokiQueryRequest.builder().query(errorQuery).start(start)
+        .end(end).limit(5000).build();
     LokiQueryResponse errorResponse = lokiClient.queryLogs(errorRequest);
 
     // Calculate metrics
-    long totalLogs = totalResponse.getData() != null 
+    long totalLogs = totalResponse.getData() != null
         ? totalResponse.getData().getResult().stream()
-            .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0)
-            .sum()
+            .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0).sum()
         : 0;
 
     long errorLogs = errorResponse.getData() != null
         ? errorResponse.getData().getResult().stream()
-            .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0)
-            .sum()
+            .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0).sum()
         : 0;
 
     double errorRate = totalLogs > 0 ? (double) errorLogs / totalLogs * 100 : 0;
 
-    Map<String, Object> summary = Map.of(
-        "totalLogs", totalLogs,
-        "errorLogs", errorLogs,
-        "errorRate", String.format("%.2f%%", errorRate),
-        "timeRange", hours + "h",
-        "tenant", tenant
-    );
+    Map<String, Object> summary = Map.of("totalLogs", totalLogs, "errorLogs", errorLogs,
+        "errorRate", String.format("%.2f%%", errorRate), "timeRange", hours + "h", "tenant",
+        tenant);
 
     return ResponseEntity.ok(summary);
   }
@@ -207,9 +178,9 @@ public class MonitoringBffController {
   /**
    * Add tenant filter to LogQL query
    * 
-   * Examples:
-   * - {service="backend"} → {tenant="admin",service="backend"}
-   * - {level="error"} |= "exception" → {tenant="admin",level="error"} |= "exception"
+   * Examples: - {service="backend"} → {tenant="admin",service="backend"} -
+   * {level="error"} |= "exception" → {tenant="admin",level="error"} |=
+   * "exception"
    */
   private String addTenantFilter(String query, String tenant) {
     if (query == null || query.isBlank()) {
@@ -222,12 +193,11 @@ public class MonitoringBffController {
       if (closingBrace > 0) {
         String labels = query.substring(1, closingBrace);
         String rest = query.substring(closingBrace + 1);
-        
+
         // Add tenant as first label
-        String newLabels = labels.isEmpty() 
-            ? String.format("tenant=\"%s\"", tenant)
+        String newLabels = labels.isEmpty() ? String.format("tenant=\"%s\"", tenant)
             : String.format("tenant=\"%s\",%s", tenant, labels);
-        
+
         return "{" + newLabels + "}" + rest;
       }
     }

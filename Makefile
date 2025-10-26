@@ -56,6 +56,7 @@ help:
 	@echo "  test-e2e-pre          - PRE-DEPLOY smoke tests (fast gate)"
 	@echo "  test-e2e-post         - POST-DEPLOY full E2E (with scaffold)"
 	@echo "  test-e2e              - All E2E tests (pre + post)"
+	@echo "  test-e2e-loki         - Loki monitoring UI E2E tests"
 	@echo "  verify                - Quick smoke tests (health checks)"
 	@echo "  verify-full           - Full integration tests"
 	@echo ""
@@ -1868,6 +1869,33 @@ e2e-setup:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
 	@echo "║  📦 E2E SETUP (DEPENDENCIES + PLAYWRIGHT)                     ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
+
+# E2E: Loki Monitoring Tests (Native UI)
+.PHONY: test-e2e-loki
+test-e2e-loki:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  📊 LOKI MONITORING E2E TESTS (NATIVE UI)                      ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "⚠️  Requires: Running environment + Loki ingesting logs"
+	@echo "📋 Tests: LogViewer, MetricCard, Tenant isolation, CSV export"
+	@echo "⏱️  Duration: ~3-5 minutes"
+	@echo ""
+	@if [ ! -d "e2e/node_modules" ]; then \
+		echo "📦 Installing E2E dependencies..."; \
+		cd e2e && npm install; \
+	fi
+	@echo "▶️  Running Loki monitoring tests..."
+	@cd e2e && npx playwright test --project=monitoring specs/monitoring/loki-log-viewer.spec.ts 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/✓/  ✅/g' | \
+		sed 's/✗/  ❌/g' | \
+		sed 's/passed/✅ passed/g' | \
+		sed 's/failed/❌ failed/g'
+	@echo ""
+	@echo "✅ Loki monitoring E2E tests completed!"
+	@echo "📊 Report: e2e/playwright-report/index.html"
+	@echo ""
 	@echo ""
 	@echo "▶️  [1/2] Installing npm dependencies..."
 	@cd e2e && npm install 2>&1 | tail -5

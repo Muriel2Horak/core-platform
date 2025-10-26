@@ -47,7 +47,7 @@ export const MonitoringDialog = ({
           height="100%"
           frameBorder="0"
           style={{ border: 'none' }}
-          title="Grafana Dashboard"
+          title="Monitoring Dashboard"
         />
       </DialogContent>
     </Dialog>

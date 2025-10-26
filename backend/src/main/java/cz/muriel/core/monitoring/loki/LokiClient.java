@@ -17,18 +17,15 @@ import java.util.List;
 /**
  * 🔍 LOKI HTTP API CLIENT
  * 
- * REST client for Loki Query API with support for:
- * - Log querying (query_range)
- * - Label discovery (labels, label values)
- * - Circuit breaker for resilience
- * - Tenant isolation via LogQL filters
+ * REST client for Loki Query API with support for: - Log querying (query_range)
+ * - Label discovery (labels, label values) - Circuit breaker for resilience -
+ * Tenant isolation via LogQL filters
  * 
- * @see <a href="https://grafana.com/docs/loki/latest/reference/loki-http-api/">Loki HTTP API</a>
+ * @see <a href=
+ * "https://grafana.com/docs/loki/latest/reference/loki-http-api/">Loki HTTP
+ * API</a>
  */
-@Slf4j
-@Component
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "monitoring.loki.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @Component @RequiredArgsConstructor @ConditionalOnProperty(name = "monitoring.loki.enabled", havingValue = "true", matchIfMissing = false)
 public class LokiClient {
 
   private final RestTemplate restTemplate;
@@ -47,8 +44,8 @@ public class LokiClient {
    */
   @CircuitBreaker(name = "loki", fallbackMethod = "queryLogsFallback")
   public LokiQueryResponse queryLogs(LokiQueryRequest request) {
-    log.debug("📊 Querying Loki: query={}, start={}, end={}, limit={}", 
-        request.getQuery(), request.getStart(), request.getEnd(), request.getLimit());
+    log.debug("📊 Querying Loki: query={}, start={}, end={}, limit={}", request.getQuery(),
+        request.getStart(), request.getEnd(), request.getLimit());
 
     // Build URL with query parameters
     String url = UriComponentsBuilder.fromUriString(lokiUrl + "/loki/api/v1/query_range")
@@ -56,28 +53,24 @@ public class LokiClient {
         .queryParam("limit", Math.min(request.getLimit(), maxEntries))
         .queryParam("start", toNanoseconds(request.getStart()))
         .queryParam("end", toNanoseconds(request.getEnd()))
-        .queryParam("direction", request.getDirection())
-        .build(false) // Don't encode query (Loki needs raw LogQL)
+        .queryParam("direction", request.getDirection()).build(false) // Don't encode query (Loki
+                                                                      // needs raw LogQL)
         .toUriString();
 
     try {
-      ResponseEntity<LokiQueryResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          null,
-          LokiQueryResponse.class
-      );
+      ResponseEntity<LokiQueryResponse> response = restTemplate.exchange(url, HttpMethod.GET, null,
+          LokiQueryResponse.class);
 
       if (response.getBody() == null || !"success".equals(response.getBody().getStatus())) {
         log.error("❌ Loki query failed: {}", response.getBody());
         throw new LokiClientException("Loki query returned non-success status");
       }
 
-      log.debug("✅ Loki query OK: {} streams returned", 
+      log.debug("✅ Loki query OK: {} streams returned",
           response.getBody().getData().getResult().size());
-      
+
       return response.getBody();
-      
+
     } catch (Exception e) {
       log.error("❌ Loki query exception: {}", e.getMessage(), e);
       throw new LokiClientException("Failed to query Loki", e);
@@ -95,7 +88,8 @@ public class LokiClient {
   public List<String> getLabels(Instant start, Instant end) {
     log.debug("📋 Fetching Loki labels");
 
-    UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(lokiUrl + "/loki/api/v1/labels");
+    UriComponentsBuilder builder = UriComponentsBuilder
+        .fromUriString(lokiUrl + "/loki/api/v1/labels");
     if (start != null) {
       builder.queryParam("start", toNanoseconds(start));
     }
@@ -106,12 +100,8 @@ public class LokiClient {
     String url = builder.build().toUriString();
 
     try {
-      ResponseEntity<LokiLabelsResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          null,
-          LokiLabelsResponse.class
-      );
+      ResponseEntity<LokiLabelsResponse> response = restTemplate.exchange(url, HttpMethod.GET, null,
+          LokiLabelsResponse.class);
 
       if (response.getBody() == null || !"success".equals(response.getBody().getStatus())) {
         log.error("❌ Loki labels query failed");
@@ -119,7 +109,7 @@ public class LokiClient {
       }
 
       return response.getBody().getData();
-      
+
     } catch (Exception e) {
       log.error("❌ Loki labels exception: {}", e.getMessage(), e);
       throw new LokiClientException("Failed to fetch labels from Loki", e);
@@ -140,7 +130,7 @@ public class LokiClient {
 
     UriComponentsBuilder builder = UriComponentsBuilder
         .fromUriString(lokiUrl + "/loki/api/v1/label/" + label + "/values");
-    
+
     if (start != null) {
       builder.queryParam("start", toNanoseconds(start));
     }
@@ -151,12 +141,8 @@ public class LokiClient {
     String url = builder.build().toUriString();
 
     try {
-      ResponseEntity<LokiLabelValuesResponse> response = restTemplate.exchange(
-          url,
-          HttpMethod.GET,
-          null,
-          LokiLabelValuesResponse.class
-      );
+      ResponseEntity<LokiLabelValuesResponse> response = restTemplate.exchange(url, HttpMethod.GET,
+          null, LokiLabelValuesResponse.class);
 
       if (response.getBody() == null || !"success".equals(response.getBody().getStatus())) {
         log.error("❌ Loki label values query failed for label: {}", label);
@@ -164,7 +150,7 @@ public class LokiClient {
       }
 
       return response.getBody().getData();
-      
+
     } catch (Exception e) {
       log.error("❌ Loki label values exception: {}", e.getMessage(), e);
       throw new LokiClientException("Failed to fetch label values from Loki", e);
@@ -196,7 +182,8 @@ public class LokiClient {
     return List.of();
   }
 
-  private List<String> getLabelValuesFallback(String label, Instant start, Instant end, Exception e) {
+  private List<String> getLabelValuesFallback(String label, Instant start, Instant end,
+      Exception e) {
     log.error("⚠️ Circuit breaker fallback for getLabelValues: {}", e.getMessage());
     return List.of();
   }

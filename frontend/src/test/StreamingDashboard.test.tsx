@@ -9,10 +9,10 @@ import { TestLogger } from './test-logger';
  * Tests rendering and functionality of StreamingDashboardPage component
  */
 
-// Mock Grafana iframe component
-vi.mock('@grafana/scenes', () => ({
-  EmbeddedScene: vi.fn(() => ({ render: () => null })),
-  SceneFlexLayout: vi.fn(() => ({ render: () => null })),
+// Mock Loki monitoring components
+vi.mock('../components/Monitoring', () => ({
+  LogViewer: () => <div data-testid="log-viewer">Log Viewer Mock</div>,
+  MetricCard: () => <div data-testid="metric-card">Metric Card Mock</div>,
 }));
 
 // Mock API client

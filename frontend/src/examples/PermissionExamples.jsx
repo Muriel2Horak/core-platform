@@ -112,17 +112,13 @@ function DashboardPage() {
     <div>
       <h1>Dashboard</h1>
       
-      {/* Grafana widget se zobrazí pouze pokud má feature */}
-      {hasFeature('grafana_admin') && (
-        <GrafanaAdminPanel />
+      {/* Monitoring widget - shows if user has monitoring feature */}
+      {hasFeature('monitoring_viewer') && (
+        <MonitoringViewerPanel />
       )}
       
-      {hasFeature('grafana_editor') && (
-        <GrafanaEditorPanel />
-      )}
-      
-      {hasFeature('grafana_viewer') && (
-        <GrafanaViewerPanel />
+      {hasFeature('monitoring_admin') && (
+        <MonitoringAdminPanel />
       )}
       
       {/* Export tlačítko pouze pokud má feature */}
