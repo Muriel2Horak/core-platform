@@ -267,6 +267,26 @@ export async function searchUsers(
 }
 
 /**
+ * Check user changes via CDC (Change Data Capture) endpoint
+ * @param api - API request context
+ * @param since - Optional timestamp to check for changes since
+ * @returns CDC response with timestamp and hasChanges flag
+ */
+export async function checkUserChanges(
+  api: APIRequestContext,
+  since?: number
+): Promise<{ timestamp: number; hasChanges: boolean; username: string; lastModified: number }> {
+  const url = since ? `/api/me/changes?since=${since}` : '/api/me/changes';
+  const response = await api.get(url);
+  
+  if (!response.ok()) {
+    throw new Error(`Failed to check user changes: ${response.status()}`);
+  }
+  
+  return await response.json();
+}
+
+/**
  * Get UI Spec for entity
  */
 export async function getUISpec(

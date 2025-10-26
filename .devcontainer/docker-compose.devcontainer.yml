@@ -60,6 +60,7 @@ services:
     volumes:
       # Mount entire source for Maven to compile
       - ../backend/src:/workspace/src
+      - ../backend/target:/workspace/target  # Mount compiled classes
       - ../backend/pom.xml:/workspace/pom.xml
       - ../backend/mvnw:/workspace/mvnw
       - ../backend/mvnw.cmd:/workspace/mvnw.cmd

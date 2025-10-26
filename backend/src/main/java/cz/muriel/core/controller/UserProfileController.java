@@ -68,7 +68,7 @@ public class UserProfileController {
     }
   }
 
-  @PutMapping  // Support both PUT and PATCH for profile updates
+  @PutMapping // Support both PUT and PATCH for profile updates
   @PatchMapping
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
