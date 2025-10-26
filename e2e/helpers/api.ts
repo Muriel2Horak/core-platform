@@ -384,3 +384,102 @@ export async function executeWorkflowTransition(
   
   return await response.json();
 }
+
+// ============================================================================
+// KEYCLOAK SYNC APIs (Admin only)
+// ============================================================================
+
+/**
+ * Trigger bulk sync of users from Keycloak for a tenant
+ * @returns Sync job ID for status tracking
+ */
+export async function syncUsersFromKeycloak(
+  api: APIRequestContext,
+  tenantKey: string
+): Promise<{ status: string; syncId: string; message: string }> {
+  const response = await api.post(`/api/admin/keycloak-sync/users/${tenantKey}`);
+  
+  if (!response.ok() && response.status() !== 202) {
+    throw new Error(`Failed to sync users: ${response.status()} ${await response.text()}`);
+  }
+  
+  return await response.json();
+}
+
+/**
+ * Trigger bulk sync of roles from Keycloak for a tenant
+ * @returns Sync job ID for status tracking
+ */
+export async function syncRolesFromKeycloak(
+  api: APIRequestContext,
+  tenantKey: string
+): Promise<{ status: string; syncId: string; message: string }> {
+  const response = await api.post(`/api/admin/keycloak-sync/roles/${tenantKey}`);
+  
+  if (!response.ok() && response.status() !== 202) {
+    throw new Error(`Failed to sync roles: ${response.status()} ${await response.text()}`);
+  }
+  
+  return await response.json();
+}
+
+/**
+ * Trigger bulk sync of groups from Keycloak for a tenant
+ * @returns Sync job ID for status tracking
+ */
+export async function syncGroupsFromKeycloak(
+  api: APIRequestContext,
+  tenantKey: string
+): Promise<{ status: string; syncId: string; message: string }> {
+  const response = await api.post(`/api/admin/keycloak-sync/groups/${tenantKey}`);
+  
+  if (!response.ok() && response.status() !== 202) {
+    throw new Error(`Failed to sync groups: ${response.status()} ${await response.text()}`);
+  }
+  
+  return await response.json();
+}
+
+/**
+ * Trigger full sync (users + roles + groups) from Keycloak for a tenant
+ * @returns Sync job ID for status tracking
+ */
+export async function syncAllFromKeycloak(
+  api: APIRequestContext,
+  tenantKey: string
+): Promise<{ status: string; syncId: string; message: string }> {
+  const response = await api.post(`/api/admin/keycloak-sync/all/${tenantKey}`);
+  
+  if (!response.ok() && response.status() !== 202) {
+    throw new Error(`Failed to sync all: ${response.status()} ${await response.text()}`);
+  }
+  
+  return await response.json();
+}
+
+/**
+ * Get sync job status
+ * @returns Sync job status with progress and results
+ */
+export async function getSyncStatus(
+  api: APIRequestContext,
+  syncId: string
+): Promise<{
+  syncId: string;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  progress?: number;
+  results?: {
+    usersProcessed?: number;
+    rolesProcessed?: number;
+    groupsProcessed?: number;
+    errors?: string[];
+  };
+}> {
+  const response = await api.get(`/api/admin/keycloak-sync/status/${syncId}`);
+  
+  if (!response.ok()) {
+    throw new Error(`Failed to get sync status: ${response.status()} ${await response.text()}`);
+  }
+  
+  return await response.json();
+}

@@ -56,6 +56,8 @@ help:
 	@echo "  test-e2e-pre          - PRE-DEPLOY smoke tests (fast gate)"
 	@echo "  test-e2e-post         - POST-DEPLOY full E2E (with scaffold)"
 	@echo "  test-e2e              - All E2E tests (pre + post)"
+	@echo "  test-e2e-admin        - Admin CRUD E2E tests (55 tests, 3-5 min)"
+	@echo "  test-e2e-sync         - Keycloak Sync E2E tests (10 tests)"
 	@echo "  test-e2e-loki         - Loki monitoring UI E2E tests (LogViewer + CSV)"
 	@echo "  smoke-test-loki       - Quick API validation (curl-based, 1-2 min)"
 	@echo "  verify                - Quick smoke tests (health checks)"
@@ -88,6 +90,8 @@ help-advanced:
 	@echo "  test-e2e-pre        - PRE-DEPLOY smoke tests (5-7 min)"
 	@echo "  test-e2e-post       - POST-DEPLOY full E2E (20-30 min)"
 	@echo "  test-e2e            - All E2E tests (pre + post)"
+	@echo "  test-e2e-admin      - Admin CRUD E2E tests (55 tests, 3-5 min)"
+	@echo "  test-e2e-sync       - Keycloak Sync E2E tests (10 tests)"
 	@echo "  e2e-scaffold        - Create test data only"
 	@echo "  e2e-teardown        - Cleanup test data only"
 	@echo "  e2e-report          - Open HTML test report"
@@ -1926,6 +1930,62 @@ smoke-test-loki:
 	@echo "✅ Loki monitoring E2E tests completed!"
 	@echo "📊 Report: e2e/playwright-report/index.html"
 	@echo ""
+
+# Admin CRUD E2E tests (55 tests: users, roles, groups, tenants, keycloak-sync)
+.PHONY: test-e2e-admin
+test-e2e-admin:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  👥 ADMIN CRUD E2E TESTS (55 tests)                            ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "⚠️  Requires: Running environment (make dev-up or make up)"
+	@echo "📋 Tests: Users, Roles, Groups, Tenants, Keycloak Sync"
+	@echo "⏱️  Duration: ~3-5 minutes"
+	@echo ""
+	@if [ ! -d "e2e/node_modules" ]; then \
+		echo "📦 Installing E2E dependencies..."; \
+		cd e2e && npm install; \
+	fi
+	@echo "▶️  Running admin CRUD tests..."
+	@cd e2e && npx playwright test specs/admin/ 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/✓/  ✅/g' | \
+		sed 's/✗/  ❌/g' | \
+		sed 's/passed/✅ passed/g' | \
+		sed 's/failed/❌ failed/g'
+	@echo ""
+	@echo "✅ Admin CRUD E2E tests completed!"
+	@echo "📊 Report: e2e/playwright-report/index.html"
+	@echo ""
+
+# Keycloak Sync E2E tests (10 tests)
+.PHONY: test-e2e-sync
+test-e2e-sync:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🔄 KEYCLOAK SYNC E2E TESTS (10 tests)                         ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "⚠️  Requires: Running environment + Keycloak"
+	@echo "📋 Tests: User sync, Role sync, Group sync, Full sync, RBAC"
+	@echo "⏱️  Duration: ~1-2 minutes"
+	@echo ""
+	@if [ ! -d "e2e/node_modules" ]; then \
+		echo "📦 Installing E2E dependencies..."; \
+		cd e2e && npm install; \
+	fi
+	@echo "▶️  Running Keycloak Sync tests..."
+	@cd e2e && npx playwright test specs/admin/keycloak-sync.spec.ts 2>&1 | \
+		grep -v "^\[DEBUG\]" | \
+		sed 's/✓/  ✅/g' | \
+		sed 's/✗/  ❌/g' | \
+		sed 's/passed/✅ passed/g' | \
+		sed 's/failed/❌ failed/g'
+	@echo ""
+	@echo "✅ Keycloak Sync E2E tests completed!"
+	@echo "📊 Report: e2e/playwright-report/index.html"
+	@echo ""
+
+# E2E setup
 	@echo ""
 	@echo "▶️  [1/2] Installing npm dependencies..."
 	@cd e2e && npm install 2>&1 | tail -5

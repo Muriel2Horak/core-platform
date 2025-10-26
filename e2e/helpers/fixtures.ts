@@ -44,7 +44,7 @@ export async function createTestUser(
   };
 
   const response = await page.request.post(
-    `${API_BASE}/api/admin/keycloak/users`,
+    `${API_BASE}/api/admin/users`,
     {
       data: userData,
       headers: {
@@ -69,7 +69,7 @@ export async function deleteTestUser(
   userId: string
 ): Promise<void> {
   const response = await page.request.delete(
-    `${API_BASE}/api/admin/keycloak/users/${userId}`
+    `${API_BASE}/api/admin/users/${userId}`
   );
 
   if (!response.ok() && response.status() !== 404) {
@@ -91,7 +91,7 @@ export async function createTestRole(
   };
 
   const response = await page.request.post(
-    `${API_BASE}/api/admin/keycloak/roles`,
+    `${API_BASE}/api/admin/roles`,
     {
       data: roleData,
       headers: {
@@ -115,7 +115,7 @@ export async function deleteTestRole(
   roleName: string
 ): Promise<void> {
   const response = await page.request.delete(
-    `${API_BASE}/api/admin/keycloak/roles/${roleName}`
+    `${API_BASE}/api/admin/roles/${roleName}`
   );
 
   if (!response.ok() && response.status() !== 404) {
@@ -138,7 +138,7 @@ export async function createTestGroup(
   };
 
   const response = await page.request.post(
-    `${API_BASE}/api/admin/keycloak/groups`,
+    `${API_BASE}/api/admin/groups`,
     {
       data: groupData,
       headers: {
@@ -157,9 +157,10 @@ export async function createTestGroup(
   // Add members if provided
   if (options.members && options.members.length > 0) {
     for (const userId of options.members) {
-      await page.request.put(
-        `${API_BASE}/api/admin/keycloak/users/${userId}/groups/${groupId}`,
+      await page.request.post(
+        `${API_BASE}/api/admin/groups/${groupId}/members`,
         {
+          data: { userId },
           headers: {
             'Content-Type': 'application/json'
           }
@@ -179,7 +180,7 @@ export async function deleteTestGroup(
   groupId: string
 ): Promise<void> {
   const response = await page.request.delete(
-    `${API_BASE}/api/admin/keycloak/groups/${groupId}`
+    `${API_BASE}/api/admin/groups/${groupId}`
   );
 
   if (!response.ok() && response.status() !== 404) {
