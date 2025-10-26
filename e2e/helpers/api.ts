@@ -223,7 +223,7 @@ export async function publishUISpec(
  * Get current user profile
  */
 export async function getCurrentUser(api: APIRequestContext): Promise<any> {
-  const response = await api.get('/api/users/me');
+  const response = await api.get('/api/me');
   
   if (!response.ok()) {
     throw new Error(`Failed to get current user: ${response.status()}`);
@@ -239,7 +239,7 @@ export async function updateUserProfile(
   api: APIRequestContext,
   updates: Record<string, unknown>
 ): Promise<any> {
-  const response = await api.patch('/api/users/me', {
+  const response = await api.patch('/api/me', {
     data: updates,
   });
   
