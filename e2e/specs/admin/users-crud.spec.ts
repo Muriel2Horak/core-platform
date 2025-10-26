@@ -50,6 +50,20 @@ test.describe('Admin: Users CRUD', () => {
     await page.getByLabel(/příjmení|last name/i).fill('User CRUD');
     // FIX: Use getByRole to target textbox specifically (avoids matching "E-mail ověřený" checkbox)
     await page.getByRole('textbox', { name: /e-mail/i }).fill(`${username}@test.local`);
+    
+    // CRITICAL: Password is required (min 8 chars)! 
+    const passwordField = page.locator('input[type="password"]').or(page.getByLabel('Heslo *'));
+    await passwordField.fill('Test.1234');
+    
+    // CRITICAL: Tenant is REQUIRED for CORE_ADMIN users!
+    // Select first available tenant from dropdown
+    const tenantSelect = page.getByLabel('Tenant *');
+    if (await tenantSelect.isVisible().catch(() => false)) {
+      await tenantSelect.click();
+      // Wait for dropdown menu and select first option
+      await page.waitForTimeout(500);
+      await page.getByRole('option').first().click();
+    }
 
     // Submit form
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
@@ -87,6 +101,7 @@ test.describe('Admin: Users CRUD', () => {
     await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Manager');
     await page.getByLabel(/příjmení|last name/i).fill('Created User');
     await page.getByRole('textbox', { name: /e-mail/i }).fill(`${username}@test.local`);
+    await page.getByLabel('Heslo *').fill('Test.1234'); // Password required!
 
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();
@@ -292,6 +307,7 @@ test.describe('Admin: Users CRUD', () => {
     await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Duplicate');
     await page.getByLabel(/příjmení|last name/i).fill('User');
     await page.getByRole('textbox', { name: /e-mail/i }).fill(`duplicate@test.local`);
+    await page.getByLabel('Heslo *').fill('Test.1234'); // Password required!
 
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();
