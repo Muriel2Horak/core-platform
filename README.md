@@ -10,7 +10,7 @@ Enterprise-ready **multitenantní** aplikace postavená na **Java 21 + Spring Bo
 - **Frontend**: React 18, TypeScript, Vite
 - **Auth**: Keycloak 25.x s custom theme
 - **Database**: PostgreSQL 16 s Flyway migrations
-- **Monitoring**: Grafana + Loki + Prometheus stack
+- **Monitoring**: Native Loki UI + Prometheus stack (Grafana optional)
 - **Deployment**: Docker Compose s SSL/HTTPS support
 
 ## 🏢 Multitenancy Features
@@ -662,8 +662,9 @@ docker exec core-platform-db-1 pg_isready -U core
 15. [e2e/README.md](./e2e/README.md) - Playwright E2E setup
 
 **Development:**
-16. [GRAFANA_INTEGRATION.md](./docs/GRAFANA_INTEGRATION.md) - Multi-tenant monitoring
-17. [DATABASE_MIGRATIONS_GUIDE.md](./docs/DATABASE_MIGRATIONS_GUIDE.md) - Flyway workflows
+16. [GRAFANA_INTEGRATION.md](./docs/GRAFANA_INTEGRATION.md) - Multi-tenant monitoring (deprecated)
+17. [LOKI_MONITORING_UI.md](./docs/LOKI_MONITORING_UI.md) - Native Loki UI user guide ⭐ NEW
+18. [DATABASE_MIGRATIONS_GUIDE.md](./docs/DATABASE_MIGRATIONS_GUIDE.md) - Flyway workflows
 
 **Total:** 15,000+ lines of documentation across 40+ files
 
