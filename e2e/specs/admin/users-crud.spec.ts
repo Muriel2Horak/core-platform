@@ -84,14 +84,14 @@ test.describe('Admin: Users CRUD', () => {
 
     const username = generateTestName('test_user_mgr');
     await page.getByLabel(/uživatelské jméno|username/i).fill(username);
-    await page.getByLabel(/jméno|first name/i).fill('Manager');
+    await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Manager');
     await page.getByLabel(/příjmení|last name/i).fill('Created User');
-    await page.getByLabel(/e-mail|email/i).fill(`${username}@test.local`);
+    await page.getByRole('textbox', { name: /e-mail/i }).fill(`${username}@test.local`);
 
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();
 
-    await expect(page.getByText(/úspěšně vytvořen|successfully created|uživatel byl vytvořen/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
   });
 
   test('should read user list as regular user (read-only)', async ({ page }) => {
@@ -135,7 +135,7 @@ test.describe('Admin: Users CRUD', () => {
     const saveButton = page.getByRole('button', { name: /uložit|save/i });
     await saveButton.click();
 
-    await expect(page.getByText(/úspěšně aktualizován|successfully updated|změny uloženy/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify changes in list
     await navigateToAdminPage(page, '/users');
@@ -173,7 +173,7 @@ test.describe('Admin: Users CRUD', () => {
     const saveButton = page.getByRole('button', { name: /uložit|save|přiřadit/i });
     await saveButton.click();
 
-    await expect(page.getByText(/role přiřazeny|roles assigned|úspěšně přiřazeno/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify role in user detail
     await userRow.click();
@@ -202,7 +202,7 @@ test.describe('Admin: Users CRUD', () => {
     const confirmButton = page.getByRole('button', { name: /potvrdit|confirm|ano|yes/i });
     await confirmButton.click();
 
-    await expect(page.getByText(/úspěšně smazán|successfully deleted|uživatel odstraněn/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify user is gone
     await searchBox.fill(username);

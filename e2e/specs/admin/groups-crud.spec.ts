@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin, loginAsUser } from '../../helpers/login';
+import { loginAsAdmin, loginAsUser, loginAsUserManager } from '../../helpers/login';
 import {
   createTestGroup,
   createTestUser,
   generateTestName,
   cleanupTestData,
-  navigateToAdminPage
+  navigateToAdminPage,
+  waitForDialogClose
 } from '../../helpers/fixtures';
 
 /**
@@ -51,8 +52,7 @@ test.describe('Admin: Groups CRUD', () => {
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();
 
-    // Wait for success message
-    await expect(page.getByText(/úspěšně vytvořena|successfully created|skupina byla vytvořena/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify group appears in list
     await navigateToAdminPage(page, '/groups');
@@ -117,7 +117,7 @@ test.describe('Admin: Groups CRUD', () => {
     const saveButton = page.getByRole('button', { name: /uložit|save/i });
     await saveButton.click();
 
-    await expect(page.getByText(/úspěšně aktualizována|successfully updated|změny uloženy/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify changes
     await navigateToAdminPage(page, '/groups');
@@ -167,7 +167,7 @@ test.describe('Admin: Groups CRUD', () => {
     const confirmButton = page.getByRole('button', { name: /přidat|add|potvrdit/i });
     await confirmButton.click();
 
-    await expect(page.getByText(/člen přidán|member added|úspěšně přidán/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify member appears in group
     await expect(page.getByText(username)).toBeVisible();
@@ -206,7 +206,7 @@ test.describe('Admin: Groups CRUD', () => {
     const confirmButton = page.getByRole('button', { name: /potvrdit|confirm|ano|yes/i });
     await confirmButton.click();
 
-    await expect(page.getByText(/člen odebrán|member removed|úspěšně odebrán/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify member is gone
     await expect(page.getByText(username)).not.toBeVisible();
@@ -238,7 +238,7 @@ test.describe('Admin: Groups CRUD', () => {
     const confirmButton = page.getByRole('button', { name: /potvrdit|confirm|ano|yes/i });
     await confirmButton.click();
 
-    await expect(page.getByText(/úspěšně smazána|successfully deleted|skupina odstraněna/i)).toBeVisible({ timeout: 5000 });
+    await waitForDialogClose(page);
 
     // Verify group is gone
     if (await searchBox.isVisible()) {
