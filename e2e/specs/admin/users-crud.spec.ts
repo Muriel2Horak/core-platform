@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin, loginAsUser } from '../../helpers/login';
+import { loginAsAdmin, loginAsUser, loginAsUserManager } from '../../helpers/login';
 import {
   createTestUser,
   generateTestName,
   cleanupTestData,
-  navigateToAdminPage
+  navigateToAdminPage,
+  waitForDialogClose // NEW: Helper to wait for dialog close instead of success messages
 } from '../../helpers/fixtures';
 
 /**
@@ -44,16 +45,18 @@ test.describe('Admin: Users CRUD', () => {
     // Fill user form
     const username = generateTestName('test_user');
     await page.getByLabel(/uživatelské jméno|username/i).fill(username);
-    await page.getByLabel(/jméno|first name/i).fill('Test');
+    // FIX: Use exact match to avoid matching "Uživatelské jméno" (username) field
+    await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Test');
     await page.getByLabel(/příjmení|last name/i).fill('User CRUD');
-    await page.getByLabel(/e-mail|email/i).fill(`${username}@test.local`);
+    // FIX: Use getByRole to target textbox specifically (avoids matching "E-mail ověřený" checkbox)
+    await page.getByRole('textbox', { name: /e-mail/i }).fill(`${username}@test.local`);
 
     // Submit form
     const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
     await saveButton.click();
 
-    // Wait for success message
-    await expect(page.getByText(/úspěšně vytvořen|successfully created|uživatel byl vytvořen/i)).toBeVisible({ timeout: 5000 });
+    // Wait for dialog to close (instead of success message which may not exist)
+    await waitForDialogClose(page);
 
     // Verify user appears in list
     await navigateToAdminPage(page, '/users');

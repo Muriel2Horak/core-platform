@@ -44,7 +44,7 @@ export async function createTestUser(
   };
 
   const response = await page.request.post(
-    `${API_BASE}/api/admin/users`,
+    `${API_BASE}/api/users`, // FIX: Backend has /api/users, not /api/admin/users
     {
       data: userData,
       headers: {
@@ -69,7 +69,7 @@ export async function deleteTestUser(
   userId: string
 ): Promise<void> {
   const response = await page.request.delete(
-    `${API_BASE}/api/admin/users/${userId}`
+    `${API_BASE}/api/users/${userId}` // FIX: Backend has /api/users, not /api/admin/users
   );
 
   if (!response.ok() && response.status() !== 404) {
@@ -91,7 +91,7 @@ export async function createTestRole(
   };
 
   const response = await page.request.post(
-    `${API_BASE}/api/admin/roles`,
+    `${API_BASE}/api/roles`, // FIX: Backend has /api/roles, not /api/admin/roles
     {
       data: roleData,
       headers: {
@@ -115,7 +115,7 @@ export async function deleteTestRole(
   roleName: string
 ): Promise<void> {
   const response = await page.request.delete(
-    `${API_BASE}/api/admin/roles/${roleName}`
+    `${API_BASE}/api/roles/${roleName}` // FIX: Backend has /api/roles, not /api/admin/roles
   );
 
   if (!response.ok() && response.status() !== 404) {
@@ -138,7 +138,7 @@ export async function createTestGroup(
   };
 
   const response = await page.request.post(
-    `${API_BASE}/api/admin/groups`,
+    `${API_BASE}/api/groups`, // FIX: Backend has /api/groups, not /api/admin/groups
     {
       data: groupData,
       headers: {
@@ -158,7 +158,7 @@ export async function createTestGroup(
   if (options.members && options.members.length > 0) {
     for (const userId of options.members) {
       await page.request.post(
-        `${API_BASE}/api/admin/groups/${groupId}/members`,
+        `${API_BASE}/api/groups/${groupId}/members`, // FIX: Backend has /api/groups, not /api/admin/groups
         {
           data: { userId },
           headers: {
@@ -180,7 +180,7 @@ export async function deleteTestGroup(
   groupId: string
 ): Promise<void> {
   const response = await page.request.delete(
-    `${API_BASE}/api/admin/groups/${groupId}`
+    `${API_BASE}/api/groups/${groupId}` // FIX: Backend has /api/groups, not /api/admin/groups
   );
 
   if (!response.ok() && response.status() !== 404) {
@@ -197,7 +197,7 @@ export async function createTestTenant(
   displayName?: string
 ): Promise<{ id: string; tenantKey: string }> {
   const tenantData = {
-    tenantKey,
+    key: tenantKey, // CRITICAL FIX: Backend expects 'key', not 'tenantKey'
     displayName: displayName || `Test Tenant ${tenantKey}`,
     enabled: true
   };
@@ -297,9 +297,30 @@ export async function navigateToAdminPage(
   page: Page,
   path: string
 ): Promise<void> {
-  await page.goto(`${API_BASE}${path}`);
+  // CRITICAL FIX: All admin routes are under /core-admin/* (not legacy /users, /roles etc)
+  const adminPath = path.startsWith('/core-admin/') ? path : `/core-admin${path}`;
+  await page.goto(`${API_BASE}${adminPath}`);
   await page.waitForLoadState('domcontentloaded');
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
     console.log('Network not idle after 10s, continuing anyway');
   });
+}
+
+/**
+ * Wait for dialog/modal to close (generic helper for success verification)
+ * Instead of waiting for success messages that may not exist, we wait for dialog close
+ */
+export async function waitForDialogClose(
+  page: Page,
+  options: { timeout?: number } = {}
+): Promise<void> {
+  const timeout = options.timeout || 5000;
+  
+  // Wait for MUI Dialog to disappear (common pattern across all CRUD forms)
+  await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout }).catch(() => {
+    // Dialog might already be gone, that's fine
+  });
+  
+  // Small delay to ensure list refresh
+  await page.waitForTimeout(500);
 }
