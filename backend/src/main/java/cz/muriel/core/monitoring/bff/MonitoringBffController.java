@@ -3,11 +3,13 @@ package cz.muriel.core.monitoring.bff;
 import cz.muriel.core.monitoring.loki.LokiClient;
 import cz.muriel.core.monitoring.loki.dto.LokiQueryRequest;
 import cz.muriel.core.monitoring.loki.dto.LokiQueryResponse;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -52,6 +55,7 @@ public class MonitoringBffController {
   @GetMapping("/logs")
   @Timed(value = "monitoring.bff.logs.query", description = "Time taken to query logs from Loki")
   @Counted(value = "monitoring.bff.logs.requests", description = "Total log query requests")
+  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallback")
   public ResponseEntity<LokiQueryResponse> queryLogs(
       @RequestParam(required = false, defaultValue = "{service=~\".+\"}") String query,
       @RequestParam(required = false, defaultValue = "1") Integer hours,
@@ -102,6 +106,7 @@ public class MonitoringBffController {
   @GetMapping("/labels")
   @Timed(value = "monitoring.bff.labels.fetch", description = "Time to fetch available labels")
   @Counted(value = "monitoring.bff.labels.requests", description = "Total label fetch requests")
+  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackList")
   public ResponseEntity<List<String>> getLabels(Authentication authentication) {
     long startTime = System.currentTimeMillis();
     String tenant = extractTenant(authentication);
@@ -131,6 +136,7 @@ public class MonitoringBffController {
   @GetMapping("/labels/{label}/values")
   @Timed(value = "monitoring.bff.label.values.fetch", description = "Time to fetch label values")
   @Counted(value = "monitoring.bff.label.values.requests", description = "Total label value requests")
+  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackList")
   public ResponseEntity<List<String>> getLabelValues(
       @PathVariable String label,
       Authentication authentication) {
@@ -167,6 +173,7 @@ public class MonitoringBffController {
   @GetMapping("/metrics-summary")
   @Timed(value = "monitoring.bff.metrics.summary", description = "Time to compute metrics summary")
   @Counted(value = "monitoring.bff.metrics.requests", description = "Total metrics summary requests")
+  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackMap")
   public ResponseEntity<Map<String, Object>> getMetricsSummary(
       @RequestParam(required = false, defaultValue = "1") Integer hours,
       Authentication authentication) {
@@ -294,5 +301,57 @@ public class MonitoringBffController {
     }
 
     return String.format("{tenant=\"%s\"}", tenant);
+  }
+
+  // ===== RATE LIMITER FALLBACK METHODS =====
+
+  /**
+   * Fallback for queryLogs when rate limit exceeded
+   */
+  private ResponseEntity<LokiQueryResponse> rateLimitFallback(
+      String query, Integer hours, Integer limit, Authentication authentication, Throwable t) {
+    String tenant = extractTenant(authentication);
+    log.warn("🚫 [RATE_LIMIT] tenant={} action=QUERY_LOGS - Rate limit exceeded (60 req/min)", tenant);
+    
+    // Return empty response with 429 status
+    LokiQueryResponse emptyResponse = new LokiQueryResponse();
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(emptyResponse);
+  }
+
+  /**
+   * Fallback for getLabels and getLabelValues when rate limit exceeded
+   */
+  private ResponseEntity<List<String>> rateLimitFallbackList(
+      Authentication authentication, Throwable t) {
+    String tenant = extractTenant(authentication);
+    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_LABELS - Rate limit exceeded (60 req/min)", tenant);
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Collections.emptyList());
+  }
+
+  /**
+   * Fallback for getLabelValues with path variable
+   */
+  private ResponseEntity<List<String>> rateLimitFallbackList(
+      String label, Authentication authentication, Throwable t) {
+    String tenant = extractTenant(authentication);
+    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_LABEL_VALUES label={} - Rate limit exceeded (60 req/min)", 
+        tenant, label);
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Collections.emptyList());
+  }
+
+  /**
+   * Fallback for getMetricsSummary when rate limit exceeded
+   */
+  private ResponseEntity<Map<String, Object>> rateLimitFallbackMap(
+      Integer hours, Authentication authentication, Throwable t) {
+    String tenant = extractTenant(authentication);
+    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_METRICS_SUMMARY - Rate limit exceeded (60 req/min)", tenant);
+    
+    Map<String, Object> emptyMetrics = Map.of(
+        "error", "Rate limit exceeded",
+        "limit", "60 requests per minute",
+        "tenant", tenant
+    );
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(emptyMetrics);
   }
 }
