@@ -134,7 +134,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
   };
 
   return (
-    <Paper sx={{ p: 3 }}>
+    <Paper sx={{ p: 3 }} data-testid="log-viewer">
       {/* Query Controls */}
       {showQueryBuilder && (
         <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -145,11 +145,17 @@ export const LogViewer: React.FC<LogViewerProps> = ({
             sx={{ flex: 1, minWidth: 300 }}
             size="small"
             placeholder='{service="backend"} |= "error"'
+            inputProps={{ 'data-testid': 'log-filter' }}
           />
           
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Time Range</InputLabel>
-            <Select value={hours} onChange={(e) => setHours(Number(e.target.value))}>
+            <Select 
+              value={hours} 
+              onChange={(e) => setHours(Number(e.target.value))}
+              inputProps={{ 'data-testid': 'time-range-select' }}
+            >
+              <MenuItem value={0.25} data-testid="time-quick-15m">Last 15 minutes</MenuItem>
               <MenuItem value={1}>Last 1 hour</MenuItem>
               <MenuItem value={3}>Last 3 hours</MenuItem>
               <MenuItem value={6}>Last 6 hours</MenuItem>
@@ -163,6 +169,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
             startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
             onClick={fetchLogs}
             disabled={loading}
+            data-testid="apply-filter"
           >
             Query
           </Button>
@@ -172,13 +179,18 @@ export const LogViewer: React.FC<LogViewerProps> = ({
               variant={autoRefresh ? 'contained' : 'outlined'}
               startIcon={<RefreshIcon />}
               onClick={() => setAutoRefresh(!autoRefresh)}
+              data-testid="auto-refresh"
             >
               Auto
             </Button>
           </Tooltip>
 
           <Tooltip title="Export to CSV">
-            <IconButton onClick={handleExport} disabled={logs.length === 0}>
+            <IconButton 
+              onClick={handleExport} 
+              disabled={logs.length === 0}
+              data-testid="export-csv"
+            >
               <DownloadIcon />
             </IconButton>
           </Tooltip>
@@ -194,7 +206,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({
 
       {/* Results Summary */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" data-testid="total-logs-count">
           {logs.length} log entries {loading && '(loading...)'}
         </Typography>
         {autoRefresh && (
@@ -203,59 +215,70 @@ export const LogViewer: React.FC<LogViewerProps> = ({
       </Box>
 
       {/* Log Table */}
-      <TableContainer sx={{ maxHeight: 600 }}>
-        <Table stickyHeader size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell width="180">Timestamp</TableCell>
-              <TableCell width="80">Level</TableCell>
-              <TableCell width="120">Service</TableCell>
-              <TableCell>Message</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {logs.length === 0 && !loading && (
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }} data-testid="loading-spinner">
+          <CircularProgress />
+        </Box>
+      )}
+      
+      {!loading && (
+        <TableContainer sx={{ maxHeight: 600 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">No logs found</Typography>
-                </TableCell>
+                <TableCell width="180">Timestamp</TableCell>
+                <TableCell width="80">Level</TableCell>
+                <TableCell width="120">Service</TableCell>
+                <TableCell>Message</TableCell>
               </TableRow>
-            )}
-            {logs.map((log, index) => (
-              <TableRow key={index} hover>
-                <TableCell>
-                  <Typography variant="caption" fontFamily="monospace">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip 
-                    label={log.level?.toUpperCase() || 'INFO'} 
-                    color={getLevelColor(log.level || 'info')}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="caption">{log.service}</Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    fontFamily="monospace"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      maxWidth: 800,
-                    }}
-                  >
-                    {log.line}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {logs.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} align="center" sx={{ py: 4 }} data-testid="empty-state">
+                    <Typography color="text.secondary">No logs found</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Try adjusting your time range or query
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {logs.map((log, index) => (
+                <TableRow key={index} hover data-testid="log-row">
+                  <TableCell>
+                    <Typography variant="caption" fontFamily="monospace">
+                      {new Date(log.timestamp).toLocaleString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={log.level?.toUpperCase() || 'INFO'} 
+                      color={getLevelColor(log.level || 'info')}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="caption">{log.service}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      fontFamily="monospace"
+                      sx={{
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        maxWidth: 800,
+                      }}
+                    >
+                      {log.line}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Paper>
   );
 };

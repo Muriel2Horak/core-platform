@@ -150,68 +150,71 @@ test.describe('Loki Monitoring - CSV Export', () => {
     });
   });
 
-  test('Verify tenant isolation - different realm sees different data', async ({ page, context }) => {
+  test('Verify tenant isolation - different realm sees different data', async ({ browser }) => {
     test.skip(!process.env.E2E_USERNAME_REALM2, 'Set E2E_USERNAME_REALM2 and E2E_PASSWORD_REALM2 to test tenant isolation');
     
     const realm2Username = process.env.E2E_USERNAME_REALM2!;
     const realm2Password = process.env.E2E_PASSWORD_REALM2!;
     
-    // === Get data from Realm 1 (admin) ===
+    let realm1Count: string | null = null;
+    
+    // === Get data from Realm 1 (admin) using isolated context ===
     await test.step('Login as Realm 1 user and get log count', async () => {
-      await page.goto(`${BASE_URL}${MONITORING_PATH}`);
+      const context1 = await browser.newContext();
+      const page1 = await context1.newPage();
+      
+      await page1.goto(`${BASE_URL}${MONITORING_PATH}`, { 
+        waitUntil: 'domcontentloaded',
+        timeout: 30000 
+      });
       
       // Login if needed
-      const usernameInput = page.locator('input[name="username"]').first();
+      const usernameInput = page1.locator('input[name="username"]').first();
       if (await usernameInput.isVisible({ timeout: 3000 }).catch(() => false)) {
         await usernameInput.fill(USERNAME);
-        await page.fill('input[name="password"]', PASSWORD);
-        await page.click('button[type="submit"]');
-        await page.waitForURL(new RegExp(`${MONITORING_PATH}`), { timeout: 15000 });
+        await page1.fill('input[name="password"]', PASSWORD);
+        await page1.click('button[type="submit"]');
+        await page1.waitForURL(new RegExp(`${MONITORING_PATH}`), { timeout: 15000 });
       }
       
-      await expect(page.locator('[data-testid="log-viewer"]')).toBeVisible({ timeout: 10000 });
+      await expect(page1.locator('[data-testid="log-viewer"]')).toBeVisible({ timeout: 10000 });
       
       // Get total log count
-      const realm1Count = await page.locator('[data-testid="total-logs-count"]').textContent();
+      realm1Count = await page1.locator('[data-testid="total-logs-count"]').textContent();
       expect(realm1Count).toBeTruthy();
       
-      // Store in test context
-      (test as any).realm1Count = realm1Count;
+      await context1.close();
     });
     
-    // === Logout and login as Realm 2 user ===
-    await test.step('Logout and login as Realm 2 user', async () => {
-      // Logout
-      await page.locator('[data-testid="user-menu"]').click();
-      await page.locator('[data-testid="logout"]').click();
+    // === Get data from Realm 2 using separate isolated context ===
+    await test.step('Login as Realm 2 user and verify different data', async () => {
+      const context2 = await browser.newContext();
+      const page2 = await context2.newPage();
       
-      // Clear cookies to force re-login
-      await context.clearCookies();
-      
-      // Navigate to Monitoring again
-      await page.goto(`${BASE_URL}${MONITORING_PATH}`);
+      await page2.goto(`${BASE_URL}${MONITORING_PATH}`, { 
+        waitUntil: 'domcontentloaded',
+        timeout: 30000 
+      });
       
       // Should redirect to Keycloak login
-      await page.waitForSelector('input[name="username"]', { timeout: 10000 });
-      await page.fill('input[name="username"]', realm2Username);
-      await page.fill('input[name="password"]', realm2Password);
-      await page.click('button[type="submit"]');
+      await page2.waitForSelector('input[name="username"]', { timeout: 10000 });
+      await page2.fill('input[name="username"]', realm2Username);
+      await page2.fill('input[name="password"]', realm2Password);
+      await page2.click('button[type="submit"]');
       
-      await page.waitForURL(new RegExp(`${MONITORING_PATH}`), { timeout: 15000 });
-    });
-    
-    // === Verify Realm 2 sees different data ===
-    await test.step('Verify Realm 2 user sees different log count', async () => {
-      await expect(page.locator('[data-testid="log-viewer"]')).toBeVisible({ timeout: 10000 });
+      await page2.waitForURL(new RegExp(`${MONITORING_PATH}`), { timeout: 15000 });
       
-      const realm2Count = await page.locator('[data-testid="total-logs-count"]').textContent();
+      await expect(page2.locator('[data-testid="log-viewer"]')).toBeVisible({ timeout: 10000 });
+      
+      const realm2Count = await page2.locator('[data-testid="total-logs-count"]').textContent();
       expect(realm2Count).toBeTruthy();
       
       // Counts should be different (unless both are 0)
-      const realm1 = (test as any).realm1Count;
-      if (realm1 !== '0' && realm2Count !== '0') {
-        expect(realm2Count).not.toBe(realm1);
+      if (realm1Count !== '0 log entries' && realm2Count !== '0 log entries') {
+        expect(realm2Count).not.toBe(realm1Count);
       }
+      
+      await context2.close();
     });
   });
 });
