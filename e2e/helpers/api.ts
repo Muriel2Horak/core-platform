@@ -257,7 +257,7 @@ export async function searchUsers(
   api: APIRequestContext,
   query: string
 ): Promise<any[]> {
-  const response = await api.get(`/api/directory/users?q=${encodeURIComponent(query)}`);
+  const response = await api.get(`/api/user-directories?q=${encodeURIComponent(query)}`);
   
   if (!response.ok()) {
     throw new Error(`Failed to search users: ${response.status()}`);

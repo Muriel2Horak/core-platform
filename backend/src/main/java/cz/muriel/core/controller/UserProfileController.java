@@ -68,7 +68,9 @@ public class UserProfileController {
     }
   }
 
-  @PutMapping @PreAuthorize("isAuthenticated()")
+  @PutMapping
+  @PatchMapping  // Support both PUT and PATCH for profile updates
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
     String username = getCurrentUsername(authentication);

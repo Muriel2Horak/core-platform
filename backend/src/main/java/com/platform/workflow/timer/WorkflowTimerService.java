@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Types;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +71,8 @@ public class WorkflowTimerService {
         LIMIT 100
         """;
 
-    return jdbcTemplate.queryForList(sql, Instant.now());
+    // Convert Instant to Timestamp to avoid PostgreSQL type inference error
+    return jdbcTemplate.queryForList(sql, Timestamp.from(Instant.now()));
   }
 
   /**
