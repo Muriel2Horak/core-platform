@@ -662,8 +662,8 @@ docker exec core-platform-db-1 pg_isready -U core
 15. [e2e/README.md](./e2e/README.md) - Playwright E2E setup
 
 **Development:**
-16. [GRAFANA_INTEGRATION.md](./docs/GRAFANA_INTEGRATION.md) - Multi-tenant monitoring (deprecated)
-17. [LOKI_MONITORING_UI.md](./docs/LOKI_MONITORING_UI.md) - Native Loki UI user guide ⭐ NEW
+16. [LOKI_MONITORING_UI.md](./docs/LOKI_MONITORING_UI.md) - Native Loki UI user guide ⭐
+17. [GRAFANA_OPS_ACCESS.md](./docs/ops/GRAFANA_OPS_ACCESS.md) - Standalone Grafana for ops ⭐ NEW
 18. [DATABASE_MIGRATIONS_GUIDE.md](./docs/DATABASE_MIGRATIONS_GUIDE.md) - Flyway workflows
 
 **Total:** 15,000+ lines of documentation across 40+ files

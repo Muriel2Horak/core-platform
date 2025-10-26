@@ -24,21 +24,13 @@ import java.util.Map;
 /**
  * 📊 MONITORING BFF API
  * 
- * Backend-for-Frontend API for Loki monitoring:
- * - Automatic tenant isolation via JWT
- * - LogQL query execution
- * - Label discovery
- * - Metrics summary
- * - Prometheus metrics via Micrometer
- * - Structured audit logging
+ * Backend-for-Frontend API for Loki monitoring: - Automatic tenant isolation
+ * via JWT - LogQL query execution - Label discovery - Metrics summary -
+ * Prometheus metrics via Micrometer - Structured audit logging
  * 
  * Security: All queries are scoped to user's tenant via {tenant="..."} filter
  */
-@Slf4j
-@RestController
-@RequestMapping("/api/monitoring")
-@RequiredArgsConstructor
-@ConditionalOnProperty(name = "monitoring.loki.enabled", havingValue = "true", matchIfMissing = false)
+@Slf4j @RestController @RequestMapping("/api/monitoring") @RequiredArgsConstructor @ConditionalOnProperty(name = "monitoring.loki.enabled", havingValue = "true", matchIfMissing = false)
 public class MonitoringBffController {
 
   private final LokiClient lokiClient;
@@ -46,16 +38,14 @@ public class MonitoringBffController {
   /**
    * Query logs with automatic tenant isolation
    * 
-   * @param query LogQL query (WITHOUT tenant filter - will be added automatically)
+   * @param query LogQL query (WITHOUT tenant filter - will be added
+   * automatically)
    * @param hours Time range in hours (default: 1)
    * @param limit Max results (default: 100, max: 5000)
    * @param authentication User JWT
    * @return Loki query response
    */
-  @GetMapping("/logs")
-  @Timed(value = "monitoring.bff.logs.query", description = "Time taken to query logs from Loki")
-  @Counted(value = "monitoring.bff.logs.requests", description = "Total log query requests")
-  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallback")
+  @GetMapping("/logs") @Timed(value = "monitoring.bff.logs.query", description = "Time taken to query logs from Loki") @Counted(value = "monitoring.bff.logs.requests", description = "Total log query requests") @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallback")
   public ResponseEntity<LokiQueryResponse> queryLogs(
       @RequestParam(required = false, defaultValue = "{service=~\".+\"}") String query,
       @RequestParam(required = false, defaultValue = "1") Integer hours,
@@ -63,9 +53,9 @@ public class MonitoringBffController {
       Authentication authentication) {
     long startTime = System.currentTimeMillis();
     String tenant = extractTenant(authentication);
-    
+
     // 📊 AUDIT LOG: Who queried what
-    log.info("📊 [AUDIT] tenant={} user={} action=QUERY_LOGS query=\"{}\" hours={} limit={}", 
+    log.info("📊 [AUDIT] tenant={} user={} action=QUERY_LOGS query=\"{}\" hours={} limit={}",
         tenant, extractUsername(authentication), query, hours, limit);
 
     // Add tenant filter to LogQL query
@@ -74,26 +64,21 @@ public class MonitoringBffController {
     Instant end = Instant.now();
     Instant start = end.minus(hours, ChronoUnit.HOURS);
 
-    LokiQueryRequest request = LokiQueryRequest.builder()
-        .query(tenantQuery)
-        .start(start)
-        .end(end)
-        .limit(Math.min(limit, 5000))
-        .direction("backward")
-        .build();
+    LokiQueryRequest request = LokiQueryRequest.builder().query(tenantQuery).start(start).end(end)
+        .limit(Math.min(limit, 5000)).direction("backward").build();
 
     LokiQueryResponse response = lokiClient.queryLogs(request);
-    
+
     // 📊 AUDIT LOG: Result count and duration
     long duration = System.currentTimeMillis() - startTime;
-    long resultCount = response.getData() != null 
+    long resultCount = response.getData() != null
         ? response.getData().getResult().stream()
             .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0).sum()
         : 0;
-    
-    log.info("📊 [AUDIT] tenant={} action=QUERY_LOGS_COMPLETE resultCount={} durationMs={}", 
-        tenant, resultCount, duration);
-    
+
+    log.info("📊 [AUDIT] tenant={} action=QUERY_LOGS_COMPLETE resultCount={} durationMs={}", tenant,
+        resultCount, duration);
+
     return ResponseEntity.ok(response);
   }
 
@@ -103,26 +88,24 @@ public class MonitoringBffController {
    * @param authentication User JWT
    * @return List of available labels
    */
-  @GetMapping("/labels")
-  @Timed(value = "monitoring.bff.labels.fetch", description = "Time to fetch available labels")
-  @Counted(value = "monitoring.bff.labels.requests", description = "Total label fetch requests")
-  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackList")
+  @GetMapping("/labels") @Timed(value = "monitoring.bff.labels.fetch", description = "Time to fetch available labels") @Counted(value = "monitoring.bff.labels.requests", description = "Total label fetch requests") @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackList")
   public ResponseEntity<List<String>> getLabels(Authentication authentication) {
     long startTime = System.currentTimeMillis();
     String tenant = extractTenant(authentication);
-    
-    log.info("📊 [AUDIT] tenant={} user={} action=GET_LABELS", tenant, extractUsername(authentication));
+
+    log.info("📊 [AUDIT] tenant={} user={} action=GET_LABELS", tenant,
+        extractUsername(authentication));
 
     // Loki labels API returns all labels, we filter in UI
     Instant end = Instant.now();
     Instant start = end.minus(24, ChronoUnit.HOURS);
 
     List<String> labels = lokiClient.getLabels(start, end);
-    
+
     long duration = System.currentTimeMillis() - startTime;
-    log.info("📊 [AUDIT] tenant={} action=GET_LABELS_COMPLETE labelCount={} durationMs={}", 
-        tenant, labels.size(), duration);
-    
+    log.info("📊 [AUDIT] tenant={} action=GET_LABELS_COMPLETE labelCount={} durationMs={}", tenant,
+        labels.size(), duration);
+
     return ResponseEntity.ok(labels);
   }
 
@@ -133,18 +116,14 @@ public class MonitoringBffController {
    * @param authentication User JWT
    * @return List of label values
    */
-  @GetMapping("/labels/{label}/values")
-  @Timed(value = "monitoring.bff.label.values.fetch", description = "Time to fetch label values")
-  @Counted(value = "monitoring.bff.label.values.requests", description = "Total label value requests")
-  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackList")
-  public ResponseEntity<List<String>> getLabelValues(
-      @PathVariable String label,
+  @GetMapping("/labels/{label}/values") @Timed(value = "monitoring.bff.label.values.fetch", description = "Time to fetch label values") @Counted(value = "monitoring.bff.label.values.requests", description = "Total label value requests") @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackList")
+  public ResponseEntity<List<String>> getLabelValues(@PathVariable String label,
       Authentication authentication) {
     long startTime = System.currentTimeMillis();
     String tenant = extractTenant(authentication);
-    
-    log.info("📊 [AUDIT] tenant={} user={} action=GET_LABEL_VALUES label={}", 
-        tenant, extractUsername(authentication), label);
+
+    log.info("📊 [AUDIT] tenant={} user={} action=GET_LABEL_VALUES label={}", tenant,
+        extractUsername(authentication), label);
 
     Instant end = Instant.now();
     Instant start = end.minus(24, ChronoUnit.HOURS);
@@ -157,7 +136,8 @@ public class MonitoringBffController {
     }
 
     long duration = System.currentTimeMillis() - startTime;
-    log.info("📊 [AUDIT] tenant={} action=GET_LABEL_VALUES_COMPLETE label={} valueCount={} durationMs={}", 
+    log.info(
+        "📊 [AUDIT] tenant={} action=GET_LABEL_VALUES_COMPLETE label={} valueCount={} durationMs={}",
         tenant, label, values.size(), duration);
 
     return ResponseEntity.ok(values);
@@ -170,40 +150,30 @@ public class MonitoringBffController {
    * @param authentication User JWT
    * @return Metrics summary
    */
-  @GetMapping("/metrics-summary")
-  @Timed(value = "monitoring.bff.metrics.summary", description = "Time to compute metrics summary")
-  @Counted(value = "monitoring.bff.metrics.requests", description = "Total metrics summary requests")
-  @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackMap")
+  @GetMapping("/metrics-summary") @Timed(value = "monitoring.bff.metrics.summary", description = "Time to compute metrics summary") @Counted(value = "monitoring.bff.metrics.requests", description = "Total metrics summary requests") @RateLimiter(name = "loki-bff", fallbackMethod = "rateLimitFallbackMap")
   public ResponseEntity<Map<String, Object>> getMetricsSummary(
       @RequestParam(required = false, defaultValue = "1") Integer hours,
       Authentication authentication) {
     long startTime = System.currentTimeMillis();
     String tenant = extractTenant(authentication);
-    
-    log.info("📊 [AUDIT] tenant={} user={} action=GET_METRICS_SUMMARY hours={}", 
-        tenant, extractUsername(authentication), hours);
+
+    log.info("📊 [AUDIT] tenant={} user={} action=GET_METRICS_SUMMARY hours={}", tenant,
+        extractUsername(authentication), hours);
 
     Instant end = Instant.now();
     Instant start = end.minus(hours, ChronoUnit.HOURS);
 
     // Query total logs
     String totalQuery = String.format("{tenant=\"%s\"}", tenant);
-    LokiQueryRequest totalRequest = LokiQueryRequest.builder()
-        .query(totalQuery)
-        .start(start)
-        .end(end)
-        .limit(5000)
-        .build();
+    LokiQueryRequest totalRequest = LokiQueryRequest.builder().query(totalQuery).start(start)
+        .end(end).limit(5000).build();
     LokiQueryResponse totalResponse = lokiClient.queryLogs(totalRequest);
 
     // Query error logs
-    String errorQuery = String.format("{tenant=\"%s\"} |~ \"(?i)(error|exception|failed)\"", tenant);
-    LokiQueryRequest errorRequest = LokiQueryRequest.builder()
-        .query(errorQuery)
-        .start(start)
-        .end(end)
-        .limit(5000)
-        .build();
+    String errorQuery = String.format("{tenant=\"%s\"} |~ \"(?i)(error|exception|failed)\"",
+        tenant);
+    LokiQueryRequest errorRequest = LokiQueryRequest.builder().query(errorQuery).start(start)
+        .end(end).limit(5000).build();
     LokiQueryResponse errorResponse = lokiClient.queryLogs(errorRequest);
 
     // Calculate metrics
@@ -219,16 +189,13 @@ public class MonitoringBffController {
 
     double errorRate = totalLogs > 0 ? (double) errorLogs / totalLogs * 100 : 0;
 
-    Map<String, Object> summary = Map.of(
-        "totalLogs", totalLogs,
-        "errorLogs", errorLogs,
-        "errorRate", String.format("%.2f%%", errorRate),
-        "timeRange", hours + "h",
-        "tenant", tenant
-    );
+    Map<String, Object> summary = Map.of("totalLogs", totalLogs, "errorLogs", errorLogs,
+        "errorRate", String.format("%.2f%%", errorRate), "timeRange", hours + "h", "tenant",
+        tenant);
 
     long duration = System.currentTimeMillis() - startTime;
-    log.info("📊 [AUDIT] tenant={} action=GET_METRICS_SUMMARY_COMPLETE totalLogs={} errorLogs={} errorRate={}% durationMs={}", 
+    log.info(
+        "📊 [AUDIT] tenant={} action=GET_METRICS_SUMMARY_COMPLETE totalLogs={} errorLogs={} errorRate={}% durationMs={}",
         tenant, totalLogs, errorLogs, String.format("%.2f", errorRate), duration);
 
     return ResponseEntity.ok(summary);
@@ -274,9 +241,9 @@ public class MonitoringBffController {
   /**
    * Add tenant filter to LogQL query
    * 
-   * Examples:
-   * - {service="backend"} → {tenant="admin",service="backend"}
-   * - {level="error"} |= "exception" → {tenant="admin",level="error"} |= "exception"
+   * Examples: - {service="backend"} → {tenant="admin",service="backend"} -
+   * {level="error"} |= "exception" → {tenant="admin",level="error"} |=
+   * "exception"
    */
   private String addTenantFilter(String query, String tenant) {
     if (query == null || query.isBlank()) {
@@ -308,11 +275,12 @@ public class MonitoringBffController {
   /**
    * Fallback for queryLogs when rate limit exceeded
    */
-  private ResponseEntity<LokiQueryResponse> rateLimitFallback(
-      String query, Integer hours, Integer limit, Authentication authentication, Throwable t) {
+  private ResponseEntity<LokiQueryResponse> rateLimitFallback(String query, Integer hours,
+      Integer limit, Authentication authentication, Throwable t) {
     String tenant = extractTenant(authentication);
-    log.warn("🚫 [RATE_LIMIT] tenant={} action=QUERY_LOGS - Rate limit exceeded (60 req/min)", tenant);
-    
+    log.warn("🚫 [RATE_LIMIT] tenant={} action=QUERY_LOGS - Rate limit exceeded (60 req/min)",
+        tenant);
+
     // Return empty response with 429 status
     LokiQueryResponse emptyResponse = new LokiQueryResponse();
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(emptyResponse);
@@ -321,20 +289,22 @@ public class MonitoringBffController {
   /**
    * Fallback for getLabels and getLabelValues when rate limit exceeded
    */
-  private ResponseEntity<List<String>> rateLimitFallbackList(
-      Authentication authentication, Throwable t) {
+  private ResponseEntity<List<String>> rateLimitFallbackList(Authentication authentication,
+      Throwable t) {
     String tenant = extractTenant(authentication);
-    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_LABELS - Rate limit exceeded (60 req/min)", tenant);
+    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_LABELS - Rate limit exceeded (60 req/min)",
+        tenant);
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Collections.emptyList());
   }
 
   /**
    * Fallback for getLabelValues with path variable
    */
-  private ResponseEntity<List<String>> rateLimitFallbackList(
-      String label, Authentication authentication, Throwable t) {
+  private ResponseEntity<List<String>> rateLimitFallbackList(String label,
+      Authentication authentication, Throwable t) {
     String tenant = extractTenant(authentication);
-    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_LABEL_VALUES label={} - Rate limit exceeded (60 req/min)", 
+    log.warn(
+        "🚫 [RATE_LIMIT] tenant={} action=GET_LABEL_VALUES label={} - Rate limit exceeded (60 req/min)",
         tenant, label);
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Collections.emptyList());
   }
@@ -342,16 +312,15 @@ public class MonitoringBffController {
   /**
    * Fallback for getMetricsSummary when rate limit exceeded
    */
-  private ResponseEntity<Map<String, Object>> rateLimitFallbackMap(
-      Integer hours, Authentication authentication, Throwable t) {
+  private ResponseEntity<Map<String, Object>> rateLimitFallbackMap(Integer hours,
+      Authentication authentication, Throwable t) {
     String tenant = extractTenant(authentication);
-    log.warn("🚫 [RATE_LIMIT] tenant={} action=GET_METRICS_SUMMARY - Rate limit exceeded (60 req/min)", tenant);
-    
-    Map<String, Object> emptyMetrics = Map.of(
-        "error", "Rate limit exceeded",
-        "limit", "60 requests per minute",
-        "tenant", tenant
-    );
+    log.warn(
+        "🚫 [RATE_LIMIT] tenant={} action=GET_METRICS_SUMMARY - Rate limit exceeded (60 req/min)",
+        tenant);
+
+    Map<String, Object> emptyMetrics = Map.of("error", "Rate limit exceeded", "limit",
+        "60 requests per minute", "tenant", tenant);
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(emptyMetrics);
   }
 }

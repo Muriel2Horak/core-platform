@@ -327,7 +327,6 @@ services:
     container_name: core-grafana
     environment:
       # 🗄️ PostgreSQL Database (instead of SQLite for persistence across restarts)
-      # Dedicated grafana user/database (same pattern as keycloak)
       - GF_DATABASE_TYPE=postgres
       - GF_DATABASE_HOST=db:5432
       - GF_DATABASE_NAME=${GRAFANA_DB_NAME}
@@ -335,88 +334,54 @@ services:
       - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
       - GF_DATABASE_SSL_MODE=disable
       
-      # 🔐 JWT Authentication (Primary - for iframe embedding)
-      - GF_AUTH_JWT_ENABLED=true
-      - GF_AUTH_JWT_HEADER_NAME=X-Org-JWT
-      - GF_AUTH_JWT_USERNAME_CLAIM=preferred_username
-      - GF_AUTH_JWT_EMAIL_CLAIM=email
-      # 🔑 JWT Verification - Use BFF's public key (RS256)
-      # BFF mints short-lived JWT (300s = 5 min) with orgId claim
-      # Grafana verifies signature via BFF JWKS endpoint over HTTPS
-      # CRITICAL: jwk_set_url is configured in grafana.ini (not ENV var)
-      # Using internal backend service: http://backend:8080/.well-known/jwks.json
-      # (External domain admin.core-platform.local doesn't resolve inside Docker network)
-      - GF_AUTH_JWT_URL_LOGIN=false
-      # ⚠️ CRITICAL: JWT TTL and cache must align (both 300s = 5 min)
-      # - Backend: ${GRAFANA_JWT_TTL} (from .env, default 300)
-      # - Grafana cache: GF_AUTH_JWT_CACHE_TTL (5m = 300s)
-      - GF_AUTH_JWT_CACHE_TTL=${GRAFANA_JWT_CACHE_TTL:-5m}
-      - GF_AUTH_JWT_AUTO_SIGN_UP=true
-      # 🎭 Role mapping based on Keycloak roles
-      - GF_AUTH_JWT_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_MONITORING') && 'Editor' || contains(realm_access.roles[*], 'CORE_TENANT_ADMIN') && 'Editor' || contains(realm_access.roles[*], 'CORE_ROLE_TENANT_MONITORING') && 'Viewer' || 'Viewer'
-      - GF_AUTH_JWT_SKIP_ORG_ROLE_SYNC=false
-      # 🏢 CRITICAL: Org ID claim - maps JWT orgId claim to Grafana organization
-      - GF_AUTH_JWT_ORG_ID_CLAIM=orgId
-      # 🔒 JWT Validation - issuer validation (recommended for security)
-      # Grafana 11.x supports expect_claims as JSON object
-      # NOTE: Removed aud validation - BFF JWT doesn't include audience claim
-      - GF_AUTH_JWT_EXPECT_CLAIMS={"iss":"https://admin.core-platform.local/bff"}
-      # 📊 Enhanced logging for JWT auth debugging
-      - GF_LOG_FILTERS=auth.jwt:debug
-      
-      # 🔓 DŮLEŽITÉ: Povolit login form pro fallback + admin přístup
-      - GF_AUTH_DISABLE_LOGIN_FORM=false
-      
-      # 🔐 OAuth2 / Keycloak SSO Configuration (for direct login + SSO)
+      # 🔐 OIDC SSO Configuration (Keycloak admin realm)
       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
       - GF_AUTH_GENERIC_OAUTH_NAME=Keycloak
-      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana
-      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}
-      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
-      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://admin.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=grafana-ops
+      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_SECRET:-change-me-in-production}
+      - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email groups
+      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
       - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/token
       - GF_AUTH_GENERIC_OAUTH_API_URL=https://keycloak:8443/realms/admin/protocol/openid-connect/userinfo
-      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(realm_access.roles[*], 'CORE_ROLE_ADMIN') && 'Admin' || contains(realm_access.roles[*], 'CORE_ROLE_MONITORING') && 'Editor' || contains(realm_access.roles[*], 'CORE_TENANT_ADMIN') && 'Editor' || contains(realm_access.roles[*], 'CORE_ROLE_TENANT_MONITORING') && 'Viewer' || 'Viewer'
-      - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true
+      - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+      - GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN=false
       - GF_AUTH_GENERIC_OAUTH_USE_PKCE=true
+      - GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE=true
+      # Role mapping: groups claim → Grafana roles
+      - GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH=contains(groups[*], 'grafana-admin') && 'Admin' || contains(groups[*], 'grafana-editor') && 'Editor' || 'Viewer'
       
-      # 🔒 Security settings
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_SECURITY_COOKIE_SAMESITE=none
-      - GF_SECURITY_COOKIE_SECURE=true
+      # 🔒 Security Settings
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_DISABLE_SIGNOUT_MENU=false
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=lax
+      
+      # ❌ JWT Auth DISABLED (no longer embedded in FE)
+      - GF_AUTH_JWT_ENABLED=false
+      
+      # 🚫 CSP - Disable embedding (standalone tool)
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY_TEMPLATE=frame-ancestors 'none'
+      - GF_SECURITY_ALLOW_EMBEDDING=false
+      
+      # � Server Configuration (ops subdomain)
       - GF_SERVER_PROTOCOL=http
-      # CRITICAL: Must include trailing slash AND be relative for multi-tenant
-      # DO NOT hardcode domain - Grafana will read from Host header
       - GF_SERVER_HTTP_PORT=3000
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SERVER_ROOT_URL=/core-admin/monitoring/
+      - GF_SERVER_ROOT_URL=https://ops.${DOMAIN:-core-platform.local}/grafana
       
-      # 🎨 UI Configuration
-      - GF_AUTH_OAUTH_AUTO_LOGIN=false
-      - GF_AUTH_OAUTH_ALLOW_INSECURE_EMAIL_LOOKUP=true
+      # 🔄 Logout redirect
+      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout
       
-      # 🔄 Redirect configuration - relative path for multi-tenant support
-      # Browser will use current domain (admin.core-platform.local or ten.core-platform.local)
-      - GF_AUTH_SIGNOUT_REDIRECT_URL=/realms/admin/protocol/openid-connect/logout?redirect_uri=/core-admin/monitoring/
-      
-      # 📂 Provisioning paths
+      # 📂 Provisioning
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./ssl/cert.pem:/etc/grafana/ssl/cert.pem:ro
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/jwt-secret.key:/etc/grafana/jwt-secret.key:ro
-      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
     ports:
-      - "3001:3000"  # Temporary for datasource setup
-    # 🔒 DNS override: Map admin.core-platform.local to Nginx static IP
-    # This ensures Grafana can validate JWKS HTTPS cert (CN matches)
-    # while staying inside Docker network (no external routing)
-    extra_hosts:
-      - "admin.core-platform.local:172.18.0.20"
+      - "3001:3000"
     networks:
       - core-net
     depends_on:
@@ -426,70 +391,12 @@ services:
         condition: service_started
       loki:
         condition: service_started
-      jwks-refresher:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-
-  jwks-refresher:
-    image: curlimages/curl:8.10.1
-    container_name: core-jwks-refresher
-    user: root  # Required for jq installation and script execution
-    environment:
-      - JWKS_URL=http://backend:8080/.well-known/jwks.json
-      - JWKS_FILE=/var/lib/grafana/jwks.json
-      - REFRESH_INTERVAL=300
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/scripts/fetch-jwks.sh:/usr/local/bin/fetch-jwks.sh:ro
-    networks:
-      - core-net
-    depends_on:
-      backend:
-        condition: service_started
-    command: >
-      sh -c '
-        # Make script executable (readonly mount workaround)
-        cp /usr/local/bin/fetch-jwks.sh /tmp/fetch-jwks.sh;
-        chmod +x /tmp/fetch-jwks.sh;
-        
-        echo "🚀 JWKS Refresher starting...";
-        echo "   JWKS_URL: $$JWKS_URL";
-        echo "   JWKS_FILE: $$JWKS_FILE";
-        echo "   REFRESH_INTERVAL: $${REFRESH_INTERVAL}s";
-        
-        # Install jq for JSON validation
-        apk add --no-cache jq >/dev/null 2>&1 || echo "⚠️  jq installation failed, validation disabled";
-        
-        # Initial fetch (retry until backend is ready)
-        echo "📥 Waiting for backend to be ready...";
-        for i in $$(seq 1 30); do
-          if /tmp/fetch-jwks.sh; then
-            echo "✅ Initial JWKS fetch successful";
-            break;
-          else
-            echo "   Attempt $$i failed, retrying in 5s...";
-            sleep 5;
-          fi;
-        done;
-        
-        # Background refresh loop
-        echo "🔄 Starting refresh loop (every $${REFRESH_INTERVAL}s)";
-        while true; do
-          sleep $${REFRESH_INTERVAL};
-          /tmp/fetch-jwks.sh || echo "⚠️  Refresh failed, will retry in $${REFRESH_INTERVAL}s";
-        done
-      '
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "test", "-f", "/var/lib/grafana/jwks.json"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
 
   loki:
     image: grafana/loki:3.0.0

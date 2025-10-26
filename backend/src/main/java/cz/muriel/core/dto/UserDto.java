@@ -24,7 +24,6 @@ public class UserDto {
 
   // 🏢 Tenant informace
   private String tenant; // Tenant klíč z JWT tokenu
-  private Long grafanaOrgId; // 📊 Grafana organization ID for monitoring dashboards
 
   // 🏢 Organizační struktura
   private String department; // Oddělení

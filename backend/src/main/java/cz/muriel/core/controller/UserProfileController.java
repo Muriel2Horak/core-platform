@@ -3,8 +3,6 @@ package cz.muriel.core.controller;
 import cz.muriel.core.dto.*;
 import cz.muriel.core.auth.KeycloakAdminService;
 import cz.muriel.core.tenant.TenantContext;
-import cz.muriel.core.monitoring.bff.service.TenantOrgService;
-import cz.muriel.core.monitoring.bff.model.TenantBinding;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +19,6 @@ import java.util.Map;
 public class UserProfileController {
 
   private final KeycloakAdminService keycloakAdminService;
-  private final TenantOrgService tenantOrgService;
 
   @GetMapping @PreAuthorize("isAuthenticated()")
   public ResponseEntity<UserDto> getMyProfile(Authentication authentication) {
@@ -33,17 +30,6 @@ public class UserProfileController {
 
     // 🏢 Naplnění tenant informace z aktuálního kontextu
     user.setTenant(TenantContext.getTenantKey());
-
-    // 📊 Naplnění Grafana orgId pro monitoring dashboardy
-    try {
-      Jwt jwt = (Jwt) authentication.getPrincipal();
-      TenantBinding binding = tenantOrgService.resolve(jwt);
-      user.setGrafanaOrgId(binding.orgId());
-      log.debug("Resolved Grafana orgId {} for user {}", binding.orgId(), username);
-    } catch (Exception e) {
-      log.warn("Failed to resolve Grafana orgId for user {}: {}", username, e.getMessage());
-      // gracefully continue without grafanaOrgId
-    }
 
     return ResponseEntity.ok(user);
   }

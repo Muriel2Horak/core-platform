@@ -1,0 +1,13 @@
+BUILD SUMMARY - Sun Oct 26 07:15:08 CET 2025
+================================
+
+Build Type: rebuild
+Duration: 2m 16s
+Log File: diagnostics/build-20251026-071251.log
+
+Errors Found: 1
+Containers Running:        0
+Healthy:        0
+Unhealthy:        0
+
+Full details above.

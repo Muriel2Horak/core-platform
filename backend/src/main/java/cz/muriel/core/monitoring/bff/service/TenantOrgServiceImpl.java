@@ -1,8 +1,6 @@
 package cz.muriel.core.monitoring.bff.service;
 
 import cz.muriel.core.monitoring.bff.model.TenantBinding;
-import cz.muriel.core.monitoring.grafana.entity.GrafanaTenantBinding;
-import cz.muriel.core.monitoring.grafana.repository.GrafanaTenantBindingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -10,14 +8,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 /**
- * 🔄 REFACTORED: Dynamic tenant-org resolution
+ * 🔄 SIMPLIFIED: Tenant resolution without Grafana org mapping
  * 
- * Místo static init() nyní používá database storage s Grafana provisioning
+ * Po odstranění Grafana integrace pouze extrahuje tenant ID z JWT
  */
 @Service @Slf4j @RequiredArgsConstructor
 public class TenantOrgServiceImpl implements TenantOrgService {
-
-  private final GrafanaTenantBindingRepository bindingRepository;
 
   @Override @Cacheable(value = "tenantOrgBindings", key = "T(cz.muriel.core.monitoring.bff.service.TenantOrgServiceImpl).extractTenantIdStatic(#jwt)")
   public TenantBinding resolve(Jwt jwt) {
@@ -58,21 +54,13 @@ public class TenantOrgServiceImpl implements TenantOrgService {
   /**
    * 🔍 RESOLVE TENANT BINDING
    * 
-   * Načte binding z databáze (s cache podporou)
+   * Vytvoří simple binding pouze s tenant ID (bez Grafana org)
    */
   private TenantBinding resolveTenantBinding(String tenantId) {
     log.debug("🔍 Resolving tenant binding for: {}", tenantId);
 
-    GrafanaTenantBinding binding = bindingRepository.findByTenantId(tenantId).orElseThrow(() -> {
-      log.error("❌ No Grafana org mapping found for tenant: {}", tenantId);
-      return new IllegalStateException("Grafana organization not configured for tenant: " + tenantId
-          + ". Please ensure the tenant is properly provisioned.");
-    });
-
-    log.debug("✅ Resolved tenant {} to org {} (token masked)", tenantId, binding.getGrafanaOrgId());
-
-    return new TenantBinding(binding.getTenantId(), binding.getGrafanaOrgId(),
-        binding.getServiceAccountToken());
+    // Simple binding without Grafana org (post-Grafana-integration cleanup)
+    return new TenantBinding(tenantId, null, null);
   }
 
   @Override

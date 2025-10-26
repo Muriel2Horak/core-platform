@@ -28,7 +28,7 @@ Password: Test.1234
 - ✅ Access to Dashboard
 - ✅ Access to User Directory (public)
 - ✅ View own profile
-- ✅ Access to Reports (Grafana Scenes)
+- ✅ Access to Reports (Loki UI)
 - ✅ Access to Reporting Explorer (ag-grid)
 - ❌ NO admin access
 - ❌ NO tenant management
