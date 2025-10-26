@@ -6,8 +6,8 @@ import cz.muriel.core.monitoring.grafana.GrafanaProvisioningService;
 import cz.muriel.core.service.KeycloakRealmManagementService;
 import cz.muriel.core.service.TenantService;
 import cz.muriel.core.service.UserDirectoryService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,14 +24,27 @@ import java.util.Optional;
 
 /**
  * 🏢 TENANT MANAGEMENT API - Správa tenantů s hierarchií rolí
+ * 
+ * ⚠️ GrafanaProvisioningService je OPTIONAL - funguje i když monitoring.grafana.enabled=false
  */
-@Slf4j @RestController @RequestMapping("/api/admin/tenants") @RequiredArgsConstructor @Validated @PreAuthorize("hasAnyAuthority('CORE_ROLE_TENANT_MANAGER', 'CORE_ROLE_SYSTEM_ADMIN', 'CORE_ROLE_ADMIN')")
+@Slf4j @RestController @RequestMapping("/api/admin/tenants") @Validated @PreAuthorize("hasAnyAuthority('CORE_ROLE_TENANT_MANAGER', 'CORE_ROLE_SYSTEM_ADMIN', 'CORE_ROLE_ADMIN')")
 public class TenantManagementController {
 
   private final KeycloakRealmManagementService keycloakRealmManagementService;
   private final TenantService tenantService;
   private final UserDirectoryService userDirectoryService;
-  private final GrafanaProvisioningService grafanaProvisioningService;
+  private final Optional<GrafanaProvisioningService> grafanaProvisioningService;
+
+  public TenantManagementController(
+      KeycloakRealmManagementService keycloakRealmManagementService,
+      TenantService tenantService,
+      UserDirectoryService userDirectoryService,
+      @Autowired(required = false) GrafanaProvisioningService grafanaProvisioningService) {
+    this.keycloakRealmManagementService = keycloakRealmManagementService;
+    this.tenantService = tenantService;
+    this.userDirectoryService = userDirectoryService;
+    this.grafanaProvisioningService = Optional.ofNullable(grafanaProvisioningService);
+  }
 
   @Value("${DOMAIN:core-platform.local}")
   private String domain;
@@ -60,17 +73,22 @@ public class TenantManagementController {
         throw new RuntimeException("Tenant was created but not found in registry");
       }
 
-      // 3. 📊 AUTO-PROVISION: Grafana org + service account for new tenant
+      // 3. 📊 AUTO-PROVISION: Grafana org + service account for new tenant (if enabled)
       // Note: Dashboard provisioning is handled by file-based provisioning in Grafana
-      try {
-        log.info("📊 Auto-provisioning Grafana org + service account for tenant: {}",
-            request.getKey());
-        grafanaProvisioningService.provisionTenant(request.getKey());
-        log.info("✅ Grafana provisioned for tenant: {}", request.getKey());
-      } catch (Exception e) {
-        // Log but don't fail tenant creation
-        log.warn("⚠️ Grafana provisioning failed (tenant creation continues): {}", e.getMessage());
-      }
+      grafanaProvisioningService.ifPresentOrElse(
+          service -> {
+            try {
+              log.info("📊 Auto-provisioning Grafana org + service account for tenant: {}",
+                  request.getKey());
+              service.provisionTenant(request.getKey());
+              log.info("✅ Grafana provisioned for tenant: {}", request.getKey());
+            } catch (Exception e) {
+              // Log but don't fail tenant creation
+              log.warn("⚠️ Grafana provisioning failed (tenant creation continues): {}", e.getMessage());
+            }
+          },
+          () -> log.info("⏭️ Grafana provisioning skipped (monitoring.grafana.enabled=false)")
+      );
 
       // 4. Return success response with tenant details
       Map<String, Object> response = Map.of("success", true, "message",

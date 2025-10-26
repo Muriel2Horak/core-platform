@@ -2,8 +2,8 @@ package cz.muriel.core.service;
 
 import cz.muriel.core.auth.KeycloakAdminService;
 import cz.muriel.core.monitoring.grafana.GrafanaProvisioningService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -13,19 +13,33 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 🏢 KEYCLOAK REALM MANAGEMENT SERVICE
  * 
  * Služba pro správu Keycloak realms s podporou template processing
+ * 
+ * ⚠️ GrafanaProvisioningService je OPTIONAL - funguje i když monitoring.grafana.enabled=false
  */
-@Slf4j @Service @RequiredArgsConstructor @Transactional
+@Slf4j @Service @Transactional
 public class KeycloakRealmManagementService {
 
   private final KeycloakAdminService keycloakAdminService;
   private final TenantService tenantService;
   private final ResourceLoader resourceLoader;
-  private final GrafanaProvisioningService grafanaProvisioningService;
+  private final Optional<GrafanaProvisioningService> grafanaProvisioningService;
+
+  public KeycloakRealmManagementService(
+      KeycloakAdminService keycloakAdminService,
+      TenantService tenantService,
+      ResourceLoader resourceLoader,
+      @Autowired(required = false) GrafanaProvisioningService grafanaProvisioningService) {
+    this.keycloakAdminService = keycloakAdminService;
+    this.tenantService = tenantService;
+    this.resourceLoader = resourceLoader;
+    this.grafanaProvisioningService = Optional.ofNullable(grafanaProvisioningService);
+  }
 
   @Value("${DOMAIN:core-platform.local}")
   private String domain;
@@ -70,16 +84,21 @@ public class KeycloakRealmManagementService {
       // 6. Register tenant in database with Keycloak realm ID
       tenantService.createTenantRegistryWithRealmId(tenantKey, keycloakRealmId);
 
-      // 7. 🚀 AUTOMATIC GRAFANA PROVISIONING
-      try {
-        grafanaProvisioningService.provisionTenant(tenantKey);
-        log.info("✅ Grafana provisioning completed for tenant: {}", tenantKey);
-      } catch (Exception e) {
-        log.error(
-            "⚠️ Grafana provisioning failed for tenant: {} (tenant created but monitoring unavailable)",
-            tenantKey, e);
-        // Don't fail entire tenant creation if Grafana provisioning fails
-      }
+      // 7. 🚀 AUTOMATIC GRAFANA PROVISIONING (only if Grafana enabled)
+      grafanaProvisioningService.ifPresentOrElse(
+          service -> {
+            try {
+              service.provisionTenant(tenantKey);
+              log.info("✅ Grafana provisioning completed for tenant: {}", tenantKey);
+            } catch (Exception e) {
+              log.error(
+                  "⚠️ Grafana provisioning failed for tenant: {} (tenant created but monitoring unavailable)",
+                  tenantKey, e);
+              // Don't fail entire tenant creation if Grafana provisioning fails
+            }
+          },
+          () -> log.info("⏭️ Grafana provisioning skipped (monitoring.grafana.enabled=false)")
+      );
 
       log.info("✅ Tenant created successfully: {} (realm_id: {})", tenantKey, keycloakRealmId);
 
@@ -100,16 +119,21 @@ public class KeycloakRealmManagementService {
     log.warn("🗑️ Deleting tenant: {}", tenantKey);
 
     try {
-      // 1. 🗑️ AUTOMATIC GRAFANA DEPROVISIONING
-      try {
-        grafanaProvisioningService.deprovisionTenant(tenantKey);
-        log.info("✅ Grafana deprovisioning completed for tenant: {}", tenantKey);
-      } catch (Exception e) {
-        log.error(
-            "⚠️ Grafana deprovisioning failed for tenant: {} (continuing with tenant deletion)",
-            tenantKey, e);
-        // Don't fail entire tenant deletion if Grafana deprovisioning fails
-      }
+      // 1. 🗑️ AUTOMATIC GRAFANA DEPROVISIONING (only if Grafana enabled)
+      grafanaProvisioningService.ifPresentOrElse(
+          service -> {
+            try {
+              service.deprovisionTenant(tenantKey);
+              log.info("✅ Grafana deprovisioning completed for tenant: {}", tenantKey);
+            } catch (Exception e) {
+              log.error(
+                  "⚠️ Grafana deprovisioning failed for tenant: {} (continuing with tenant deletion)",
+                  tenantKey, e);
+              // Don't fail entire tenant deletion if Grafana deprovisioning fails
+            }
+          },
+          () -> log.info("⏭️ Grafana deprovisioning skipped (monitoring.grafana.enabled=false)")
+      );
 
       // 2. Delete Keycloak realm
       keycloakAdminService.deleteRealm(tenantKey);
