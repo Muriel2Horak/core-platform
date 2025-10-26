@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -68,8 +69,7 @@ public class UserProfileController {
     }
   }
 
-  @PutMapping // Support both PUT and PATCH for profile updates
-  @PatchMapping
+  @RequestMapping(method = {RequestMethod.PUT, RequestMethod.PATCH}) // Support both PUT and PATCH for profile updates
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<UserDto> updateMyProfile(@Valid @RequestBody UserUpdateRequest request,
       Authentication authentication) {
