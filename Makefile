@@ -56,7 +56,8 @@ help:
 	@echo "  test-e2e-pre          - PRE-DEPLOY smoke tests (fast gate)"
 	@echo "  test-e2e-post         - POST-DEPLOY full E2E (with scaffold)"
 	@echo "  test-e2e              - All E2E tests (pre + post)"
-	@echo "  test-e2e-loki         - Loki monitoring UI E2E tests"
+	@echo "  test-e2e-loki         - Loki monitoring UI E2E tests (LogViewer + CSV)"
+	@echo "  smoke-test-loki       - Quick API validation (curl-based, 1-2 min)"
 	@echo "  verify                - Quick smoke tests (health checks)"
 	@echo "  verify-full           - Full integration tests"
 	@echo ""
@@ -1879,19 +1880,48 @@ test-e2e-loki:
 	@echo ""
 	@echo "⚠️  Requires: Running environment + Loki ingesting logs"
 	@echo "📋 Tests: LogViewer, MetricCard, Tenant isolation, CSV export"
-	@echo "⏱️  Duration: ~3-5 minutes"
+	@echo "⏱️  Duration: ~5-8 minutes"
 	@echo ""
 	@if [ ! -d "e2e/node_modules" ]; then \
 		echo "📦 Installing E2E dependencies..."; \
 		cd e2e && npm install; \
 	fi
 	@echo "▶️  Running Loki monitoring tests..."
-	@cd e2e && npx playwright test --project=monitoring specs/monitoring/loki-log-viewer.spec.ts 2>&1 | \
+	@cd e2e && npx playwright test --project=monitoring \
+		specs/monitoring/loki-log-viewer.spec.ts \
+		specs/monitoring/loki-csv-export.spec.ts \
+		2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		sed 's/✓/  ✅/g' | \
 		sed 's/✗/  ❌/g' | \
 		sed 's/passed/✅ passed/g' | \
 		sed 's/failed/❌ failed/g'
+	@echo ""
+
+# Smoke Test: Loki Migration Validation
+.PHONY: smoke-test-loki
+smoke-test-loki:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║  🔥 SMOKE TEST: De-Grafana → Native Loki UI Migration        ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "⚠️  Requires: Running environment + Valid JWT token"
+	@echo "📋 Tests: Feature flags, BFF API, Prometheus metrics, Rate limit"
+	@echo "⏱️  Duration: ~1-2 minutes"
+	@echo ""
+	@if [ -z "$$AT" ]; then \
+		echo "❌ Error: AT environment variable not set"; \
+		echo ""; \
+		echo "Options:"; \
+		echo "  1) Export JWT from browser cookie:"; \
+		echo "     export AT=\"<paste_cookie_at_value>\""; \
+		echo ""; \
+		echo "  2) Use Keycloak credentials:"; \
+		echo "     export KC_USERNAME=test_admin KC_PASSWORD=admin123"; \
+		echo ""; \
+		exit 1; \
+	fi
+	@bash scripts/smoke-test-loki-migration.sh
 	@echo ""
 	@echo "✅ Loki monitoring E2E tests completed!"
 	@echo "📊 Report: e2e/playwright-report/index.html"
