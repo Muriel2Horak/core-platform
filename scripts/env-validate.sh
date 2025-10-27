@@ -47,14 +47,61 @@ validate_env_file() {
   
   success ".env file exists"
   
-  # Check critical variables
+  # Check REQUIRED variables (extracted from .env.template)
+  # ALL credentials, secrets, keys, and critical URLs must be set
+  # ⚠️  NO FALLBACKS in docker-compose.yml for these!
   local REQUIRED_VARS=(
+    # Database
     "DATABASE_URL"
-    "KEYCLOAK_BASE_URL"
-    "OIDC_ISSUER_URI"
-    "DOMAIN"
+    "DATABASE_USERNAME"
+    "DATABASE_PASSWORD"
+    "POSTGRES_USER"
     "POSTGRES_PASSWORD"
+    "DB_INTERNAL_USERNAME"
+    "DB_INTERNAL_PASSWORD"
+    
+    # Keycloak Auth
+    "KEYCLOAK_ADMIN"
     "KEYCLOAK_ADMIN_PASSWORD"
+    "KEYCLOAK_ADMIN_BASE_URL"
+    "KEYCLOAK_ADMIN_CLIENT_ID"
+    "KEYCLOAK_ADMIN_CLIENT_SECRET"
+    "KEYCLOAK_ADMIN_USERNAME"
+    "KEYCLOAK_DB_NAME"
+    "KEYCLOAK_DB_USERNAME"
+    "KEYCLOAK_DB_PASSWORD"
+    "KEYCLOAK_TARGET_REALM"
+    "KEYCLOAK_CLIENT_SECRET"
+    
+    # OIDC
+    "OIDC_ISSUER_URI"
+    
+    # Domain & CORS
+    "DOMAIN"
+    "CORS_ORIGINS"
+    
+    # Grafana
+    "GRAFANA_ADMIN_PASSWORD"
+    "GRAFANA_PASSWORD"
+    "GRAFANA_DB_NAME"
+    "GRAFANA_DB_USERNAME"
+    "GRAFANA_DB_PASSWORD"
+    "GRAFANA_OIDC_SECRET"
+    "GRAFANA_JWT_SECRET"
+    
+    # MinIO
+    "MINIO_ACCESS_KEY"
+    "MINIO_SECRET_KEY"
+    
+    # Cube.js
+    "CUBE_API_SECRET"
+    
+    # Multi-tenancy
+    "TENANCY_DEFAULT_TENANT_KEY"
+    
+    # Test users (required for E2E)
+    "TEST_USER_PASSWORD"
+    "TEST_ADMIN_PASSWORD"
   )
   
   source .env 2>/dev/null || { error "Failed to source .env"; return 1; }

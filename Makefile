@@ -1034,11 +1034,21 @@ validate-env:
 	@echo "✅ Validating environment configuration..."
 	@if [ ! -f .env ]; then \
 		echo "❌ .env file not found!"; \
-		echo "💡 Run 'make dev-setup' for first-time setup"; \
+		echo "💡 Copy from template: cp .env.template .env"; \
+		echo "💡 Then fill in ALL required values and run: make env-validate"; \
 		exit 1; \
 	fi
-	@if grep -q "CHANGE-ME" .env 2>/dev/null; then \
-		echo "⚠️  Warning: Found CHANGE-ME placeholders in .env - please review"; \
+	@echo "🔍 Running comprehensive environment validation..."
+	@if ! bash scripts/env-validate.sh >/dev/null 2>&1; then \
+		echo ""; \
+		echo "❌ Environment validation FAILED!"; \
+		echo ""; \
+		echo "📋 Run 'make env-validate' to see detailed errors"; \
+		echo ""; \
+		echo "⚠️  CRITICAL: docker-compose.yml NO LONGER has fallbacks for credentials!"; \
+		echo "   ALL required variables MUST be set in .env before build."; \
+		echo ""; \
+		exit 1; \
 	fi
 	@echo "✅ Environment configuration looks good"
 

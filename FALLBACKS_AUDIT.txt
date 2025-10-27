@@ -1,0 +1,84 @@
+# DOCKER COMPOSE FALLBACKS AUDIT
+# Date: Mon Oct 27 11:50:00 CET 2025
+
+## CRITICAL - SECURITY HOLES (must remove):
+87:      - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
+94:      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
+101:      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
+106:      - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-admin}
+109:      - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
+110:      - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
+111:      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+112:      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
+123:      - GRAFANA_JWT_TTL=${GRAFANA_JWT_TTL:-300}  # Must match Keycloak access token lifespan (5 min)
+124:      - GRAFANA_JWT_SECRET=${GRAFANA_JWT_SECRET:-change-me-in-production-to-secure-random-256bit-key}
+198:      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+199:      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+208:      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-Test.1234}
+209:      TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-Test.1234}
+252:      - TENANT_ADMIN=${AUTO_BOOTSTRAP_TENANT_ADMIN:-tenant-admin}
+253:      - TENANT_ADMIN_PASSWORD=${AUTO_BOOTSTRAP_TENANT_ADMIN_PASSWORD:-}
+254:      - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN:-admin}
+255:      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+289:      - GRAFANA_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+294:      - DB_PASSWORD=${DB_INTERNAL_PASSWORD:-core}
+334:      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD:-core}
+341:      - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OIDC_SECRET:-change-me-in-production}
+343:      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+376:      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout
+505:      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+585:      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+586:      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+612:      - CUBEJS_DB_PASS=${DB_INTERNAL_PASSWORD:-core}
+613:      - CUBEJS_API_SECRET=${CUBE_API_SECRET:-dev_secret_change_in_production}
+
+## HIGH - URLs and Hosts:
+87:      - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
+94:      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
+121:      - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
+158:        GRAFANA_PUBLIC_URL: ${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN:-core-platform.local}}
+343:      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+373:      - GF_SERVER_ROOT_URL=https://ops.${DOMAIN:-core-platform.local}/grafana
+376:      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout
+
+## MEDIUM - Configuration:
+7:      - "${HTTP_PORT:-80}:80"
+8:      - "${HTTPS_PORT:-443}:443"
+48:      - "${DB_PORT:-5432}:5432"
+87:      - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
+106:      - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-admin}
+111:      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+112:      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
+116:      - STREAMING_ENABLED=${STREAMING_ENABLED:-false}
+118:      - STREAMING_TOPIC_PREFIX=${STREAMING_TOPIC_PREFIX:-core}
+119:      - STREAMING_SECURITY_MODE=${STREAMING_SECURITY_MODE:-PLAINTEXT}
+120:      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+123:      - GRAFANA_JWT_TTL=${GRAFANA_JWT_TTL:-300}  # Must match Keycloak access token lifespan (5 min)
+157:        STREAMING_ENABLED: ${STREAMING_ENABLED:-false}
+198:      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+199:      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+209:      TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-Test.1234}
+252:      - TENANT_ADMIN=${AUTO_BOOTSTRAP_TENANT_ADMIN:-tenant-admin}
+253:      - TENANT_ADMIN_PASSWORD=${AUTO_BOOTSTRAP_TENANT_ADMIN_PASSWORD:-}
+254:      - KEYCLOAK_ADMIN_USER=${KEYCLOAK_ADMIN:-admin}
+255:      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}
+289:      - GRAFANA_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+343:      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+376:      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout
+405:      - "${LOKI_PORT:-3100}:3100"
+585:      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+586:      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+605:      - "${CUBE_PORT:-4000}:4000"
+
+## LOW - Safe fallbacks (can keep):
+10:      - DOMAIN=${DOMAIN:-core-platform.local}
+83:      - ENVIRONMENT=${ENVIRONMENT:-development}
+85:      - DOMAIN=${DOMAIN:-core-platform.local}
+87:      - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
+121:      - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
+158:        GRAFANA_PUBLIC_URL: ${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN:-core-platform.local}}
+226:      KC_LOG_LEVEL: ${KC_LOG_LEVEL:-INFO}
+343:      - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/auth
+373:      - GF_SERVER_ROOT_URL=https://ops.${DOMAIN:-core-platform.local}/grafana
+376:      - GF_AUTH_SIGNOUT_REDIRECT_URL=https://ops.${DOMAIN:-core-platform.local}/realms/admin/protocol/openid-connect/logout
+618:      - NODE_ENV=${ENVIRONMENT:-development}
