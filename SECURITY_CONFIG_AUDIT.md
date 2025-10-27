@@ -1071,7 +1071,71 @@ git log --all --full-history -- .env
 
 ---
 
-### 🟢 GOOD PRÁCE #1: Redis timeout fix
+### � MEDIUM PROBLÉM #4: Chybějící Grafana DB credentials v `.env.template`
+
+**Soubor:** `.env.template` (chybí proměnné)
+
+**Současný stav:**
+```bash
+# .env.template obsahuje POUZE:
+GRAFANA_ADMIN_PASSWORD=admin123
+GRAFANA_OIDC_SECRET=grafana-ops-secret-change-me-in-prod
+
+# ❌ CHYBÍ databázové credentials!
+```
+
+**docker-compose.yml POUŽÍVÁ:**
+```yaml
+environment:
+  - GF_DATABASE_NAME=${GRAFANA_DB_NAME}           # ❌ Undefined!
+  - GF_DATABASE_USER=${GRAFANA_DB_USERNAME}       # ❌ Undefined!
+  - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}   # ❌ Undefined!
+```
+
+**Dopad:**
+- ⚠️ Grafana nemůže nastartovat (missing DB credentials)
+- ⚠️ Nový developer kopíruje .env.template → Grafana fails
+- ⚠️ Nekonzistence s ostatními službami (Backend, Keycloak mají DB credentials)
+
+**Očekávaný stav:**
+```bash
+# .env.template by měl obsahovat:
+GRAFANA_DB_NAME=grafana
+GRAFANA_DB_USERNAME=core
+GRAFANA_DB_PASSWORD=core
+
+# Po migraci na separate users (viz DB_SEPARATE_USERS_PLAN.md):
+GRAFANA_DB_USERNAME=grafana_app
+GRAFANA_DB_PASSWORD=<strong-password>
+```
+
+**Návrh opravy:**
+
+```bash
+# 1. Přidat do .env.template (✅ HOTOVO)
+cat >> .env.template << 'EOF'
+
+# 🗄️ GRAFANA DATABASE CONFIGURATION
+GRAFANA_DB_NAME=grafana
+GRAFANA_DB_USERNAME=core
+GRAFANA_DB_PASSWORD=core
+EOF
+
+# 2. Přidat fallbacky do docker-compose.yml (✅ HOTOVO)
+# - GF_DATABASE_NAME=${GRAFANA_DB_NAME:-grafana}
+# - GF_DATABASE_USER=${GRAFANA_DB_USERNAME:-core}
+# - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD:-core}
+
+# 3. Verify
+grep GRAFANA_DB .env.template
+docker compose config | grep GF_DATABASE
+```
+
+**Priorita:** 🟡 **MEDIUM** - ✅ **OPRAVENO** (credentials přidány do .env.template a docker-compose.yml)
+
+---
+
+### �🟢 GOOD PRÁCE #1: Redis timeout fix
 
 **Soubor:** `backend/src/main/resources/application-reporting.yml:35`
 

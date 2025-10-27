@@ -329,9 +329,9 @@ services:
       # 🗄️ PostgreSQL Database (instead of SQLite for persistence across restarts)
       - GF_DATABASE_TYPE=postgres
       - GF_DATABASE_HOST=db:5432
-      - GF_DATABASE_NAME=${GRAFANA_DB_NAME}
-      - GF_DATABASE_USER=${GRAFANA_DB_USERNAME}
-      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
+      - GF_DATABASE_NAME=${GRAFANA_DB_NAME:-grafana}
+      - GF_DATABASE_USER=${GRAFANA_DB_USERNAME:-core}
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD:-core}
       - GF_DATABASE_SSL_MODE=disable
       
       # 🔐 OIDC SSO Configuration (Keycloak admin realm)
