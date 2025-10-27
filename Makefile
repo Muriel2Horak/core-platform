@@ -63,6 +63,10 @@ help:
 	@echo "  verify                - Quick smoke tests (health checks)"
 	@echo "  verify-full           - Full integration tests"
 	@echo ""
+	@echo "🔍 Environment Validation:"
+	@echo "  env-validate    - Quick .env validation (file exists, vars set)"
+	@echo "  doctor          - Full health check (.env + service connectivity)"
+	@echo ""
 	@echo "💡 Note: 'make rebuild' runs UNIT tests only (fast)"
 	@echo "         'make test-backend-full' runs ALL tests (needs Docker)"
 	@echo "         'make clean' runs FULL E2E pipeline (PRE + POST)"
@@ -182,6 +186,16 @@ verify:
 	@echo ""
 	@echo "✅ Smoke tests completed!"
 	@echo ""
+
+# Environment validation (quick check)
+.PHONY: env-validate
+env-validate:
+	@bash scripts/env-validate.sh
+
+# Full environment doctor check (validation + connectivity)
+.PHONY: doctor
+doctor:
+	@bash scripts/env-validate.sh --full
 
 # Full integration tests (includes multitenancy and streaming)
 .PHONY: verify-full

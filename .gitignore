@@ -26,8 +26,13 @@ diagnostics/*.log
 Thumbs.db
 
 # Environment
+.env
 .env.local
 .env.*.local
+
+# SSL Private Keys (SECURITY: Never commit private keys!)
+docker/ssl/*.key.pem
+docker/ssl/*.key
 
 # Logs
 *.log

@@ -497,13 +497,18 @@ services:
     container_name: core-redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: >
+      redis-server
+      --appendonly yes
+      ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     volumes:
       - redis_data:/data
     networks:
       - core-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping || redis-cli ping"]
       interval: 5s
       timeout: 3s
       retries: 5

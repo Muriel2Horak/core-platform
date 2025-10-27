@@ -1,0 +1,43 @@
+# ====== SPRING BOOT APPLICATION CONFIG ======
+# This file provides YAML-based configuration with runtime environment variable substitution
+# Properties in application.properties are loaded first, then overridden by application.yml
+
+# ====== DATASOURCE (PostgreSQL) ======
+# ✅ Uses environment variables with fallbacks
+# - Production: DATABASE_URL from Docker Compose (.env)
+# - Dev Container: Override with different host/port
+# - Kubernetes: Override with cluster service DNS
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://core-db:5432/core}
+    username: ${DATABASE_USERNAME:core}
+    password: ${DATABASE_PASSWORD:core}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# ====== KEYCLOAK DATASOURCE ======
+# ✅ Separate datasource for Keycloak change_events polling
+# Allows independent credentials and connection pooling
+keycloak:
+  datasource:
+    url: ${KEYCLOAK_DATABASE_URL:jdbc:postgresql://core-db:5432/keycloak}
+    username: ${KEYCLOAK_DB_USERNAME:keycloak}
+    password: ${KEYCLOAK_DB_PASSWORD:keycloak}
+    driver-class-name: org.postgresql.Driver
+
+# ====== JPA / HIBERNATE ======
+# Schema management handled by Flyway (spring.jpa.hibernate.ddl-auto=none in properties)
+# Logging for development troubleshooting
+spring:
+  jpa:
+    show-sql: false  # Set true only for debugging
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        # Diagnostic logging (enable for troubleshooting)
+        # generate_statistics: true
