@@ -9,12 +9,14 @@ services:
     environment:
       - DOMAIN=${DOMAIN:-core-platform.local}
     volumes:
-      - ./nginx/nginx-ssl.conf.template:/etc/nginx/templates/nginx-ssl.conf.template:ro
-      - ./nginx/start-nginx.sh:/usr/local/bin/start-nginx.sh:ro
+      # Mount template and custom entrypoint for envsubst processing
+      - ./nginx/nginx-ssl.conf.template:/etc/nginx/nginx-ssl.conf.template:ro
+      - ./nginx/docker-entrypoint.sh:/custom-entrypoint.sh:ro
       # 🔒 Updated to use new wildcard SSL certificates
       - ../ssl:/etc/nginx/ssl:ro
       - certbot-www:/var/www/certbot:ro
-    command: [ "/usr/local/bin/start-nginx.sh" ]
+    entrypoint: ["/custom-entrypoint.sh"]
+    command: ["nginx", "-g", "daemon off;"]
     depends_on:
       frontend:
         condition: service_healthy  # ✅ OPRAVENO: Čeká na frontend health check
@@ -115,6 +117,7 @@ services:
       # 📊 Streaming & Kafka Configuration
       - STREAMING_ENABLED=${STREAMING_ENABLED:-false}
       - KAFKA_SERVERS=${KAFKA_SERVERS:-kafka:9092}
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=${KAFKA_SERVERS:-kafka:9092}  # Spring Boot standard naming
       - STREAMING_TOPIC_PREFIX=${STREAMING_TOPIC_PREFIX:-core}
       - STREAMING_SECURITY_MODE=${STREAMING_SECURITY_MODE:-PLAINTEXT}
       - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
@@ -143,7 +146,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
-      start_period: 60s
+      start_period: 600s  # 10 minut - backend má pomalý AspectJ weaving
     networks:
       - core-net
     restart: unless-stopped

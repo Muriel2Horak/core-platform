@@ -46,8 +46,8 @@ http {
     # 🌟 UNIVERZÁLNÍ SERVER BLOCK - všechny subdomény včetně admin
     server {
         listen 443 ssl http2;
-        # ✅ ZJEDNODUŠENO: zachytává VŠECHNY subdomény včetně admin
-        server_name $DOMAIN *.$DOMAIN;
+        # ✅ ZJEDNODUŠENO: zachytává VŠECHNY subdomány včetně admin
+        server_name ${DOMAIN} *.${DOMAIN};
         
         # SSL Configuration
         ssl_certificate /etc/nginx/ssl/cert.pem;
@@ -135,7 +135,7 @@ http {
             proxy_read_timeout 60s;
             
             # CSP for iframe embedding - allow wildcard subdomains
-            add_header Content-Security-Policy "frame-ancestors 'self' https://*.$DOMAIN" always;
+            add_header Content-Security-Policy "frame-ancestors 'self' https://*.${DOMAIN}" always;
             
             # DO NOT strip prefix - Grafana serves from subpath (serve_from_sub_path=true)
             # Forward full path /core-admin/monitoring/* to Grafana
@@ -382,10 +382,10 @@ http {
         }
     }
     
-    # � OPS SUBDOMAIN - Standalone Grafana with OIDC SSO
+    # 🎯 OPS SUBDOMAIN - Standalone Grafana with OIDC SSO
     server {
         listen 443 ssl http2;
-        server_name ops.$DOMAIN;
+        server_name ops.${DOMAIN};
         
         # SSL Configuration (same as main server)
         ssl_certificate /etc/nginx/ssl/cert.pem;
@@ -432,10 +432,10 @@ http {
         }
     }
     
-    # �🔀 HTTP -> HTTPS redirect
+    # 🔀 HTTP -> HTTPS redirect
     server {
         listen 80;
-        server_name $DOMAIN *.$DOMAIN;
+        server_name ${DOMAIN} *.${DOMAIN};
         
         return 301 https://$host$request_uri;
     }
