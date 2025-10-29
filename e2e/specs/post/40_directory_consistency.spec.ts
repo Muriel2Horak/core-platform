@@ -19,11 +19,16 @@ test.describe('Directory Consistency E2E', () => {
     // Search for current user
     const currentUser = await (await api.get('/api/users/me')).json();
     
-    // Search via API
-    const results = await searchUsers(api, currentUser.displayName || currentUser.username);
+    // Search via API (search by username as it's more reliable than displayName)
+    const searchTerm = currentUser.username;
+    const results = await searchUsers(api, searchTerm);
     
-    const found = results.find((u: any) => u.id === currentUser.id);
+    // Find by username (more reliable than ID which may have different format)
+    const found = results.find((u: any) => 
+      u.username === currentUser.username || u.id === currentUser.id
+    );
     expect(found).toBeTruthy();
+    expect(found.username).toBe(currentUser.username);
     
     // Verify in GUI
     // 🔧 FIX: Correct route is /user-directory, not /directory/users

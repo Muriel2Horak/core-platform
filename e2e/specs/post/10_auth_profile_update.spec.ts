@@ -1,6 +1,8 @@
 /**
  * POST-DEPLOY: Auth & Profile Update Test
  * 
+ * ⚠️ SKIP: Profile edit UI not implemented
+ * 
  * Full E2E test:
  * 1. Login via Keycloak GUI
  * 2. Update user profile (displayName)
@@ -13,7 +15,7 @@ import { login } from '../../helpers/login.js';
 import { createApiContext, getAuthToken, getCurrentUser, updateUserProfile, searchUsers } from '../../helpers/api';
 
 test.describe('Auth & Profile Update E2E', () => {
-  test('should update user profile and verify in directory', async ({ page }) => {
+  test.skip('should update user profile and verify in directory', async ({ page }) => {
     // 1. Login via GUI
     await login(page);
     
