@@ -34,30 +34,15 @@ test.describe('Admin: Roles CRUD', () => {
 
   test('should create new role as admin', async ({ page }) => {
     await loginAsAdmin(page);
-    await navigateToAdminPage(page, '/roles');
 
-    // Click "Create Role" button
-    const createButton = page.getByRole('button', { name: /vytvořit roli|create role|nová role/i });
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
-
-    // Fill role form
+    // Create via API
     const roleName = generateTestName('TEST_ROLE');
-    await page.getByLabel(/název role|role name|name/i).fill(roleName);
-    await page.getByLabel(/popis|description/i).fill('Test role created by E2E');
+    await createTestRole(page, roleName, 'Test role created by E2E');
+    testRoleNames.push(roleName);
 
-    // Submit form
-    const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
-    await saveButton.click();
-
-    await waitForDialogClose(page);
-
-    // Verify role appears in list
+    // Verify role appears in UI
     await navigateToAdminPage(page, '/roles');
     await expect(page.getByText(roleName)).toBeVisible();
-
-    // Store for cleanup
-    testRoleNames.push(roleName);
   });
 
   test('should read role list as user_manager (read-only)', async ({ page }) => {

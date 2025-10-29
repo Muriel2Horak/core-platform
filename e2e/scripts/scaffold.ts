@@ -64,8 +64,9 @@ async function scaffold(): Promise<ScaffoldResult> {
   
   // Create ephemeral tenant
   console.log('\n2️⃣  Creating ephemeral tenant...');
-  const tenantName = `test_tenant_${rand}`;
-  const tenant = await createTenant(api, tenantName, {
+  // Generate tenant key: lowercase alphanumeric + hyphens only
+  const tenantKey = `test-tenant-${rand}`;
+  const tenant = await createTenant(api, tenantKey, {
     description: 'E2E test tenant - AUTO CLEANUP',
     ephemeral: true,
   });

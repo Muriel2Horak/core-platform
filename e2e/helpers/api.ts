@@ -90,7 +90,8 @@ export async function createTenant(
 ): Promise<{ id: string; name: string }> {
   const response = await api.post('/api/admin/tenants', {
     data: {
-      name,
+      key: name,
+      displayName: name,
       config: config || {},
       isTest: true, // Flag for cleanup
     },
@@ -263,7 +264,9 @@ export async function searchUsers(
     throw new Error(`Failed to search users: ${response.status()}`);
   }
   
-  return await response.json();
+  const data = await response.json();
+  // Backend returns paginated response: { content: [...], totalElements, ... }
+  return data.content || data;
 }
 
 /**

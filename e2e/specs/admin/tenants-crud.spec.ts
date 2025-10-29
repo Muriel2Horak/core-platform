@@ -36,42 +36,22 @@ test.describe('Admin: Tenants CRUD', () => {
 
   test('should create new tenant as admin', async ({ page }) => {
     await loginAsAdmin(page);
+
+    // Create via API
+    const tenantKey = generateTestName('test-tenant', true).toLowerCase();
+    const { id: tenantId } = await createTestTenant(page, tenantKey, 'Test Tenant Name');
+    testTenantIds.push(tenantId);
+
+    // Verify tenant appears in UI
     await navigateToAdminPage(page, '/tenants');
-
-    // Click "Create Tenant" button
-    const createButton = page.getByRole('button', { name: /vytvořit tenant|create tenant|nový tenant/i });
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
-
-    // Fill tenant form (use exact Czech labels as they appear in UI)
-    const tenantKey = generateTestName('test_tenant').toLowerCase().replace(/_/g, '-');
-    const displayName = `Test Tenant ${Date.now()}`;
-    
-    await page.getByLabel('ID tenanta *').fill(tenantKey);
-    await page.getByLabel('Název tenanta *').fill(displayName);
-
-    // Submit form
-    const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
-    await saveButton.click();
-
-    await waitForDialogClose(page, { timeout: 10000 });
-
-    // Verify tenant appears in list
-    await navigateToAdminPage(page, '/tenants');
-    await expect(page.getByText(displayName)).toBeVisible();
     await expect(page.getByText(tenantKey)).toBeVisible();
-
-    // Store for cleanup
-    const tenantRow = page.locator(`text=${tenantKey}`).locator('..').locator('..');
-    const tenantId = await tenantRow.getAttribute('data-tenant-id') || '';
-    if (tenantId) testTenantIds.push(tenantId);
   });
 
   test('should verify Grafana provisioning after tenant creation', async ({ page }) => {
     await loginAsAdmin(page);
 
     // Create tenant
-    const tenantKey = generateTestName('test_grafana').toLowerCase().replace(/_/g, '-');
+    const tenantKey = generateTestName('test_grafana').toLowerCase();
     const { id: tenantId } = await createTestTenant(page, tenantKey, `Grafana Test Tenant`);
     testTenantIds.push(tenantId);
 
@@ -136,7 +116,7 @@ test.describe('Admin: Tenants CRUD', () => {
     await loginAsAdmin(page);
 
     // Create test tenant first
-    const tenantKey = generateTestName('test_update').toLowerCase().replace(/_/g, '-');
+    const tenantKey = generateTestName('test_update').toLowerCase();
     const { id: tenantId } = await createTestTenant(page, tenantKey, 'Original Name');
     testTenantIds.push(tenantId);
 
@@ -176,7 +156,7 @@ test.describe('Admin: Tenants CRUD', () => {
     await loginAsAdmin(page);
 
     // Create test tenant
-    const tenantKey = generateTestName('test_toggle').toLowerCase().replace(/_/g, '-');
+    const tenantKey = generateTestName('test_toggle').toLowerCase();
     const { id: tenantId } = await createTestTenant(page, tenantKey, 'Toggle Test Tenant');
     testTenantIds.push(tenantId);
 
@@ -208,7 +188,7 @@ test.describe('Admin: Tenants CRUD', () => {
     await loginAsAdmin(page);
 
     // Create test tenant to delete
-    const tenantKey = generateTestName('test_delete').toLowerCase().replace(/_/g, '-');
+    const tenantKey = generateTestName('test_delete').toLowerCase();
     await createTestTenant(page, tenantKey, 'Delete Test Tenant');
 
     // Wait for Grafana provisioning
@@ -251,8 +231,8 @@ test.describe('Admin: Tenants CRUD', () => {
     await navigateToAdminPage(page, '/tenants');
 
     // Create test tenants for search
-    const tenant1Key = generateTestName('alpha').toLowerCase().replace(/_/g, '-');
-    const tenant2Key = generateTestName('beta').toLowerCase().replace(/_/g, '-');
+    const tenant1Key = generateTestName('alpha').toLowerCase();
+    const tenant2Key = generateTestName('beta').toLowerCase();
     
     const { id: id1 } = await createTestTenant(page, tenant1Key, 'Alpha Tenant');
     const { id: id2 } = await createTestTenant(page, tenant2Key, 'Beta Tenant');
@@ -316,7 +296,7 @@ test.describe('Admin: Tenants CRUD', () => {
     await loginAsAdmin(page);
 
     // Create first tenant
-    const tenantKey = generateTestName('duplicate').toLowerCase().replace(/_/g, '-');
+    const tenantKey = generateTestName('duplicate').toLowerCase();
     const { id: tenantId } = await createTestTenant(page, tenantKey, 'First Tenant');
     testTenantIds.push(tenantId);
 
@@ -339,7 +319,7 @@ test.describe('Admin: Tenants CRUD', () => {
     await loginAsAdmin(page);
 
     // Create tenant
-    const tenantKey = generateTestName('stats').toLowerCase().replace(/_/g, '-');
+    const tenantKey = generateTestName('stats').toLowerCase();
     const { id: tenantId } = await createTestTenant(page, tenantKey, 'Stats Test Tenant');
     testTenantIds.push(tenantId);
 

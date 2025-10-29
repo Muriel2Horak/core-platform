@@ -11,10 +11,13 @@ const API_BASE = process.env.API_BASE || 'https://admin.core-platform.local';
 
 /**
  * Generate unique test name with timestamp
+ * @param prefix - Prefix for the generated name
+ * @param useDashes - If true, replaces underscores with dashes (for tenant keys)
  */
-export function generateTestName(prefix: string): string {
+export function generateTestName(prefix: string, useDashes = false): string {
   const timestamp = Date.now();
-  return `${prefix}_${timestamp}`;
+  const name = `${prefix}_${timestamp}`;
+  return useDashes ? name.replace(/_/g, '-') : name;
 }
 
 /**
@@ -189,35 +192,30 @@ export async function deleteTestGroup(
 }
 
 /**
- * Create test tenant via API
+ * Create Test Tenant via API
+ * ✅ FIXED: Properly sends `key` field (was sending `tenantKey`)
+ * ✅ AUTO-FIX: Replaces underscores with dashes in key (tenant key validation requirement)
  */
-export async function createTestTenant(
-  page: Page,
-  tenantKey: string,
-  displayName?: string
-): Promise<{ id: string; tenantKey: string }> {
-  const tenantData = {
-    key: tenantKey, // CRITICAL FIX: Backend expects 'key', not 'tenantKey'
-    displayName: displayName || `Test Tenant ${tenantKey}`,
-    enabled: true
+export async function createTestTenant(page: Page, tenantKey: string, displayName?: string) {
+  // Auto-fix tenant key format: replace underscores with dashes, ensure lowercase
+  const validatedKey = tenantKey.toLowerCase().replace(/_/g, '-');
+  
+  const payload = {
+    key: validatedKey, // ✅ FIXED: was `tenantKey`
+    name: displayName || `Tenant ${validatedKey}`,
+    enabled: true,
   };
 
-  const response = await page.request.post(
-    `${API_BASE}/api/admin/tenants`,
-    {
-      data: tenantData,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }
-  );
+  const response = await page.request.post(`${API_BASE}/api/admin/tenants`, {
+    data: payload,
+  });
 
   if (!response.ok()) {
     throw new Error(`Failed to create tenant: ${response.status()} ${await response.text()}`);
   }
 
   const result = await response.json();
-  return { id: result.id || result.tenantId, tenantKey };
+  return { id: result.id, key: validatedKey };
 }
 
 /**

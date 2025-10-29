@@ -56,9 +56,10 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
 
   // Wait for redirect back to app
   if (waitForDashboard) {
-    // 🎯 Navigation hardening: Wait for redirect to dashboard/home/admin
-    await page.waitForURL(/(dashboard|home|core-admin)/, { timeout: 15000 });
-    console.log('✓ Redirected back to app');
+    // 🎯 Navigation hardening: Wait for redirect away from Keycloak
+    // Accept any URL that doesn't contain 'realms' or 'protocol' (Keycloak paths)
+    await page.waitForURL((url) => !url.href.includes('/realms/') && !url.href.includes('/protocol/'), { timeout: 15000 });
+    console.log('  ✅ Redirected back to app');
     
     // Wait for DOM to be fully loaded (more reliable than networkidle for chunked ESM)
     await page.waitForLoadState('domcontentloaded', { timeout: 10000 });

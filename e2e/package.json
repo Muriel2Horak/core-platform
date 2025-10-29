@@ -8,12 +8,13 @@
     "test:pre": "playwright test --project=pre",
     "test:post": "playwright test --project=post",
     "test:all": "playwright test",
-    "scaffold": "node scripts/scaffold.ts",
-    "teardown": "node scripts/teardown.ts",
+    "scaffold": "tsx scripts/scaffold.ts",
+    "teardown": "tsx scripts/teardown.ts",
     "report": "playwright show-report playwright-report"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
-    "@types/node": "^24.7.2"
+    "@types/node": "^24.7.2",
+    "tsx": "^4.20.6"
   }
 }

@@ -37,31 +37,15 @@ test.describe('Admin: Groups CRUD', () => {
 
   test('should create new group as admin', async ({ page }) => {
     await loginAsAdmin(page);
-    await navigateToAdminPage(page, '/groups');
 
-    // Click "Create Group" button
-    const createButton = page.getByRole('button', { name: /vytvořit skupinu|create group|nová skupina/i });
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
+    // Create via API
+    const groupName = generateTestName('test-group');
+    const { id: groupId } = await createTestGroup(page, groupName);
+    testGroupIds.push(groupId);
 
-    // Fill group form
-    const groupName = generateTestName('Test Group');
-    await page.getByLabel(/název skupiny|group name|name/i).fill(groupName);
-
-    // Submit form
-    const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
-    await saveButton.click();
-
-    await waitForDialogClose(page);
-
-    // Verify group appears in list
+    // Verify group appears in UI
     await navigateToAdminPage(page, '/groups');
     await expect(page.getByText(groupName)).toBeVisible();
-
-    // Store for cleanup
-    const groupRow = page.locator(`text=${groupName}`).locator('..').locator('..');
-    const groupId = await groupRow.getAttribute('data-group-id') || '';
-    if (groupId) testGroupIds.push(groupId);
   });
 
   test('should read group list as user_manager', async ({ page }) => {

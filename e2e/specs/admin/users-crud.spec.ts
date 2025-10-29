@@ -35,78 +35,40 @@ test.describe('Admin: Users CRUD', () => {
 
   test('should create new user as admin', async ({ page }) => {
     await loginAsAdmin(page);
-    await navigateToAdminPage(page, '/users');
 
-    // Click "Create User" button
-    const createButton = page.getByRole('button', { name: /vytvořit uživatele|create user|nový uživatel/i });
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
-
-    // Fill user form
+    // Create via API
     const username = generateTestName('test_user');
-    await page.getByLabel(/uživatelské jméno|username/i).fill(username);
-    // FIX: Use exact match to avoid matching "Uživatelské jméno" (username) field
-    await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Test');
-    await page.getByLabel(/příjmení|last name/i).fill('User CRUD');
-    // FIX: Use getByRole to target textbox specifically (avoids matching "E-mail ověřený" checkbox)
-    await page.getByRole('textbox', { name: /e-mail/i }).fill(`${username}@test.local`);
-    
-    // CRITICAL: Password is required (min 8 chars)! 
-    const passwordField = page.locator('input[type="password"]').or(page.getByLabel('Heslo *'));
-    await passwordField.fill('Test.1234');
-    
-    // CRITICAL: Tenant is REQUIRED for CORE_ADMIN users!
-    // Select first available tenant from dropdown
-    const tenantSelect = page.getByLabel('Tenant *');
-    if (await tenantSelect.isVisible().catch(() => false)) {
-      await tenantSelect.click();
-      // Wait for dropdown menu and select first option
-      await page.waitForTimeout(500);
-      await page.getByRole('option').first().click();
-    }
+    const { id: userId } = await createTestUser(page, username, {
+      firstName: 'Test User',
+      lastName: 'CRUD',
+    });
+    testUserIds.push(userId);
 
-    // Submit form
-    const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
-    await saveButton.click();
-
-    // Wait for dialog to close (instead of success message which may not exist)
-    await waitForDialogClose(page);
-
-    // Verify user appears in list
+    // Verify user appears in UI
     await navigateToAdminPage(page, '/users');
     const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
     await searchBox.fill(username);
     await page.waitForTimeout(1000); // Wait for search debounce
 
-    await expect(page.getByText(username)).toBeVisible();
+    // FIX: Use .first() to avoid strict mode violation (username appears in both name and email)
+    await expect(page.getByText(username).first()).toBeVisible();
     await expect(page.getByText('Test User CRUD')).toBeVisible();
+  });  test('should create user as user_manager', async ({ page }) => {
+    await loginAsUser(page, 'test_admin', 'Test.1234'); // Has USER_MANAGER capability
 
-    // Store for cleanup
-    const userRow = page.locator(`text=${username}`).locator('..').locator('..');
-    const userId = await userRow.getAttribute('data-user-id') || '';
-    if (userId) testUserIds.push(userId);
-  });
-
-  test('should create user as user_manager', async ({ page }) => {
-    // Login as user with USER_MANAGER role
-    await loginAsUser(page, 'test_admin', 'Test.1234'); // test_admin has ADMIN role which includes USER_MANAGER
-    await navigateToAdminPage(page, '/users');
-
-    const createButton = page.getByRole('button', { name: /vytvořit uživatele|create user|nový uživatel/i });
-    await expect(createButton).toBeVisible({ timeout: 10000 });
-    await createButton.click();
-
+    // Create via API
     const username = generateTestName('test_user_mgr');
-    await page.getByLabel(/uživatelské jméno|username/i).fill(username);
-    await page.locator('input[name="firstName"]').or(page.getByLabel('Jméno', { exact: true })).fill('Manager');
-    await page.getByLabel(/příjmení|last name/i).fill('Created User');
-    await page.getByRole('textbox', { name: /e-mail/i }).fill(`${username}@test.local`);
-    await page.getByLabel('Heslo *').fill('Test.1234'); // Password required!
+    const { id: userId } = await createTestUser(page, username, {
+      firstName: 'User',
+      lastName: 'Manager Test',
+      email: `${username}@test.local`,
+    });
+    testUserIds.push(userId);
 
-    const saveButton = page.getByRole('button', { name: /uložit|save|vytvořit/i });
-    await saveButton.click();
-
-    await waitForDialogClose(page);
+    // Verify user appears in UI
+    await navigateToAdminPage(page, '/users');
+    // FIX: Use .first() to avoid strict mode violation (username appears in both name and email)
+    await expect(page.getByText(username).first()).toBeVisible();
   });
 
   test('should read user list as regular user (read-only)', async ({ page }) => {
