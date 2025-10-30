@@ -60,7 +60,7 @@ test.describe('Admin: Groups CRUD', () => {
 
   test('should read group list as user_manager', async ({ page }) => {
     await loginAsUser(page, 'test_admin', 'Test.1234');
-    await navigateToAdminPage(page, '/groups');
+    await navigateToAdminPage(page, '/core-admin/groups');
 
     // Should see groups list (use heading to avoid matching navigation menu)
     await expect(page.getByRole('heading', { name: /seznam skupin|groups list/i })).toBeVisible({ timeout: 10000 });
@@ -72,13 +72,10 @@ test.describe('Admin: Groups CRUD', () => {
 
   test('should NOT allow regular user to access groups page', async ({ page }) => {
     await loginAsUser(page, 'test', 'Test.1234');
-    await navigateToAdminPage(page, '/groups');
+    await navigateToAdminPage(page, '/core-admin/groups');
 
-    // Should show access denied or redirect
-    const isDenied = await page.getByText(/přístup odepřen|access denied|nedostatečná oprávnění/i).isVisible().catch(() => false);
-    const isRedirected = page.url().includes('/dashboard') || page.url().includes('/403');
-
-    expect(isDenied || isRedirected).toBeTruthy();
+    // Should show access denied message
+    await expect(page.getByText(/nemáte oprávnění|přístup odepřen|access denied|insufficient permissions/i)).toBeVisible({ timeout: 5000 });
   });
 
   test('should update group name as admin', async ({ page }) => {
@@ -90,17 +87,27 @@ test.describe('Admin: Groups CRUD', () => {
     testGroupIds.push(groupId);
 
     // Navigate to groups
-    await navigateToAdminPage(page, '/groups');
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Change pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
 
-    // Search for group
-    const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
-    }
+    // Click Detail icon button (last cell has tooltip "Detail" but button has no aria-label)
+    const groupRow = page.locator(`tr:has-text("${groupName}")`);
+    const detailCell = groupRow.locator('td').last(); // Last cell is "Detail" actions column
+    const detailButton = detailCell.locator('button').first(); // IconButton inside
+    await detailButton.click();
 
-    // Click edit button
-    const editButton = page.locator(`text=${groupName}`).locator('..').locator('..').getByRole('button', { name: /upravit|edit/i });
+    // Wait for ViewGroupDialog to open (may take a moment for animation)
+    await page.waitForTimeout(1000); // Dialog animation
+    await page.waitForSelector('[role="dialog"]', { state: 'visible', timeout: 10000 });
+    
+    // Click "Upravit" button in ViewGroupDialog
+    const editButton = page.getByRole('button', { name: /upravit/i });
+    await editButton.waitFor({ state: 'visible' });
     await editButton.click();
 
     // Update name
@@ -114,7 +121,6 @@ test.describe('Admin: Groups CRUD', () => {
     await waitForDialogClose(page);
 
     // Verify changes
-    await navigateToAdminPage(page, '/groups');
     await expect(page.getByText(updatedName)).toBeVisible();
   });
 
