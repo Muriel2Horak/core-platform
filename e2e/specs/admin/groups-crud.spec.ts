@@ -79,6 +79,14 @@ test.describe('Admin: Groups CRUD', () => {
   });
 
   test('should update group name as admin', async ({ page }) => {
+    // 🔍 DEBUG: Listen to console logs
+    page.on('console', msg => {
+      const text = msg.text();
+      if (text.includes('[Groups]') || text.includes('Loaded groups')) {
+        console.log(`🔍 FRONTEND: ${text}`);
+      }
+    });
+
     await loginAsAdmin(page);
 
     // Create test group first
@@ -89,20 +97,22 @@ test.describe('Admin: Groups CRUD', () => {
     // Navigate to groups
     await navigateToAdminPage(page, '/core-admin/groups');
     
-    // Reload page to ensure newly created group is loaded
-    await page.reload();
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000); // Wait for data load
+    // Wait for table to load and show our newly created group
+    // (Groups.jsx loads on mount, we need to wait for API response)
+    await page.waitForTimeout(2000); // Wait for initial load
     
-    // Change pagination to show all groups
+    // Change pagination to show all groups (50 should be enough after cleanup)
     const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
     await rowsPerPageSelect.click();
     await page.locator('li[data-value="50"]').click();
     await page.waitForTimeout(500);
-
-    // Click on table row (DataTable has onRowClick handler)
+    
+    // Wait for our specific group to appear in table
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
-    await groupRow.click(); // Click anywhere on row
+    await groupRow.waitFor({ state: 'visible', timeout: 10000 });
+    
+    // Click on row to open ViewGroupDialog
+    await groupRow.click();
 
     // Wait for ViewGroupDialog to open (may take a moment for animation)
     await page.waitForTimeout(1000); // Dialog animation
