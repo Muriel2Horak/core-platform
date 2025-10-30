@@ -82,13 +82,8 @@ function Groups({ user }) {
 
       let groupsData = await apiService.getGroups();
       
-      // Filter by tenant for tenant admins
-      if (isTenantAdmin && !isAdmin) {
-        const userTenant = user?.tenantKey;
-        groupsData = groupsData.filter(g => g.tenantKey === userTenant);
-      } else if (selectedTenant && selectedTenant !== 'all') {
-        groupsData = groupsData.filter(g => g.tenantKey === selectedTenant);
-      }
+      // NO FILTERING - show all groups (DEBUGGING)
+      console.log('[Groups] Loaded groups from API:', groupsData.length, groupsData.map(g => g.name));
 
       // Load member count for each group
       const groupsWithMembers = await Promise.all(

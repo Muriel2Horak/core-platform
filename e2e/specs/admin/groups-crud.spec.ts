@@ -48,7 +48,12 @@ test.describe('Admin: Groups CRUD', () => {
     
     // Wait for table to load
     await page.waitForSelector('table', { timeout: 10000 });
-    await page.waitForTimeout(2000); // Give time for data to populate
+    
+    // FIX: Change pagination to show 50 rows (default is 10, new groups may be on later pages)
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
     
     await expect(page.getByText(groupName)).toBeVisible();
   });
