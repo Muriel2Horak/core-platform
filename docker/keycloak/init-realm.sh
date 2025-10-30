@@ -8,7 +8,7 @@ KC_BIN="/opt/keycloak/bin"
 KCADM="${KC_BIN}/kcadm.sh"
 
 # Keycloak admin credentials
-KEYCLOAK_URL="${KEYCLOAK_URL:-https://localhost:8443}"
+KEYCLOAK_URL="http://localhost:8080"  # Internal HTTP (no SSL issues)
 KC_ADMIN="${KEYCLOAK_ADMIN:-admin}"
 KC_PASS="${KEYCLOAK_ADMIN_PASSWORD:-admin}"
 
