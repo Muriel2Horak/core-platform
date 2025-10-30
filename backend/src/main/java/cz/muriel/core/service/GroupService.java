@@ -120,7 +120,7 @@ public class GroupService {
 
     UUID tenantId = Tenant.generateUuidFromKey(tenantKey);
     group.setTenantId(tenantId);
-    
+
     // ✅ FIX: Generate ID if not present (API-created groups without Keycloak sync)
     if (group.getId() == null) {
       // If keycloakGroupId exists, use deterministic generation

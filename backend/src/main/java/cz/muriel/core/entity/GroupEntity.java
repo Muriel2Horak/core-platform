@@ -33,7 +33,7 @@ public class GroupEntity extends MultiTenantEntity {
   @Id
   private UUID id;
 
-  @Column(name = "keycloak_group_id", nullable = false)
+  @Column(name = "keycloak_group_id", nullable = true)
   private String keycloakGroupId;
 
   @Column(name = "name", nullable = false)
