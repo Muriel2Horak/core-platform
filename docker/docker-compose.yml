@@ -210,6 +210,10 @@ services:
       # 👥 Test User Credentials (DEVELOPMENT ONLY)
       TEST_USER_PASSWORD: ${TEST_USER_PASSWORD}
       TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD}
+      
+      # 🔑 Client Secrets for init-realm.sh
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      DOMAIN: ${DOMAIN:-core-platform.local}
 
       # 🔒 HTTPS Production Mode Configuration - OPRAVENO: dynamické hostname detection
       KC_PROXY: "edge"
