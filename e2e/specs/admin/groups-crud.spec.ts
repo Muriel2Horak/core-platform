@@ -194,30 +194,25 @@ test.describe('Admin: Groups CRUD', () => {
     await page.locator('li[data-value="50"]').click();
     await page.waitForTimeout(500);
     
-    // Click on group row to open ViewGroupDialog
+    // Find group row
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
-    await groupRow.click();
     
-    // Wait for ViewGroupDialog to open
+    // Click on MoreVert IconButton (last button in row)
+    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    await menuButton.click();
+    
+    // Wait for menu to appear
+    await page.waitForTimeout(300);
+    
+    // Click "Spravovat členy" from menu
+    const manageMembersOption = page.locator('[role="menu"] [role="menuitem"]').filter({ hasText: /spravovat členy/i });
+    await manageMembersOption.click();
+    
+    // Wait for GroupMembersDialog to open
     await page.waitForTimeout(1000);
-    await page.waitForSelector('[role="dialog"]', { state: 'visible', timeout: 10000 });
-    
-    // Try to find Members button or Edit button to access member management
-    // Option 1: Check if there's a "Members" or "Členové" button
-    const membersButton = page.getByRole('button', { name: /členové|members|spravovat členy/i });
-    
-    if (await membersButton.isVisible().catch(() => false)) {
-      await membersButton.click();
-    } else {
-      // Option 2: Go through Edit and find members section
-      const editButton = page.getByRole('button', { name: /upravit/i });
-      await editButton.click();
-      await page.waitForTimeout(500);
-    }
 
-    // Now should be in a view where we can add members
-    // Click "Add Member" button
+    // Click "Add Member" button in GroupMembersDialog
     const addMemberButton = page.getByRole('button', { name: /přidat člena|add member/i });
     await expect(addMemberButton).toBeVisible({ timeout: 5000 });
     await addMemberButton.click();
@@ -267,23 +262,22 @@ test.describe('Admin: Groups CRUD', () => {
     await page.locator('li[data-value="50"]').click();
     await page.waitForTimeout(500);
     
-    // Click on group row to find it
+    // Find group row
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
     
-    // Open menu
-    const menuButton = groupRow.locator('button[aria-label]').or(groupRow.locator('button').last());
-    await menuButton.waitFor({ state: 'visible', timeout: 5000 });
+    // Click on MoreVert menu button
+    const menuButton = groupRow.locator('.MuiIconButton-root').last();
     await menuButton.click();
     
-    // Wait for menu to open
-    await page.waitForTimeout(500);
+    // Wait for menu
+    await page.waitForTimeout(300);
     
-    // Click "Spravovat členy" menu item
-    const manageMembersItem = page.getByText(/spravovat členy|manage members/i);
-    await manageMembersItem.click();
+    // Click "Spravovat členy"
+    const manageMembersOption = page.locator('[role="menu"] [role="menuitem"]').filter({ hasText: /spravovat členy/i });
+    await manageMembersOption.click();
     
-    // Wait for members dialog to open
+    // Wait for GroupMembersDialog
     await page.waitForTimeout(1000);
 
     // Find remove button for member
@@ -319,12 +313,20 @@ test.describe('Admin: Groups CRUD', () => {
     await page.locator('li[data-value="50"]').click();
     await page.waitForTimeout(500);
 
-    // Find delete button in group row
+    // Find group row
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
-    const deleteButton = groupRow.getByRole('button', { name: /smazat|delete|odstranit/i });
-    await expect(deleteButton).toBeVisible();
-    await deleteButton.click();
+    
+    // Click on MoreVert menu button
+    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    await menuButton.click();
+    
+    // Wait for menu
+    await page.waitForTimeout(300);
+    
+    // Click "Smazat" from menu
+    const deleteOption = page.locator('[role="menu"] [role="menuitem"]').filter({ hasText: /smazat/i });
+    await deleteOption.click();
 
     // Confirm deletion
     const confirmButton = page.getByRole('button', { name: /potvrdit|confirm|ano|yes/i });
@@ -361,9 +363,16 @@ test.describe('Admin: Groups CRUD', () => {
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
     
-    // Delete button should NOT be visible
-    const deleteButton = groupRow.getByRole('button', { name: /smazat|delete|odstranit/i });
-    await expect(deleteButton).not.toBeVisible();
+    // Click on MoreVert menu button
+    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    await menuButton.click();
+    
+    // Wait for menu to open
+    await page.waitForTimeout(300);
+    
+    // Delete option should NOT be visible in menu (or menu shouldn't have it)
+    const deleteOption = page.locator('[role="menu"] [role="menuitem"]').filter({ hasText: /smazat/i });
+    await expect(deleteOption).not.toBeVisible();
   });
 
   test('should search and filter groups', async ({ page }) => {
