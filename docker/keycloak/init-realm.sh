@@ -14,13 +14,19 @@ KC_PASS="${KEYCLOAK_ADMIN_PASSWORD:-admin}"
 
 # Wait for Keycloak to be ready
 echo "⏳ Waiting for Keycloak to be ready..."
-for i in {1..60}; do
-  if ${KC_BIN}/kc.sh show-config 2>/dev/null | grep -q "Keycloak"; then
+for i in {1..90}; do
+  if ${KCADM} config credentials \
+    --server "${KEYCLOAK_URL}" \
+    --realm master \
+    --user "${KC_ADMIN}" \
+    --password "${KC_PASS}" \
+    --config /tmp/kcadm-test.config 2>/dev/null; then
     echo "✅ Keycloak is ready"
+    rm -f /tmp/kcadm-test.config
     break
   fi
-  if [ $i -eq 60 ]; then
-    echo "❌ Keycloak failed to start after 60 seconds"
+  if [ $i -eq 90 ]; then
+    echo "❌ Keycloak failed to start after 180 seconds"
     exit 1
   fi
   sleep 2

@@ -14,8 +14,9 @@ echo "🚀 Starting Keycloak..."
 
 KC_PID=$!
 
-# Wait a bit for Keycloak to start
-sleep 10
+# Wait for Keycloak to initialize
+echo "⏳ Waiting for Keycloak to initialize (30s)..."
+sleep 30
 
 # Run realm initialization
 echo "🔧 Running realm initialization..."
