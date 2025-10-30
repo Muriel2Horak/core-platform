@@ -1145,12 +1145,16 @@ kc-bootstrap:
 # Build Keycloak image
 .PHONY: kc-image
 kc-image: check-registries
+	@echo "🔨 Generating realm configuration from template..."
+	@bash docker/keycloak/generate-realm.sh
 	@echo "🔨 Building Keycloak image..."
 	docker build -f docker/keycloak/Dockerfile -t core-platform/keycloak:local .
 
 # Build Keycloak image (no cache)
 .PHONY: kc-image-no-cache
 kc-image-no-cache: check-registries
+	@echo "🔨 Generating realm configuration from template..."
+	@bash docker/keycloak/generate-realm.sh
 	@echo "🔨 Building Keycloak image (no cache)..."
 	docker build --no-cache -f docker/keycloak/Dockerfile -t core-platform/keycloak:local .
 

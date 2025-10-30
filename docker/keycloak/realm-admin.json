@@ -204,6 +204,41 @@
   },
   "clients": [
     {
+      "clientId": "admin-client",
+      "name": "Admin Client",
+      "description": "Client for admin authentication and E2E tests",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "enabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "secret": "7c4a7e8f-6b3d-4f2e-9a1c-5d8e7f6a9b2c",
+      "redirectUris": [
+        "https://admin.core-platform.local/*",
+        "https://admin.admin.core-platform.local/*",
+        "https://core-platform.local/*",
+        "https://admin.core-platform.local/*",
+        "http://localhost:3000/*",
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "https://admin.core-platform.local",
+        "https://admin.admin.core-platform.local",
+        "https://core-platform.local",
+        "https://admin.core-platform.local",
+        "http://localhost:3000",
+        "http://localhost"
+      ],
+      "attributes": {
+        "access.token.lifespan": "3600",
+        "client.secret.creation.time": "1698764400"
+      }
+    },
+    {
       "clientId": "api",
       "name": "API",
       "protocol": "openid-connect",
@@ -226,7 +261,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
-      "secret": "lYHZXQHv1lHEn1bToLzySIchd7dVIFmm"
+      "secret": "7c4a7e8f-6b3d-4f2e-9a1c-5d8e7f6a9b2c"
     },
     {
       "clientId": "web",

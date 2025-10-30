@@ -44,7 +44,12 @@ test.describe('Admin: Groups CRUD', () => {
     testGroupIds.push(groupId);
 
     // Verify group appears in UI
-    await navigateToAdminPage(page, '/groups');
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForSelector('table', { timeout: 10000 });
+    await page.waitForTimeout(2000); // Give time for data to populate
+    
     await expect(page.getByText(groupName)).toBeVisible();
   });
 

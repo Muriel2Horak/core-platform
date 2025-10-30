@@ -28,7 +28,7 @@ RUN /opt/keycloak/bin/kc.sh build --db=postgres
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 
 # 🔒 HTTPS MODE: HTTPS mód s SSL certifikáty + import realm
-# 🆕 OPTIMIZED: --spi-import-if-exists=skip zajistí, že existující realmy se nepřepíší
+# 🆕 OVERWRITE: --spi-import-if-exists=OVERWRITE zajistí, že realm se vždy reimportuje z šablony
 CMD ["start", \
   "--https-port=8443", \
   "--https-certificate-file=/opt/keycloak/conf/cert.pem", \
@@ -36,4 +36,4 @@ CMD ["start", \
   "--hostname-strict=false", \
   "--proxy=edge", \
   "--import-realm", \
-  "--spi-import-if-exists=skip"]
+  "--spi-import-if-exists=OVERWRITE"]
