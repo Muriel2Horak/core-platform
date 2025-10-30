@@ -89,17 +89,20 @@ test.describe('Admin: Groups CRUD', () => {
     // Navigate to groups
     await navigateToAdminPage(page, '/core-admin/groups');
     
+    // Reload page to ensure newly created group is loaded
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000); // Wait for data load
+    
     // Change pagination to show all groups
     const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
     await rowsPerPageSelect.click();
     await page.locator('li[data-value="50"]').click();
     await page.waitForTimeout(500);
 
-    // Click Detail icon button (last cell has tooltip "Detail" but button has no aria-label)
+    // Click on table row (DataTable has onRowClick handler)
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
-    const detailCell = groupRow.locator('td').last(); // Last cell is "Detail" actions column
-    const detailButton = detailCell.locator('button').first(); // IconButton inside
-    await detailButton.click();
+    await groupRow.click(); // Click anywhere on row
 
     // Wait for ViewGroupDialog to open (may take a moment for animation)
     await page.waitForTimeout(1000); // Dialog animation

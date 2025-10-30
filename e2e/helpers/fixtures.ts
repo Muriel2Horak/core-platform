@@ -140,18 +140,33 @@ export async function createTestGroup(
     name
   };
 
+  // 🔍 DEBUG: Check if we have auth context
+  const cookies = await page.context().cookies();
+  console.log(`🍪 Cookies before group creation: ${cookies.length} cookies`);
+  console.log(`🔍 Cookies: ${cookies.map(c => c.name).join(', ')}`);
+  console.log(`🌐 API_BASE: ${API_BASE}`);
+  console.log(`🌐 Request URL: ${API_BASE}/api/groups`);
+  
   const response = await page.request.post(
     `${API_BASE}/api/groups`, // FIX: Backend has /api/groups, not /api/admin/groups
     {
       data: groupData,
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      failOnStatusCode: false // Don't throw, we'll handle error
     }
   );
 
+  console.log(`📡 Response status: ${response.status()}`);
+  console.log(`📡 Response headers: ${JSON.stringify(response.headers())}`);
+
   if (!response.ok()) {
-    throw new Error(`Failed to create group: ${response.status()} ${await response.text()}`);
+    const responseText = await response.text();
+    console.error(`❌ Failed to create group: ${response.status()} ${responseText}`);
+    console.error(`📝 Request data: ${JSON.stringify(groupData)}`);
+    console.error(`📋 Response headers: ${JSON.stringify(response.headers())}`);
+    throw new Error(`Failed to create group: ${response.status()} ${responseText}`);
   }
 
   const result = await response.json();
