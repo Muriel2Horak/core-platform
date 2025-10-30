@@ -37,7 +37,7 @@ import DeleteGroupDialog from './Groups/DeleteGroupDialog.jsx';
 import GroupMembersDialog from './Groups/GroupMembersDialog.jsx';
 import ViewGroupDialog from './Groups/ViewGroupDialog.jsx';
 
-function Groups({ user, tenantFilter }) {
+function Groups({ user }) {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,19 +57,12 @@ function Groups({ user, tenantFilter }) {
 
   // Tenants for admin
   const [tenants, setTenants] = useState([]);
-  const [selectedTenant, setSelectedTenant] = useState(tenantFilter || '');
+  const [selectedTenant, setSelectedTenant] = useState('');
 
   // Permissions
   const isAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
   const isTenantAdmin = user?.roles?.includes('CORE_ROLE_TENANT_ADMIN');
   const canManageGroups = isAdmin || isTenantAdmin;
-
-  // Update selectedTenant when tenantFilter prop changes
-  useEffect(() => {
-    if (tenantFilter !== undefined) {
-      setSelectedTenant(tenantFilter);
-    }
-  }, [tenantFilter]);
 
   useEffect(() => {
     if (canManageGroups) {
