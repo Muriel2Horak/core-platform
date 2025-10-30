@@ -182,19 +182,44 @@ test.describe('Admin: Groups CRUD', () => {
     const { id: groupId } = await createTestGroup(page, groupName);
     testGroupIds.push(groupId);
 
-    // Navigate to group detail
-    await navigateToAdminPage(page, '/groups');
-    const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
+    // Navigate to groups page
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForTimeout(2000);
+    
+    // Set pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
+    
+    // Click on group row to open ViewGroupDialog
+    const groupRow = page.locator(`tr:has-text("${groupName}")`);
+    await groupRow.waitFor({ state: 'visible', timeout: 10000 });
+    await groupRow.click();
+    
+    // Wait for ViewGroupDialog to open
+    await page.waitForTimeout(1000);
+    await page.waitForSelector('[role="dialog"]', { state: 'visible', timeout: 10000 });
+    
+    // Try to find Members button or Edit button to access member management
+    // Option 1: Check if there's a "Members" or "Členové" button
+    const membersButton = page.getByRole('button', { name: /členové|members|spravovat členy/i });
+    
+    if (await membersButton.isVisible().catch(() => false)) {
+      await membersButton.click();
+    } else {
+      // Option 2: Go through Edit and find members section
+      const editButton = page.getByRole('button', { name: /upravit/i });
+      await editButton.click();
+      await page.waitForTimeout(500);
     }
 
-    const groupRow = page.locator(`text=${groupName}`).locator('..').locator('..');
-    await groupRow.click();
-
+    // Now should be in a view where we can add members
     // Click "Add Member" button
     const addMemberButton = page.getByRole('button', { name: /přidat člena|add member/i });
+    await expect(addMemberButton).toBeVisible({ timeout: 5000 });
     await addMemberButton.click();
 
     // Search for user
@@ -230,16 +255,36 @@ test.describe('Admin: Groups CRUD', () => {
     });
     testGroupIds.push(groupId);
 
-    // Navigate to group detail
-    await navigateToAdminPage(page, '/groups');
-    const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
-    }
-
-    const groupRow = page.locator(`text=${groupName}`).locator('..').locator('..');
-    await groupRow.click();
+    // Navigate to groups page
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForTimeout(2000);
+    
+    // Set pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
+    
+    // Click on group row to find it
+    const groupRow = page.locator(`tr:has-text("${groupName}")`);
+    await groupRow.waitFor({ state: 'visible', timeout: 10000 });
+    
+    // Open menu
+    const menuButton = groupRow.locator('button[aria-label]').or(groupRow.locator('button').last());
+    await menuButton.waitFor({ state: 'visible', timeout: 5000 });
+    await menuButton.click();
+    
+    // Wait for menu to open
+    await page.waitForTimeout(500);
+    
+    // Click "Spravovat členy" menu item
+    const manageMembersItem = page.getByText(/spravovat členy|manage members/i);
+    await manageMembersItem.click();
+    
+    // Wait for members dialog to open
+    await page.waitForTimeout(1000);
 
     // Find remove button for member
     const removeButton = page.locator(`text=${username}`).locator('..').locator('..').getByRole('button', { name: /odebrat|remove/i });
@@ -262,18 +307,22 @@ test.describe('Admin: Groups CRUD', () => {
     const groupName = generateTestName('Test Delete Group');
     await createTestGroup(page, groupName);
 
-    // Navigate to groups
-    await navigateToAdminPage(page, '/groups');
+    // Navigate to groups page
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForTimeout(2000);
+    
+    // Set pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
 
-    // Search for group
-    const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
-    }
-
-    // Click delete button
-    const deleteButton = page.locator(`text=${groupName}`).locator('..').locator('..').getByRole('button', { name: /smazat|delete|odstranit/i });
+    // Find delete button in group row
+    const groupRow = page.locator(`tr:has-text("${groupName}")`);
+    await groupRow.waitFor({ state: 'visible', timeout: 10000 });
+    const deleteButton = groupRow.getByRole('button', { name: /smazat|delete|odstranit/i });
     await expect(deleteButton).toBeVisible();
     await deleteButton.click();
 
@@ -283,12 +332,8 @@ test.describe('Admin: Groups CRUD', () => {
 
     await waitForDialogClose(page);
 
-    // Verify group is gone
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
-    }
-    await expect(page.getByText(groupName)).not.toBeVisible();
+    // Verify group is gone from list
+    await expect(page.locator(`tr:has-text("${groupName}")`)).not.toBeVisible();
   });
 
   test('should NOT allow user_manager to delete groups (RBAC)', async ({ page }) => {
@@ -301,23 +346,28 @@ test.describe('Admin: Groups CRUD', () => {
 
     // Switch to user_manager
     await loginAsUser(page, 'test_admin', 'Test.1234');
-    await navigateToAdminPage(page, '/groups');
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForTimeout(2000);
+    
+    // Set pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
 
-    // Search for group
-    const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
-    }
-
+    // Find group row
+    const groupRow = page.locator(`tr:has-text("${groupName}")`);
+    await groupRow.waitFor({ state: 'visible', timeout: 10000 });
+    
     // Delete button should NOT be visible
-    const deleteButton = page.locator(`text=${groupName}`).locator('..').locator('..').getByRole('button', { name: /smazat|delete|odstranit/i });
+    const deleteButton = groupRow.getByRole('button', { name: /smazat|delete|odstranit/i });
     await expect(deleteButton).not.toBeVisible();
   });
 
   test('should search and filter groups', async ({ page }) => {
     await loginAsAdmin(page);
-    await navigateToAdminPage(page, '/groups');
 
     // Create test groups for search
     const group1 = generateTestName('Alpha Group');
@@ -327,8 +377,17 @@ test.describe('Admin: Groups CRUD', () => {
     const { id: id2 } = await createTestGroup(page, group2);
     testGroupIds.push(id1, id2);
 
-    // Refresh page
-    await navigateToAdminPage(page, '/groups');
+    // Navigate to groups page
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForTimeout(2000);
+    
+    // Set pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
 
     // Search for specific group
     const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
@@ -350,7 +409,7 @@ test.describe('Admin: Groups CRUD', () => {
 
   test('should validate required fields on create', async ({ page }) => {
     await loginAsAdmin(page);
-    await navigateToAdminPage(page, '/groups');
+    await navigateToAdminPage(page, '/core-admin/groups');
 
     const createButton = page.getByRole('button', { name: /vytvořit skupinu|create group|nová skupina/i });
     await createButton.click();
@@ -380,17 +439,23 @@ test.describe('Admin: Groups CRUD', () => {
     });
     testGroupIds.push(groupId);
 
-    // Navigate to groups
-    await navigateToAdminPage(page, '/groups');
+    // Navigate to groups page
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Wait for table to load
+    await page.waitForTimeout(2000);
+    
+    // Set pagination to show all groups
+    const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();
+    await rowsPerPageSelect.click();
+    await page.locator('li[data-value="50"]').click();
+    await page.waitForTimeout(500);
 
-    // Search for group
-    const searchBox = page.getByRole('searchbox').or(page.getByPlaceholder(/hledat|search/i));
-    if (await searchBox.isVisible()) {
-      await searchBox.fill(groupName);
-      await page.waitForTimeout(1000);
-    }
-
-    // Should show member count
-    await expect(page.getByText(/2.*členové|2.*members|členů: 2/i)).toBeVisible();
+    // Find group row and check member count
+    const groupRow = page.locator(`tr:has-text("${groupName}")`);
+    await groupRow.waitFor({ state: 'visible', timeout: 10000 });
+    
+    // Should show member count (in row or after opening detail)
+    await expect(groupRow.getByText(/2.*členové|2.*members|členů: 2/i).or(page.getByText(/2.*členové|2.*members|členů: 2/i))).toBeVisible();
   });
 });
