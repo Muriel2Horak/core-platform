@@ -4,11 +4,13 @@
 ALTER TABLE groups 
     ALTER COLUMN keycloak_group_id DROP NOT NULL;
 
--- Update unique constraint to allow null keycloak_group_id
+-- Drop existing unique constraint (uq_groups_keycloak_id_tenant)
 ALTER TABLE groups 
-    DROP CONSTRAINT IF EXISTS uk_group_keycloak_tenant;
+    DROP CONSTRAINT IF EXISTS uq_groups_keycloak_id_tenant;
 
 -- Add partial unique index (only for non-null keycloak_group_id)
-CREATE UNIQUE INDEX uk_group_keycloak_tenant_partial 
-    ON groups (keycloak_group_id, tenant_key) 
+-- This allows multiple NULL keycloak_group_id values (API-created groups)
+-- but enforces uniqueness for non-NULL values (Keycloak-synced groups)
+CREATE UNIQUE INDEX uq_groups_keycloak_id_tenant_partial 
+    ON groups (keycloak_group_id, tenant_id) 
     WHERE keycloak_group_id IS NOT NULL;
