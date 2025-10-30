@@ -3,6 +3,10 @@ set -e
 
 echo "🔍 Checking if admin realm needs initialization..."
 
+# Keycloak paths
+KC_BIN="/opt/keycloak/bin"
+KCADM="${KC_BIN}/kcadm.sh"
+
 # Keycloak admin credentials
 KEYCLOAK_URL="${KEYCLOAK_URL:-https://localhost:8443}"
 KC_ADMIN="${KEYCLOAK_ADMIN:-admin}"
@@ -11,7 +15,7 @@ KC_PASS="${KEYCLOAK_ADMIN_PASSWORD:-admin}"
 # Wait for Keycloak to be ready
 echo "⏳ Waiting for Keycloak to be ready..."
 for i in {1..60}; do
-  if curl -k -s "${KEYCLOAK_URL}/health/ready" | grep -q "UP" 2>/dev/null; then
+  if ${KC_BIN}/kc.sh show-config 2>/dev/null | grep -q "Keycloak"; then
     echo "✅ Keycloak is ready"
     break
   fi
@@ -22,100 +26,54 @@ for i in {1..60}; do
   sleep 2
 done
 
-# Get admin token
-echo "🔑 Getting admin access token..."
-ADMIN_TOKEN=$(curl -k -s -X POST "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
-  -d "client_id=admin-cli" \
-  -d "username=${KC_ADMIN}" \
-  -d "password=${KC_PASS}" \
-  -d "grant_type=password" | jq -r '.access_token')
-
-if [ -z "$ADMIN_TOKEN" ] || [ "$ADMIN_TOKEN" = "null" ]; then
-  echo "❌ Failed to get admin token"
-  exit 1
-fi
+# Authenticate kcadm
+echo "🔑 Authenticating with Keycloak Admin CLI..."
+${KCADM} config credentials \
+  --server "${KEYCLOAK_URL}" \
+  --realm master \
+  --user "${KC_ADMIN}" \
+  --password "${KC_PASS}" \
+  --config /tmp/kcadm.config
 
 # Check if admin realm exists
 echo "🔍 Checking if 'admin' realm exists..."
-REALM_EXISTS=$(curl -k -s -o /dev/null -w "%{http_code}" \
-  "${KEYCLOAK_URL}/admin/realms/admin" \
-  -H "Authorization: Bearer ${ADMIN_TOKEN}")
-
-if [ "$REALM_EXISTS" = "200" ]; then
+if ${KCADM} get realms/admin --config /tmp/kcadm.config >/dev/null 2>&1; then
   echo "✅ Realm 'admin' exists - checking admin-client..."
   
-  # Get all clients in admin realm
-  CLIENTS=$(curl -k -s "${KEYCLOAK_URL}/admin/realms/admin/clients" \
-    -H "Authorization: Bearer ${ADMIN_TOKEN}")
+  # Get admin-client ID
+  CLIENT_ID=$(${KCADM} get clients --config /tmp/kcadm.config -r admin -q clientId=admin-client --fields id --format csv --noquotes 2>/dev/null | tail -1)
   
-  # Check if admin-client exists
-  CLIENT_ID=$(echo "$CLIENTS" | jq -r '.[] | select(.clientId=="admin-client") | .id')
-  
-  if [ -n "$CLIENT_ID" ] && [ "$CLIENT_ID" != "null" ]; then
+  if [ -n "$CLIENT_ID" ] && [ "$CLIENT_ID" != "id" ]; then
     echo "✅ admin-client already exists (ID: ${CLIENT_ID})"
     
-    # Update client secret if needed
+    # Update client secret
     echo "🔄 Updating admin-client secret..."
-    curl -k -s -X PUT "${KEYCLOAK_URL}/admin/realms/admin/clients/${CLIENT_ID}" \
-      -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "clientId": "admin-client",
-        "enabled": true,
-        "publicClient": false,
-        "directAccessGrantsEnabled": true,
-        "standardFlowEnabled": true,
-        "secret": "'"${KEYCLOAK_ADMIN_CLIENT_SECRET}"'",
-        "redirectUris": [
-          "https://'"${DOMAIN}"'/*",
-          "https://admin.'"${DOMAIN}"'/*",
-          "http://localhost:3000/*",
-          "http://localhost/*"
-        ],
-        "webOrigins": [
-          "https://'"${DOMAIN}"'",
-          "https://admin.'"${DOMAIN}"'",
-          "http://localhost:3000",
-          "http://localhost"
-        ]
-      }'
+    ${KCADM} update clients/${CLIENT_ID} \
+      --config /tmp/kcadm.config \
+      -r admin \
+      -s "secret=${KEYCLOAK_ADMIN_CLIENT_SECRET}"
     
     echo "✅ admin-client updated successfully"
   else
     echo "⚠️ admin-client NOT found - creating..."
     
     # Create admin-client
-    curl -k -s -X POST "${KEYCLOAK_URL}/admin/realms/admin/clients" \
-      -H "Authorization: Bearer ${ADMIN_TOKEN}" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "clientId": "admin-client",
-        "name": "Admin Client",
-        "description": "Client for admin authentication and E2E tests",
-        "enabled": true,
-        "publicClient": false,
-        "bearerOnly": false,
-        "standardFlowEnabled": true,
-        "implicitFlowEnabled": false,
-        "directAccessGrantsEnabled": true,
-        "serviceAccountsEnabled": false,
-        "secret": "'"${KEYCLOAK_ADMIN_CLIENT_SECRET}"'",
-        "redirectUris": [
-          "https://'"${DOMAIN}"'/*",
-          "https://admin.'"${DOMAIN}"'/*",
-          "http://localhost:3000/*",
-          "http://localhost/*"
-        ],
-        "webOrigins": [
-          "https://'"${DOMAIN}"'",
-          "https://admin.'"${DOMAIN}"'",
-          "http://localhost:3000",
-          "http://localhost"
-        ],
-        "attributes": {
-          "access.token.lifespan": "3600"
-        }
-      }'
+    ${KCADM} create clients \
+      --config /tmp/kcadm.config \
+      -r admin \
+      -s clientId=admin-client \
+      -s name="Admin Client" \
+      -s description="Client for admin authentication and E2E tests" \
+      -s enabled=true \
+      -s publicClient=false \
+      -s bearerOnly=false \
+      -s standardFlowEnabled=true \
+      -s implicitFlowEnabled=false \
+      -s directAccessGrantsEnabled=true \
+      -s serviceAccountsEnabled=false \
+      -s "secret=${KEYCLOAK_ADMIN_CLIENT_SECRET}" \
+      -s 'redirectUris=["https://'"${DOMAIN}"'/*","https://admin.'"${DOMAIN}"'/*","http://localhost:3000/*","http://localhost/*"]' \
+      -s 'webOrigins=["https://'"${DOMAIN}"'","https://admin.'"${DOMAIN}"'","http://localhost:3000","http://localhost"]'
     
     echo "✅ admin-client created successfully"
   fi
