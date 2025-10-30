@@ -27,6 +27,44 @@ test.describe('Admin: Groups CRUD', () => {
   let testGroupIds: string[] = [];
   let testUserIds: string[] = [];
 
+  test.beforeAll(async ({ browser }) => {
+    // Cleanup old test groups to prevent pagination overflow
+    // This ensures tests start with a clean slate
+    const page = await browser.newPage();
+    await loginAsAdmin(page);
+    
+    try {
+      // Delete all test groups (pattern: Test*, test-*, Alpha*, Beta*, Members Count*)
+      const response = await page.request.get(`${process.env.API_BASE || 'https://admin.core-platform.local'}/api/groups`);
+      if (response.ok()) {
+        const groups = await response.json();
+        const testGroups = groups.filter((g: any) => 
+          g.name.startsWith('Test ') || 
+          g.name.startsWith('test-') ||
+          g.name.startsWith('Alpha ') ||
+          g.name.startsWith('Beta ') ||
+          g.name.startsWith('Members Count ')
+        );
+        
+        console.log(`🧹 Cleaning up ${testGroups.length} old test groups...`);
+        
+        for (const group of testGroups) {
+          try {
+            await page.request.delete(`${process.env.API_BASE || 'https://admin.core-platform.local'}/api/groups/${group.id}`);
+          } catch (err) {
+            console.warn(`Failed to delete group ${group.name}:`, err);
+          }
+        }
+        
+        console.log('✅ Test data cleanup complete');
+      }
+    } catch (err) {
+      console.warn('Failed to cleanup old test groups:', err);
+    }
+    
+    await page.close();
+  });
+
   test.afterAll(async ({ browser }) => {
     // Cleanup test data
     const page = await browser.newPage();
@@ -79,14 +117,6 @@ test.describe('Admin: Groups CRUD', () => {
   });
 
   test('should update group name as admin', async ({ page }) => {
-    // 🔍 DEBUG: Listen to console logs
-    page.on('console', msg => {
-      const text = msg.text();
-      if (text.includes('[Groups]') || text.includes('Loaded groups')) {
-        console.log(`🔍 FRONTEND: ${text}`);
-      }
-    });
-
     await loginAsAdmin(page);
 
     // Create test group first

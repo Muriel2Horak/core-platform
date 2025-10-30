@@ -81,9 +81,6 @@ function Groups({ user }) {
       logger.pageView('/groups', { operation: 'load_groups' });
 
       let groupsData = await apiService.getGroups();
-      
-      // NO FILTERING - show all groups (DEBUGGING)
-      console.log('[Groups] Loaded groups from API:', groupsData.length, groupsData.map(g => g.name));
 
       // Load member count for each group
       const groupsWithMembers = await Promise.all(
