@@ -52,7 +52,9 @@ debug_echo "Looking for .env file at: $ENV_FILE"
 
 if [[ -f "$ENV_FILE" ]]; then
     debug_echo ".env file found, loading variables"
-    export $(grep -v '^#' "$ENV_FILE" | xargs)
+    set -a
+    source "$ENV_FILE"
+    set +a
     if [[ "$DEBUG_MODE" == "true" ]]; then
         echo "🔍 DEBUG: Variables from .env:"
         grep -v '^#' "$ENV_FILE" | while read line; do

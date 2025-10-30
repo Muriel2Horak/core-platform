@@ -1,0 +1,13 @@
+BUILD SUMMARY - út 28. října 2025 09:18:28 CET
+================================
+
+Build Type: rebuild
+Duration: 1m 54s
+Log File: diagnostics/build-20251028-091632.log
+
+Errors Found: 1
+Containers Running:        1
+Healthy:        1
+Unhealthy:        0
+
+Full details above.

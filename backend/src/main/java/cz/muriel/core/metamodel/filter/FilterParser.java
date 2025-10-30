@@ -107,8 +107,8 @@ public class FilterParser {
       List<Object> valueList = parseValueList(values);
       Field<Object> fieldRef = DSL.field(DSL.name(field));
 
-      // Convert to DSL.val() for proper type handling
-      Object[] typedValues = valueList.stream().map(v -> DSL.val(v)).toArray();
+      // Convert to DSL.inline() for proper type handling in DEFAULT dialect
+      Object[] typedValues = valueList.stream().map(DSL::inline).toArray();
 
       if ("in".equals(operator)) {
         return fieldRef.in(typedValues);
@@ -136,14 +136,14 @@ public class FilterParser {
   private static Condition createComparison(String fieldName, String operator, Object value) {
     Field<Object> field = DSL.field(DSL.name(fieldName));
 
-    // Wrap value in DSL.val() for proper type handling
+    // Use DSL.inline() for proper type handling in DEFAULT dialect
     return switch (operator) {
-    case "eq" -> field.eq(DSL.val(value));
-    case "ne" -> field.ne(DSL.val(value));
-    case "lt" -> field.lt(DSL.val(value));
-    case "lte" -> field.le(DSL.val(value));
-    case "gt" -> field.gt(DSL.val(value));
-    case "gte" -> field.ge(DSL.val(value));
+    case "eq" -> field.eq(DSL.inline(value));
+    case "ne" -> field.ne(DSL.inline(value));
+    case "lt" -> field.lt(DSL.inline(value));
+    case "lte" -> field.le(DSL.inline(value));
+    case "gt" -> field.gt(DSL.inline(value));
+    case "gte" -> field.ge(DSL.inline(value));
     case "like" -> field.like(value.toString());
     default -> throw new IllegalArgumentException("Unknown operator: " + operator);
     };

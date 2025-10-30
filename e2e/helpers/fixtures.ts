@@ -202,7 +202,7 @@ export async function createTestTenant(page: Page, tenantKey: string, displayNam
   
   const payload = {
     key: validatedKey, // ✅ FIXED: was `tenantKey`
-    name: displayName || `Tenant ${validatedKey}`,
+    displayName: displayName || `Tenant ${validatedKey}`, // ✅ FIXED: Backend requires displayName not name
     enabled: true,
   };
 

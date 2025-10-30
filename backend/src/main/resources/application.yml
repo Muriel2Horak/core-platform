@@ -18,6 +18,18 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
+  
+  # ====== JPA / HIBERNATE ======
+  # Schema management handled by Flyway (spring.jpa.hibernate.ddl-auto=none in properties)
+  # Logging for development troubleshooting
+  jpa:
+    show-sql: false  # Set true only for debugging
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        # Diagnostic logging (enable for troubleshooting)
+        # generate_statistics: true
 
 # ====== KEYCLOAK DATASOURCE ======
 # ✅ Separate datasource for Keycloak change_events polling
@@ -28,16 +40,3 @@ keycloak:
     username: ${KEYCLOAK_DB_USERNAME:keycloak}
     password: ${KEYCLOAK_DB_PASSWORD:keycloak}
     driver-class-name: org.postgresql.Driver
-
-# ====== JPA / HIBERNATE ======
-# Schema management handled by Flyway (spring.jpa.hibernate.ddl-auto=none in properties)
-# Logging for development troubleshooting
-spring:
-  jpa:
-    show-sql: false  # Set true only for debugging
-    properties:
-      hibernate:
-        format_sql: true
-        use_sql_comments: true
-        # Diagnostic logging (enable for troubleshooting)
-        # generate_statistics: true
