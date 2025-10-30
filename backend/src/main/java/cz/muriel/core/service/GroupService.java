@@ -132,6 +132,13 @@ public class GroupService {
       }
     }
 
+    // ✅ FIX: Generate path if not present (required NOT NULL field)
+    if (group.getPath() == null || group.getPath().isEmpty()) {
+      // Path format: /group-name or /parent-path/group-name
+      String parentPath = group.getParentGroup() != null ? group.getParentGroup().getPath() : "";
+      group.setPath(parentPath + "/" + group.getName());
+    }
+
     log.info("Creating new group: {} for tenant: {}", group.getName(), tenantKey);
     return groupRepository.save(group);
   }
