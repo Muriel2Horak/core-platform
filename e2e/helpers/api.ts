@@ -478,7 +478,7 @@ export async function getSyncStatus(
     errors?: string[];
   };
 }> {
-  const response = await api.get(`/api/admin/keycloak-sync/status/${syncId}`);
+  const response = await api.get(`/api/admin/keycloak-sync/progress/${syncId}`);
   
   if (!response.ok()) {
     throw new Error(`Failed to get sync status: ${response.status()} ${await response.text()}`);
