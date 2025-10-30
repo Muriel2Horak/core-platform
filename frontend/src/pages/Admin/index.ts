@@ -1,6 +1,7 @@
 export { default as AxiomMonitoringPage } from './AxiomMonitoringPage';
 export { default as AdminUsersPage } from './AdminUsersPage';
 export { default as AdminRolesPage } from './AdminRolesPage';
+export { AdminGroupsPage } from './AdminGroupsPage';
 export { default as AdminTenantsPage } from './AdminTenantsPage';
 export { default as AdminSecurityPage } from './AdminSecurityPage';
 export { default as AdminAuditPage } from './AdminAuditPage';

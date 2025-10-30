@@ -37,7 +37,7 @@ import DeleteGroupDialog from './Groups/DeleteGroupDialog.jsx';
 import GroupMembersDialog from './Groups/GroupMembersDialog.jsx';
 import ViewGroupDialog from './Groups/ViewGroupDialog.jsx';
 
-function Groups({ user }) {
+function Groups({ user, tenantFilter }) {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,12 +57,19 @@ function Groups({ user }) {
 
   // Tenants for admin
   const [tenants, setTenants] = useState([]);
-  const [selectedTenant, setSelectedTenant] = useState('');
+  const [selectedTenant, setSelectedTenant] = useState(tenantFilter || '');
 
   // Permissions
   const isAdmin = user?.roles?.includes('CORE_ROLE_ADMIN');
   const isTenantAdmin = user?.roles?.includes('CORE_ROLE_TENANT_ADMIN');
   const canManageGroups = isAdmin || isTenantAdmin;
+
+  // Update selectedTenant when tenantFilter prop changes
+  useEffect(() => {
+    if (tenantFilter !== undefined) {
+      setSelectedTenant(tenantFilter);
+    }
+  }, [tenantFilter]);
 
   useEffect(() => {
     if (canManageGroups) {
@@ -86,7 +93,7 @@ function Groups({ user }) {
       if (isTenantAdmin && !isAdmin) {
         const userTenant = user?.tenantKey;
         groupsData = groupsData.filter(g => g.tenantKey === userTenant);
-      } else if (selectedTenant) {
+      } else if (selectedTenant && selectedTenant !== 'all') {
         groupsData = groupsData.filter(g => g.tenantKey === selectedTenant);
       }
 
@@ -284,7 +291,7 @@ function Groups({ user }) {
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
       <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        Správa skupin
+        Seznam skupin
       </Typography>
 
       {/* Messages */}

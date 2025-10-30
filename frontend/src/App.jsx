@@ -28,6 +28,7 @@ import {
   AxiomMonitoringPage,
   AdminUsersPage,
   AdminRolesPage,
+  AdminGroupsPage,
   AdminTenantsPage,
   AdminSecurityPage,
   AdminAuditPage,
@@ -476,7 +477,7 @@ const AppContent = () => {
           <Route path="users/:userId/edit" element={<UserEditPage currentUser={user} />} />
           <Route path="roles" element={<AdminRolesPage />} />
           <Route path="roles/:roleId/edit" element={<RoleEditPage currentUser={user} />} />
-          <Route path="groups" element={<Groups user={user} />} />
+          <Route path="groups" element={<AdminGroupsPage user={user} />} />
           <Route path="tenants" element={<AdminTenantsPage user={user} />} />
           <Route path="tenants/:tenantId/edit" element={<TenantEditPage currentUser={user} />} />
           <Route path="security" element={<AdminSecurityPage />} />
