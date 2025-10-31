@@ -220,34 +220,38 @@ function Groups({ user }) {
     });
   }
 
-  columns.push(
-    {
-      field: 'memberCount',
-      label: 'Počet členů',
-      sortable: true,
-      render: (group) => (
-        <Tooltip title="Klikněte pro zobrazení členů">
-          <Chip
-            icon={<PeopleIcon fontSize="small" />}
-            label={group.memberCount || 0}
-            size="small"
-            color="info"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleManageMembers(group);
-            }}
-            sx={{ 
-              borderRadius: 2,
-              cursor: 'pointer',
-              '&:hover': {
-                backgroundColor: 'info.dark'
-              }
-            }}
-          />
-        </Tooltip>
-      ),
-    },
-    {
+  // Member count column with click-to-open dialog
+  columns.push({
+    field: 'memberCount',
+    label: 'Počet členů',
+    sortable: true,
+    align: 'center',
+    render: (group) => (
+      <Tooltip title="Klikněte pro zobrazení členů">
+        <Chip
+          icon={<PeopleIcon fontSize="small" />}
+          label={group.memberCount || 0}
+          size="small"
+          color="info"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleManageMembers(group);
+          }}
+          sx={{ 
+            borderRadius: 2,
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: 'info.dark'
+            }
+          }}
+        />
+      </Tooltip>
+    ),
+  });
+
+  // Actions column (only for users with manage permissions)
+  if (canManageGroups) {
+    columns.push({
       field: 'actions',
       label: 'Akce',
       sortable: false,
@@ -255,13 +259,16 @@ function Groups({ user }) {
       render: (group) => (
         <IconButton
           size="small"
-          onClick={(e) => handleMenuOpen(e, group)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleMenuOpen(e, group);
+          }}
         >
           <MoreVertIcon />
         </IconButton>
       ),
-    }
-  );
+    });
+  }
 
   if (!canManageGroups) {
     return (
@@ -365,7 +372,6 @@ function Groups({ user }) {
         />
       </Card>
 
-      {/* Context Menu */}
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
