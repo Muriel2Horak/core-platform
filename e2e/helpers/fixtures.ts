@@ -46,6 +46,9 @@ export async function createTestUser(
     ]
   };
 
+  // ✅ FIX: page.request automaticky používá cookies z browser contextu
+  // Playwright sharing cookies mezi page a page.request je automatické
+  // pokud používáme stejný context - což děláme
   const response = await page.request.post(
     `${API_BASE}/api/users`, // FIX: Backend has /api/users, not /api/admin/users
     {
@@ -53,11 +56,14 @@ export async function createTestUser(
       headers: {
         'Content-Type': 'application/json'
       }
+      // Cookies (včetně JWT) se berou automaticky z page context
     }
   );
 
   if (!response.ok()) {
-    throw new Error(`Failed to create user: ${response.status()} ${await response.text()}`);
+    const errorText = await response.text();
+    console.error(`❌ Failed to create user ${username}: ${response.status()} ${errorText}`);
+    throw new Error(`Failed to create user: ${response.status()} ${errorText}`);
   }
 
   const result = await response.json();

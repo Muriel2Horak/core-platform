@@ -170,19 +170,52 @@ test.describe('Admin: Groups CRUD', () => {
   test('should add member to group as admin', async ({ page }) => {
     await loginAsAdmin(page);
 
-    // Create test user and group
-    const username = generateTestName('test_user');
-    const { id: userId } = await createTestUser(page, username, {
-      firstName: 'Test',
-      lastName: 'Member'
-    });
-    testUserIds.push(userId);
-
+    // ✅ FIX: Create test data via UI instead of failing API fixtures
+    // Navigate to groups page first
+    await navigateToAdminPage(page, '/core-admin/groups');
+    
+    // Create test group via UI
     const groupName = generateTestName('Test Member Group');
-    const { id: groupId } = await createTestGroup(page, groupName);
-    testGroupIds.push(groupId);
-
-    // Navigate to groups page
+    const createButton = page.getByRole('button', { name: /vytvořit skupinu|create group|nová skupina/i });
+    await createButton.click();
+    
+    // Wait for create dialog
+    await page.waitForSelector('[role="dialog"]', { state: 'visible', timeout: 5000 });
+    
+    // Fill group name
+    await page.getByLabel(/název skupiny|group name|name/i).fill(groupName);
+    
+    // Submit (🎯 Use exact button text match to avoid autocomplete confusion)
+    const submitButton = page.getByRole('button', { name: /^vytvořit$/i });
+    await submitButton.click();
+    
+    await waitForDialogClose(page);
+    
+    // Now create test user via UI (navigate to users page)
+    await navigateToAdminPage(page, '/core-admin/users');
+    
+    const username = generateTestName('test_user');
+    const createUserButton = page.getByRole('button', { name: /vytvořit uživatele|create user|nový uživatel/i });
+    await createUserButton.click();
+    
+    await page.waitForSelector('[role="dialog"]', { state: 'visible', timeout: 5000 });
+    
+    // Fill user details
+    await page.getByLabel(/uživatelské jméno|username/i).fill(username);
+    await page.getByLabel(/jméno|first name/i).fill('Test');
+    await page.getByLabel(/příjmení|last name/i).fill('Member');
+    await page.getByLabel(/email/i).fill(`${username}@test.local`);
+    
+    // Set password
+    await page.getByLabel(/heslo|password/i).first().fill('Test.1234');
+    
+    // Submit user creation
+    const submitUserButton = page.getByRole('button', { name: /^vytvořit$/i });
+    await submitUserButton.click();
+    
+    await waitForDialogClose(page);
+    
+    // Now navigate back to groups and add member
     await navigateToAdminPage(page, '/core-admin/groups');
     
     // Wait for table to load
@@ -198,8 +231,8 @@ test.describe('Admin: Groups CRUD', () => {
     const groupRow = page.locator(`tr:has-text("${groupName}")`);
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
     
-    // Click on MoreVert IconButton (last button in row)
-    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    // Click on MoreVert menu IconButton (find by SVG icon)
+    const menuButton = groupRow.locator('button:has(svg[data-testid="MoreVertIcon"])');
     await menuButton.click();
     
     // Wait for menu to appear
@@ -212,23 +245,19 @@ test.describe('Admin: Groups CRUD', () => {
     // Wait for GroupMembersDialog to open
     await page.waitForTimeout(1000);
 
-    // Click "Add Member" button in GroupMembersDialog
-    const addMemberButton = page.getByRole('button', { name: /přidat člena|add member/i });
-    await expect(addMemberButton).toBeVisible({ timeout: 5000 });
-    await addMemberButton.click();
-
-    // Search for user
-    const userSearchBox = page.getByPlaceholder(/hledat uživatele|search user/i);
-    await userSearchBox.fill(username);
-    await page.waitForTimeout(1000);
-
-    // Select user
-    const userCheckbox = page.getByLabel(username).or(page.locator(`text=${username}`).locator('..').locator('input[type="checkbox"]'));
-    await userCheckbox.check();
-
-    // Confirm addition
-    const confirmButton = page.getByRole('button', { name: /přidat|add|potvrdit/i });
-    await confirmButton.click();
+    // Select user from autocomplete
+    const userAutocomplete = page.locator('[label="Vyberte uživatele"]').or(page.getByLabel(/vyberte uživatele/i));
+    await userAutocomplete.click();
+    await userAutocomplete.fill(username);
+    await page.waitForTimeout(500);
+    
+    // Click on user option
+    await page.locator(`[role="option"]:has-text("${username}")`).first().click();
+    
+    // Click "Přidat" button
+    const addButton = page.getByRole('button', { name: /^přidat$/i });
+    await expect(addButton).toBeVisible({ timeout: 5000 });
+    await addButton.click();
 
     await waitForDialogClose(page);
 
@@ -267,7 +296,7 @@ test.describe('Admin: Groups CRUD', () => {
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
     
     // Click on MoreVert menu button
-    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    const menuButton = groupRow.locator('button:has(svg[data-testid="MoreVertIcon"])');
     await menuButton.click();
     
     // Wait for menu
@@ -280,18 +309,18 @@ test.describe('Admin: Groups CRUD', () => {
     // Wait for GroupMembersDialog
     await page.waitForTimeout(1000);
 
-    // Find remove button for member
-    const removeButton = page.locator(`text=${username}`).locator('..').locator('..').getByRole('button', { name: /odebrat|remove/i });
-    await removeButton.click();
-
-    // Confirm removal
-    const confirmButton = page.getByRole('button', { name: /potvrdit|confirm|ano|yes/i });
-    await confirmButton.click();
+    // Find ListItem containing username and click delete icon button
+    const memberItem = page.locator(`[role="listitem"]:has-text("@${username}")`);
+    await expect(memberItem).toBeVisible({ timeout: 5000 });
+    
+    // Click delete icon button in the member item
+    const deleteButton = memberItem.locator('button[color="error"]').or(memberItem.locator('button').last());
+    await deleteButton.click();
 
     await waitForDialogClose(page);
 
     // Verify member is gone
-    await expect(page.getByText(username)).not.toBeVisible();
+    await expect(memberItem).not.toBeVisible();
   });
 
   test('should delete group as admin', async ({ page }) => {
@@ -318,7 +347,7 @@ test.describe('Admin: Groups CRUD', () => {
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
     
     // Click on MoreVert menu button
-    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    const menuButton = groupRow.locator('button:has(svg[data-testid="MoreVertIcon"])');
     await menuButton.click();
     
     // Wait for menu
@@ -364,7 +393,7 @@ test.describe('Admin: Groups CRUD', () => {
     await groupRow.waitFor({ state: 'visible', timeout: 10000 });
     
     // Click on MoreVert menu button
-    const menuButton = groupRow.locator('.MuiIconButton-root').last();
+    const menuButton = groupRow.locator('button:has(svg[data-testid="MoreVertIcon"])');
     await menuButton.click();
     
     // Wait for menu to open
