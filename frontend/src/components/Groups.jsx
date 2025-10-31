@@ -254,18 +254,21 @@ function Groups({ user }) {
     columns.push({
       field: 'actions',
       label: 'Akce',
+      type: 'custom',
       sortable: false,
       align: 'right',
       render: (group) => (
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleMenuOpen(e, group);
-          }}
-        >
-          <MoreVertIcon />
-        </IconButton>
+        <Tooltip title="Akce">
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMenuOpen(e, group);
+            }}
+          >
+            <MoreVertIcon />
+          </IconButton>
+        </Tooltip>
       ),
     });
   }
@@ -368,7 +371,6 @@ function Groups({ user }) {
           columns={columns}
           data={groups}
           loading={loading}
-          onRowClick={handleViewGroup}
         />
       </Card>
 
