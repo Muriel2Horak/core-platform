@@ -216,7 +216,7 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
       "authorizationServicesEnabled": false,
-      "secret": "7c4a7e8f-6b3d-4f2e-9a1c-5d8e7f6a9b2c",
+      "secret": "your-secure-backend-secret-key-here",
       "redirectUris": [
         "https://admin.core-platform.local/*",
         "https://admin.admin.core-platform.local/*",
@@ -261,7 +261,7 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
-      "secret": "7c4a7e8f-6b3d-4f2e-9a1c-5d8e7f6a9b2c"
+      "secret": "your-secure-backend-secret-key-here"
     },
     {
       "clientId": "web",

@@ -85,8 +85,8 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       # 🌐 DOMAIN pro všechny external URLs
       - DOMAIN=${DOMAIN:-core-platform.local}
-      # 🔧 FIX: OIDC Configuration - opravené issuery pro JWT validaci
-      - OIDC_ISSUER_URI=https://admin.${DOMAIN:-core-platform.local}/realms/admin
+      # 🔧 FIX: OIDC Configuration - INTERNAL Keycloak URL pro JWT validaci
+      - OIDC_ISSUER_URI=${OIDC_ISSUER_URI:-https://keycloak:8443/realms/admin}
       - OIDC_JWK_SET_URI=https://keycloak:8443/realms/admin/protocol/openid-connect/certs
       - OIDC_API_AUDIENCE=api
       # 🔧 NEW: Internal Keycloak URL for JWT decoder to download JWK keys via Docker network
