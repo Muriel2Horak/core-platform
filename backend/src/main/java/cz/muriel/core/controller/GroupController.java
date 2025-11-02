@@ -111,12 +111,14 @@ public class GroupController {
     GroupEntity existingGroup = groupService.getGroupByName(groupName)
         .orElseThrow(() -> new IllegalArgumentException("Group not found: " + groupName));
 
-    GroupEntity updatedData = new GroupEntity();
-    updatedData.setName(groupDto.getName());
-    updatedData.setPath(groupDto.getPath());
-    updatedData.setKeycloakGroupId(groupDto.getKeycloakGroupId());
+    // Update fields directly on existing entity
+    existingGroup.setName(groupDto.getName());
+    existingGroup.setPath(groupDto.getPath());
+    if (groupDto.getKeycloakGroupId() != null) {
+      existingGroup.setKeycloakGroupId(groupDto.getKeycloakGroupId());
+    }
 
-    GroupEntity updatedGroup = groupService.updateGroup(existingGroup.getId(), updatedData);
+    GroupEntity updatedGroup = groupService.updateGroup(existingGroup.getId(), existingGroup);
     return ResponseEntity.ok(updatedGroup);
   }
 

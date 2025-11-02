@@ -57,8 +57,9 @@ const EditGroupDialog = ({ open, group, onClose, onGroupUpdated }) => {
       onClose();
     } catch (err) {
       console.error('Failed to update group:', err);
-      setError('Nepodařilo se aktualizovat skupinu: ' + err.message);
-      logger.error('GROUP_UPDATE_ERROR', err.message);
+      const errorMessage = err.response?.data?.message || err.message || 'Neznámá chyba';
+      setError('Nepodařilo se aktualizovat skupinu: ' + errorMessage);
+      logger.error('GROUP_UPDATE_ERROR', errorMessage);
     } finally {
       setLoading(false);
     }

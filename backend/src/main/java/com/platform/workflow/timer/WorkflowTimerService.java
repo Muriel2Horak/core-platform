@@ -63,11 +63,11 @@ public class WorkflowTimerService {
    */
   private List<Map<String, Object>> findExpiredTimers() {
     String sql = """
-        SELECT id, workflow_instance_id, timer_type, trigger_at, action_code, context
+        SELECT id, workflow_instance_id, timer_type, scheduled_at, action_code, context
         FROM workflow_timers
         WHERE status = 'PENDING'
-          AND trigger_at <= ?
-        ORDER BY trigger_at
+          AND scheduled_at <= ?
+        ORDER BY scheduled_at
         LIMIT 100
         """;
 
@@ -161,7 +161,7 @@ public class WorkflowTimerService {
   public void createSlaTimer(Long instanceId, String timerType, Instant triggerAt) {
     jdbcTemplate.update(
         """
-            INSERT INTO workflow_timers (workflow_instance_id, timer_type, trigger_at, status, created_at)
+            INSERT INTO workflow_timers (workflow_instance_id, timer_type, scheduled_at, status, created_at)
             VALUES (?, ?, ?, 'PENDING', ?)
             """,
         instanceId, timerType, triggerAt, Instant.now());

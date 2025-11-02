@@ -11,8 +11,9 @@ COPY docker/maven-settings-template.xml /root/.m2/settings.xml
 COPY backend/pom.xml .
 
 # 🚀 Download dependencies with cache mount - better reliability
-RUN --mount=type=cache,target=/root/.m2 \
-  mvn -B -U dependency:go-offline
+# ⚠️ TEMPORARILY DISABLED: dependency:go-offline freezes - dependencies will download during package
+# RUN --mount=type=cache,target=/root/.m2 \
+#   mvn -B -U dependency:go-offline
 
 # 🏗️ Layer 2: Copy source code (separate layer for better cache)
 COPY backend/src ./src
