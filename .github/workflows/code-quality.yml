@@ -3,8 +3,18 @@ name: 📊 Code Quality (S8)
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'backlog/**'
+      - 'scripts/backlog/**'
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'backlog/**'
+      - 'scripts/backlog/**'
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:

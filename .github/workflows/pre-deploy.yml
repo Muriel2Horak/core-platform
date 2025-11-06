@@ -4,9 +4,19 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'backlog/**'
+      - 'scripts/backlog/**'
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'backlog/**'
+      - 'scripts/backlog/**'
+      - '**.md'
+      - 'docs/**'
 
 jobs:
   pre-deploy-e2e:
