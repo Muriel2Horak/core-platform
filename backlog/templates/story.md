@@ -99,6 +99,125 @@ Scenario: [Test scenario name]
 
 ---
 
+## 🧪 AC to Test Mapping
+
+> **MANDATORY:** Každé AC MUSÍ mít definované testy! Test-first development.
+
+### AC1: [Kritérium #1] → Tests
+
+| Test Type | Test Path | Status | Coverage | Last Run | Test ID |
+|-----------|-----------|--------|----------|----------|---------|
+| **Unit Test** | `backend/src/test/.../[Class]Test.java` | ⏳ Not Written | 0% | N/A | - |
+| **Integration Test** | `backend/src/test/.../[Class]IntegrationTest.java` | ⏳ Not Written | 0% | N/A | - |
+| **E2E Test** | `e2e/specs/[feature]/[scenario].spec.ts` | ⏳ Not Written | 0% | N/A | `@CORE-XXX @AC1` |
+
+**Test Status Legend:**
+- ⏳ **Not Written** - Test neexistuje
+- ✍️ **Written** - Test existuje, ale možná failuje
+- ✅ **Passing** - Test prošel (green)
+- ❌ **Failing** - Test failuje (red)
+
+**Coverage:** % AC requirement pokrytý testy (0-100%)
+
+**Test-First Workflow:**
+1. Napsat failing test (RED) ← Start here!
+2. Implementovat minimum pro pass (GREEN)
+3. Refaktorovat (CLEAN)
+
+**Example:**
+```typescript
+// e2e/specs/export/export-data.spec.ts
+test('exports CSV as admin @CORE-012 @AC1', async ({ page }) => {
+  // Arrange
+  await page.goto('/login');
+  await loginAsAdmin(page);
+  
+  // Act
+  await page.click('button:has-text("Export Data")');
+  
+  // Assert
+  const download = await page.waitForEvent('download');
+  const filename = download.suggestedFilename();
+  expect(filename).toMatch(/^export-\d{4}-\d{2}-\d{2}\.csv$/);
+  
+  // Verify CSV content
+  const path = await download.path();
+  const content = await fs.readFile(path, 'utf-8');
+  expect(content).toContain('col1,col2,col3'); // Headers
+});
+```
+
+---
+
+### AC2: [Kritérium #2] → Tests
+
+| Test Type | Test Path | Status | Coverage | Last Run | Test ID |
+|-----------|-----------|--------|----------|----------|---------|
+| **Unit Test** | `path/to/unit/test` | ⏳ Not Written | 0% | N/A | - |
+| **Integration Test** | `path/to/integration/test` | ⏳ Not Written | 0% | N/A | - |
+| **E2E Test** | `path/to/e2e/test` | ⏳ Not Written | 0% | N/A | `@CORE-XXX @AC2` |
+
+---
+
+### AC3: [Kritérium #3] → Tests
+
+| Test Type | Test Path | Status | Coverage | Last Run | Test ID |
+|-----------|-----------|--------|----------|----------|---------|
+| **Unit Test** | `path/to/unit/test` | ⏳ Not Written | 0% | N/A | - |
+| **E2E Test** | `path/to/e2e/test` | ⏳ Not Written | 0% | N/A | `@CORE-XXX @AC3` |
+
+**Note:** Integration test může být vynechán pokud není relevantní.
+
+---
+
+### AC4: [Kritérium #4] → Tests
+
+| Test Type | Test Path | Status | Coverage | Last Run | Test ID |
+|-----------|-----------|--------|----------|----------|---------|
+| **Performance Test** | `e2e/specs/performance/[test].spec.ts` | ⏳ Not Written | 0% | N/A | `@CORE-XXX @AC4 @performance` |
+
+**Performance Test Example:**
+```typescript
+test('API responds within 500ms @CORE-012 @AC4 @performance', async ({ request }) => {
+  const start = Date.now();
+  
+  const response = await request.get('/api/data');
+  
+  const duration = Date.now() - start;
+  expect(response.ok()).toBeTruthy();
+  expect(duration).toBeLessThan(500); // 95th percentile requirement
+});
+```
+
+---
+
+### Test Coverage Summary
+
+| AC | Unit | Integration | E2E | Total Coverage | Status |
+|----|------|-------------|-----|----------------|--------|
+| AC1 | 0% | 0% | 0% | 0% | ⏳ Not Started |
+| AC2 | 0% | 0% | 0% | 0% | ⏳ Not Started |
+| AC3 | 0% | 0% | 0% | 0% | ⏳ Not Started |
+| AC4 | 0% | 0% | 0% | 0% | ⏳ Not Started |
+| **TOTAL** | **0%** | **0%** | **0%** | **0%** | ⏳ **Tests Required!** |
+
+**Target:** 100% AC coverage (každé AC má min. 1 passing test)
+
+**Validation:**
+```bash
+# Validuj test coverage pomocí test_validator
+bash scripts/backlog/test_validator.sh --story CORE-XXX
+
+# Expected output:
+# AC1: 0% coverage (0/3 test types) ⚠️
+# AC2: 0% coverage (0/3 test types) ⚠️
+# AC3: 0% coverage (0/2 test types) ⚠️
+# AC4: 0% coverage (0/1 test types) ⚠️
+# TOTAL: 0% coverage ❌ TESTS REQUIRED!
+```
+
+---
+
 ## 📂 Implementation Mapping
 
 > **Účel:** Mapování story → kód/testy/dokumentace pro GitHub Copilot a git tracking
@@ -168,11 +287,16 @@ Tato story je COMPLETE pokud:
 - [ ] Code style guide dodržen (prettier, ESLint, Checkstyle)
 
 ### 🧪 Testing
+- [ ] **AC to Test Mapping vyplněno** (každé AC má min. 1 test)
+- [ ] **Test-first workflow dodržen** (testy napsány PŘED implementací)
 - [ ] Unit testy napsány pro všechny `code_paths` (coverage >80%)
 - [ ] Integration testy pokrývají happy path + error cases
-- [ ] E2E testy pokrývají všechna Akceptační kritéria
+- [ ] E2E testy pokrývají VŠECHNA Akceptační kritéria
+- [ ] **Test validator passed:** `test_validator.sh --story CORE-XXX` shows 100% AC coverage
 - [ ] Všechny testy PASSING (CI/CD green)
 - [ ] Manual testing provedeno (smoke test na dev environmentu)
+- [ ] **Performance tests** (pokud AC4 obsahuje performance requirements)
+- [ ] **Regression tests tagged** (pokud fix bugu: @BUG-XXX @regression)
 
 ### 📚 Documentation
 - [ ] API dokumentace aktualizována (Swagger/OpenAPI + Markdown)
