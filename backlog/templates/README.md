@@ -18,8 +18,40 @@
 
 ### Creating a New Story
 
+**🤖 AUTOMATIC (RECOMMENDED - Story Generator):**
+
 ```bash
-# Option 1: Use Makefile (recommended)
+# Interactive wizard (nejrychlejší)
+make backlog-new
+
+# Wizard prompts:
+# - Story Title (required)
+# - Epic ID (default: EPIC-001-backlog-system)
+# - Priority P1/P2/P3 (default: P1)
+# - Estimate (default: 1 day)
+# - Assignee (optional)
+
+# Non-interactive s parametry
+make backlog-new STORY="Feature Name" EPIC="EPIC-002" PRIORITY="P2" ESTIMATE="3 days"
+
+# Přímo pomocí scriptu
+bash scripts/backlog/new_story.sh --title "Feature Name" --epic "EPIC-002"
+```
+
+**What Story Generator does:**
+1. ✅ Finds next available CORE-XXX ID (auto-increment)
+2. ✅ Creates directory: `backlog/EPIC-XXX/stories/CORE-YYY-title/`
+3. ✅ Copies `story.md` template
+4. ✅ Replaces all placeholders (ID, title, dates, priority, assignee)
+5. ✅ Creates Git branch: `feature/CORE-YYY-title`
+6. ✅ Outputs file location and next steps
+
+**Time saved:** 5-10 minutes → 30 seconds ⚡ (80-90% faster)
+
+**📖 MANUAL (pokud chceš full control):**
+
+```bash
+# Option 1: Use Makefile
 make backlog-new STORY="Feature Name"
 
 # Option 2: Manual copy

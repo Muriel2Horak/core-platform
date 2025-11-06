@@ -269,6 +269,118 @@ python scripts/backlog/git_tracker.py --update
 python scripts/backlog/report.py --format markdown > backlog/index.md
 ```
 
+---
+
+## 🤖 Automation (CORE-003)
+
+### Story Generator
+
+**Automatické vytváření stories z template:**
+
+```bash
+# Interactive mode (DOPORUČENO)
+make backlog-new
+
+# Wizard prompts:
+# Story Title: My New Feature
+# Epic ID (default: EPIC-001-backlog-system): EPIC-002
+# Priority - P1/P2/P3 (default: P1): P2
+# Estimate (default: 1 day): 3 days
+# Assignee (default: empty): GitHub Copilot
+
+# Output:
+# ✅ Created: backlog/EPIC-002/stories/CORE-005-my-new-feature/README.md
+# ✅ Story ID: CORE-005
+# ✅ Git branch: feature/CORE-005-my-new-feature
+
+# Non-interactive (s parametry)
+make backlog-new STORY="Feature Name" EPIC="EPIC-002" PRIORITY="P2" ESTIMATE="3 days"
+
+# Pomocí scriptu přímo
+bash scripts/backlog/new_story.sh --title "Feature Name" --epic "EPIC-002" --priority "P2"
+```
+
+**Co dělá Story Generator:**
+
+1. **Automatic ID Assignment** - Najde next available CORE-XXX ID (max + 1)
+2. **Template Copy** - Zkopíruje `backlog/templates/story.md` do nové lokace
+3. **Placeholder Replacement** - Nahradí 7 placeholders:
+   - `CORE-XXX` → `CORE-005` (auto-detected ID)
+   - `EPIC-XXX-epic-name` → User input (např. `EPIC-002-auth`)
+   - `[Story Title]` → User input (např. "OAuth2 Login")
+   - `YYYY-MM-DD` → Today's date (např. `2025-11-06`)
+   - `P1` → User priority (P1/P2/P3)
+   - `X days` → User estimate (např. "3 days")
+   - `assignee: ""` → User assignee (optional)
+4. **Git Branch Creation** - Vytvoří a checkoutne `feature/CORE-XXX-title` branch
+5. **Directory Structure** - Vytvoří `backlog/EPIC-XXX/stories/CORE-YYY-title/`
+
+**Time Savings:** 5-10 min manual work → 30 sec automated ✅ (80-90% faster)
+
+### Placeholder Table
+
+| Placeholder | Replacement | Example |
+|-------------|-------------|---------|
+| `CORE-XXX` | Next available ID | `CORE-005` |
+| `EPIC-XXX-epic-name` | User input epic | `EPIC-002-auth` |
+| `[Story Title]` | User input title | "OAuth2 Login" |
+| `YYYY-MM-DD` | Today's date | `2025-11-06` |
+| `P1` | User priority | `P2` |
+| `X days` | User estimate | "3 days" |
+| `assignee: ""` | User assignee | "GitHub Copilot" |
+
+### Help & Examples
+
+```bash
+# Show generator help
+make backlog-help
+
+# Output:
+# 📋 Backlog Management (EPIC-001)
+#
+# Commands:
+#   backlog-new          - Create new story (interactive)
+#   backlog-new STORY='Feature Name' - Quick create with title
+#
+# Options:
+#   STORY='Feature Name'       - Story title (required)
+#   EPIC='EPIC-XXX'            - Epic ID (default: EPIC-001-backlog-system)
+#   PRIORITY='P1|P2|P3'        - Priority (default: P1)
+#   ESTIMATE='X days'          - Estimate (default: 1 day)
+#   ASSIGNEE='Name'            - Assignee name
+#
+# Examples:
+#   make backlog-new
+#   make backlog-new STORY='Git Commit Tracker' EPIC='EPIC-001' PRIORITY='P2'
+#   make backlog-new STORY='User Login' EPIC='EPIC-002-auth' PRIORITY='P1'
+```
+
+### Future Automation (Roadmap)
+
+**CORE-002: Path Mapping Validator** (TODO)
+```bash
+make backlog-coverage STORY=CORE-042
+# → Checks if files from code_paths/test_paths/docs_paths exist
+# → Reports: "code_paths: 3/3 ✅, test_paths: 2/3 ⚠️"
+```
+
+**CORE-004: Git Commit Tracker** (TODO)
+```bash
+make backlog-track
+# → Parses git log for commits referencing CORE-XXX
+# → Auto-updates DoD checkboxes based on file changes
+# → Maps commits to stories via path mapping
+```
+
+**CORE-005: Story Validator** (TODO)
+```bash
+make backlog-validate STORY=CORE-042
+# → Schema validation (all 8 sections present?)
+# → DoR completeness (X/Y items checked)
+# → DoD completeness
+# → Pre-merge validation hook
+```
+
 ## 📊 Metrics & Reporting
 
 ### Story Metrics

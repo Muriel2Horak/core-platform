@@ -7,6 +7,50 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+
+#### Backlog Management System (EPIC-001) - 2025-11-06
+
+**Story Generator (CORE-003)**
+- **Automatic story creation** from templates with interactive wizard
+  - `make backlog-new` - Interactive mode (prompts for all inputs)
+  - `make backlog-new STORY="Name" EPIC="EPIC-XXX" PRIORITY="P2"` - Non-interactive mode
+  - Script: `scripts/backlog/new_story.sh` (339 lines bash)
+- **Features**:
+  - Auto ID assignment (finds next available CORE-XXX)
+  - Template copy & placeholder replacement (7 substitutions)
+  - Git branch auto-creation (`feature/CORE-XXX-title`)
+  - Makefile integration (`backlog-new`, `backlog-help` targets)
+- **Time savings**: 5-10 min manual → 30 sec automated (80-90% faster)
+- **Replaced placeholders**: `CORE-XXX`, `EPIC-XXX`, `[Story Title]`, `YYYY-MM-DD`, `P1`, `X days`, assignee
+- **Testing**: Manual test successful (CORE-004 created via generator)
+- **Documentation**:
+  - `docs/development/backlog-workflow.md` - Developer workflow guide (520 lines)
+  - `backlog/README.md` - Updated with automation section
+  - `backlog/templates/README.md` - Updated with generator usage
+
+**Git-Native Backlog Templates (CORE-001)**
+- **3 templates** for User Stories, Subtasks, and Epics:
+  - `backlog/templates/story.md` (485 lines) - 8 required sections
+  - `backlog/templates/subtask.md` (245 lines) - 6 sections for implementation tasks
+  - `backlog/templates/epic.md` (445 lines) - 10 sections for large initiatives
+- **Documentation**:
+  - `backlog/README.md` (560 lines) - System overview, workflow, tooling
+  - `backlog/templates/README.md` (590 lines) - Template usage guide
+  - `backlog/index.md` - Dashboard with metrics
+- **Features**:
+  - GitHub Copilot optimized (stories as prompts)
+  - Path mapping (Story ↔ Code ↔ Tests ↔ Docs linking)
+  - DoR/DoD checklists for quality gates
+  - Self-documenting (meta-epic EPIC-001)
+- **Commit**: 83871eb (8 files, 2,809 insertions)
+
+**CI/CD Optimization**
+- Skip GitHub Actions workflows for backlog and documentation changes
+  - Modified workflows: `ci.yml`, `pre-deploy.yml`, `code-quality.yml`
+  - `paths-ignore`: `backlog/**`, `scripts/backlog/**`, `**.md`, `docs/**`
+  - Saves CI minutes, reduces noise for non-code changes
+
+#### Post-Deployment Verification
 - **Post-Deployment Verification**: Automatické smoke testy po `make up/rebuild`
   - Kontrola container health, API endpoints, frontend přístupnosti
   - Verifikace observability stacku (Grafana, Loki, Prometheus)
