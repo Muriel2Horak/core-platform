@@ -260,10 +260,13 @@ get_story_status() {
 # Generate text report
 generate_text_report() {
     local epic_filter="$1"
+    local story_filter="$2"
     
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    if [[ -n "$epic_filter" ]]; then
+    if [[ -n "$story_filter" ]]; then
+        echo "📊 Git Activity Report: $story_filter"
+    elif [[ -n "$epic_filter" ]]; then
         echo "📊 Git Activity Report: $epic_filter"
     else
         echo "📊 Git Activity Report: All Stories"
@@ -271,9 +274,13 @@ generate_text_report() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     
-    # Get all story IDs
+    # Get story IDs (filtered or all)
     local story_ids
-    story_ids=$(get_all_story_ids)
+    if [[ -n "$story_filter" ]]; then
+        story_ids="$story_filter"
+    else
+        story_ids=$(get_all_story_ids)
+    fi
     
     if [[ -z "$story_ids" ]]; then
         echo "No stories found with Git commits."
@@ -323,13 +330,18 @@ generate_text_report() {
 # Generate JSON report
 generate_json_report() {
     local epic_filter="$1"
+    local story_filter="$2"
     
-    # Get all story IDs
+    # Get story IDs (filtered or all)
     local story_ids
-    story_ids=$(get_all_story_ids)
+    if [[ -n "$story_filter" ]]; then
+        story_ids="$story_filter"
+    else
+        story_ids=$(get_all_story_ids)
+    fi
     
     if [[ -z "$story_ids" ]]; then
-        echo '{"epic":"'"$epic_filter"'","total_commits":0,"stories":[]}'
+        echo '{"epic":"'"${epic_filter:-all}"'","total_commits":0,"stories":[]}'
         return
     fi
     
@@ -376,7 +388,8 @@ generate_json_report() {
     json_stories+="]"
     
     # Build final JSON
-    echo "{\"epic\":\"$epic_filter\",\"total_commits\":$total_commits,\"stories\":$json_stories}"
+    local filter_name="${story_filter:-${epic_filter:-all}}"
+    echo "{\"epic\":\"$filter_name\",\"total_commits\":$total_commits,\"stories\":$json_stories}"
 }
 
 # ============================================================================
@@ -389,9 +402,9 @@ main() {
     
     # Generate report based on format
     if [[ "$FORMAT" == "text" ]]; then
-        generate_text_report "${EPIC:-}"
+        generate_text_report "${EPIC:-}" "${STORY:-}"
     elif [[ "$FORMAT" == "json" ]]; then
-        generate_json_report "${EPIC:-}"
+        generate_json_report "${EPIC:-}" "${STORY:-}"
     fi
 }
 
