@@ -403,16 +403,100 @@ bash scripts/backlog/git_tracker.sh --epic EPIC-001-backlog-system --show-zero
 
 **Performance:** <0.3s for EPIC-001 (target <2s) ✅
 
-### Path Mapping Validator (CORE-002 - TODO)
+### Path Mapping Validator (CORE-006) ✅ **AVAILABLE**
+
+Validates that files declared in story `path_mapping` actually exist:
 
 ```bash
-# Validate code_paths exist
-make backlog-validate STORY=CORE-XXX
+# Validate single story
+python3 scripts/backlog/path_validator.py --story CORE-005
 
-# Expected output:
-# ✅ code_paths: 3/3 files exist
-# ⚠️ test_paths: 2/3 files missing
-# ✅ docs_paths: 1/1 files exist
+# Output:
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📊 Path Mapping Coverage: CORE-005
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 
+# ✅ code_paths   1/1 (100%)
+#    scripts/backlog/git_tracker.sh
+# 
+# ⚠️ test_paths   0/1 (0%)
+#    ❌ MISSING (1):
+#       - scripts/backlog/test_git_tracker.sh
+# 
+# ✅ docs_paths   3/3 (100%)
+#    backlog/README.md, docs/development/backlog-workflow.md, CHANGELOG.md
+# 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📈 Overall: 80% (4/5 paths exist)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Validate entire epic (aggregate all stories)
+python3 scripts/backlog/path_validator.py --epic EPIC-001
+
+# Output:
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📊 Epic Path Coverage: EPIC-001-backlog-system
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 
+# ✅ CORE-001: 100% (3/3 paths)
+# ✅ CORE-003: 100% (4/4 paths)
+# ✅ CORE-005:  80% (4/5 paths)
+# ✅ CORE-006: 100% (7/7 paths)
+# 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📈 Epic Overall: 95% (18/19 paths across 4 stories)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# JSON output for CI/CD automation
+python3 scripts/backlog/path_validator.py --story CORE-005 --format json | jq .
+# → {"story_id":"CORE-005","coverage":{"code_paths":{...},"overall":80}}
+
+# Include stories with 0% coverage (missing path_mapping)
+python3 scripts/backlog/path_validator.py --epic EPIC-001 --show-zero
+# → Shows all stories including those without path_mapping
+```
+
+**What it validates:**
+- `code_paths`: Implementation files (`.java`, `.ts`, `.sh`, etc.)
+- `test_paths`: Test files (unit, integration, E2E)
+- `docs_paths`: Documentation (README, guides, CHANGELOG)
+
+**Features:**
+- ✅ Literal path checking (`scripts/backlog/git_tracker.sh`)
+- ✅ Glob pattern support (`backend/**/*.java`)
+- ✅ Story-level and epic-level aggregation
+- ✅ Text (human-readable) + JSON (machine-readable) outputs
+- ✅ Missing path detection with specific filenames
+
+**Use Cases:**
+- 📋 **Pre-merge validation**: Ensure all declared files exist before merging
+- 🧪 **Test coverage check**: Verify test_paths match code_paths
+- 📚 **Documentation completeness**: Check docs_paths are updated
+- 🤖 **CI/CD integration**: JSON output for automated quality gates
+- 🔍 **Story audit**: Find stories with missing implementations
+
+**Performance:** <5s for 100 stories (actual ~130ms) ✅
+
+**Integration with workflow:**
+
+```bash
+# 1. During development - check your story
+python3 scripts/backlog/path_validator.py --story CORE-XXX
+
+# 2. Before marking story "done" - verify 100% coverage
+# If <100%, either:
+#   - Create missing files (e.g., write tests)
+#   - Update path_mapping in story YAML (if paths changed)
+
+# 3. Pre-merge - validate entire epic
+python3 scripts/backlog/path_validator.py --epic EPIC-XXX
+
+# 4. CI/CD - fail build if coverage <80%
+coverage=$(python3 scripts/backlog/path_validator.py --epic EPIC-XXX --format json | jq -r '.overall_coverage.percentage')
+if [ "$coverage" -lt 80 ]; then
+  echo "❌ Path coverage too low: ${coverage}%"
+  exit 1
+fi
 ```
 
 ---

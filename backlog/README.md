@@ -357,11 +357,43 @@ make backlog-help
 
 ### Future Automation (Roadmap)
 
-**CORE-002: Path Mapping Validator** (TODO)
+**CORE-006: Path Mapping Validator** ✅ **IMPLEMENTED**
 ```bash
-make backlog-coverage STORY=CORE-042
-# → Checks if files from code_paths/test_paths/docs_paths exist
-# → Reports: "code_paths: 3/3 ✅, test_paths: 2/3 ⚠️"
+# Validate single story
+python3 scripts/backlog/path_validator.py --story CORE-005
+
+# Output (text format):
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📊 Path Mapping Coverage: CORE-005
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 
+# ✅ code_paths   1/1 (100%)
+#    scripts/backlog/git_tracker.sh
+# 
+# ⚠️ test_paths   0/1 (0%)
+#    ❌ MISSING (1):
+#       - scripts/backlog/test_git_tracker.sh
+# 
+# ✅ docs_paths   3/3 (100%)
+#    backlog/README.md, docs/development/backlog-workflow.md, CHANGELOG.md
+# 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📈 Overall: 80% (4/5 paths exist)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Validate entire epic
+python3 scripts/backlog/path_validator.py --epic EPIC-001
+
+# JSON output for automation
+python3 scripts/backlog/path_validator.py --story CORE-005 --format json | jq .
+# → {"story_id":"CORE-005","coverage":{...},"overall":{"total":5,"exist":4,"percentage":80.0}}
+
+# Features:
+# - Validates code_paths, test_paths, docs_paths from YAML frontmatter
+# - Supports glob patterns (backend/**/*.java)
+# - Story-level and epic-level aggregation
+# - Text (human-readable) and JSON (machine-readable) outputs
+# - Performance: <5s for 100 stories (actual ~130ms) ✅
 ```
 
 **CORE-005: Git Commit Tracker** ✅ **IMPLEMENTED**
