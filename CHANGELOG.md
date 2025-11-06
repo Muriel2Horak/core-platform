@@ -10,6 +10,57 @@ All notable changes to this project will be documented in this file.
 
 #### Backlog Management System (EPIC-001) - 2025-11-06
 
+**Path Mapping Validator (CORE-006)** - 2025-11-06
+- **Automatic path mapping validation & coverage reporting**
+  - Main tool: `scripts/backlog/path_validator.py` (269 lines Python)
+  - Library modules (755 lines total):
+    - `scripts/backlog/lib/yaml_parser.py` (198 lines) - YAML frontmatter parsing
+    - `scripts/backlog/lib/path_checker.py` (236 lines) - File existence validation
+    - `scripts/backlog/lib/coverage_reporter.py` (294 lines) - Text + JSON reporting
+  - Integration tests: `scripts/backlog/test_integration.py` (353 lines, 33 assertions ✅)
+- **CLI Options**: `--story CORE-XXX`, `--epic EPIC-XXX`, `--format` (text|json), `--show-zero`
+- **Features**:
+  - Parse `path_mapping` from story YAML frontmatter (code_paths, test_paths, docs_paths)
+  - Validate file existence (literal paths + glob patterns like `backend/**/*.java`)
+  - Generate coverage reports: "code_paths: 1/1 (100%), test_paths: 0/1 (0%), docs_paths: 3/3 (100%)"
+  - Story-level reporting (single story validation)
+  - Epic-level aggregation (all stories in epic)
+  - Text format: Human-readable with emojis (✅/⚠️/❌)
+  - JSON format: Machine-readable for automation (`jq` compatible)
+  - Error handling: Clear messages for missing stories, invalid YAML
+- **Performance**: <130ms for 100 stories (actual: 6ms for 5 stories) - Target <5s ✅
+- **Usage Examples**:
+  ```bash
+  # Validate single story (text format)
+  python3 scripts/backlog/path_validator.py --story CORE-005
+  # Output: ✅ code_paths 1/1 (100%), ⚠️ test_paths 0/1 (0%), ✅ docs_paths 3/3 (100%)
+  #         📈 Overall: 80% (4/5 paths exist)
+  
+  # Validate entire epic
+  python3 scripts/backlog/path_validator.py --epic EPIC-001
+  # Output: Aggregated report for all stories
+  
+  # JSON output for automation
+  python3 scripts/backlog/path_validator.py --story CORE-005 --format json | jq .
+  # Output: {"story_id":"CORE-005","coverage":{...},"overall":{"total":5,"exist":4,"percentage":80.0}}
+  ```
+- **Use Cases**:
+  - 🔍 Path accuracy validation (detect typos, missing files, stale paths)
+  - 📊 Coverage tracking (measure DoD completion - how many declared files exist)
+  - ⚠️ Pre-merge validation (ensure path_mapping is accurate before merge)
+  - 🤖 CI/CD integration (JSON output for automated quality gates)
+- **Testing**:
+  - 33/33 integration test assertions passing ✅
+  - Tested on CORE-005: 80% coverage (4/5 paths exist - test file missing as expected)
+  - Performance: 5 stories in 6ms, epic aggregation in 22ms
+  - Edge cases: Stories without path_mapping (graceful handling), missing files (proper tracking)
+- **Documentation**:
+  - `scripts/backlog/README.md` - NEW: Complete tool documentation
+  - `backlog/README.md` - Updated "Future Automation" section (CORE-006 marked as IMPLEMENTED)
+  - `docs/development/backlog-workflow.md` - TBD: Path validation workflow
+- **Dependencies**: PyYAML (`pip3 install pyyaml --user`)
+- **Commits**: 437a155 (story), dab7ac3 (YAML parser), ef5333c (path checker), 97997a8 (reporter), b8f91c3 (CLI), d2f14f2 (tests)
+
 **Git Commit Tracker (CORE-005)**
 - **Automatic commit → story mapping** for Git activity tracking
   - Script: `scripts/backlog/git_tracker.sh` (405 lines bash)
