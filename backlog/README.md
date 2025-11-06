@@ -364,15 +364,40 @@ make backlog-coverage STORY=CORE-042
 # → Reports: "code_paths: 3/3 ✅, test_paths: 2/3 ⚠️"
 ```
 
-**CORE-004: Git Commit Tracker** (TODO)
+**CORE-005: Git Commit Tracker** ✅ **IMPLEMENTED**
 ```bash
-make backlog-track
-# → Parses git log for commits referencing CORE-XXX
-# → Auto-updates DoD checkboxes based on file changes
-# → Maps commits to stories via path mapping
+# Track commits for an epic
+bash scripts/backlog/git_tracker.sh --epic EPIC-001-backlog-system
+
+# Output (text format):
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📊 Git Activity Report: EPIC-001-backlog-system
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 
+# ✅ CORE-001:     1 commit(s) (f6332b6)
+# ✅ CORE-003:     2 commit(s) (f6332b6,0d523e7)
+# ✅ CORE-005:     1 commit(s) (7699f33)
+# 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📈 Summary: 4 commits across 3 stories
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Track specific story
+bash scripts/backlog/git_tracker.sh --story CORE-003
+# → Shows only CORE-003: 2 commits (f6332b6,0d523e7)
+
+# JSON output for automation
+bash scripts/backlog/git_tracker.sh --epic EPIC-001-backlog-system --format json | jq .
+# → {"epic":"EPIC-001-backlog-system","total_commits":4,"stories":[...]}
+
+# Show stories without commits
+bash scripts/backlog/git_tracker.sh --epic EPIC-001-backlog-system --show-zero
+# → Includes stories with 0 commits (marked with 📋)
+
+# Performance: <0.3s for EPIC-001 (target <2s) ✅
 ```
 
-**CORE-005: Story Validator** (TODO)
+**CORE-006: Story Validator** (TODO)
 ```bash
 make backlog-validate STORY=CORE-042
 # → Schema validation (all 8 sections present?)
