@@ -10,6 +10,90 @@ All notable changes to this project will be documented in this file.
 
 #### Backlog Management System (EPIC-001) - 2025-11-06
 
+**Test-First Development & Bug Tracking (CORE-007)** - 2025-11-06
+- **Complete test-driven development workflow with bug tracking**
+  - Bug template: `backlog/templates/bug.md` (533 lines, comprehensive bug tracking)
+  - Story template update: AC → Test Mapping section added
+  - Test validator: `scripts/backlog/test_validator.sh` (489 lines Bash)
+  - TDD workflow guide: `docs/development/test-driven-workflow.md` (734 lines)
+  - Backlog README: Bug tracking & test-first sections added
+- **Bug Template Features**:
+  - YAML frontmatter: `caused_by_story`, `caused_by_commit`, `regression_test`
+  - Severity classification: critical | high | medium | low
+  - Status lifecycle: reported → investigating → in-progress → fixed → verified → closed
+  - Mandatory regression test (@BUG-XXX @regression tags)
+  - Fix DoD with verification checklist
+  - Full traceability: Bug → Story → Commit
+  - Timeline tracking: time_to_detect, time_to_fix
+- **Story Template Enhancement**:
+  - 🧪 AC to Test Mapping section (MANDATORY)
+  - Test types per AC: Unit | Integration | E2E | Performance
+  - Test status tracking: ⏳ Not Written | ✍️ Written | ✅ Passing | ❌ Failing
+  - Coverage % per AC (target: 100%)
+  - Test tagging: @CORE-XXX @ACN
+  - Test validator integration
+- **Test Validator Features**:
+  - CLI: `--story CORE-XXX`, `--epic EPIC-XXX`, `--format` (text|json), `--min-coverage NN`
+  - Parses AC sections from story README
+  - Extracts test mappings from AC → Tests tables
+  - Validates test file existence
+  - Reports coverage per AC and overall
+  - Color-coded output: ✅ Complete | ⚠️ Partial | ❌ Missing
+  - JSON output for CI/CD automation
+  - Quality gate: Fail if coverage < min-coverage
+- **TDD Workflow Documentation** (750+ lines):
+  - Why test-first development? (problem vs solution)
+  - Red-Green-Refactor cycle (detailed phases)
+  - Story to Test workflow (7-step process)
+  - Bug tracking & regression prevention
+  - Test tagging conventions (@story, @bug, @regression)
+  - CI/CD integration (GitHub Actions example)
+  - Tools & automation reference
+  - Complete examples (CORE-012 export feature, BUG-042 email fix)
+- **Usage Examples**:
+  ```bash
+  # Create bug report
+  cp backlog/templates/bug.md backlog/bugs/BUG-042-email-validation.md
+  
+  # Write regression test (RED phase)
+  # → Test reproduces bug
+  
+  # Fix bug (GREEN phase)
+  # → Test passes
+  
+  # Verify regression prevention
+  # → Revert fix, test fails again
+  
+  # Validate test coverage
+  bash scripts/backlog/test_validator.sh --story CORE-012
+  # Output: AC1: 100% (3/3 tests) ✅, Overall: 100% ✅
+  
+  # Enforce 80% minimum coverage
+  bash scripts/backlog/test_validator.sh --story CORE-012 --min-coverage 80
+  
+  # Run regression tests
+  npx playwright test --grep @regression
+  npx playwright test --grep @BUG-042
+  ```
+- **DoD Requirements Added**:
+  - AC to Test Mapping filled (min 1 test per AC)
+  - Test-first workflow followed (tests BEFORE code)
+  - Test validator passed (100% AC coverage)
+  - Regression tests tagged (@BUG-XXX @regression)
+  - All tests passing (CI/CD green)
+- **Quality Gates**:
+  - Cannot merge without test_validator passing
+  - Bug fixes require regression test
+  - Regression tests prevent recurrence
+  - Full story → commit → bug traceability
+- **Value**:
+  - 🧪 Enforces test-first development (every feature has tests)
+  - 🐛 Standardized bug tracking (no ad-hoc reports)
+  - 🔗 Full traceability (bug → story → commit)
+  - ✅ Quality gates (cannot merge without tests)
+  - 📊 Test coverage visibility (AC-level granularity)
+  - 🔄 Regression prevention (bugs have tests)
+
 **Path Mapping Validator (CORE-006)** - 2025-11-06
 - **Automatic path mapping validation & coverage reporting**
   - Main tool: `scripts/backlog/path_validator.py` (269 lines Python)
