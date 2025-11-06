@@ -581,6 +581,199 @@ git commit -m "Add export feature"
 - **AI analysis:** Copilot to dělá lépe (generování kódu z stories)
 - **Complex metadata:** Markdown je čitelný pro lidi i Copilota
 
+---
+
+## 🐛 Bug Tracking & Regression Prevention
+
+> **CORE-007 Feature:** Integrated bug tracking with regression test requirements
+
+### Bug Template
+
+**Location:** `backlog/templates/bug.md`
+
+**Purpose:** Standardized bug reporting with full traceability to stories and commits.
+
+**Key Features:**
+- 🔗 **Traceability:** Links to story (`caused_by_story`) and commit (`caused_by_commit`)
+- 🧪 **Regression Test:** MANDATORY test preventing bug recurrence
+- 📊 **Severity Classification:** critical | high | medium | low
+- ⏱️ **Timeline Tracking:** Time to detect, time to fix
+- ✅ **Fix DoD:** Checklist before closing bug
+
+### Creating a Bug Report
+
+```bash
+# Copy bug template
+cp backlog/templates/bug.md backlog/bugs/BUG-042-email-validation.md
+
+# Fill bug details
+vim backlog/bugs/BUG-042-email-validation.md
+```
+
+**YAML Frontmatter Example:**
+```yaml
+id: BUG-042
+type: bug
+severity: high
+status: reported
+caused_by_story: CORE-003          # Which story introduced this?
+caused_by_commit: abc1234          # Which commit caused it?
+regression_test: e2e/specs/auth/login-email-alias.spec.ts
+regression_test_status: not-written
+```
+
+### Bug Workflow
+
+1. **Report Bug** → Fill bug template with reproduction steps
+2. **Write Regression Test** → Test MUST reproduce bug (red phase)
+3. **Fix Bug** → Implement fix (green phase)
+4. **Verify Regression Test** → Test must prevent recurrence
+5. **Close Bug** → Update status, link fix commit
+
+### Regression Test Requirements
+
+**Every bug MUST have regression test:**
+- ✅ Test tagged with `@BUG-XXX @regression`
+- ✅ Test reproduces bug before fix
+- ✅ Test passes after fix
+- ✅ Test prevents future recurrence
+
+**Example:**
+```typescript
+// e2e/specs/auth/login-email-alias.spec.ts
+test('login with + in email @BUG-042 @regression @CORE-003', async ({ page }) => {
+  await page.goto('/login');
+  await page.fill('input[name="email"]', 'user+test@example.com');
+  await page.fill('input[name="password"]', 'ValidPassword123!');
+  await page.click('button[type="submit"]');
+  
+  // Should succeed (was failing before fix)
+  await expect(page).toHaveURL('/dashboard');
+});
+```
+
+### Running Regression Tests
+
+```bash
+# Run all regression tests
+npx playwright test --grep @regression
+
+# Run specific bug tests
+npx playwright test --grep @BUG-042
+
+# Run regression tests for story
+npx playwright test --grep "@regression @CORE-003"
+```
+
+### Bug Fix DoD
+
+- [ ] Regression test written (@BUG-XXX @regression)
+- [ ] Regression test passing
+- [ ] Original AC from story still passing
+- [ ] Bug verified by reporter
+- [ ] Fix merged to main
+- [ ] Bug status: closed
+
+### Bug → Story → Commit Traceability
+
+**Full Audit Trail:**
+```
+Story CORE-003: User Authentication
+  ↓ introduced by
+Commit abc1234: "feat(CORE-003): Add email validation"
+  ↓ caused
+Bug BUG-042: Email with + character fails
+  ↓ fixed by
+Commit def5678: "fix(BUG-042): Allow + in email validation"
+  ↓ verified by
+Regression Test: @BUG-042 @regression
+```
+
+**Track commits:**
+```bash
+# Find commits that introduced bug
+bash scripts/backlog/git_tracker.sh CORE-003
+
+# Example output:
+# CORE-003: User Authentication
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Commits:
+#   abc1234 - feat(CORE-003): Add email validation (2025-11-01)
+#   def5678 - fix(BUG-042): Allow + in email validation (2025-11-06)
+```
+
+---
+
+## 🧪 Test-First Development
+
+> **CORE-007 Feature:** AC → Test mapping with coverage validation
+
+### AC to Test Mapping
+
+**Every story MUST map AC to tests** in `README.md`:
+
+```markdown
+### AC1: Export CSV as admin → Tests
+
+| Test Type | Test Path | Status | Coverage | Last Run | Test ID |
+|-----------|-----------|--------|----------|----------|---------|
+| **Unit Test** | `utils/__tests__/csv.test.ts` | ✅ Passing | 100% | 2025-11-06 | - |
+| **Integration Test** | `backend/.../ExportServiceTest.java` | ✅ Passing | 100% | 2025-11-06 | - |
+| **E2E Test** | `e2e/specs/export/export-data.spec.ts` | ✅ Passing | 100% | 2025-11-06 | `@CORE-012 @AC1` |
+```
+
+### Test Validator
+
+**Validate test coverage before merge:**
+
+```bash
+# Validate single story
+bash scripts/backlog/test_validator.sh --story CORE-012
+
+# Output:
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 📊 Test Coverage Report: CORE-012
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# AC1: Export CSV as admin
+#   ✅ Unit Test: utils/__tests__/csv.test.ts
+#   ✅ Integration Test: backend/.../ExportServiceTest.java
+#   ✅ E2E Test: e2e/specs/export/export-data.spec.ts
+#   Coverage: 100% (3/3 test types) ✅
+# 
+# Overall Coverage: 100% ✅ COMPLETE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Validate epic
+bash scripts/backlog/test_validator.sh --epic EPIC-002
+
+# Require minimum coverage
+bash scripts/backlog/test_validator.sh --story CORE-012 --min-coverage 80
+
+# JSON output for CI/CD
+bash scripts/backlog/test_validator.sh --story CORE-012 --format json | jq .
+```
+
+### Test-First Workflow
+
+**Red-Green-Refactor Cycle:**
+
+1. **RED:** Write failing test (define requirement)
+2. **GREEN:** Implement minimum code to pass
+3. **CLEAN:** Refactor without breaking tests
+
+**Complete Guide:** [Test-Driven Workflow](../docs/development/test-driven-workflow.md)
+
+### DoD Test Requirements
+
+**Story cannot be merged without:**
+- [ ] AC to Test Mapping filled (min 1 test per AC)
+- [ ] Test-first workflow followed (tests written BEFORE code)
+- [ ] All tests passing (CI/CD green)
+- [ ] Test validator: 100% AC coverage
+- [ ] Regression tests for bugs (@BUG-XXX @regression)
+
+---
+
 ## 📚 Reference Documentation
 
 ### Templates
