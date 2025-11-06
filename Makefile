@@ -11,7 +11,7 @@ LOG_DIR := diagnostics
 LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
 JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
 
-.PHONY: help test-mt report-mt test-and-report clean-artifacts
+.PHONY: help test-mt report-mt test-and-report clean-artifacts backlog-new backlog-help
 .PHONY: up down clean clean-fast rebuild doctor watch verify verify-full
 
 # =============================================================================
@@ -67,7 +67,11 @@ help:
 	@echo "  env-validate    - Quick .env validation (file exists, vars set)"
 	@echo "  doctor          - Full health check (.env + service connectivity)"
 	@echo ""
-	@echo "💡 Note: 'make rebuild' runs UNIT tests only (fast)"
+	@echo "� Backlog Management:"
+	@echo "  backlog-new     - Create new User Story from template"
+	@echo "  backlog-help    - Show backlog commands & examples"
+	@echo ""
+	@echo "�💡 Note: 'make rebuild' runs UNIT tests only (fast)"
 	@echo "         'make test-backend-full' runs ALL tests (needs Docker)"
 	@echo "         'make clean' runs FULL E2E pipeline (PRE + POST)"
 	@echo "         PRE-DEPLOY E2E: Fast smoke tests (5-7 min)"
@@ -2194,3 +2198,38 @@ diag-grafana-embed:
 # Legacy alias
 .PHONY: diag-grafana-sso
 diag-grafana-sso: diag-grafana-embed
+
+# =============================================================================
+# 📋 BACKLOG MANAGEMENT (EPIC-001)
+# =============================================================================
+
+.PHONY: backlog-new backlog-help
+
+# Create new User Story from template
+backlog-new:
+	@bash scripts/backlog/new_story.sh $(if $(STORY),--title "$(STORY)") $(if $(EPIC),--epic "$(EPIC)") $(if $(PRIORITY),--priority "$(PRIORITY)") $(if $(ESTIMATE),--estimate "$(ESTIMATE)") $(if $(ASSIGNEE),--assignee "$(ASSIGNEE)")
+
+# Backlog help
+backlog-help:
+	@echo "📋 Backlog Management (EPIC-001)"
+	@echo ""
+	@echo "Commands:"
+	@echo "  backlog-new          - Create new story (interactive)"
+	@echo "  backlog-new STORY='Feature Name' - Quick create with title"
+	@echo ""
+	@echo "Options:"
+	@echo "  STORY='Feature Name'       - Story title (required)"
+	@echo "  EPIC='EPIC-XXX'            - Epic ID (default: EPIC-001-backlog-system)"
+	@echo "  PRIORITY='P1|P2|P3'        - Priority (default: P1)"
+	@echo "  ESTIMATE='X days'          - Estimate (default: 1 day)"
+	@echo "  ASSIGNEE='Name'            - Assignee name"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make backlog-new"
+	@echo "  make backlog-new STORY='Git Commit Tracker' EPIC='EPIC-001-backlog-system' PRIORITY='P2' ESTIMATE='2 days'"
+	@echo "  make backlog-new STORY='User Login' EPIC='EPIC-002-auth' PRIORITY='P1'"
+	@echo ""
+	@echo "Generated files:"
+	@echo "  backlog/EPIC-XXX/stories/CORE-YYY-title/README.md"
+	@echo "  Git branch: feature/CORE-YYY-title"
+	@echo ""
