@@ -22,10 +22,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -76,7 +76,7 @@ jobs:
       
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: post-deploy-playwright-report-${{ steps.env.outputs.env }}
           path: e2e/playwright-report/
@@ -84,7 +84,7 @@ jobs:
       
       - name: Upload traces
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: post-deploy-playwright-traces-${{ steps.env.outputs.env }}
           path: e2e/test-results/**/*.zip
@@ -92,7 +92,7 @@ jobs:
       
       - name: Upload scaffold artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: post-deploy-scaffold-result-${{ steps.env.outputs.env }}
           path: e2e/.auth/scaffold-result.json
