@@ -10,6 +10,40 @@ All notable changes to this project will be documented in this file.
 
 #### Backlog Management System (EPIC-001) - 2025-11-06
 
+**Git Commit Tracker (CORE-005)**
+- **Automatic commit → story mapping** for Git activity tracking
+  - Script: `scripts/backlog/git_tracker.sh` (405 lines bash)
+  - **CLI Options**: `--epic`, `--story`, `--format` (text|json), `--show-zero`, `--help`
+- **Features**:
+  - Parse git log for CORE-XXX references (supports: feat|fix|chore|docs|test|refactor patterns)
+  - Count commits per story ID
+  - Handle multi-story commits (`CORE-001,CORE-003`)
+  - Text report with emojis (✅ has commits, 📋 no commits)
+  - JSON output for automation/dashboards
+  - Zero-commit detection (`--show-zero` flag)
+- **Performance**: <0.3s for EPIC-001 (target <2s) ✅
+- **Usage Examples**:
+  ```bash
+  # Show commits for epic
+  bash scripts/backlog/git_tracker.sh --epic EPIC-001-backlog-system
+  
+  # Specific story
+  bash scripts/backlog/git_tracker.sh --story CORE-003
+  
+  # JSON output
+  bash scripts/backlog/git_tracker.sh --epic EPIC-001-backlog-system --format json | jq .
+  ```
+- **Use Cases**:
+  - 📊 Progress tracking (see which stories have Git activity)
+  - 🔍 Audit trail (map commits back to stories for compliance)
+  - 📋 Stale detection (find stories without commits)
+  - 🤖 Automation (JSON output for dashboards/reports)
+- **Testing**: Verified on EPIC-001 commits (CORE-001: 1, CORE-003: 2, CORE-005: 1+)
+- **Documentation**:
+  - `backlog/README.md` - Added Git Tracker section under Automation
+  - `docs/development/backlog-workflow.md` - Added "Tracking Git Activity" section
+- **Commit**: 7699f33 (story definition), 269fd38 (parser), 68a5ade (filters), TBD (docs)
+
 **Story Generator (CORE-003)**
 - **Automatic story creation** from templates with interactive wizard
   - `make backlog-new` - Interactive mode (prompts for all inputs)
