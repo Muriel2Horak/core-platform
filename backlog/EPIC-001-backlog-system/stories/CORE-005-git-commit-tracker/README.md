@@ -3,11 +3,20 @@ id: CORE-005
 epic: EPIC-001-backlog-system
 title: "Git Commit Tracker"
 priority: P2  # P1 (Must Have) | P2 (Should Have) | P3 (Nice to Have)
-status: ready  # ready | in-progress | blocked | done
+status: done  # Story complete and merged to main
 assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
 estimate: "2 days"
+path_mapping:
+  code_paths:
+    - scripts/backlog/git_tracker.sh
+  test_paths:
+    - scripts/backlog/test_git_tracker.sh  # TODO: Add unit tests
+  docs_paths:
+    - backlog/README.md
+    - docs/development/backlog-workflow.md
+    - CHANGELOG.md
 ---
 
 # CORE-005: Git Commit Tracker
