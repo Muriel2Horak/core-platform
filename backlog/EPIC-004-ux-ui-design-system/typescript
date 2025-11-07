@@ -1,0 +1,123 @@
+Script started on Fri Nov  7 20:15:10 2025
+[1m[7m%[27m[1m[0m                                                                                                                                                       [0m[27m[24m[Jmartinhorak@MacBook-Pro-5 EPIC-004-ux-ui-design-system % [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                                                                                       [0m[27m[24m[Jmartinhorak@MacBook-Pro-5 EPIC-004-ux-ui-design-system % [K[?2004hccd /Users/martinhorak/Projects/core-platform/backlog/EPIC-004-ux-ui-design-system/stories && b [Kaash << 'SCRIPT'[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h## S1: MUI Theme Foundation (DONE)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hccat > S1.md << 'EOF'[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h## S1: MUI Theme Foundation[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***EPIC:** [EPIC-004: UX/UI & Design System](../README.md)  [?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Status:** ✅ **DONE**  [?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Implementováno:** Červenec 2024  [?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***LOC:** ~500 řádků[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h----[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h### 📋 Story Description[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hJJako **frontend developer**, chci **MUI theme s glassmorphic designem a dark/light mode**, abych **měl konzistentní styling napříč celo [Kuu aplikací**.[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h----[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h### 🎯 Acceptance Criteria[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC1: Theme Configuration[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** aplikace nastartuje[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** zobrazím jakoukoliv stránku[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** používá corePlatformTheme[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **AND** respektuje systémový dark/light mode[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC2: Glassmorphic Design[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** komponenta s MUI Paper[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** zobrazím komponentu[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** vidím semi-transparent background[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **AND** backdrop-filter: blur efekt[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC3: Color Palette[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** MUI komponenta[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** použiju `color="primary"`[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** zobrazí #1976d2 (modrá)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC4: Typography Scale[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** <Typography variant="h1">[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** zobrazím text[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** velikost 2.5rem, weight 600[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h----[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h### ✅ Implementation[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Files:**[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- `frontend/src/shared/theme/theme.ts` (313 lines)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- `frontend/src/App.jsx` (ThemeProvider setup)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Details:** See [EPIC-004 README](../README.md#s1-mui-theme-foundation)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hEEOF[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h## S2: Design Tokens System (DONE)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hccat > S2.md << 'EOF'[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h## S2: Design Tokens System[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***EPIC:** [EPIC-004: UX/UI & Design System](../README.md)  [?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Status:** ✅ **DONE**  [?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Implementováno:** Červenec 2024  [?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***LOC:** ~300 řádků[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h----[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h### 📋 Story Description[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hJJako **frontend developer**, chci **centralized design tokens**, abych **používal konzistentní hodnoty pro spacing, colors, shadows nap [Křříč aplikací**.[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h----[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h### 🎯 Acceptance Criteria[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC1: Tokens Exported[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** import `import { tokens } from '@/shared/theme/tokens'`[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** použiju `tokens.spacing.md`[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** dostanu 16 (px)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC2: TypeScript Autocomplete[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** VSCode s TypeScript[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** píšu `tokens.`[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** zobrazí autocomplete (colors, spacing, borderRadius, shadows, breakpoints)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h#### AC3: Tokens Usage[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **GIVEN** komponenta potřebuje spacing[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **WHEN** použiju `sx={{ p: tokens.spacing.md / 8 }}`  # MUI spacing(2) = 16px[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- **THEN** aplikuje padding 16px[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h----[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h### ✅ Implementation[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Files:**[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h-- `frontend/src/shared/theme/tokens.ts`[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Usage Examples:**[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h````tsx[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hiimport { tokens } from '@/shared/theme/tokens';[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h/// Colors[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h<<Box sx={{ bgcolor: tokens.colors.primary.main }} />[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h/// Spacing[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h<<Box sx={{ mt: tokens.spacing.lg / 8 }} />  // margin-top: 24px[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h/// Border Radius[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h<<Card sx={{ borderRadius: `${tokens.borderRadius.md}px` }} />[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h/// Shadows[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h<<Paper elevation={0} sx={{ boxShadow: tokens.shadows.md }} />[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h````[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h***Details:** See [EPIC-004 README](../README.md#s2-design-tokens-system)[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hEEOF[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004h[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004heecho "✅ S1.md, S2.md created (DONE stories)"[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hlls -1 S*.md 2>/dev/null || echo "No story files yet (expected for TODO stories)"[?2004l
+[0m[27m[24m[Jcmdand heredoc> [K[?2004hSSCRIPT[?2004l
+✅ S1.md, S2.md created (DONE stories)
+S1.md
+S2.md
+[1m[7m%[27m[1m[0m                                                                                                                                                       [0m[27m[24m[Jmartinhorak@MacBook-Pro-5 stories % [K[?2004h
