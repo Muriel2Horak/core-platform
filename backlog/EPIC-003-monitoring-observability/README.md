@@ -1,8 +1,8 @@
 # EPIC-003: Monitoring & Observability Stack
 
-**Status:** 🟢 **100% COMPLETE** (All components operational)  
-**Implementováno:** Září - Říjen 2024  
-**LOC:** ~8,000 řádků (backend + frontend + configs)  
+**Status:** � **70% COMPLETE** (7/10 stories done, frontend dashboards TODO)  
+**Implementováno:** Září - Říjen 2024 (Grafana stack), TODO (Frontend dashboards)  
+**LOC:** ~13,500 řádků (~8,000 done + ~5,500 TODO)  
 **Dokumentace:** `MONITORING_COMPLETE.md`, `LOKI_MIGRATION_COMPLETE.md`, `EPIC_COMPLETE_LOKI_UI.md`
 
 ---
@@ -24,14 +24,17 @@
 
 | ID | Story | Status | LOC | Components | Value |
 |----|-------|--------|-----|------------|-------|
-| [MON-001](#mon-001-loki-log-aggregation) | Loki Log Aggregation | ✅ DONE | ~1,000 | Loki 3.0 + Promtail | Centralized logs |
-| [MON-002](#mon-002-prometheus-metrics) | Prometheus Metrics | ✅ DONE | ~1,500 | Prometheus 2.x | Time-series metrics |
-| [MON-003](#mon-003-grafana-dashboards) | Grafana Dashboards | ✅ DONE | ~2,000 | 7 Axiom dashboards | Visualization |
-| [MON-004](#mon-004-tenant-auto-provisioning) | Tenant Auto-Provisioning | ✅ DONE | ~800 | Backend service | Per-tenant monitoring |
-| [MON-005](#mon-005-recording-rules) | Recording Rules | ✅ DONE | ~600 | Prometheus rules | Aggregated metrics |
-| [MON-006](#mon-006-alerting) | Alerting & Notifications | ✅ DONE | ~700 | Alert rules | Proactive alerts |
-| [MON-007](#mon-007-native-loki-ui) | Native Loki UI | ✅ DONE | ~1,400 | BFF API + React | De-Grafana logs |
-| **TOTAL** | | **7/7** | **~8,000** | **Complete stack** | **Full observability** |
+| [S1](#s1-loki-log-aggregation) | Loki Log Aggregation | ✅ DONE | ~1,000 | Loki 3.0 + Promtail | Centralized logs |
+| [S2](#s2-prometheus-metrics) | Prometheus Metrics | ✅ DONE | ~1,500 | Prometheus 2.x | Time-series metrics |
+| [S3](#s3-grafana-dashboards) | Grafana Dashboards | ✅ DONE | ~2,000 | 7 Axiom dashboards | Visualization |
+| [S4](#s4-tenant-auto-provisioning) | Tenant Auto-Provisioning | ✅ DONE | ~800 | Backend service | Per-tenant monitoring |
+| [S5](#s5-recording-rules) | Recording Rules | ✅ DONE | ~600 | Prometheus rules | Aggregated metrics |
+| [S6](#s6-alerting) | Alerting & Notifications | ✅ DONE | ~700 | Alert rules | Proactive alerts |
+| [S7](#s7-native-loki-ui) | Native Loki UI | ✅ DONE | ~1,400 | BFF API + React | De-Grafana logs |
+| [S8](#s8-business-dashboards) | Business Dashboards (Frontend) | 🔵 TODO | ~2,500 | React + MUI Charts | Integrated UI |
+| [S9](#s9-reporting-dashboards) | Reporting Dashboards (Cube.js) | 🔵 TODO | ~1,800 | Cube.js + Analytics | Business Intelligence |
+| [S10](#s10-real-time-widgets) | Real-Time Monitoring Widgets | 🔵 TODO | ~1,200 | WebSocket + Live | Live metrics |
+| **TOTAL** | | **7/10** | **~13,500** | **Complete stack** | **Full observability** |
 
 ---
 
@@ -923,7 +926,85 @@ export const LokiLogsPage: React.FC = () => {
 
 ---
 
-## 📊 Overall Impact
+## � NEW: Frontend Dashboard Stories (S8-S10)
+
+### S8: Business Dashboards (Frontend React UI)
+
+**Status:** 🔵 **TODO**  
+**Priority:** P1  
+**LOC:** ~2,500
+
+**Purpose:** Custom React dashboardy integrované přímo v Core Platform UI (ne Grafana).
+
+**Dashboards:**
+1. **Tenant Overview** - Active users, documents, storage, API requests
+2. **User Activity** - Sessions, logins, heatmaps, geographic distribution
+3. **System Health** - Service status, response times, error rates, DB/Redis/Kafka metrics
+4. **Analytics** - Feature usage, page views, user journeys, retention cohorts
+
+**Key Features:**
+- Real-time updates (WebSocket)
+- Export (CSV, JSON, PDF)
+- Time range filtering
+- Drill-down analysis
+
+**Details:** [S8 Story](./stories/S8.md)
+
+---
+
+### S9: Reporting Dashboards (Cube.js Analytics)
+
+**Status:** 🔵 **TODO**  
+**Priority:** P1  
+**LOC:** ~1,800
+
+**Purpose:** Business Intelligence reporting s pokročilou analytikou přes Cube.js.
+
+**Reports:**
+1. **Revenue Dashboard** - MRR, ARR, ARPU, LTV, churn rate, forecast
+2. **Usage Reports** - DAU/MAU, feature adoption, storage consumption, API usage
+3. **Compliance Reports** - Audit logs, data retention, access control, GDPR
+4. **Executive Summary** - KPIs, health score, growth trends, recommendations
+
+**Key Features:**
+- Cube.js pre-aggregation (fast queries)
+- Custom date ranges
+- Drill-down by tenant/plan/region
+- PDF export (board-ready)
+
+**Details:** [S9 Story](./stories/S9.md)
+
+---
+
+### S10: Real-Time Monitoring Widgets
+
+**Status:** 🔵 **TODO**  
+**Priority:** P2  
+**LOC:** ~1,200
+
+**Purpose:** Live monitoring widgets pro instant přehled o stavu systému.
+
+**Widgets:**
+- Active Users Now (WebSocket)
+- Requests per Second (live)
+- Error Rate (last 1 min)
+- Response Time (p95)
+- Database Connections
+- Kafka Consumer Lag
+- System Health Status
+- Live Activity Feed
+
+**Key Features:**
+- WebSocket real-time updates (2-5s)
+- Threshold alerts (desktop notifications)
+- Sparkline mini-charts
+- Auto-reconnect
+
+**Details:** [S10 Story](./stories/S10.md)
+
+---
+
+## �📊 Overall Impact
 
 ### Metrics
 - **MTTR**: 15 minutes average (vs 2 hours pre-monitoring)
@@ -944,14 +1025,14 @@ export const LokiLogsPage: React.FC = () => {
 
 | Category | Score | Notes |
 |----------|-------|-------|
-| **Functionality** | 100% | All 7 components complete |
+| **Functionality** | 70% | 7/10 components complete (S8-S10 TODO) |
 | **Reliability** | 95% | HA setup pending |
 | **Performance** | 90% | Dashboards load <2s |
 | **Security** | 85% | RBAC implemented |
-| **Documentation** | 100% | Full runbook available |
+| **Documentation** | 80% | Runbook available, S8-S10 docs TODO |
 | **Testing** | 90% | CI/CD integration complete |
 | **Automation** | 100% | Tenant auto-provisioning |
-| **OVERALL** | **94%** | **Production Ready** |
+| **OVERALL** | **87%** | **Phase 1 Production Ready, Phase 2 (S8-S10) in Planning** |
 
 ---
 
