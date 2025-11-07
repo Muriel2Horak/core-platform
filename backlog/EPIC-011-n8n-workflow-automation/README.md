@@ -108,6 +108,15 @@ Integrate n8n workflow automation platform into core-platform with **enterprise-
 - Monitoring integration (Prometheus metrics)
 - **Metrics**: 500+ workflows, 10k+ executions/day
 
+### S6: Backend n8n Integration (BFF Pattern) (~1,200 LOC)
+
+- n8n REST API client (WebClient)
+- BFF proxy controller with role-based access
+- Workflow monitoring endpoints (GET /api/n8n/workflows)
+- Execution status tracking (real-time polling)
+- Frontend React dashboard component
+- **Metrics**: <200ms API latency, 5s real-time updates
+
 ## 🔐 Security Features
 
 - **Zero Trust**: Default deny policy, explicit allow rules
@@ -120,25 +129,37 @@ Integrate n8n workflow automation platform into core-platform with **enterprise-
 ## 🚀 Implementation Plan
 
 ### Phase 1: Foundation (Week 1)
+
 - ✅ S1: Deploy Authelia + Redis
 - ✅ S2: Configure Keycloak OIDC client
 - ✅ Generate secrets, hash client credentials
 
 ### Phase 2: Integration (Week 2)
+
 - ✅ S3: Nginx forward auth configuration
 - ✅ S4: ACL rules + group policies
 - ✅ Testing: Login flow, 2FA, webhooks
 
 ### Phase 3: n8n Deployment (Week 3)
+
 - ✅ S5: n8n Docker setup + PostgreSQL
 - ✅ Workflow templates
 - ✅ Monitoring + alerting
 
 ### Phase 4: Production (Week 4)
+
 - ✅ SSL certificates (Let's Encrypt)
 - ✅ Backup strategy (Authelia DB + n8n DB)
 - ✅ Documentation + runbook
 - ✅ User training (2FA setup)
+
+### Phase 5: Backend Integration (Week 5)
+
+- [ ] S6: n8n REST API client implementation
+- [ ] BFF proxy controller with role-based access
+- [ ] Frontend dashboard component (workflow monitoring)
+- [ ] Real-time execution tracking (5s polling)
+- [ ] Integration tests + E2E tests
 
 ## 📚 Documentation
 
@@ -155,13 +176,16 @@ Integrate n8n workflow automation platform into core-platform with **enterprise-
 
 ## 🏁 Definition of Done
 
-- [ ] All 5 stories implemented with acceptance criteria met
+- [ ] All 6 stories implemented with acceptance criteria met
 - [ ] Authelia + n8n + Redis running in Docker Compose
 - [ ] 100% UI access requires SSO authentication
 - [ ] Webhooks publicly accessible (no auth)
 - [ ] 2FA enabled for admin users
 - [ ] Keycloak OIDC integration tested
 - [ ] ACL rules enforced (groups: admins, users, viewers)
+- [ ] Backend BFF API operational (GET /api/n8n/workflows)
+- [ ] Frontend dashboard showing workflow status
+- [ ] Real-time execution monitoring (5s poll)
 - [ ] Monitoring dashboards (Authelia + n8n metrics)
 - [ ] Security audit passed (0 public n8n exposure)
 - [ ] Documentation complete (setup guide + runbook)
@@ -171,4 +195,4 @@ Integrate n8n workflow automation platform into core-platform with **enterprise-
 **Epic Owner**: Platform Team  
 **Priority**: High  
 **Target**: Q1 2026  
-**Estimated Effort**: 3 weeks (1 engineer)
+**Estimated Effort**: 4 weeks (1 engineer)
