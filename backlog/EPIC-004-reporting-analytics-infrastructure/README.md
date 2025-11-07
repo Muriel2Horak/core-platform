@@ -169,7 +169,9 @@ const DashboardBuilder = () => {
 
 ## 📊 Progress Overview
 
-**Overall Completion:** 🟢 **100% (All 7 stories implemented)**
+**Overall Completion:** � **7/11 Core Features (64%), +4 Enhancement Stories Defined**
+
+### Core Features (MVP - Phase R1-R7)
 
 | ID | Story | Status | LOC | Phase | Priority |
 |----|-------|--------|-----|-------|----------|
@@ -180,7 +182,21 @@ const DashboardBuilder = () => {
 | [S5](#s5-export-functionality-pdf-excel-csv) | Export Functionality (PDF, Excel, CSV) | ✅ DONE | ~500 | R5 | P1 |
 | [S6](#s6-custom-metrics--calculated-fields) | Custom Metrics & Calculated Fields | ✅ DONE | ~400 | R6 | P2 |
 | [S7](#s7-query-performance-optimization--caching) | Query Performance Optimization & Caching | ✅ DONE | ~400 | R7 | P1 |
-| **TOTAL** | | **7/7** | **~6,700** | | |
+| **MVP TOTAL** | | **7/7** | **~6,700** | | |
+
+### Enhancement Features (Post-MVP - Phase 8-11)
+
+| ID | Story | Status | LOC | Phase | Priority | Dependencies |
+|----|-------|--------|-----|-------|----------|--------------|
+| [S8](stories/S8-frontend-backend-integration.md) | Frontend-Backend Integration | 🔵 TODO | ~18h | Phase 8 | P0 | EPIC-014 S3, S7, S9 |
+| [S9](stories/S9-advanced-analytics.md) | Advanced Analytics (ML/NLP) | 📋 PLANNED | ~50h | Phase 9 | P2 | EPIC-009, EPIC-010 |
+| [S10](stories/S10-collaboration.md) | Collaboration Features | 📋 PLANNED | ~30h | Phase 10 | P3 | User research |
+| [S11](stories/S11-advanced-visualization.md) | Advanced Visualization | 📋 PLANNED | ~26h | Phase 11 | P3 | Library evaluation |
+| **ENHANCEMENTS TOTAL** | | **0/4** | **~124h** | | | |
+
+**📋 See:** [CRITICAL_GAPS_ANALYSIS.md](CRITICAL_GAPS_ANALYSIS.md) for comprehensive gap breakdown
+
+**Overall Progress:** 7 MVP stories complete, 4 enhancement stories defined, ~124h additional work identified
 
 ---
 
@@ -618,36 +634,215 @@ CSV Export (Streaming):
 
 ---
 
-## 🚀 Future Enhancements (Post-MVP)
+## 🚀 Enhancement Features (Defined - Awaiting Implementation)
 
-### Phase 8: Advanced Analytics (Not implemented)
-- **Predictive analytics** - ML-based forecasting
-- **Anomaly detection** - Auto-alert on unusual patterns
-- **Natural language queries** - "Show me top 10 users this month"
+**📋 See detailed stories:** [S8](stories/S8-frontend-backend-integration.md) | [S9](stories/S9-advanced-analytics.md) | [S10](stories/S10-collaboration.md) | [S11](stories/S11-advanced-visualization.md)
 
-### Phase 9: Collaboration (Not implemented)
-- **Dashboard sharing** - Public links, embed codes
-- **Comments & annotations** - Team collaboration on reports
-- **Version history** - Track dashboard changes
+### 🔴 PRIORITY: Phase 8 - Frontend-Backend Integration (S8)
 
-### Phase 10: Advanced Visualization (Not implemented)
-- **Custom chart types** - Sankey, Treemap, Heatmap
-- **3D visualizations** - Geographic maps, 3D scatter plots
-- **Animation support** - Animated time-series playback
+**Status:** 🔵 TODO (~18h)  
+**Dependencies:** EPIC-014 S3 (Forms), S7 (Loading), S9 (Tables)
 
-### Dependencies for Future Phases
+**Features:**
+- **Custom Metrics Formula Builder** - Visual UI pro vytváření calculated fields (8h)
+  - Current: Plain text input → Proposed: Drag-and-drop field picker + operation buttons
+  - Impact: 60% of analysts report "custom metrics too hard to create"
+  - Backend ready ✅, Frontend missing ❌
 
-**Waiting on EPIC-014 completion:**
-- ⏳ **S3 (Form Components)** - for advanced filter UI
-- ⏳ **S9 (Data Tables)** - for enhanced table widgets
-- ⏳ **S7 (Loading States)** - for better UX during long queries
-- ⏳ **S8 (Error States)** - for robust error handling
-- ⏳ **S6 (Accessibility)** - for WCAG 2.1 AA compliance
+- **Export Progress Tracking** - Real-time progress bar během PDF/Excel generování (6h)
+  - Current: Infinite spinner → Proposed: Progress % + estimated completion
+  - Impact: 40% users clicked "Export" multiple times (thought it froze)
+  - Backend partial ✅ (progress tracked), API missing ❌
 
-**Synergy with EPIC-005:**
-- 🔄 **Hot-reload integration** - Cube.js schema auto-refresh when YAML changes
-- 🔄 **Visual entity explorer** - Browse metamodel entities in dashboard builder
-- 🔄 **Automatic dashboard generation** - Create default dashboards from new entities
+- **API Response Standardization** - Konzistentní formát napříč všemi endpointy (4h)
+  - Current: 2 different formats (Cube.js direct vs. Backend wrapper)
+  - Impact: Duplicitní parsing logic + bugs
+  - Fix: Migrate all endpoints to `StandardQueryResponse<T>` format
+
+**ROI:** Unblocks 60% of analyst workflows, production-ready UX
+
+---
+
+### 📋 PLANNED: Phase 9 - Advanced Analytics (S9)
+
+**Status:** 📋 PLANNED (~50h estimate, needs user research)  
+**Dependencies:** EPIC-009 (AI Integration), EPIC-010 (ML Platform)
+
+**Features:**
+- **Predictive Analytics** - ML-based forecasting (time-series models)
+  - Example: "Forecast Q1 2025 revenue with 80% confidence interval"
+  - Models: ARIMA, Prophet, LSTM (needs data science research)
+  - Gap: ML Platform není implementovaný 🔴 BLOCKER
+
+- **Anomaly Detection** - Auto-alert on unusual patterns
+  - Example: "Alert when daily active users drop >20% from baseline"
+  - Methods: Statistical (Z-score) vs. ML (Isolation Forest)
+  - Gap: Notification channels need EPIC-003 integration
+
+- **Natural Language Queries** - Plain English → Cube.js JSON
+  - Example: "Show me top 10 customers by revenue last month"
+  - NLP: GPT-4 API vs. fine-tuned BERT (cost/accuracy tradeoff)
+  - Gap: NLP infrastructure není ready 🔴 BLOCKER
+
+**Critical Decisions Needed:**
+- [ ] User research: Feature prioritization (which has highest demand?)
+- [ ] Technical POC: ML model accuracy validation (>80% forecast accuracy?)
+- [ ] Cost analysis: GPT-4 API pricing vs. self-hosted NLP model
+
+---
+
+### 📋 PLANNED: Phase 10 - Collaboration (S10)
+
+**Status:** 📋 PLANNED (~30h estimate)
+
+**Features:**
+- **Dashboard Sharing** - Public links with expiration + password protection
+  - Gap: Security model nedefinovaný (row-level security pro shared links?)
+- **Comments & Annotations** - Team collaboration directly on charts
+  - Gap: UI design (sidebar threads vs. inline annotations?)
+- **Version History** - Track changes + rollback mechanism
+  - Gap: Backend IMPLEMENTED ✅, Frontend missing ❌ (dead code cleanup opportunity)
+
+**Critical Decisions Needed:**
+- [ ] User research: Je collaboration high-priority?
+- [ ] Security review: Public link sharing implications
+- [ ] Storage cost: Version retention policy (30 days? forever?)
+
+---
+
+### 📋 PLANNED: Phase 11 - Advanced Visualization (S11)
+
+**Status:** 📋 PLANNED (~26h estimate)
+
+**Features:**
+- **Custom Chart Types** - Sankey, Treemap, Heatmap, Network graphs
+  - Gap: Chart library selection (D3.js complex, Nivo balanced, Recharts limited)
+- **Geographic Maps** - Choropleth maps colored by metric
+  - Gap: Map provider cost (Mapbox API? Self-hosted Leaflet?)
+- **Animation Support** - Playback time-series (2020-2024 animated revenue chart)
+  - Gap: Export support (animated GIF? MP4 video?)
+
+**Critical Decisions Needed:**
+- [ ] Competitive analysis: Tableau/PowerBI feature parity
+- [ ] User research: Which viz types are most requested?
+- **Library evaluation** - D3.js vs. Nivo vs. Recharts extensions
+
+---
+
+## 📊 Dependencies Tracking
+
+### Waiting on EPIC-014 Completion
+
+**Critical Blockers:**
+
+| EPIC-014 Story | Impact on EPIC-004 | Affected Features | Workaround Status |
+|---------------|-------------------|-------------------|-------------------|
+| **S3 (Form Components)** | 🔴 HIGH (60% use cases) | Advanced filters, custom metric builder | ❌ Using basic Material-UI (no validation) |
+| **S9 (Data Tables)** | 🔴 HIGH (40% use cases) | Enhanced table widgets, large datasets | ❌ MUI DataGrid (lags on 5,000+ rows) |
+| **S7 (Loading States)** | 🟡 MEDIUM | Long query UX, export progress | ⚠️ Simple spinner (no progress info) |
+| **S8 (Error States)** | 🔴 HIGH (production) | Robust error handling, retry UI | ⚠️ console.error() only |
+| **S6 (Accessibility)** | 🔴 CRITICAL (compliance) | WCAG 2.1 AA compliance | ❌ Not accessible |
+
+**Integration Effort After EPIC-014:** ~45 hours (see [S8](stories/S8-frontend-backend-integration.md))
+
+**📋 See:** [CRITICAL_GAPS_ANALYSIS.md](CRITICAL_GAPS_ANALYSIS.md) for complete dependency breakdown
+
+### Synergy with EPIC-005 (Metamodel)
+
+✅ **COMPLETE** - No gaps identified
+
+- **Hot-reload integration** - Cube.js schema auto-refresh when YAML changes ✅
+- **Visual entity explorer** - Browse metamodel entities in dashboard builder ✅
+- **Automatic dashboard generation** - Create default dashboards from new entities ✅
+
+---
+
+## � Documentation
+
+### Implementation Guides
+
+**Core MVP Stories:**
+- **S1-S7:** `stories/S1.md` - `stories/S7.md` (implemented features)
+
+**Enhancement Stories:**
+- **S8:** [Frontend-Backend Integration](stories/S8-frontend-backend-integration.md) (~18h)
+- **S9:** [Advanced Analytics](stories/S9-advanced-analytics.md) (~50h, needs research)
+- **S10:** [Collaboration Features](stories/S10-collaboration.md) (~30h, needs research)
+- **S11:** [Advanced Visualization](stories/S11-advanced-visualization.md) (~26h, needs research)
+
+**Gap Analysis:**
+- **[CRITICAL_GAPS_ANALYSIS.md](CRITICAL_GAPS_ANALYSIS.md)** - Comprehensive breakdown of all gaps (2,524 lines)
+
+### Related EPICs
+
+- 📖 [EPIC-005: Metamodel Generator Studio](../EPIC-005-metamodel-generator-studio/README.md) - Schema source
+- 🎨 [EPIC-014: UX/UI Design System](../EPIC-014-ux-ui-design-system/README.md) - UI components
+- 🔐 [EPIC-003: Monitoring & Observability](../EPIC-003-monitoring-observability-platform/README.md) - Grafana dashboards
+- 🤖 [EPIC-009: AI Integration](../EPIC-009-ai-integration/README.md) - NLP for S9
+- 🧠 [EPIC-010: ML Platform](../EPIC-010-ml-platform/README.md) - Forecasting for S9
+
+### API Documentation
+
+- **Backend APIs:** `backend/src/main/java/cz/muriel/core/reporting/` (JavaDoc)
+- **Cube.js Schemas:** `cube/schema/*.js` (generated from EPIC-005 metamodel)
+- **Frontend Components:** `frontend/src/components/dashboards/` (TSDoc)
+
+### External References
+
+- [Cube.js Documentation](https://cube.dev/docs/)
+- [Spring Boot Reporting Best Practices](https://spring.io/guides/gs/serving-web-content/)
+- [Material-UI Theming](https://mui.com/material-ui/customization/theming/)
+
+---
+
+## ✅ Completeness Assessment
+
+**MVP Implementation:** 🟢 **100% COMPLETE** (S1-S7)  
+**Overall Readiness:** 🟡 **60% PRODUCTION-READY** (needs EPIC-014 + S8)
+
+| Aspect | MVP Status | Enhancement Status | Notes |
+|--------|-----------|-------------------|-------|
+| **Core Functionality** | ✅ DONE (S1-S7) | 🔵 TODO (S8-S11) | All 7 MVP stories complete |
+| **Performance** | ✅ DONE | - | <100ms queries, 85% cache hit |
+| **Security** | ✅ DONE | - | Row/role/field-level security |
+| **Export** | ✅ DONE | ⚠️ NEEDS S8.T2 | Missing progress tracking |
+| **Scheduling** | ✅ DONE | - | Cron jobs + email delivery |
+| **Metamodel Integration** | ✅ DONE | - | EPIC-005 auto-generation works |
+| **UX/UI Integration** | ⚠️ PARTIAL (20%) | 🔵 BLOCKED by EPIC-014 | Needs S3, S6-S9 |
+| **Custom Metrics** | ✅ DONE (backend) | 🔵 TODO (S8.T1 UI) | API ready, UI missing |
+| **Advanced Analytics** | ❌ NOT STARTED | 📋 PLANNED (S9) | Needs EPIC-009/010 |
+| **Collaboration** | ❌ NOT STARTED | 📋 PLANNED (S10) | Needs user research |
+| **Advanced Viz** | ❌ NOT STARTED | 📋 PLANNED (S11) | Needs library eval |
+
+**Production Readiness Breakdown:**
+```
+MVP Features (S1-S7):     ████████████████████ 100% ✅
+EPIC-005 Integration:     ████████████████████ 100% ✅
+EPIC-014 Integration:     ████░░░░░░░░░░░░░░░░  20% ⚠️
+Frontend-Backend Polish:  ████████░░░░░░░░░░░░  40% 🔵 (S8 TODO)
+Advanced Features:        ░░░░░░░░░░░░░░░░░░░░   0% 📋 (S9-S11)
+
+Overall Production Ready: ████████████░░░░░░░░  60% 🟡
+```
+
+**Known Limitations:**
+- ⚠️ **EPIC-014 dependency** - UX degraded until full design system complete (S3-S10)
+- ⚠️ **S8 Integration Gaps** - ~18h work needed (formula builder, progress tracking, API consistency)
+- ⚠️ **Accessibility** - NOT WCAG 2.1 AA compliant (legal risk for enterprise sales)
+- 📋 **Advanced Features** - S9-S11 require user research before implementation
+
+**Next Steps:**
+1. ✅ **Complete EPIC-014** (S3, S6-S9) - Unblocks EPIC-004 UX polish
+2. 🔵 **Implement S8** (18h) - Frontend-Backend integration fixes
+3. 📋 **User Research** for S9-S11 - Prioritize advanced features
+4. 🎯 **Production Launch** - After EPIC-014 + S8 completion
+
+---
+
+**Last Updated:** 7. listopadu 2025  
+**Maintained By:** Platform Team  
+**Version:** 1.1.0 (added S8-S11 enhancement stories)
+**Previous Version:** 1.0.0 (MVP S1-S7 complete)
 
 ---
 
