@@ -1,602 +1,600 @@
-# EPIC-002: E2E Testing Infrastructure
+# EPIC-002: Testing Infrastructure & Framework
 
-**Status:** 🟢 **100% COMPLETE**  
-**Implementováno:** Srpen - Říjen 2024  
-**LOC:** ~12,000 řádků (test specs + helpers + configs)  
-**Test Coverage:** ~90% overall (Admin UI 85%, Public 90%, Auth 100%)  
-**Dokumentace:** `E2E_100_PERCENT_COMPLETE.md`, `E2E_TWO_TIER_COMPLETE.md`, `E2E_A11Y_MIGRATION_COMPLETE.md`
+**Status:** 🔵 **IN PROGRESS**  
+**Priority:** P0 (Critical Foundation)  
+**Effort:** ~30 hodin  
+**LOC:** ~2,500 řádků (framework + config + documentation)
 
 ---
 
 ## 🎯 Vision
 
-**Vytvořit kompletní E2E testing infrastrukturu** s two-tier strategií (PRE-deploy smoke + POST-deploy full), accessibility testing, a CRUD test framework pro automatizovanou validaci celé platformy.
+**Standardizovaný testing framework** pro všechny typy testů (E2E, Unit, Integration, Backend) s automatickou evidencí pokrytí User Stories a integrací do CI/CD pipeline.
 
 ### Business Goals
-- **Fast Feedback**: PRE-deploy testy <7 minut (smoke tests)
-- **Full Coverage**: POST-deploy testy ~30 minut (kompletní E2E)
-- **Accessibility**: WCAG 2.1 AA compliance
-- **CI/CD Integration**: Automated testing v GitHub Actions
+- **Test-First Culture**: Každý feature má E2E + Unit + Backend testy
+- **Traceability**: Každý test mapuje na User Story (CORE-XXX)
+- **Automation**: Testy běží automaticky při build (make test-*)
+- **Coverage Tracking**: Víme jaké US jsou otestované a které ne
+- **Quality Gates**: Build failuje pokud testy selžou nebo coverage klesne
+
+### Principles
+```
+Každá User Story vyžaduje:
+✅ E2E test (Playwright) - end-to-end flow
+✅ Unit testy (JUnit/Vitest) - business logika
+✅ Backend test (REST Assured) - API contract
+✅ Test ID tag - mapování na User Story (e.g., @CORE-123)
+```
+
+---
+
+## 🏗️ Architecture
+
+```
+Testing Framework (Multi-Tier)
+│
+├── E2E Tests (Playwright)
+│   ├── Pre-Deploy Smoke (5-7 min) - Critical paths
+│   ├── Post-Deploy Full (20-30 min) - Complete platform
+│   ├── Accessibility (Axe-core) - WCAG 2.1 AA
+│   └── Test Tags: @CORE-XXX (User Story mapping)
+│
+├── Unit Tests
+│   ├── Frontend (Vitest) - React components, hooks
+│   ├── Backend (JUnit) - Service layer, business logic
+│   └── Coverage Target: 80% line coverage
+│
+├── Integration Tests (Backend)
+│   ├── REST Assured - API contract testing
+│   ├── Testcontainers - DB + Kafka + Redis
+│   └── Spring Boot Test - Full context loading
+│
+└── Test Registry (NEW!)
+    ├── Database: test_registry table
+    ├── Schema: test_id, user_story_id, type, status, coverage
+    ├── API: GET /api/test-registry/{storyId}
+    └── UI: Coverage dashboard (Grafana panel)
+```
+
+### Test Types
+
+| Type | Framework | Purpose | Run Time | Coverage Target |
+|------|-----------|---------|----------|-----------------|
+| **E2E Smoke** | Playwright | Fast feedback (PRE-deploy) | 5-7 min | Critical paths |
+| **E2E Full** | Playwright | Complete validation (POST-deploy) | 20-30 min | All features |
+| **Unit Frontend** | Vitest | React components, hooks | 2-5 min | 80% lines |
+| **Unit Backend** | JUnit | Service layer, business logic | 5-10 min | 80% lines |
+| **Integration** | REST Assured | API contracts, DB, messaging | 10-15 min | All endpoints |
+| **Accessibility** | Axe-core | WCAG 2.1 AA compliance | 3-5 min | All pages |
 
 ---
 
 ## 📋 Stories Overview
 
-| ID | Story | Status | Tests | Components | Value |
-|----|-------|--------|-------|------------|-------|
-| [E2E-001](#e2e-001-two-tier-architecture) | Two-Tier Architecture | ✅ DONE | 9 | PRE + POST projects | Fast feedback |
-| [E2E-002](#e2e-002-playwright-infrastructure) | Playwright Setup | ✅ DONE | - | Config + fixtures | Test foundation |
-| [E2E-003](#e2e-003-authentication-flows) | Auth Flows | ✅ DONE | 4 | Login helpers | 100% auth coverage |
-| [E2E-004](#e2e-004-crud-test-framework) | CRUD Framework | ✅ DONE | 12 | Page objects | Reusable actions |
-| [E2E-005](#e2e-005-accessibility-testing) | Accessibility (a11y) | ✅ DONE | 8 | Axe-core | WCAG 2.1 AA |
-| [E2E-006](#e2e-006-admin-ui-coverage) | Admin UI Coverage | ✅ DONE | 15 | Entities, Groups, Tenants | 85% coverage |
-| [E2E-007](#e2e-007-monitoring-tests) | Monitoring Tests | ✅ DONE | 6 | Grafana, Loki, Prometheus | 90% coverage |
-| **TOTAL** | | **7/7** | **~30** | **Complete E2E** | **90% platform coverage** |
+| ID | Story | Status | LOC | Effort | Value |
+|----|-------|--------|-----|--------|-------|
+| [TF-001](#tf-001-test-registry--tracking) | Test Registry & Tracking | 🔵 TODO | ~600 | 8h | Evidence testů |
+| [TF-002](#tf-002-test-tagging-system) | Test ID Tagging System | 🔵 TODO | ~400 | 6h | Mapování US → testy |
+| [TF-003](#tf-003-coverage-dashboard) | Coverage Dashboard | 🔵 TODO | ~500 | 8h | Visualizace pokrytí |
+| [TF-004](#tf-004-cicd-quality-gates) | CI/CD Quality Gates | 🔵 TODO | ~400 | 6h | Automatická validace |
+| [TF-005](#tf-005-testing-standards--guide) | Testing Standards & Guide | 🔵 TODO | ~600 | 8h | Dokumentace |
+| **TOTAL** | | **0/5** | **~2,500** | **~36h** | **Test infrastructure** |
 
 ---
 
 ## 📖 Detailed Stories
 
-### E2E-001: Two-Tier Architecture
+### TF-001: Test Registry & Tracking
 
-**Status:** ✅ **DONE**  
-**Tests:** 9 (4 PRE + 5 POST)
+> **Evidence:** Databáze všech testů s mapováním na User Stories
 
-#### Description
-Dvou-úrovňová test strategie: PRE-deploy smoke tests (5-7 min) a POST-deploy full E2E tests (20-30 min).
+**As a** developer  
+**I want** centrální registr testů s vazbou na User Stories  
+**So that** víme jaké US jsou otestované a které ne
 
-#### Architecture
+#### Acceptance Criteria
+
+**GIVEN** test s `@CORE-123` tagem  
+**WHEN** test proběhne  
+**THEN** zaznamená se do test_registry tabulky  
+**AND** status (PASS/FAIL) se uloží  
+**AND** coverage metriky se aktualizují
+
+#### Implementation
+
+**1. Database Schema**
+
+```sql
+-- backend/src/main/resources/db/migration/V999__test_registry.sql
+CREATE TABLE test_registry (
+    id BIGSERIAL PRIMARY KEY,
+    test_id VARCHAR(255) NOT NULL UNIQUE,
+    user_story_id VARCHAR(50),
+    test_type VARCHAR(50) NOT NULL,
+    test_name VARCHAR(500) NOT NULL,
+    file_path VARCHAR(1000),
+    status VARCHAR(20) NOT NULL,
+    last_run_at TIMESTAMP,
+    duration_ms INTEGER,
+    coverage_lines DECIMAL(5,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_test_registry_story ON test_registry(user_story_id);
+CREATE INDEX idx_test_registry_type ON test_registry(test_type);
+CREATE INDEX idx_test_registry_status ON test_registry(status);
 ```
-E2E Testing Strategy
-├── PRE-DEPLOY (Smoke Tests) - 5-7 minutes
-│   ├── Uses: test user (test/Test.1234)
-│   ├── Purpose: Fast feedback before deployment
-│   ├── Coverage: Critical paths only
-│   └── Tests:
-│       ├── 01_login_smoke.spec.ts
-│       ├── 02_menu_rbac_smoke.spec.ts
-│       ├── 03_entity_grid_form_smoke.spec.ts
-│       └── 04_workflow_panel_smoke.spec.ts
-│
-└── POST-DEPLOY (Full E2E) - 20-30 minutes
-    ├── Uses: test_admin user (test_admin/Test.1234)
-    ├── Purpose: Complete platform validation
-    ├── Coverage: All features + integrations
-    └── Tests:
-        ├── 10_auth_profile_update.spec.ts
-        ├── 20_admin_create_entity_and_ui.spec.ts
-        ├── 30_workflow_create_and_run.spec.ts
-        ├── 40_directory_consistency.spec.ts
-        └── 50_cleanup_visibility.spec.ts
+
+**2. Backend Model**
+
+```java
+@Entity
+@Table(name = "test_registry")
+public class TestRegistry {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(unique = true, nullable = false)
+    private String testId;
+    
+    private String userStoryId;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TestType testType;
+    
+    private String testName;
+    private String filePath;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TestStatus status;
+    
+    private LocalDateTime lastRunAt;
+    private Integer durationMs;
+    private BigDecimal coverageLines;
+}
+
+public enum TestType {
+    E2E_SMOKE, E2E_FULL, UNIT_FE, UNIT_BE, INTEGRATION, A11Y
+}
+
+public enum TestStatus {
+    PASS, FAIL, SKIP
+}
 ```
 
-#### Playwright Configuration
-```typescript
-// playwright.config.ts
-export default defineConfig({
-  projects: [
-    {
-      name: 'PRE-DEPLOY',
-      testDir: './specs/pre',
-      use: {
-        baseURL: process.env.PRE_BASE_URL || 'https://core-platform.local',
-        storageState: 'auth/test-user.json'
-      },
-      timeout: 30_000
-    },
-    {
-      name: 'POST-DEPLOY',
-      testDir: './specs/post',
-      use: {
-        baseURL: process.env.POST_BASE_URL || 'https://core-platform.local',
-        storageState: 'auth/test-admin.json'
-      },
-      timeout: 60_000
+**3. REST API**
+
+```java
+@RestController
+@RequestMapping("/api/test-registry")
+public class TestRegistryController {
+    
+    @GetMapping("/story/{storyId}")
+    public List<TestRegistry> getTestsByStory(@PathVariable String storyId) {
+        return testRegistryRepository.findByUserStoryId(storyId);
     }
-  ]
+    
+    @GetMapping("/coverage")
+    public Map<String, Object> getCoverageStats() {
+        long totalStories = userStoryRepository.count();
+        long testedStories = testRegistryRepository
+            .countDistinctUserStoryIdByStatus(TestStatus.PASS);
+        
+        return Map.of(
+            "totalStories", totalStories,
+            "testedStories", testedStories,
+            "coveragePercent", (testedStories * 100.0 / totalStories)
+        );
+    }
+    
+    @PostMapping
+    public TestRegistry recordTestRun(@RequestBody TestRunRequest request) {
+        return testRegistryService.record(request);
+    }
+}
+```
+
+**4. Playwright Reporter**
+
+```typescript
+// e2e/reporters/registry-reporter.ts
+import { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+
+class RegistryReporter implements Reporter {
+  async onTestEnd(test: TestCase, result: TestResult) {
+    const testId = extractTestId(test);
+    const storyId = extractStoryTag(test);
+    
+    if (testId && storyId) {
+      await fetch('http://localhost:8080/api/test-registry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testId,
+          userStoryId: storyId,
+          testType: 'E2E_SMOKE',
+          testName: test.title,
+          filePath: test.location.file,
+          status: result.status === 'passed' ? 'PASS' : 'FAIL',
+          durationMs: result.duration
+        })
+      });
+    }
+  }
+}
+
+function extractStoryTag(test: TestCase): string | null {
+  const storyTag = test.tags.find(t => t.startsWith('@CORE-'));
+  return storyTag?.substring(1);
+}
+```
+
+**5. JUnit Listener**
+
+```java
+public class TestRegistryListener extends RunListener {
+    @Override
+    public void testFinished(Description description) {
+        UserStory storyAnnotation = description.getAnnotation(UserStory.class);
+        
+        if (storyAnnotation != null) {
+            TestRegistry record = new TestRegistry();
+            record.setTestId(description.getMethodName());
+            record.setUserStoryId(storyAnnotation.value());
+            record.setTestType(TestType.UNIT_BE);
+            record.setStatus(TestStatus.PASS);
+            testRegistryRepository.save(record);
+        }
+    }
+}
+
+// Usage:
+@Test
+@UserStory("CORE-123")
+public void testUserCreation() {
+    // Test implementation
+}
+```
+
+#### Acceptance Checklist
+
+- [ ] Database schema created (test_registry table)
+- [ ] Backend model + repository
+- [ ] REST API (/api/test-registry)
+- [ ] Playwright reporter (registry-reporter.ts)
+- [ ] JUnit listener (@UserStory annotation)
+- [ ] Coverage stats endpoint
+
+---
+
+### TF-002: Test Tagging System
+
+> **Standardizace:** Konvence pro tagování testů pomocí User Story ID
+
+**As a** developer  
+**I want** standardní způsob tagování testů  
+**So that** každý test mapuje na konkrétní User Story
+
+#### Acceptance Criteria
+
+**GIVEN** nový test pro User Story CORE-123  
+**WHEN** vytvořím test  
+**THEN** použiju tag `@CORE-123`  
+**AND** test se automaticky registruje v test_registry  
+**AND** můžu filtrovat testy pro danou US
+
+#### Implementation
+
+**1. Playwright Tagging**
+
+```typescript
+// e2e/specs/auth/login.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Login Flow @CORE-123', () => {
+  test('should login with valid credentials @E2E-LOGIN-001', async ({ page }) => {
+    await page.goto('/');
+    await page.getByLabel('Username').fill('test');
+    await page.getByLabel('Password').fill('Test.1234');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await expect(page).toHaveURL(/\/admin/);
+  });
 });
 ```
 
-#### CI/CD Integration
+**Tag Format:**
+- `@CORE-XXX` - User Story ID (required)
+- `@E2E-XXX-NNN` - Test ID (optional)
+- `@SMOKE` - Smoke test flag
+- `@CRITICAL` - Critical path flag
+
+**2. JUnit Tagging**
+
+```java
+@Tag("CORE-123")
+@Tag("UNIT_BE")
+public class UserServiceTest {
+    
+    @Test
+    @DisplayName("Should create user with valid data")
+    @UserStory("CORE-123")
+    public void testCreateUser() {
+        // Test implementation
+    }
+}
+
+// Custom annotation:
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface UserStory {
+    String value(); // CORE-XXX
+}
+```
+
+**3. Pre-commit Hook (Tag Validation)**
+
+```bash
+#!/bin/bash
+# .git/hooks/pre-commit
+git diff --cached --name-only | grep -E '\.(spec\.ts|test\.(ts|tsx|java))$' | while read file; do
+  if ! grep -q '@CORE-' "$file"; then
+    echo "❌ ERROR: Test file $file missing @CORE-XXX tag"
+    exit 1
+  fi
+done
+```
+
+#### Acceptance Checklist
+
+- [ ] Tagging convention documented (@CORE-XXX format)
+- [ ] Playwright tag support
+- [ ] JUnit @UserStory annotation
+- [ ] Vitest tag support
+- [ ] Pre-commit hook (tag validation)
+
+---
+
+### TF-003: Coverage Dashboard
+
+> **Visualizace:** Grafana dashboard pro test coverage metriky
+
+**As a** product owner  
+**I want** dashboard zobrazující test coverage  
+**So that** vidím jaké User Stories jsou otestované
+
+#### Implementation
+
+```json
+{
+  "dashboard": {
+    "title": "Test Coverage Dashboard",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Overall Test Coverage",
+        "type": "gauge",
+        "targets": [{
+          "expr": "SELECT (COUNT(DISTINCT user_story_id) FROM test_registry WHERE status='PASS') / (COUNT(*) FROM user_stories) * 100"
+        }],
+        "thresholds": [
+          {"value": 0, "color": "red"},
+          {"value": 70, "color": "yellow"},
+          {"value": 90, "color": "green"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Coverage by Test Type",
+        "type": "bargauge"
+      },
+      {
+        "id": 3,
+        "title": "Untested User Stories",
+        "type": "table"
+      }
+    ]
+  }
+}
+```
+
+#### Acceptance Checklist
+
+- [ ] Grafana dashboard created
+- [ ] Coverage gauge panel
+- [ ] Coverage by type panel
+- [ ] Untested stories table
+
+---
+
+### TF-004: CI/CD Quality Gates
+
+> **Automation:** Automatická validace testů v CI/CD pipeline
+
+**As a** DevOps engineer  
+**I want** quality gates v CI/CD  
+**So that** build failuje pokud testy selžou nebo coverage klesne
+
+#### Implementation
+
 ```yaml
-# .github/workflows/pre-deploy.yml
-name: PRE-DEPLOY Tests
+# .github/workflows/quality-gates.yml
+name: Quality Gates
 on: [pull_request]
+
 jobs:
-  smoke-tests:
+  e2e-smoke:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run PRE-DEPLOY tests
+      - name: Run E2E Smoke Tests
         run: |
           cd e2e
           npm ci
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps
           npm run test:pre
-      - name: Upload artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: e2e/playwright-report/
+  
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backend Unit Tests
+        run: |
+          cd backend
+          ./mvnw test
+      - name: Check Coverage
+        run: |
+          COVERAGE=$(cat frontend/coverage/coverage-summary.json | jq '.total.lines.pct')
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below 80%"
+            exit 1
+          fi
 ```
 
-#### Value
-- **Fast Feedback**: Smoke tests v PR checks (5-7 min)
-- **Full Coverage**: Complete validation post-deploy
-- **Cost-Efficient**: Smoke tests filtrují 80% problémů
+#### Acceptance Checklist
+
+- [ ] E2E smoke tests in PR checks
+- [ ] Unit test execution
+- [ ] Coverage threshold validation (80%)
+- [ ] Build fails on test failure
 
 ---
 
-### E2E-002: Playwright Infrastructure
+### TF-005: Testing Standards & Guide
 
-**Status:** ✅ **DONE**
+> **Dokumentace:** Comprehensive testing guide pro vývojáře
 
-#### Description
-Playwright setup s fixtures, helpers a config management.
+#### Implementation
 
-#### Config Reader
+**File:** `docs/testing-guide.md`
+
+```markdown
+# Testing Guide - Core Platform
+
+## Test Types
+
+### E2E Tests (Playwright)
+- **When**: End-to-end user flows
+- **Location**: `e2e/specs/`
+- **Tag**: `@CORE-XXX @E2E-XXX-NNN`
+
+### Unit Tests (Frontend)
+- **Framework**: Vitest + React Testing Library
+- **Location**: `frontend/src/**/*.test.tsx`
+- **Coverage**: 80% target
+
+### Unit Tests (Backend)
+- **Framework**: JUnit 5
+- **Location**: `backend/src/test/`
+- **Tag**: `@UserStory("CORE-XXX")`
+
+## Writing Tests
+
+### 1. Tag with User Story
 ```typescript
-// e2e/config/read-config.ts
-export interface E2EConfig {
-  baseUrl: string;
-  username: string;
-  password: string;
-  apiBase: string;
-}
-
-export function readConfig(tier: 'pre' | 'post'): E2EConfig {
-  const dotenvFile = tier === 'pre' ? '.env.pre' : '.env.post';
-  dotenv.config({ path: dotenvFile });
-  
-  return {
-    baseUrl: process.env[`${tier.toUpperCase()}_BASE_URL`] || 'https://core-platform.local',
-    username: process.env.E2E_USER || (tier === 'pre' ? 'test' : 'test_admin'),
-    password: process.env.E2E_PASS || 'Test.1234',
-    apiBase: process.env.API_BASE || 'https://admin.core-platform.local'
-  };
-}
-```
-
-#### Fixtures
-```typescript
-// e2e/helpers/fixtures.ts
-export const test = base.extend<{
-  authenticatedPage: Page;
-  apiHelper: APIHelper;
-}>({
-  authenticatedPage: async ({ page }, use) => {
-    const config = readConfig('pre');
-    await loginAsUser(page, config.username, config.password);
-    await use(page);
-  },
-  
-  apiHelper: async ({ request }, use) => {
-    const helper = new APIHelper(request);
-    await helper.authenticate();
-    await use(helper);
-  }
+test.describe('Login Flow @CORE-123', () => {
+  test('should login @E2E-LOGIN-001', async ({ page }) => {
+    // Test
+  });
 });
 ```
 
-#### Login Helper
+### 2. Follow AAA Pattern
 ```typescript
-// e2e/helpers/login.ts
-export async function loginAsUser(page: Page, username: string, password: string) {
-  await page.goto('/');
-  await page.getByLabel('Username').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Sign In' }).click();
-  await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
-}
-
-export async function loginAsAdmin(page: Page) {
-  await loginAsUser(page, 'test_admin', 'Test.1234');
-}
-```
-
-#### API Helper
-```typescript
-// e2e/helpers/api.ts
-export class APIHelper {
-  private token: string | null = null;
+test('should create user', async () => {
+  // ARRANGE
+  const user = { name: 'John' };
   
-  async authenticate(username = 'test_admin', password = 'Test.1234') {
-    const response = await this.request.post('/api/auth/login', {
-      data: { username, password }
-    });
-    const json = await response.json();
-    this.token = json.access_token;
-  }
+  // ACT
+  await userService.create(user);
   
-  async createEntity(entity: string, data: any) {
-    return this.request.post(`/api/admin/${entity}`, {
-      headers: { 'Authorization': `Bearer ${this.token}` },
-      data
-    });
-  }
-}
-```
-
-#### Value
-- **Reusability**: Shared fixtures across tests
-- **Maintainability**: Config v jednom místě
-- **Flexibility**: Override via environment variables
-
----
-
-### E2E-003: Authentication Flows
-
-**Status:** ✅ **DONE**  
-**Tests:** 4  
-**Coverage:** 100%
-
-#### Test Cases
-```typescript
-// specs/pre/01_login_smoke.spec.ts
-test('Login as regular user', async ({ page }) => {
-  await loginAsUser(page, 'test', 'Test.1234');
-  await expect(page).toHaveURL(/\/admin/);
-  await expect(page.getByText('Welcome, test')).toBeVisible();
-});
-
-test('Login with invalid credentials', async ({ page }) => {
-  await page.goto('/');
-  await page.getByLabel('Username').fill('invalid');
-  await page.getByLabel('Password').fill('wrong');
-  await page.getByRole('button', { name: 'Sign In' }).click();
-  await expect(page.getByText('Invalid credentials')).toBeVisible();
-});
-
-test('Logout flow', async ({ authenticatedPage: page }) => {
-  await page.getByRole('button', { name: 'User Menu' }).click();
-  await page.getByRole('menuitem', { name: 'Logout' }).click();
-  await expect(page).toHaveURL('/login');
-});
-
-test('Session expiry redirect', async ({ authenticatedPage: page }) => {
-  // Clear session storage
-  await page.context().clearCookies();
-  await page.reload();
-  await expect(page).toHaveURL('/login');
+  // ASSERT
+  expect(await userService.find(user.id)).toBeTruthy();
 });
 ```
 
-#### Value
-- **Security**: Validates auth flows work correctly
-- **UX**: Ensures smooth login/logout experience
-- **Reliability**: Session handling tested
+## Running Tests
 
----
-
-### E2E-004: CRUD Test Framework
-
-**Status:** ✅ **DONE**  
-**Tests:** 12
-
-#### Description
-Reusable CRUD test framework s page objects a helper akcemi.
-
-#### Page Object Pattern
-```typescript
-// e2e/pages/EntityListPage.ts
-export class EntityListPage {
-  constructor(private page: Page, private entityName: string) {}
-  
-  async goto() {
-    await this.page.goto(`/admin/${this.entityName}`);
-  }
-  
-  async clickCreate() {
-    await this.page.getByRole('button', { name: 'Create' }).click();
-  }
-  
-  async searchFor(query: string) {
-    await this.page.getByPlaceholder('Search...').fill(query);
-    await this.page.keyboard.press('Enter');
-  }
-  
-  async getRowByName(name: string) {
-    return this.page.getByRole('row', { name: new RegExp(name) });
-  }
-  
-  async editRow(name: string) {
-    const row = await this.getRowByName(name);
-    await row.getByRole('button', { name: 'Edit' }).click();
-  }
-  
-  async deleteRow(name: string) {
-    const row = await this.getRowByName(name);
-    await row.getByRole('button', { name: 'Delete' }).click();
-    await this.page.getByRole('button', { name: 'Confirm' }).click();
-  }
-}
-
-// e2e/pages/EntityFormPage.ts
-export class EntityFormPage {
-  constructor(private page: Page) {}
-  
-  async fillField(label: string, value: string) {
-    await this.page.getByLabel(label).fill(value);
-  }
-  
-  async selectOption(label: string, option: string) {
-    await this.page.getByLabel(label).click();
-    await this.page.getByRole('option', { name: option }).click();
-  }
-  
-  async submit() {
-    await this.page.getByRole('button', { name: 'Save' }).click();
-  }
-  
-  async expectSuccess() {
-    await expect(this.page.getByText(/saved successfully/i)).toBeVisible();
-  }
-}
-```
-
-#### CRUD Test Example
-```typescript
-// specs/post/20_admin_create_entity_and_ui.spec.ts
-test('Create, Edit, Delete entity', async ({ authenticatedPage: page }) => {
-  const listPage = new EntityListPage(page, 'tenants');
-  const formPage = new EntityFormPage(page);
-  
-  // Create
-  await listPage.goto();
-  await listPage.clickCreate();
-  await formPage.fillField('Name', 'Test Company');
-  await formPage.fillField('Key', 'test-company');
-  await formPage.submit();
-  await formPage.expectSuccess();
-  
-  // Edit
-  await listPage.goto();
-  await listPage.editRow('Test Company');
-  await formPage.fillField('Name', 'Test Company Updated');
-  await formPage.submit();
-  await formPage.expectSuccess();
-  
-  // Delete
-  await listPage.goto();
-  await listPage.deleteRow('Test Company Updated');
-  await expect(page.getByText('Test Company Updated')).not.toBeVisible();
-});
-```
-
-#### Value
-- **Reusability**: Same pattern pro všechny entity
-- **Maintainability**: Změny v UI = 1 místo update
-- **Readability**: Testy jako BDD specs
-
----
-
-### E2E-005: Accessibility Testing
-
-**Status:** ✅ **DONE**  
-**Tests:** 8  
-**Standard:** WCAG 2.1 AA
-
-#### Description
-Automated accessibility testing pomocí axe-core Playwright integrace.
-
-#### Setup
-```typescript
-// e2e/helpers/a11y.ts
-import { injectAxe, checkA11y } from 'axe-playwright';
-
-export async function runA11yCheck(page: Page, context?: string) {
-  await injectAxe(page);
-  await checkA11y(page, null, {
-    axeOptions: {
-      runOnly: {
-        type: 'tag',
-        values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
-      }
-    },
-    detailedReport: true,
-    detailedReportOptions: {
-      html: true
-    }
-  }, undefined, context);
-}
-```
-
-#### Test Cases
-```typescript
-// specs/accessibility/admin-ui.spec.ts
-test('Login page accessibility', async ({ page }) => {
-  await page.goto('/login');
-  await runA11yCheck(page, 'Login Page');
-});
-
-test('Admin dashboard accessibility', async ({ authenticatedPage: page }) => {
-  await page.goto('/admin/dashboard');
-  await runA11yCheck(page, 'Dashboard');
-});
-
-test('Entity list accessibility', async ({ authenticatedPage: page }) => {
-  await page.goto('/admin/users');
-  await runA11yCheck(page, 'Users List');
-});
-
-test('Form accessibility', async ({ authenticatedPage: page }) => {
-  await page.goto('/admin/users/create');
-  await runA11yCheck(page, 'User Form');
-});
-```
-
-#### Common Issues Found & Fixed
-- **Missing labels**: Added `aria-label` to icon buttons
-- **Contrast issues**: Updated color palette for AA compliance
-- **Keyboard navigation**: Fixed tab order, added focus styles
-- **Screen reader**: Added ARIA landmarks, live regions
-
-#### Value
-- **Compliance**: WCAG 2.1 AA standard met
-- **Inclusivity**: Platform accessible to all users
-- **Legal**: Reduces ADA lawsuit risk
-- **UX**: Better keyboard navigation helps all users
-
----
-
-### E2E-006: Admin UI Coverage
-
-**Status:** ✅ **DONE**  
-**Tests:** 15  
-**Coverage:** 85%
-
-#### Covered Areas
-- ✅ **Tenants**: Create, edit, delete, switch context
-- ✅ **Users**: CRUD, role assignment, password reset
-- ✅ **Groups**: CRUD, member management, permissions
-- ✅ **Entities**: Metamodel studio, field editor
-- ✅ **Workflows**: Designer, state machine, execution
-- ✅ **Settings**: Profile update, preferences
-- ✅ **Monitoring**: Dashboard access, Loki logs
-- ✅ **Reporting**: Query builder, saved views
-
-#### Not Covered (15%)
-- ⏳ DMS file upload (manual test only)
-- ⏳ Real-time collaboration (WebSocket complexity)
-- ⏳ Complex workflow scenarios (too many permutations)
-
-#### Value
-- **Confidence**: 85% of UI validated automatically
-- **Regression**: Catches UI breaks in CI
-- **Documentation**: Tests as living specs
-
----
-
-### E2E-007: Monitoring Tests
-
-**Status:** ✅ **DONE**  
-**Tests:** 6  
-**Coverage:** 90%
-
-#### Test Cases
-```typescript
-// specs/post/monitoring/grafana-dashboards.spec.ts
-test('Grafana dashboards accessible', async ({ authenticatedPage: page }) => {
-  await page.goto('/grafana/dashboards');
-  
-  // Check all 7 Axiom dashboards
-  const dashboards = [
-    'Axiom System Overview',
-    'Axiom Advanced Runtime',
-    'Axiom Advanced Database',
-    'Axiom Advanced Redis',
-    'Axiom Kafka Lag',
-    'Axiom Security',
-    'Axiom Audit'
-  ];
-  
-  for (const dashboard of dashboards) {
-    await expect(page.getByText(dashboard)).toBeVisible();
-  }
-});
-
-// specs/post/monitoring/loki-logs.spec.ts
-test('Loki logs search', async ({ authenticatedPage: page }) => {
-  await page.goto('/admin/monitoring/logs');
-  await page.getByPlaceholder('LogQL query...').fill('{service="backend"}');
-  await page.getByRole('button', { name: 'Run Query' }).click();
-  
-  // Wait for results
-  await expect(page.getByRole('table')).toBeVisible({ timeout: 10_000 });
-  
-  // Verify log lines
-  const rows = await page.getByRole('row').count();
-  expect(rows).toBeGreaterThan(0);
-});
-
-// specs/post/monitoring/prometheus-metrics.spec.ts
-test('Prometheus metrics endpoint', async ({ request }) => {
-  const response = await request.get('/actuator/prometheus');
-  expect(response.ok()).toBeTruthy();
-  
-  const body = await response.text();
-  expect(body).toContain('jvm_memory_used_bytes');
-  expect(body).toContain('http_server_requests_seconds');
-});
-```
-
-#### Value
-- **Observability**: Validates monitoring stack works
-- **Alerting**: Ensures dashboards load correctly
-- **Debugging**: Tests log search functionality
-
----
-
-## 📊 Overall Impact
-
-### Metrics
-- **Test Execution Time**: 
-  - PRE-deploy: 5-7 minutes (smoke)
-  - POST-deploy: 20-30 minutes (full)
-- **Coverage**: 90% overall
-  - Admin UI: 85%
-  - Public pages: 90%
-  - Auth flows: 100%
-  - Monitoring: 90%
-- **CI/CD**: Automated in GitHub Actions
-- **Flakiness**: <2% (highly stable)
-
-### Business Value
-- **Quality**: Catches 80% of regressions before production
-- **Confidence**: Safe to deploy with green tests
-- **Speed**: Fast feedback loop (5-7 min smoke)
-- **Cost**: $0 (vs $30k/year for manual QA)
-
-### Developer Experience
-- **Easy to Write**: Page object pattern
-- **Easy to Read**: BDD-style specs
-- **Easy to Debug**: Playwright trace viewer
-- **Easy to Maintain**: Fixtures + helpers
-
----
-
-## 🎯 Test Maintenance Guide
-
-### Adding New Test
 ```bash
-# 1. Create spec file
-touch e2e/specs/pre/05_new_feature_smoke.spec.ts
+# E2E Smoke
+make test-e2e-pre
 
-# 2. Write test using fixtures
-import { test, expect } from '../helpers/fixtures';
+# Backend Unit
+make test-backend
 
-test('New feature works', async ({ authenticatedPage }) => {
-  // Test code
-});
-
-# 3. Run locally
-npm run test:pre -- 05_new_feature_smoke
+# All tests
+make test-all
+```
 ```
 
-### Updating Page Object
-```typescript
-// If UI changes, update page object only
-// e2e/pages/EntityListPage.ts
-async clickCreate() {
-  // Old: await this.page.getByRole('button', { name: 'Create' }).click();
-  // New: await this.page.getByTestId('create-button').click();
-}
-```
+#### Acceptance Checklist
 
-### Debugging Flaky Test
-```bash
-# Run test with trace
-npx playwright test --trace on
-
-# Open trace viewer
-npx playwright show-report
-```
+- [ ] Testing guide documentation
+- [ ] Examples for all test types
+- [ ] Tagging conventions
+- [ ] Running instructions
 
 ---
 
-**For detailed implementation docs, see:**
-- `E2E_100_PERCENT_COMPLETE.md` - Complete test inventory
-- `E2E_TWO_TIER_COMPLETE.md` - Two-tier architecture guide
-- `E2E_A11Y_MIGRATION_COMPLETE.md` - Accessibility testing guide
-- `e2e/README.md` - Quick start guide
+## 🎯 Definition of Done
+
+- [ ] Test registry database schema created
+- [ ] REST API for test tracking (/api/test-registry)
+- [ ] Playwright reporter registering tests
+- [ ] JUnit listener for backend tests
+- [ ] Test tagging system (@CORE-XXX)
+- [ ] Pre-commit hook validating tags
+- [ ] Grafana coverage dashboard
+- [ ] CI/CD quality gates (GitHub Actions)
+- [ ] Testing guide documentation
+- [ ] 80%+ test coverage for new code
+
+---
+
+## 📈 Success Metrics
+
+- **Coverage Tracking**: 100% testů mapuje na User Stories
+- **Automation**: 100% testů běží v CI/CD
+- **Quality**: <5% failed builds kvůli chybějícím testům
+- **Visibility**: PO vidí coverage dashboard denně
+- **Adoption**: Všichni deví píší testy před mergem PR
+
+---
+
+## 🔗 Dependencies
+
+- **EPIC-001**: Backlog system (User Stories existují)
+- **EPIC-003**: CI/CD pipeline (GitHub Actions)
+- Playwright 1.42+ (tag support)
+- JUnit 5 (custom annotations)
+- Grafana (dashboards)
+- PostgreSQL (test_registry table)
+
+---
+
+## 📅 Implementation Plan
+
+### Week 1: Test Registry Foundation
+- Day 1-2: Database schema + migration
+- Day 3-4: Backend API (TestRegistryController)
+- Day 5: Playwright reporter
+
+### Week 2: Tagging & Validation
+- Day 1-2: Test tagging system (@CORE-XXX)
+- Day 3: JUnit @UserStory annotation
+- Day 4: Pre-commit hook
+- Day 5: Tag extraction utilities
+
+### Week 3: Dashboard & CI/CD
+- Day 1-2: Grafana coverage dashboard
+- Day 3-4: GitHub Actions quality gates
+- Day 5: Testing guide documentation
+
+---
+
+**Total Effort:** ~36 hours (3 týdny)  
+**Priority:** P0 (Foundation for all future development)  
+**Value:** Test-driven culture + visibility + automation
