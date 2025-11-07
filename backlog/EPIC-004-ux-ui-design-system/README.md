@@ -1,8 +1,8 @@
 # EPIC-004: UX/UI & Design System
 
-**Status:** 🟡 **40% COMPLETE** (Core theme done, components & guidelines TODO)  
+**Status:** 🟡 **20% COMPLETE** (2/10 stories done: MUI Theme, Component Library)  
 **Priority:** P0 (Foundation)  
-**LOC:** ~8,000 řádků (~2,500 done + ~5,500 TODO)  
+**LOC:** ~6,200 řádků (~1,200 done + ~5,000 TODO)  
 **Dependencies:** Material-UI 5.x, React 18.x
 
 ---
@@ -74,18 +74,21 @@ Core Platform Design System
 
 ## 📋 Stories Overview
 
-| ID | Story | Status | LOC | Effort | Value |
-|----|-------|--------|-----|--------|-------|
-| [S1](#s1-mui-theme-foundation) | MUI Theme Foundation | ✅ DONE | ~500 | 6h | Color & typography |
-| [S2](#s2-design-tokens-system) | Design Tokens System | ✅ DONE | ~300 | 4h | Tokens & variables |
-| [S3](#s3-component-library) | Component Library (Reusable) | 🔵 TODO | ~2,000 | 16h | Core components |
-| [S4](#s4-form-components-validation) | Form Components & Validation | 🔵 TODO | ~1,200 | 12h | Forms & inputs |
-| [S5](#s5-data-display-components) | Data Display Components | 🔵 TODO | ~1,000 | 10h | Tables, cards, lists |
-| [S6](#s6-ux-patterns-guidelines) | UX Patterns & Guidelines | 🔵 TODO | ~800 | 8h | Navigation, loading |
-| [S7](#s7-accessibility-implementation) | Accessibility (WCAG 2.1 AA) | 🔵 TODO | ~600 | 6h | A11y compliance |
-| [S8](#s8-storybook-documentation) | Storybook Documentation | 🔵 TODO | ~1,000 | 10h | Component docs |
-| [S9](#s9-ux-writing-guidelines) | UX Writing Guidelines | 🔵 TODO | ~400 | 4h | Content standards |
-| **TOTAL** | | **2/9** | **~8,000** | **~76h** | **Complete design system** |
+## 📋 Stories Overview
+
+| ID | Story | Status | LOC | Priority | Value |
+|----|-------|--------|-----|----------|-------|
+| [S1](#s1-mui-theme-system) | MUI Theme System | ✅ DONE | ~600 | P0 | Foundation |
+| [S2](#s2-component-library-basics) | Component Library Basics | ✅ DONE | ~600 | P0 | Reusability |
+| [S3](#s3-form-components--validation) | Form Components & Validation | 🔵 TODO | ~800 | P1 | Form UX |
+| [S4](#s4-navigation-patterns) | Navigation Patterns & Menu | 🔵 TODO | ~600 | P1 | Orientation |
+| [S5](#s5-responsive-design) | Responsive Design System | 🔵 TODO | ~500 | P2 | Mobile support |
+| [S6](#s6-accessibility) | Accessibility (WCAG 2.1 AA) | 🔵 TODO | ~700 | P1 | Inclusivity |
+| [S7](#s7-loading-states) | Loading States & Animations | 🔵 TODO | ~400 | P2 | Visual feedback |
+| [S8](#s8-error-states) | Error States & User Feedback | 🔵 TODO | ~600 | P1 | Error handling |
+| [S9](#s9-data-tables) | Data Table Components | 🔵 TODO | ~900 | P1 | Data display |
+| [S10](#s10-design-tokens) | Design Tokens & Documentation | 🔵 TODO | ~500 | P2 | Consistency |
+| **TOTAL** | | **2/10** | **~6,200** | | **Complete design system** |
 
 ---
 
