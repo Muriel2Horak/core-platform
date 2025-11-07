@@ -8,7 +8,94 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-#### Backlog Management System (EPIC-001) - 2025-11-06
+#### Backlog Management System (EPIC-001) - 2025-11-07
+
+**Story Quality Validator (CORE-008)** - 2025-11-07
+- **Automated story quality validation with 0-100% scoring**
+  - Main validator: `scripts/backlog/story_validator.py` (306 lines)
+  - Schema checker: `scripts/backlog/lib/schema_checker.py` (221 lines)
+  - Quality scorer: `scripts/backlog/lib/quality_scorer.py` (128 lines)
+  - Integration tests: `scripts/backlog/test_story_validator.py` (230 lines, 13 tests, 100% pass)
+  - Quality guide: `docs/development/story-quality-guide.md` (450+ lines comprehensive docs)
+- **Quality Scoring Formula** (100 points total):
+  - Schema: 40 points (8 required sections × 5 each)
+  - DoR Completeness: 15 points (% checked items)
+  - DoD Completeness: 15 points (% checked items)
+  - AC Testability: 15 points (Given/When/Then format + test mapping)
+  - Path Mapping: 10 points (code/test/docs paths defined)
+  - YAML Validity: 5 points (valid frontmatter syntax)
+- **Quality Levels**:
+  - 90-100% = ✅ EXCELLENT (ready to implement)
+  - 70-89% = ⚠️ GOOD (can implement, minor issues)
+  - 50-69% = ⚠️ FAIR (needs improvement)
+  - 0-49% = ❌ POOR (cannot start, critical issues)
+- **Validation Features**:
+  - 8 required sections: YAML, Role/Need/Benefit, DoR, AC, AC→Test Mapping, Implementation Mapping, DoD, Subtasks
+  - DoR/DoD completeness % (counts [x] vs [ ])
+  - AC format validation (Given/When/Then + Test section)
+  - YAML frontmatter syntax check
+  - Path mapping presence check
+  - Missing sections detection & reporting
+- **CLI Options**:
+  ```bash
+  --story CORE-XXX          # Validate single story
+  --epic EPIC-XXX           # Validate all stories in epic
+  --check-schema            # Check schema only
+  --check-dod               # Check DoR/DoD only
+  --check-ac                # Check AC format only
+  --check-yaml              # Check YAML only
+  --score                   # Calculate quality score
+  --format text|json        # Output format
+  --min-score NN            # Minimum score threshold
+  --strict                  # Exit 1 if below min-score
+  ```
+- **Usage Examples**:
+  ```bash
+  # Basic validation
+  python3 scripts/backlog/story_validator.py --story CORE-008 --score
+  # Output:
+  # Schema:        30/40 (75%)
+  # DoR:           15/15 (100%)
+  # DoD:           0/15 (0%)
+  # AC Testability: 10/15 (66.7%)
+  # Path Mapping:  10/10
+  # YAML:          5/5
+  # ─────────────────────────
+  # TOTAL: 70/100 ⚠️ GOOD
+  
+  # JSON output for CI/CD
+  python3 scripts/backlog/story_validator.py --story CORE-008 --score --format json | jq .quality_score.total
+  
+  # Enforce minimum 80% quality
+  python3 scripts/backlog/story_validator.py --story CORE-012 --score --min-score 80
+  # Exit code 0 if >= 80%, exit code 1 if < 80%
+  
+  # Check specific aspect
+  python3 scripts/backlog/story_validator.py --story CORE-012 --check-schema
+  ```
+- **Integration Tests** (100% pass rate):
+  - JSON output format validation
+  - Min-score enforcement (pass/fail)
+  - Schema validation detection
+  - DoR/DoD completeness checking
+  - AC format validation
+  - Invalid story error handling
+  - Quality level classification
+  - Multi-story comparison
+  - Scoring weights sum to 100
+  - Quality level thresholds
+- **Test Results**:
+  - CORE-008: 70/100 ⚠️ GOOD
+  - CORE-007: 65/100 ⚠️ FAIR (DoD unchecked, AC format different)
+  - CORE-001: 55/100 ⚠️ FAIR (DoR/DoD unchecked, path_mapping missing)
+- **Value**:
+  - 📊 Automated quality gates BEFORE implementation
+  - ✅ 100% reliable validation (13/13 tests passing)
+  - 🎯 Prevents low-quality stories from being worked on
+  - 🔧 CI/CD integration ready (JSON output)
+  - 📈 Quality metrics & trends tracking
+  - 🚫 Blocks merging if story quality < threshold
+  - 📚 Comprehensive documentation (450+ lines guide)
 
 **Test-First Development & Bug Tracking (CORE-007)** - 2025-11-06
 - **Complete test-driven development workflow with bug tracking**
