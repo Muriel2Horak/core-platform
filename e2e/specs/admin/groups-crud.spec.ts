@@ -116,21 +116,30 @@ test.describe('Admin: Groups CRUD', () => {
     await expect(page.getByText(/nemáte oprávnění|přístup odepřen|access denied|insufficient permissions/i)).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should update group name as admin', async ({ page }) => {
-    // ⚠️ SKIP: EditGroupDialog se nezavírá po uložení - Backend PUT /api/groups/{name} vrací error
+  test('should update group name as admin', async ({ page }) => {
+    // ✅ FIXED: Backend Groups PUT endpoint nyní správně aktualizuje existující entitu
+    // ✅ FIXED: Frontend error handling opraveno (err.response?.data?.message)
     await loginAsAdmin(page);
 
-    // Create test group first
+    // Create test group via UI (API fixture fails with 401)
     const groupName = generateTestName('Test Update Group');
-    const { id: groupId } = await createTestGroup(page, groupName);
-    testGroupIds.push(groupId);
-
-    // Navigate to groups
     await navigateToAdminPage(page, '/core-admin/groups');
     
-    // Wait for table to load and show our newly created group
-    // (Groups.jsx loads on mount, we need to wait for API response)
-    await page.waitForTimeout(2000); // Wait for initial load
+    // Click "Vytvořit skupinu" button
+    await page.getByRole('button', { name: /vytvořit skupinu|create group/i }).click();
+    
+    // Fill form
+    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
+    await page.screenshot({ path: 'test-results/dialog-opened.png' });
+    await page.getByLabel(/název skupiny|group name|name/i).fill(groupName);
+    await page.waitForTimeout(500); // Wait for form validation
+    
+    // Save - wait for button to be enabled
+    const saveBtnCreate = page.getByRole('button', { name: /uložit|save/i });
+    await saveBtnCreate.waitFor({ state: 'visible', timeout: 5000 });
+    await saveBtnCreate.click();
+    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 10000 });
+    await page.waitForTimeout(1500); // Wait for reload and table refresh
     
     // Change pagination to show all groups (50 should be enough after cleanup)
     const rowsPerPageSelect = page.locator('.MuiTablePagination-select').first();

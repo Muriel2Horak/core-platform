@@ -1,4 +1,4 @@
-# EPIC-004: UX/UI & Design System
+# EPIC-014: UX/UI & Design System
 
 **Status:** 🟡 **20% COMPLETE** (2/10 stories done: MUI Theme, Component Library)  
 **Priority:** P0 (Foundation)  

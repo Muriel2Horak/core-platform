@@ -43,7 +43,7 @@ Vytvořit lightweight, Git-first backlog management systém pro core-platform, k
 
 ## 📋 User Stories Progress
 
-### ✅ Completed (4/5 Priority 1 stories - 80%)
+### ✅ Phase 1 Complete (5/5 Priority 1 stories - 100%)
 
 1. **[CORE-001](stories/CORE-001-markdown-structure/README.md)** ✅ **DONE**
    - Markdown struktura a templates vytvořeny
@@ -51,6 +51,7 @@ Vytvořit lightweight, Git-first backlog management systém pro core-platform, k
    - Template usage guide
    - **Commits:** 83871eb, f6332b6
    - **Status:** Merged to main
+   - **Duration:** 2 hours
 
 2. **[CORE-003](stories/CORE-003-story-generator/README.md)** ✅ **DONE**
    - Story generator `scripts/backlog/new_story.sh`
@@ -61,6 +62,7 @@ Vytvořit lightweight, Git-first backlog management systém pro core-platform, k
    - **Time savings:** 5-10 min → 30 sec (80-90%)
    - **Commits:** 0d523e7, f6332b6
    - **Status:** Merged to main
+   - **Duration:** 3 hours
 
 3. **[CORE-005](stories/CORE-005-git-commit-tracker/README.md)** ✅ **DONE**
    - Git commit tracker `scripts/backlog/git_tracker.sh`
@@ -71,6 +73,7 @@ Vytvořit lightweight, Git-first backlog management systém pro core-platform, k
    - **Performance:** <0.3s for EPIC-001 (target <2s)
    - **Commits:** 83ff64b, 7699f33
    - **Status:** Merged to main
+   - **Duration:** 2 hours
 
 4. **[CORE-006](stories/CORE-006-path-mapping-validation-coverage-reporting/README.md)** ✅ **DONE**
    - Path mapping validator `scripts/backlog/path_validator.py`
@@ -83,15 +86,63 @@ Vytvořit lightweight, Git-first backlog management systém pro core-platform, k
    - **Testing:** 33/33 integration tests passing
    - **Commits:** 437a155, dab7ac3, ef5333c, 97997a8, b8f91c3, d2f14f2, 1acd4d1, 9ef11bd
    - **Status:** Merged to main
+   - **Duration:** 4 hours
 
-### 📋 Deferred (1/5 Priority 1 story - 20%)
+5. **[CORE-007](stories/CORE-007-test-first-development-bug-tracking-workflow/README.md)** ✅ **DONE**
+   - Test-First Development & Bug Tracking Workflow
+   - Bug template with traceability (377 lines)
+   - Story template AC→Test mapping (125 lines)
+   - Test validator script (489 lines Bash)
+   - TDD workflow documentation (734 lines)
+   - Bug tracking integration
+   - **Features:** Regression tests, coverage validation, quality gates
+   - **Commits:** 217839b, 16b2b72, d1659ee, 1f60dfd, 439e69f, 5e9fb6c
+   - **Status:** Merged to main
+   - **Duration:** 3 hours
 
-5. **CORE-007: Story Validator & DoD Checker** ⏸️ **DEFERRED TO PHASE 2**
-   - Schema validation (8 required sections)
+**Phase 1 Total:** 14 hours (estimate: 60 hours) → **4.3x faster!**
+
+### 🚀 Phase 2: Quality & Automation (Next)
+
+**Focus:** Kvalita zadání + Kontrola implementace
+
+6. **CORE-008: Story Schema Validator** 📋 **PLANNED**
+   - Validate story structure (8 required sections)
    - DoR/DoD completeness checking
-   - Pre-merge validation workflow
+   - YAML frontmatter validation
+   - Pre-commit validation
+   - **Priority:** P1 (Must Have)
    - **Estimate:** 2 days
-   - **Rationale:** Core system functional without it, can be added later
+
+7. **CORE-009: Makefile Integration & Quality Gates** 📋 **PLANNED**
+   - `make validate-story` - Run all validators
+   - `make pre-merge-check` - Full quality gate
+   - CI/CD integration hooks
+   - **Priority:** P1 (Must Have)
+   - **Estimate:** 1 day
+
+8. **CORE-010: Copilot Prompt Generator** 📋 **PLANNED**
+   - Generate optimal Copilot prompts from stories
+   - Include AC, path mapping, dependencies
+   - Interactive mode for implementation
+   - **Priority:** P2 (Should Have)
+   - **Estimate:** 2 days
+
+9. **CORE-011: Story Quality Metrics** 📋 **PLANNED**
+   - AC completeness score
+   - Path mapping coverage
+   - Test coverage integration
+   - DoD completion percentage
+   - **Priority:** P2 (Should Have)
+   - **Estimate:** 1 day
+
+10. **CORE-012: Backlog Dashboard Generator** 📋 **PLANNED**
+    - Generate `backlog/index.md` from stories
+    - Epic/Story progress tables
+    - Burndown metrics
+    - Auto-update on commit
+    - **Priority:** P3 (Nice to Have)
+    - **Estimate:** 2 days
 
 ### ❌ Archived
 

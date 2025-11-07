@@ -1,4 +1,4 @@
-# EPIC-004: Reporting Module (Cube.js Analytics)
+# EPIC-013: Reporting Module (Cube.js Analytics)
 
 **Status:** 🟢 **100% COMPLETE**  
 **Implementováno:** Říjen 2024  

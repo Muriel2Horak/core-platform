@@ -1,0 +1,13 @@
+BUILD SUMMARY - Sat Nov  1 12:50:57 CET 2025
+================================
+
+Build Type: clean-fast
+Duration: 68m 14s
+Log File: diagnostics/build-20251101-114242.log
+
+Errors Found: 0
+Containers Running:       14
+Healthy:        7
+Unhealthy:        0
+
+Full details above.
