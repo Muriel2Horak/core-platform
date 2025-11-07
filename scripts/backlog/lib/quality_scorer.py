@@ -112,3 +112,15 @@ class QualityScorer:
         """Check if story meets minimum quality threshold"""
         score = self.calculate_score()
         return score["total"] >= min_score
+
+    @staticmethod
+    def get_level(score: float) -> str:
+        """Get quality level for a given score"""
+        if score >= 90:
+            return "EXCELLENT"
+        elif score >= 70:
+            return "GOOD"
+        elif score >= 50:
+            return "FAIR"
+        else:
+            return "POOR"

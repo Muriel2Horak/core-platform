@@ -583,7 +583,101 @@ git commit -m "Add export feature"
 
 ---
 
-## 🐛 Bug Tracking & Regression Prevention
+## � Story Quality Validation (CORE-008)
+
+### Why Quality Gates?
+
+**Problem:** Low-quality stories → ambiguous implementation → wasted time  
+**Solution:** Automated validation BEFORE coding starts
+
+### Quality Validator
+
+```bash
+# Validate story quality (0-100% score)
+python3 scripts/backlog/story_validator.py --story CORE-012 --score
+
+# Output:
+# Schema:        40/40 ✅ (100%)
+# DoR:           13/15 ⚠️  (87%)
+# DoD:           12/15 ⚠️  (80%)
+# AC Testability: 15/15 ✅ (100%)
+# Path Mapping:  10/10 ✅
+# YAML:           5/5 ✅
+# ──────────────────────────────────
+# TOTAL: 95/100 ✅ EXCELLENT
+```
+
+### Quality Scoring Formula
+
+| Component | Points | What It Checks |
+|-----------|--------|----------------|
+| **Schema** | 40 | 8 required sections present |
+| **DoR** | 15 | Definition of Ready completeness % |
+| **DoD** | 15 | Definition of Done completeness % |
+| **AC Testability** | 15 | Given/When/Then format + test mapping |
+| **Path Mapping** | 10 | Code, test, docs paths defined |
+| **YAML** | 5 | Valid frontmatter syntax |
+| **TOTAL** | **100** | Overall story quality |
+
+### Quality Levels
+
+- **90-100%** = ✅ **EXCELLENT** - Ready to implement
+- **70-89%** = ⚠️ **GOOD** - Can implement, minor issues
+- **50-69%** = ⚠️ **FAIR** - Needs improvement
+- **0-49%** = ❌ **POOR** - Cannot start, critical issues
+
+### Pre-Implementation Check
+
+```bash
+# Enforce minimum 80% quality before starting work
+python3 scripts/backlog/story_validator.py --story CORE-012 --score --min-score 80
+
+# Exit code:
+# 0 = passed (score >= 80)
+# 1 = failed (score < 80) - FIX STORY FIRST!
+```
+
+### JSON Output for CI/CD
+
+```bash
+# Get quality data as JSON
+python3 scripts/backlog/story_validator.py --story CORE-012 --score --format json | jq .
+
+# Output:
+{
+  "story_id": "CORE-012",
+  "quality_score": {
+    "total": 95.0,
+    "level": "EXCELLENT",
+    "breakdown": {
+      "schema": { "score": 40, "percentage": 100 },
+      "dor": { "score": 13, "percentage": 87 },
+      ...
+    }
+  }
+}
+```
+
+### Complete Guide
+
+**Detailed Documentation:** [Story Quality Guide](../docs/development/story-quality-guide.md)
+
+**What It Validates:**
+- ✅ All 8 required sections (YAML, Role, DoR, AC, Tests, Mapping, DoD, Subtasks)
+- ✅ DoR/DoD completeness (minimum thresholds)
+- ✅ AC format (Given/When/Then + test section)
+- ✅ YAML frontmatter validity
+- ✅ Path mapping presence
+
+**Workflow:**
+1. Create story: `make backlog-new`
+2. Validate quality: `python3 scripts/backlog/story_validator.py --story CORE-XXX --score`
+3. Fix issues if score < 70%
+4. Start implementation when quality ≥ 70%
+
+---
+
+## �🐛 Bug Tracking & Regression Prevention
 
 > **CORE-007 Feature:** Integrated bug tracking with regression test requirements
 
