@@ -74,20 +74,20 @@ Testing Framework (Multi-Tier)
 
 | ID | Story | Status | LOC | Effort | Value |
 |----|-------|--------|-----|--------|-------|
-| [TF-001](#tf-001-test-registry--tracking) | Test Registry & Tracking | 🔵 TODO | ~600 | 8h | Evidence testů |
-| [TF-002](#tf-002-test-tagging-system) | Test ID Tagging System | 🔵 TODO | ~400 | 6h | Mapování US → testy |
-| [TF-003](#tf-003-coverage-dashboard) | Coverage Dashboard | 🔵 TODO | ~500 | 8h | Visualizace pokrytí |
-| [TF-004](#tf-004-cicd-quality-gates) | CI/CD Quality Gates | 🔵 TODO | ~400 | 6h | Automatická validace |
-| [TF-005](#tf-005-testing-standards--guide) | Testing Standards & Guide | 🔵 TODO | ~600 | 8h | Dokumentace |
-| [TF-006](#tf-006-mock-services) | Mock Services Integration | 🔵 TODO | ~800 | 12h | Mocking ext. služeb |
-| [TF-007](#tf-007-test-data-management) | Test Data Management | 🔵 TODO | ~1,200 | 14h | Testovací data + izolace |
+| [S8](#s8-test-registry--tracking) | Test Registry & Tracking | 🔵 TODO | ~600 | 8h | Evidence testů |
+| [S9](#s9-test-tagging-system) | Test ID Tagging System | 🔵 TODO | ~400 | 6h | Mapování US → testy |
+| [S10](#s10-coverage-dashboard) | Coverage Dashboard | 🔵 TODO | ~500 | 8h | Visualizace pokrytí |
+| [S11](#s11-cicd-quality-gates) | CI/CD Quality Gates | 🔵 TODO | ~400 | 6h | Automatická validace |
+| [S12](#s12-testing-standards--guide) | Testing Standards & Guide | 🔵 TODO | ~600 | 8h | Dokumentace |
+| [S13](#s13-mock-services) | Mock Services Integration | 🔵 TODO | ~800 | 12h | Mocking ext. služeb |
+| [S14](#s14-test-data-management) | Test Data Management | 🔵 TODO | ~1,200 | 14h | Testovací data + izolace |
 | **TOTAL** | | **0/7** | **~4,500** | **~62h** | **Complete test infrastructure** |
 
 ---
 
 ## 📖 Detailed Stories
 
-### TF-001: Test Registry & Tracking
+### S8: Test Registry & Tracking
 
 > **Evidence:** Databáze všech testů s mapováním na User Stories
 
@@ -274,7 +274,7 @@ public void testUserCreation() {
 
 ---
 
-### TF-002: Test Tagging System
+### S9: Test Tagging System
 
 > **Standardizace:** Konvence pro tagování testů pomocí User Story ID
 
@@ -361,7 +361,7 @@ done
 
 ---
 
-### TF-003: Coverage Dashboard
+### S10: Coverage Dashboard
 
 > **Visualizace:** Grafana dashboard pro test coverage metriky
 
@@ -413,7 +413,7 @@ done
 
 ---
 
-### TF-004: CI/CD Quality Gates
+### S11: CI/CD Quality Gates
 
 > **Automation:** Automatická validace testů v CI/CD pipeline
 
@@ -465,7 +465,7 @@ jobs:
 
 ---
 
-### TF-005: Testing Standards & Guide
+### S12: Testing Standards & Guide
 
 > **Dokumentace:** Comprehensive testing guide pro vývojáře
 
@@ -541,7 +541,7 @@ make test-all
 
 ---
 
-### TF-006: Mock Services
+### S13: Mock Services
 
 > **Integration Testing:** WireMock pro mockování external služeb
 
@@ -612,11 +612,11 @@ void shouldTriggerWebhookOnUserCreation() {
 - [ ] External API mock helpers
 - [ ] Integration tests using mocks
 
-**Details:** [TF-006 Full Story](./stories/TF-006.md)
+**Details:** [S13 Full Story](./stories/S13.md)
 
 ---
 
-### TF-007: Test Data Management
+### S14: Test Data Management
 
 > **Test Data:** Automatické vytváření/mazání test dat + izolace od produkce
 
@@ -902,7 +902,7 @@ public class TestDataController {
 - [ ] Test data API (POST /api/test-data/users)
 - [ ] Documentation (test data conventions)
 
-**Details:** [TF-007 Full Story](./stories/TF-007.md)
+**Details:** [S14 Full Story](./stories/S14.md)
 
 ---
 
