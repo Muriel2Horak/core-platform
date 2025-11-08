@@ -11,10 +11,13 @@
 
 ## 📋 STORY DESCRIPTION
 
-**Jako** Project Manager / Team Lead,  
-**chci** Kanban board view pro workflows/tasks s pokročilými funkcemi,  
+**Jako** Project Manager / Team Lead / Support Agent,  
+**chci** Kanban board view pro **entity instances** (Workflows, Users, Tenants, Support Tickets, atd.),  
 **abych**:
-- Viděl **workflows v kanbanu** (To Do → In Progress → Review → Done)
+- Viděl **entity instances** jako kanban karty (Workflow cards, User cards, Ticket cards)
+- Definoval **vlastní sloupce** a mapoval je na **workflow stavy**
+- **Agregoval více stavů** do jednoho sloupce (např. "In Progress" = [ASSIGNED, STARTED, BLOCKED])
+- Při drop viděl **status picker dialog** (vybrat konkrétní stav z agregovaných)
 - Filtroval podle assignee, priority, tenant (multi-select filtry)
 - Používal **swimlanes** (group by: Priority, Tenant, Assignee)
 - Viděl **hierarchii** (Epic → Story → Task → Subtask) v kartách
@@ -23,54 +26,107 @@
   - Posunu **parent epic** → všechny children se přesunou s ním
   - Volba: "Move only this item" vs. "Move with children"
 
+**Use cases:**
+- **Workflows:** DRAFT → ASSIGNED → STARTED → BLOCKED → REVIEW → DONE
+- **Support Tickets:** NEW → OPEN → IN_PROGRESS → WAITING_CUSTOMER → RESOLVED
+- **Users:** INVITED → ACTIVE → SUSPENDED → DEACTIVATED
+- **Sales Leads:** PROSPECT → QUALIFIED → PROPOSAL → NEGOTIATION → WON/LOST
+
 ---
 
 ## 🎯 ACCEPTANCE CRITERIA
 
-### AC1: Kanban Board Základní Layout
+### AC1: Kanban Board s Entity Instances + WF Status Mapping
 
-**GIVEN** workflow data s různými stavy  
+**GIVEN** Workflow entity s různými stavy  
 **WHEN** otevřu Kanban view  
-**THEN** zobrazí se 4-5 sloupců (customizable):
+**THEN** zobrazí se sloupce mapované na workflow stavy:
+
+**Column Configuration (Admin setup):**
 
 ```
-┌──────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
-│  To Do (12)  │ In Progress  │   Review (5) │  Testing (3) │   Done (45)  │
-│              │     (8)      │              │              │              │
-├──────────────┼──────────────┼──────────────┼──────────────┼──────────────┤
-│ ┌──────────┐ │ ┌──────────┐ │ ┌──────────┐ │ ┌──────────┐ │ ┌──────────┐ │
-│ │WF-123    │ │ │WF-456    │ │ │WF-789    │ │ │WF-111    │ │ │WF-222    │ │
-│ │Deploy v2 │ │ │User Auth │ │ │API Tests │ │ │E2E Tests │ │ │Dashboard │ │
-│ │          │ │ │          │ │ │          │ │ │          │ │ │          │ │
-│ │👤 Alice  │ │ │👤 Bob    │ │ │👤 Alice  │ │ │👤 Charlie│ │ │👤 Alice  │ │
-│ │🔴 High   │ │ │🟡 Medium │ │ │🟢 Low    │ │ │🟡 Medium │ │ │🟢 Low    │ │
-│ └──────────┘ │ └──────────┘ │ └──────────┘ │ └──────────┘ │ └──────────┘ │
-│              │              │              │              │              │
-│ ┌──────────┐ │ ┌──────────┐ │              │              │              │
-│ │WF-124    │ │ │WF-457    │ │              │              │              │
-│ │...       │ │ │...       │ │              │              │              │
-│ └──────────┘ │ └──────────┘ │              │              │              │
-└──────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
+Kanban Columns Setup:
+┌────────────────────────────────────────────────────────────────┐
+│ Column: "To Do"                                                │
+│ Mapped Statuses: [DRAFT, ASSIGNED] ← Multiple statuses!       │
+│ Color: #E3F2FD                                                 │
+│ WIP Limit: 10                                                  │
+│                                                                │
+│ Column: "In Progress"                                          │
+│ Mapped Statuses: [STARTED, BLOCKED] ← Aggregated!             │
+│ Color: #FFF9C4                                                 │
+│ WIP Limit: 5                                                   │
+│                                                                │
+│ Column: "Review"                                               │
+│ Mapped Statuses: [REVIEW, WAITING_APPROVAL]                   │
+│ Color: #F8BBD0                                                 │
+│                                                                │
+│ Column: "Done"                                                 │
+│ Mapped Statuses: [COMPLETED, CANCELLED, REJECTED]             │
+│ Color: #C8E6C9                                                 │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Kanban View (showing Workflow entity instances):**
+
+```
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│  To Do (12)  │ In Progress  │  Review (5)  │  Done (45)   │
+│ DRAFT,       │  STARTED,    │ REVIEW,      │ COMPLETED,   │
+│ ASSIGNED     │  BLOCKED     │ WAITING_     │ CANCELLED    │
+│              │              │ APPROVAL     │              │
+├──────────────┼──────────────┼──────────────┼──────────────┤
+│ ┌──────────┐ │ ┌──────────┐ │ ┌──────────┐ │ ┌──────────┐ │
+│ │WF-123    │ │ │WF-456    │ │ │WF-789    │ │ │WF-222    │ │
+│ │Deploy v2 │ │ │User Auth │ │ │API Tests │ │ │Dashboard │ │
+│ │          │ │ │          │ │ │          │ │ │          │ │
+│ │📊 DRAFT  │ │ │⚡ STARTED│ │ │👀 REVIEW │ │ │✅ DONE   │ │
+│ │👤 Alice  │ │ │👤 Bob    │ │ │👤 Alice  │ │ │👤 Alice  │ │
+│ │🔴 High   │ │ │🟡 Medium │ │ │🟢 Low    │ │ │� Low    │ │
+│ │🏢 ACME   │ │ │� Beta Co│ │ │🏢 ACME   │ │ │🏢 ACME   │ │
+│ └──────────┘ │ └──────────┘ │ └──────────┘ │ └──────────┘ │
+│              │              │              │              │
+│ ┌──────────┐ │ ┌──────────┐ │              │              │
+│ │WF-124    │ │ │WF-457    │ │              │              │
+│ │📊 ASSIGNED│ │ │🚫 BLOCKED│ │              │              │
+│ │...       │ │ │...       │ │              │              │
+│ └──────────┘ │ └──────────┘ │              │              │
+└──────────────┴──────────────┴──────────────┴──────────────┘
 
 🔍 Filters: [Assignee: All ▼] [Priority: All ▼] [Tenant: All ▼]
 📊 Swimlanes: [None ▼]  [Group by: Priority | Tenant | Assignee]
 ```
 
-**Card structure:**
+**Entity card = Workflow instance:**
 
 ```typescript
 interface KanbanCard {
-  id: string;
-  title: string;
-  status: string; // Column ID
+  // Entity reference
+  entityType: 'WORKFLOW' | 'USER' | 'TENANT' | 'TICKET';
+  entityId: string;
+  
+  // Workflow-specific fields
+  id: string; // WF-123
+  title: string; // "Deploy v2"
+  status: WorkflowStatus; // DRAFT, ASSIGNED, STARTED, BLOCKED, REVIEW, DONE
   assignee: User;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
-  tenant?: Tenant;
+  tenant: Tenant;
   
   // Hierarchie
   parentId?: string; // Epic/Story parent
   children?: KanbanCard[]; // Subtasks
   hierarchyLevel: number; // 0=Epic, 1=Story, 2=Task, 3=Subtask
+}
+
+// Column = Aggregated statuses
+interface KanbanColumn {
+  id: string;
+  name: string; // "In Progress"
+  mappedStatuses: WorkflowStatus[]; // [STARTED, BLOCKED]
+  color: string;
+  wipLimit?: number;
+  displayOrder: number;
 }
 ```
 
@@ -156,7 +212,188 @@ const filteredCards = cards.filter(card => {
 - **Group by Assignee**: Alice, Bob, Charlie
 - **None**: Single horizontal board (no swimlanes)
 
-### AC4: Hierarchie Visualization
+---
+
+### AC4: Status Picker Dialog (Agregované Stavy) 🆕
+
+**GIVEN** sloupec "In Progress" má mapované stavy: [STARTED, BLOCKED, WAITING]  
+**WHEN** přetáhnu Workflow kartu do tohoto sloupce  
+**THEN** zobrazí se dialog pro výběr konkrétního stavu:
+
+**Drop do sloupce s 1 stavem:**
+
+```
+Drop WF-123 to "To Do" (mapped: [DRAFT])
+→ No dialog, status auto-set to DRAFT ✅
+```
+
+**Drop do sloupce s více stavy (KLÍČOVÁ FUNKCE!):**
+
+```
+Drop WF-456 to "In Progress" (mapped: [STARTED, BLOCKED, WAITING])
+
+┌────────────────────────────────────────┐
+│ Select Workflow Status                 │
+├────────────────────────────────────────┤
+│ Column "In Progress" has 3 statuses:   │
+│                                        │
+│ ● STARTED (recommended)                │
+│   Workflow is actively being worked on │
+│                                        │
+│ ○ BLOCKED                              │
+│   Waiting for dependencies/blockers    │
+│                                        │
+│ ○ WAITING                              │
+│   Waiting for external input           │
+│                                        │
+│ Previous status: DRAFT                 │
+│                                        │
+│ [Cancel]  [Set Status]                 │
+└────────────────────────────────────────┘
+```
+
+**Po výběru:**
+- Karta se přesune do sloupce "In Progress"
+- `workflow.status` se nastaví na vybraný (např. `STARTED`)
+- Notification: "WF-456 moved to In Progress (STARTED)"
+
+**Backend API:**
+
+```typescript
+// frontend/src/hooks/useKanbanDrop.ts
+const handleCardDrop = async (cardId: string, targetColumnId: string) => {
+  const column = columns.find(c => c.id === targetColumnId);
+  
+  if (column.mappedStatuses.length === 1) {
+    // Auto-set single status (no dialog)
+    await updateWorkflowStatus(cardId, column.mappedStatuses[0]);
+  } else {
+    // Show status picker dialog
+    const selectedStatus = await showStatusPickerDialog({
+      columnName: column.name,
+      availableStatuses: column.mappedStatuses,
+      currentStatus: card.status,
+      suggestedStatus: suggestDefaultStatus(card, column)
+    });
+    
+    if (selectedStatus) {
+      await updateWorkflowStatus(cardId, selectedStatus);
+    }
+  }
+};
+
+// Smart suggestion: If moving from "To Do" → "In Progress", suggest STARTED
+const suggestDefaultStatus = (card: KanbanCard, targetColumn: KanbanColumn) => {
+  if (card.status === 'DRAFT' && targetColumn.mappedStatuses.includes('STARTED')) {
+    return 'STARTED'; // Auto-select this in dialog
+  }
+  return targetColumn.mappedStatuses[0]; // Default: first status
+};
+```
+
+**Column configuration (Admin setup):**
+
+```java
+// backend/src/main/java/cz/muriel/core/kanban/model/KanbanColumn.java
+@Entity
+@Table(name = "kanban_columns")
+public class KanbanColumn {
+    @Id
+    @GeneratedValue
+    private Long id;
+    
+    private String name; // "In Progress"
+    
+    @ElementCollection
+    @CollectionTable(name = "kanban_column_statuses")
+    private List<WorkflowStatus> mappedStatuses; // [STARTED, BLOCKED, WAITING]
+    
+    private String color; // #FFF9C4
+    private Integer wipLimit; // 5
+    private Integer displayOrder; // 2
+    private Long boardId; // Which kanban board
+}
+
+enum WorkflowStatus {
+    DRAFT,
+    ASSIGNED,
+    STARTED,
+    BLOCKED,
+    WAITING,
+    REVIEW,
+    WAITING_APPROVAL,
+    COMPLETED,
+    CANCELLED,
+    REJECTED
+}
+```
+
+**Example configurations:**
+
+| Column | Mapped Statuses | Use Case |
+|--------|----------------|----------|
+| To Do | [DRAFT, ASSIGNED] | Initial states before work starts |
+| In Progress | [STARTED, BLOCKED, WAITING] | Active work with blockers |
+| Review | [REVIEW, WAITING_APPROVAL] | Code review or approval needed |
+| Done | [COMPLETED, CANCELLED, REJECTED] | All terminal states |
+
+**Status picker component:**
+
+```typescript
+// frontend/src/components/kanban/StatusPickerDialog.tsx
+export const StatusPickerDialog: React.FC<{
+  open: boolean;
+  columnName: string;
+  availableStatuses: WorkflowStatus[];
+  currentStatus: WorkflowStatus;
+  suggestedStatus: WorkflowStatus;
+  onSelect: (status: WorkflowStatus) => void;
+  onCancel: () => void;
+}> = ({ open, columnName, availableStatuses, suggestedStatus, onSelect }) => {
+  const [selectedStatus, setSelectedStatus] = useState(suggestedStatus);
+
+  return (
+    <Dialog open={open} maxWidth="sm">
+      <DialogTitle>Select Workflow Status</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Column "{columnName}" has {availableStatuses.length} statuses:
+        </Typography>
+
+        <RadioGroup value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+          {availableStatuses.map(status => (
+            <FormControlLabel
+              key={status}
+              value={status}
+              control={<Radio />}
+              label={
+                <Box>
+                  <Typography>
+                    {status} {status === suggestedStatus && '(recommended)'}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {getStatusDescription(status)}
+                  </Typography>
+                </Box>
+              }
+            />
+          ))}
+        </RadioGroup>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button onClick={() => onSelect(selectedStatus)} variant="contained">
+          Set Status
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+```
+
+---
+
+### AC5: Hierarchie Visualization
 
 **GIVEN** Epic obsahuje 3 Stories, každá Story má 2-3 Tasky  
 **WHEN** zobrazím Epic card v kanbanu  
@@ -208,7 +445,9 @@ const filteredCards = cards.filter(card => {
 └────────────────────────────────────┘
 ```
 
-### AC5: Drag & Drop s Preservation Vazeb
+---
+
+### AC6: Drag & Drop s Preservation Vazeb
 
 **GIVEN** Epic s 3 child stories  
 **WHEN** drag & drop různé scenáře  
@@ -362,41 +601,114 @@ const AUTO_UPDATE_RULES = {
 };
 ```
 
-### AC6: Column Customization
+---
 
-**GIVEN** kanban board  
-**WHEN** admin klikne "Customize Columns"  
-**THEN** může editovat sloupce:
+### AC7: Column Customization + Status Mapping 🆕
+
+**GIVEN** kanban board admin  
+**WHEN** klikne "Customize Columns"  
+**THEN** může editovat sloupce + mapování na WF stavy:
+
+**Column Editor:**
 
 ```
-┌────────────────────────────────────────┐
-│ Kanban Columns Configuration           │
-├────────────────────────────────────────┤
-│ ┌────────────────────────────────────┐ │
-│ │ 1. To Do                           │ │  ← Drag handle
-│ │    Status: TODO                    │ │
-│ │    WIP Limit: None                 │ │
-│ │    [Edit] [Delete]                 │ │
-│ └────────────────────────────────────┘ │
-│                                        │
-│ ┌────────────────────────────────────┐ │
-│ │ 2. In Progress                     │ │
-│ │    Status: IN_PROGRESS             │ │
-│ │    WIP Limit: 5 items              │ │  ← Work In Progress limit
-│ │    [Edit] [Delete]                 │ │
-│ └────────────────────────────────────┘ │
-│                                        │
-│ ┌────────────────────────────────────┐ │
-│ │ 3. Review                          │ │
-│ │    Status: REVIEW                  │ │
-│ │    WIP Limit: 3 items              │ │
-│ │    [Edit] [Delete]                 │ │
-│ └────────────────────────────────────┘ │
-│                                        │
-│ [+ Add Column]                         │
-│                                        │
-│ [Cancel]  [Save]                       │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│ Edit Column: "In Progress"                                 │
+├────────────────────────────────────────────────────────────┤
+│ Column Name: *                                             │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ In Progress                                            │ │
+│ └────────────────────────────────────────────────────────┘ │
+│                                                            │
+│ Mapped Workflow Statuses: * (multi-select)                │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ [STARTED ×] [BLOCKED ×] [WAITING ×]                    │ │  ← Chips
+│ │                                                        │ │
+│ │ Available: DRAFT, ASSIGNED, REVIEW, DONE...            │ │
+│ └────────────────────────────────────────────────────────┘ │
+│                                                            │
+│ Color:                                                     │
+│ [🟡 Yellow] [🔵 Blue] [🟢 Green] [🔴 Red] [⚪ Gray]       │
+│                                                            │
+│ WIP Limit (optional):                                      │
+│ ┌──────┐                                                   │
+│ │ 5    │ items                                             │
+│ └──────┘                                                   │
+│ ☐ Enforce strictly (block moves when at limit)            │
+│                                                            │
+│ Display Order:                                             │
+│ ┌──────┐                                                   │
+│ │ 2    │ (1 = leftmost column)                             │
+│ └──────┘                                                   │
+│                                                            │
+│ [Cancel]  [Save Column]                                    │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Column List (Admin view):**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ Kanban Board: "Workflow Management"                       │
+│ Columns Configuration                                      │
+├────────────────────────────────────────────────────────────┤
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ 1. ⠿ To Do                                             │ │  ← Drag handle
+│ │    Statuses: DRAFT, ASSIGNED                           │ │
+│ │    WIP Limit: None    Color: 🔵 Blue                   │ │
+│ │    [Edit] [Delete]                                     │ │
+│ └────────────────────────────────────────────────────────┘ │
+│                                                            │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ 2. ⠿ In Progress                                       │ │
+│ │    Statuses: STARTED, BLOCKED, WAITING                 │ │
+│ │    WIP Limit: 5       Color: 🟡 Yellow                 │ │
+│ │    [Edit] [Delete]                                     │ │
+│ └────────────────────────────────────────────────────────┘ │
+│                                                            │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ 3. ⠿ Review                                            │ │
+│ │    Statuses: REVIEW, WAITING_APPROVAL                  │ │
+│ │    WIP Limit: 3       Color: 🟣 Purple                 │ │
+│ │    [Edit] [Delete]                                     │ │
+│ └────────────────────────────────────────────────────────┘ │
+│                                                            │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ 4. ⠿ Done                                              │ │
+│ │    Statuses: COMPLETED, CANCELLED, REJECTED            │ │
+│ │    WIP Limit: None    Color: 🟢 Green                  │ │
+│ │    [Edit] [Delete]                                     │ │
+│ └────────────────────────────────────────────────────────┘ │
+│                                                            │
+│ [+ Add Column]                                             │
+│                                                            │
+│ ⚠️ Warning: Each workflow status must be mapped to        │
+│ exactly ONE column. Unmapped statuses will not appear.     │
+│                                                            │
+│ [Cancel]  [Save Board]                                     │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Status validation:**
+
+```typescript
+// Validate that all workflow statuses are mapped to exactly one column
+const validateStatusMapping = (columns: KanbanColumn[]) => {
+  const allStatuses = Object.values(WorkflowStatus);
+  const mappedStatuses = columns.flatMap(c => c.mappedStatuses);
+  
+  // Check for unmapped statuses
+  const unmapped = allStatuses.filter(s => !mappedStatuses.includes(s));
+  if (unmapped.length > 0) {
+    throw new Error(`Unmapped statuses: ${unmapped.join(', ')}`);
+  }
+  
+  // Check for duplicate mappings
+  const duplicates = mappedStatuses.filter((s, i) => mappedStatuses.indexOf(s) !== i);
+  if (duplicates.length > 0) {
+    throw new Error(`Status mapped to multiple columns: ${duplicates.join(', ')}`);
+  }
+};
 ```
 
 **WIP Limit enforcement:**
@@ -410,9 +722,25 @@ When dragging card to "In Progress" (WIP Limit: 5, current: 5):
 │ Column "In Progress" is at capacity    │
 │ (5/5 items)                            │
 │                                        │
+│ ☑ Enforce strictly (configured)        │
+│                                        │
+│ Cannot move card. Please complete      │
+│ existing items first.                  │
+│                                        │
+│ [OK]                                   │
+└────────────────────────────────────────┘
+
+OR (if "Enforce strictly" is OFF):
+
+┌────────────────────────────────────────┐
+│ ⚠️ WIP Limit Warning                   │
+│                                        │
+│ Column "In Progress" is at capacity    │
+│ (5/5 items)                            │
+│                                        │
 │ Move anyway?                           │
 │                                        │
-│ [Cancel]  [Override]                   │
+│ [Cancel]  [Move (6/5)]                 │
 └────────────────────────────────────────┘
 ```
 

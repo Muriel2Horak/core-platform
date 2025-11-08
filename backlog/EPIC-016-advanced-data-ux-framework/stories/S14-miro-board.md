@@ -11,20 +11,21 @@
 
 ## 📋 STORY DESCRIPTION
 
-**Jako** Creative Project Manager / Designer,  
-**chci** freeform canvas (jako Miro/FigJam), kde můžu umístit sticky notes kamkoli,  
+**Jako** Business Analyst / Process Designer,  
+**chci** freeform canvas (jako Miro/FigJam), kde můžu umístit **entity instances** (Users, Workflows, Tenants) kamkoli,  
 **abych**:
-- Vytvořil **brainstorming board** s lístečky umístěnými volně
-- Spojil poznámky **šipkami** (connections)
-- **Zoomoval a panoval** po nekonečném canvasu
+- Vytvořil **process flow diagram** s User cards a Workflow cards volně rozmístěnými
+- Spojil entity **šipkami** (např. User → executes → Workflow → updates → Tenant)
+- **Zoomoval a panoval** po nekonečném canvasu s desítkami entit
 - Viděl **real-time cursory** spolupracovníků (collaborative editing)
-- Exportoval board jako **obrázek nebo PDF**
+- Exportoval board jako **obrázek nebo PDF** pro dokumentaci
 
 **Use cases:**
-- Brainstorming session (sticky notes s nápady)
-- Sprint retrospective (What went well / What to improve)
-- Mind mapping (centrální nápad → větvení)
-- User journey mapping (user actions → touchpoints)
+- **Workflow mapping**: Rozmístit Workflow cards volně, spojit šipkami (dependencies)
+- **Organization chart**: User cards umístěné podle hierarchie, connections = reporting lines
+- **Tenant ecosystem**: Tenant cards + jejich Users/Workflows, connections = relationships
+- **Process design**: Drag User → Workflow → Tenant cards, design flow
+- **System architecture**: Service cards (backend entities) + connections (API calls)
 
 ---
 
@@ -121,85 +122,148 @@ export const MiroCanvas: React.FC = () => {
 };
 ```
 
-### AC2: Sticky Notes (CRUD)
+### AC2: Entity Cards (CRUD)
 
 **GIVEN** canvas otevřený  
-**WHEN** kliknu "Add Sticky Note"  
-**THEN** vytvoří se sticky note:
-
-**Sticky note UI:**
+**WHEN** kliknu "Add Entity"  
+**THEN** otevře se entity picker:
 
 ```
-┌─────────────────────────────────┐
-│ 📝 Sticky Note       [Color ▼] │  ← Title bar (draggable)
-├─────────────────────────────────┤
-│                                 │
-│ User needs better onboarding   │  ← Editable text
-│                                 │
-│                                 │
-├─────────────────────────────────┤
-│ [👤 Alice]  [⋮ More]           │  ← Footer (author, actions)
-└─────────────────────────────────┘
+┌────────────────────────────────────────┐
+│ Add Entity to Board                    │
+├────────────────────────────────────────┤
+│ Entity Type:                           │
+│ ○ User                                 │
+│ ● Workflow                             │
+│ ○ Tenant                               │
+│ ○ Custom Entity                        │
+│                                        │
+│ Search: [Type to search...]            │
+│                                        │
+│ Results:                               │
+│ ☐ WF-001: Customer Onboarding         │
+│ ☐ WF-002: Invoice Processing          │
+│ ☑ WF-003: Employee Onboarding         │  ← Selected
+│ ☐ WF-004: Approval Workflow           │
+│                                        │
+│ [Cancel]  [Add to Board]               │
+└────────────────────────────────────────┘
 ```
 
-**Sticky note variants:**
+**Entity card UI (Workflow example):**
+
+```
+┌─────────────────────────────────────────┐
+│ � WF-003: Employee Onboarding         │  ← Header (entity icon + title)
+├─────────────────────────────────────────┤
+│ Status: ⚡ Active                       │
+│ Owner:  👤 Alice Johnson               │
+│ Steps:  5 steps                        │
+│ Avg time: 2.5 hours                    │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ [████████░░░░░░░] 60% completed     │ │  ← Mini chart
+│ └─────────────────────────────────────┘ │
+├─────────────────────────────────────────┤
+│ [View Details] [⋮ More]                 │  ← Actions
+└─────────────────────────────────────────┘
+```
+
+**Entity card UI (User example):**
+
+```
+┌─────────────────────────────────────────┐
+│ 👤 Alice Johnson                        │
+│    alice.johnson@company.com            │
+├─────────────────────────────────────────┤
+│ Role:     Admin                         │
+│ Tenant:   Company A                     │
+│ Status:   🟢 Active                     │
+│ Last login: 2 hours ago                 │
+│                                         │
+│ Active workflows: 3                     │
+│ Completed tasks: 127                    │
+├─────────────────────────────────────────┤
+│ [View Profile] [⋮ More]                 │
+└─────────────────────────────────────────┘
+```
+
+**Entity card data model:**
 
 ```typescript
-interface StickyNote {
+interface EntityCard {
   id: string;
+  boardId: string;
+  
+  // Canvas position
   x: number;
   y: number;
   width: number;
   height: number;
-  color: 'yellow' | 'pink' | 'blue' | 'green' | 'purple'; // Like Miro
-  text: string;
-  authorId: string;
-  rotation: number; // Degrees (-15 to +15 for organic look)
-  zIndex: number; // Layering
+  rotation: number; // Optional slight tilt
+  zIndex: number;
+  
+  // Entity reference
+  entityType: 'USER' | 'WORKFLOW' | 'TENANT' | 'CUSTOM';
+  entityId: string; // Reference to actual entity
+  entityData: {
+    // Denormalized data for quick render (synced from entity)
+    title: string;
+    subtitle?: string;
+    status?: string;
+    icon?: string;
+    metadata?: Record<string, any>; // Entity-specific fields
+  };
+  
+  // Visual customization
+  cardStyle: 'compact' | 'detailed' | 'mini'; // Display mode
+  showMiniChart?: boolean; // Show embedded chart
+  
   createdAt: string;
   updatedAt: string;
 }
 ```
 
-**Color palette:**
+**Entity-specific card variants:**
 
-| Color  | Hex     | Use Case |
-|--------|---------|----------|
-| Yellow | #FFF9C4 | Ideas, general notes |
-| Pink   | #F8BBD0 | Issues, blockers |
-| Blue   | #BBDEFB | Actions, tasks |
-| Green  | #C8E6C9 | Wins, positives |
-| Purple | #E1BEE7 | Questions |
+| Entity Type | Icon | Key Fields | Mini Chart |
+|-------------|------|------------|------------|
+| **User** | 👤 | Name, Email, Role, Status, Last Login | Activity timeline |
+| **Workflow** | 🔄 | Name, Status, Owner, Steps, Avg Time | Completion % |
+| **Tenant** | 🏢 | Name, Status, Users Count, Workflows | Usage stats |
+| **Custom** | 📦 | Custom fields based on metamodel | Configurable |
 
 **Interactions:**
-- **Double-click canvas:** Create new sticky at cursor position
-- **Click sticky:** Select (show border + resize handles)
-- **Double-click sticky:** Edit text (contenteditable)
-- **Drag sticky:** Move freely on canvas
-- **Rotate:** Small rotate handle at top-right corner
-- **Resize:** Drag bottom-right corner (maintain aspect ratio)
-- **Delete:** Click ⋮ More → Delete
+- **Double-click canvas:** Open entity picker → select entity → place on canvas
+- **Drag entity library:** Drag User/Workflow from sidebar → drop on canvas
+- **Click card:** Select (show border + resize handles)
+- **Double-click card:** Open entity detail popup (S5 Multi-Window)
+- **Drag card:** Move freely on canvas
+- **Resize:** Drag bottom-right corner (compact ↔ detailed view)
+- **Delete:** Click ⋮ More → Remove from Board (entity itself NOT deleted)
 
 **Implementation:**
 
 ```typescript
-// frontend/src/components/miro-board/StickyNote.tsx
+// frontend/src/components/miro-board/EntityCard.tsx
 import React, { useState, useRef } from 'react';
-import { Group, Rect, Text, Transformer } from 'react-konva';
+import { Group, Rect, Text, Transformer, Image } from 'react-konva';
 import Konva from 'konva';
 
-interface StickyNoteProps {
-  note: StickyNote;
+interface EntityCardProps {
+  card: EntityCard;
   isSelected: boolean;
   onSelect: () => void;
-  onChange: (note: Partial<StickyNote>) => void;
+  onChange: (card: Partial<EntityCard>) => void;
+  onDoubleClick: () => void; // Open entity detail popup
 }
 
-export const StickyNote: React.FC<StickyNoteProps> = ({
-  note,
+export const EntityCard: React.FC<EntityCardProps> = ({
+  card,
   isSelected,
   onSelect,
-  onChange
+  onChange,
+  onDoubleClick
 }) => {
   const shapeRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
@@ -230,56 +294,97 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
     node.scaleY(1);
 
     onChange({
-      width: Math.max(5, node.width() * scaleX),
-      height: Math.max(5, node.height() * scaleY),
+      width: Math.max(150, node.width() * scaleX), // Min 150px
+      height: Math.max(100, node.height() * scaleY), // Min 100px
       rotation: node.rotation(),
     });
   };
 
+  // Entity-specific colors
   const colorMap = {
-    yellow: '#FFF9C4',
-    pink: '#F8BBD0',
-    blue: '#BBDEFB',
-    green: '#C8E6C9',
-    purple: '#E1BEE7',
+    USER: '#E3F2FD',      // Light blue
+    WORKFLOW: '#FFF9C4',  // Light yellow
+    TENANT: '#C8E6C9',    // Light green
+    CUSTOM: '#F3E5F5',    // Light purple
   };
 
   return (
     <>
       <Group
         ref={shapeRef}
-        x={note.x}
-        y={note.y}
-        rotation={note.rotation}
+        x={card.x}
+        y={card.y}
+        rotation={card.rotation}
         draggable
         onClick={onSelect}
+        onDblClick={onDoubleClick} // Open detail popup
         onTap={onSelect}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >
-        {/* Background rect */}
+        {/* Background card */}
         <Rect
-          width={note.width}
-          height={note.height}
-          fill={colorMap[note.color]}
-          stroke={isSelected ? '#2196F3' : '#000'}
-          strokeWidth={isSelected ? 2 : 1}
+          width={card.width}
+          height={card.height}
+          fill={colorMap[card.entityType]}
+          stroke={isSelected ? '#2196F3' : '#BDBDBD'}
+          strokeWidth={isSelected ? 3 : 1}
+          cornerRadius={8}
           shadowBlur={5}
-          shadowOpacity={0.3}
+          shadowOpacity={0.2}
         />
 
-        {/* Text */}
+        {/* Entity icon (top-left) */}
         <Text
-          text={note.text}
-          fontSize={14}
-          fontFamily="Arial"
-          fill="#000"
-          width={note.width - 20}
-          height={note.height - 20}
-          padding={10}
-          align="left"
-          verticalAlign="top"
+          text={card.entityData.icon || '📦'}
+          fontSize={24}
+          x={10}
+          y={10}
         />
+
+        {/* Entity title */}
+        <Text
+          text={card.entityData.title}
+          fontSize={16}
+          fontStyle="bold"
+          fill="#000"
+          x={45}
+          y={12}
+          width={card.width - 55}
+        />
+
+        {/* Subtitle (if exists) */}
+        {card.entityData.subtitle && (
+          <Text
+            text={card.entityData.subtitle}
+            fontSize={12}
+            fill="#666"
+            x={45}
+            y={35}
+            width={card.width - 55}
+          />
+        )}
+
+        {/* Status badge */}
+        {card.entityData.status && (
+          <Rect
+            x={10}
+            y={card.height - 35}
+            width={80}
+            height={25}
+            fill="#4CAF50"
+            cornerRadius={4}
+          />
+        )}
+        {card.entityData.status && (
+          <Text
+            text={card.entityData.status}
+            fontSize={12}
+            fill="#FFF"
+            x={15}
+            y={card.height - 30}
+          />
+        )}
       </Group>
 
       {isSelected && (
@@ -287,7 +392,7 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
           ref={trRef}
           boundBoxFunc={(oldBox, newBox) => {
             // Min size
-            if (newBox.width < 100 || newBox.height < 80) {
+            if (newBox.width < 150 || newBox.height < 100) {
               return oldBox;
             }
             return newBox;
@@ -299,11 +404,44 @@ export const StickyNote: React.FC<StickyNoteProps> = ({
 };
 ```
 
-### AC3: Connections (Arrows Between Notes)
+### AC3: Connections Between Entities
 
-**GIVEN** dvě sticky notes na canvasu  
+**GIVEN** dvě entity cards na canvasu  
 **WHEN** vyberu "Draw Connection"  
 **THEN** můžu nakreslit šipku mezi nimi:
+
+**Connection example - Workflow dependencies:**
+
+```
+┌──────────────────┐
+│ 🔄 WF-001:       │
+│ Onboarding       │─────➜ "depends on" ────➜ ┌──────────────────┐
+└──────────────────┘                           │ 🔄 WF-002:       │
+                                               │ Setup Account    │
+                                               └──────────────────┘
+```
+
+**Connection example - User to Workflow:**
+
+```
+┌──────────────────┐
+│ 👤 Alice Johnson │
+└──────────────────┘
+         │
+         ├────➜ "owns" ────➜ 🔄 WF-001: Onboarding
+         │
+         └────➜ "executes" ─➜ 🔄 WF-003: Approval
+```
+
+**Connection types:**
+
+| Connection | Label Example | Use Case |
+|------------|---------------|----------|
+| **Dependency** | "depends on", "requires" | Workflow → Workflow (prerequisites) |
+| **Ownership** | "owns", "manages" | User → Workflow (owner relationship) |
+| **Execution** | "executes", "runs" | User → Workflow (executor) |
+| **Parent-Child** | "contains", "has" | Tenant → Users (organization) |
+| **Data Flow** | "sends data to", "updates" | Workflow → Tenant (data operations) |
 
 **Connection modes:**
 
@@ -536,9 +674,9 @@ public class MiroBoardWebSocket {
 │ ○ High (4x)                            │
 │                                        │
 │ Include:                               │
-│ ☑ Sticky notes                         │
+│ ☑ Entity cards                         │
 │ ☑ Connections                          │
-│ ☑ Shapes                               │
+│ ☑ Labels                               │
 │                                        │
 │ [Cancel]  [Export]                     │
 └────────────────────────────────────────┘
@@ -557,7 +695,7 @@ export const exportBoardToPNG = (stage: Stage) => {
 
   // Download
   const link = document.createElement('a');
-  link.download = 'miro-board.png';
+  link.download = 'entity-board.png'; // Changed from 'miro-board.png'
   link.href = uri;
   document.body.appendChild(link);
   link.click();
@@ -570,7 +708,7 @@ export const exportBoardToPDF = async (stage: Stage) => {
 
   const pdf = new jsPDF('landscape', 'mm', 'a4');
   pdf.addImage(uri, 'PNG', 10, 10, 277, 190); // A4 landscape size
-  pdf.save('miro-board.pdf');
+  pdf.save('entity-board.pdf'); // Changed from 'miro-board.pdf'
 };
 ```
 
@@ -595,36 +733,48 @@ export const exportBoardToPDF = async (stage: Stage) => {
 
 ---
 
-#### **T2: Sticky Note CRUD** (15h)
+#### **T2: Entity Card CRUD** (15h)
 
 **Deliverable:**
-- StickyNote component (draggable, resizable, rotatable)
-- Create sticky on double-click
-- Edit text inline (contenteditable)
-- Color picker (5 colors)
-- Delete sticky
-- Backend API for persistence
+- EntityCard component (draggable, resizable)
+- Entity picker dialog (search Users, Workflows, Tenants)
+- Entity-specific card rendering (User card, Workflow card, Tenant card)
+- Double-click to open detail popup (S5 integration)
+- Remove from board (entity NOT deleted)
+- Backend API for board persistence
 
 **Backend:**
 
 ```java
-// backend/src/main/java/cz/muriel/core/miro/model/StickyNote.java
+// backend/src/main/java/cz/muriel/core/miro/model/EntityCard.java
 @Entity
-@Table(name = "miro_sticky_notes")
-public class StickyNote {
+@Table(name = "miro_entity_cards")
+public class EntityCard {
     @Id
     @GeneratedValue
     private Long id;
 
     private String boardId;
+    
+    // Canvas position
     private Double x;
     private Double y;
     private Integer width;
     private Integer height;
-    private String color;
-    private String text;
     private Double rotation;
-    private Long authorId;
+    
+    // Entity reference
+    @Enumerated(EnumType.STRING)
+    private EntityType entityType; // USER, WORKFLOW, TENANT, CUSTOM
+    
+    private String entityId; // Reference to actual entity
+    
+    // Denormalized data (synced from entity for quick render)
+    @Column(columnDefinition = "jsonb")
+    private String entityDataJson;
+    
+    private Long createdById;
+    private LocalDateTime createdAt;
 }
 ```
 
@@ -653,9 +803,10 @@ public class StickyNote {
 
 **Deliverable:**
 - WebSocket connection per board
-- Broadcast note updates to all users
+- Broadcast entity card updates to all users
 - Live cursors with user names
 - Presence indicators (who's online)
+- Real-time sync when entity data changes (e.g., Workflow status updated → card refreshes)
 
 ---
 
@@ -674,44 +825,63 @@ public class StickyNote {
 
 ```typescript
 // e2e/specs/miro-board/canvas.spec.ts
-test('Create sticky note on canvas', async ({ page }) => {
+test('Add entity card to canvas', async ({ page }) => {
   await page.goto('/miro-board/123');
 
-  // Double-click canvas
-  await page.dblclick('canvas', { position: { x: 200, y: 300 } });
+  // Open entity picker
+  await page.click('button:has-text("Add Entity")');
+  
+  // Select Workflow
+  await page.click('input[value="WORKFLOW"]');
+  await page.fill('input[placeholder="Type to search..."]', 'Onboarding');
+  await page.click('text=WF-001: Customer Onboarding');
+  await page.click('button:has-text("Add to Board")');
 
-  // Verify sticky created
-  await expect(page.locator('text=New Note')).toBeVisible();
+  // Verify entity card created
+  await expect(page.locator('text=WF-001: Customer Onboarding')).toBeVisible();
 });
 
-test('Draw arrow between sticky notes', async ({ page }) => {
-  // Create two stickies first
+test('Draw arrow between entity cards', async ({ page }) => {
+  // Add two entity cards first
   // ...
 
   // Click arrow tool
   await page.click('button:has-text("Arrow")');
 
-  // Click source sticky
-  await page.click('text=Note A');
+  // Click source entity
+  await page.click('text=WF-001');
 
-  // Click target sticky
-  await page.click('text=Note B');
+  // Click target entity
+  await page.click('text=WF-002');
 
-  // Verify arrow drawn
+  // Verify arrow drawn with label
+  await expect(page.locator('text=depends on')).toBeVisible();
+});
   await expect(page.locator('svg line')).toBeVisible();
 });
 
 test('Real-time collaboration', async ({ page, context }) => {
   // User A
   await page.goto('/miro-board/123');
-  await page.dblclick('canvas');
+  await page.click('button:has-text("Add Entity")');
+  // ... add entity card
 
   // User B (new tab)
   const page2 = await context.newPage();
   await page2.goto('/miro-board/123');
 
-  // Verify User B sees sticky note created by User A
-  await expect(page2.locator('text=New Note')).toBeVisible();
+  // Verify User B sees entity card created by User A
+  await expect(page2.locator('text=WF-001')).toBeVisible();
+});
+
+test('Double-click entity card opens detail popup', async ({ page }) => {
+  await page.goto('/miro-board/123');
+  
+  // Assume entity card already exists
+  await page.dblclick('text=WF-001: Customer Onboarding');
+  
+  // Verify detail popup opened (S5 Multi-Window integration)
+  await expect(page.locator('[role="dialog"] >> text=Customer Onboarding')).toBeVisible();
 });
 ```
 
@@ -719,11 +889,13 @@ test('Real-time collaboration', async ({ page, context }) => {
 
 ## 📊 SUCCESS METRICS
 
-- ✅ Canvas render < 500ms (100 stickies)
+- ✅ Canvas render < 500ms (100 entity cards)
 - ✅ Zoom/pan latency < 50ms
 - ✅ Real-time sync latency < 200ms
 - ✅ Export to PNG < 2s
-- ✅ 40%+ users create at least 1 Miro board
+- ✅ 40%+ users create at least 1 entity board
+- ✅ **Entity card load time < 300ms** (fetch + render entity data)
+- ✅ **Double-click to detail popup < 500ms** (S5 integration)
 
 ---
 
@@ -742,15 +914,17 @@ test('Real-time collaboration', async ({ page, context }) => {
 ## 🎨 DESIGN INSPIRATION
 
 **Reference apps:**
-- **Miro** (https://miro.com) - Infinite canvas, sticky notes, connections
+- **Miro** (https://miro.com) - Infinite canvas, collaboration
 - **FigJam** (https://www.figma.com/figjam/) - Collaborative whiteboard
-- **Excalidraw** (https://excalidraw.com) - Simple drawing tool
+- **Lucidchart** (https://www.lucidchart.com) - Entity relationship diagrams
+- **Draw.io** (https://www.drawio.com) - Flowchart tool
 
 **Key UX patterns:**
 - Infinite canvas (no boundaries)
 - Zoom to cursor (like Google Maps)
-- Sticky notes feel "physical" (rotation, shadows)
+- Entity cards feel "physical" (shadows, slight rotation)
 - Real-time cursors with names (like Figma)
+- **Entity-specific rendering** (User card ≠ Workflow card ≠ Tenant card)
 
 ---
 
