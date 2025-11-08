@@ -25,9 +25,11 @@ backlog/
 ├── EPIC-XXX-name/             # Adresář pro epic
 │   ├── README.md              # Epic definice
 │   └── stories/               # Stories v rámci epicu
-│       └── CORE-XXX-name/     # Adresář pro story
+│       └── {PREFIX}{NUM}-descriptive-name/  # Story adresář (prefix = zkratka epicu)
 │           ├── README.md      # Story definice
 │           ├── subtasks/      # Implementační tasky
+│           │   ├── T1-task-name.md
+│           │   └── T2-task-name.md
 │           └── attachments/   # Screenshots, mockupy
 └── scripts/                   # Automation tooling
     ├── new_story.sh           # Vytvoření nové story
@@ -35,6 +37,34 @@ backlog/
     ├── git_tracker.py         # Mapování commits → stories
     └── report.py              # Progress dashboard
 ```
+
+## 📝 Story Naming Convention
+
+Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`**
+
+| EPIC | PREFIX | Příklad |
+|------|--------|---------|
+| EPIC-001: Backlog System | `BL` | `BL1-markdown-structure-templates` |
+| EPIC-002: E2E Testing | `E2E` | `E2E1-playwright-test-framework-setup` |
+| EPIC-003: Monitoring | `MON` | `MON1-prometheus-metrics-instrumentation` |
+| EPIC-004: Reporting | `REP` | `REP1-cube-js-data-modeling` |
+| EPIC-005: Metamodel | `META` | `META1-schema-diff-detection` |
+| EPIC-006: Workflow | `WF` | `WF1-json-workflow-model` |
+| EPIC-007: Platform Hardening | `PH` | `PH1-naming-standards-linting` |
+| EPIC-008: DMS | `DMS` | `DMS1-file-upload-download-service` |
+| EPIC-009: AI Integration | `AI` | `AI1-mcp-server-setup` |
+| EPIC-010: ML Platform | `ML` | `ML1-ml-model-serving-infrastructure` |
+| EPIC-011: n8n | `N8N` | `N8N1-n8n-platform-deployment` |
+| EPIC-012: Vault | `VLT` | `VLT1-vault-skeleton-staging` |
+| EPIC-014: UX/UI | `UX` | `UX1-mui-theme-foundation` |
+| EPIC-016: Data UX | `DUX` | `DUX1-universal-data-view-engine` |
+
+**Proč popisné názvy?**
+- ✅ **Okamžitá čitelnost**: `PH1-naming-conventions` vs. `S1`
+- ✅ **Lepší navigace**: Vidíš co story dělá bez otevření README
+- ✅ **Git history**: Commity jasně ukazují kontext (`feat(PH1): Add naming linter`)
+- ✅ **Grep-friendly**: `grep -r "naming" backlog/` najde relevantní stories
+
 
 ## 🚀 Quick Start
 
@@ -45,8 +75,8 @@ backlog/
 make backlog-new
 
 # Nebo ručně
-cp backlog/templates/story.md backlog/EPIC-001-backlog-system/stories/CORE-042-my-feature/README.md
-vim backlog/EPIC-001-backlog-system/stories/CORE-042-my-feature/README.md
+cp backlog/templates/story.md backlog/EPIC-007-platform-hardening/stories/PH11-new-feature/README.md
+vim backlog/EPIC-007-platform-hardening/stories/PH11-new-feature/README.md
 ```
 
 ### 2. Naplň story s Copilot pomocí
@@ -72,7 +102,7 @@ docs_paths:
 
 **Příkaz pro Copilot v VS Code:**
 ```
-Najdi story CORE-042 v backlog/EPIC-001-backlog-system/stories/CORE-042-my-feature/README.md
+Najdi story MON11 v backlog/EPIC-003-monitoring-observability/stories/MON11-log-export/README.md
 a implementuj LogExporter podle definovaného path mappingu.
 ```
 
@@ -85,10 +115,10 @@ a implementuj LogExporter podle definovaného path mappingu.
 
 ```bash
 # Validace story před commitem
-make backlog-validate STORY=CORE-042
+make backlog-validate STORY=MON11
 
 # Git commit s story referencí
-git commit -m "feat(042): Add log export functionality"
+git commit -m "feat(MON11): Add log export functionality"
 
 # Auto-update story checklist
 make backlog-track
