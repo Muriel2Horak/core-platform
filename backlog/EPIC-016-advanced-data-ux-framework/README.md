@@ -5,7 +5,7 @@
 **Owner:** Product Team + UX Team  
 **Created:** 8. listopadu 2025  
 **Target:** Q1-Q2 2026  
-**Effort:** ~740 hours (~18-19 sprints)
+**Effort:** ~1,040 hours (~26 sprints)
 
 ---
 
@@ -13,14 +13,16 @@
 
 ### Vision
 
-> Comprehensive framework for viewing, filtering, analyzing, and editing data across all entities with customizable layouts, multi-window support, and Cube.js-powered analytics.
+> Comprehensive framework for viewing, filtering, analyzing, and editing data across all entities with customizable layouts, multi-window support, kanban boards, Miro-style boards, task breakdown, and Cube.js-powered analytics.
 
 **What this EPIC delivers:**
-- 📊 **Universal Data Views** - Tabulky, grafy, pivot tables pro všechny entity (Users, Tenants, Workflows, Custom)
+- 📊 **Universal Data Views** - Tabulky, grafy, pivot tables, **kanban boards**, **Miro-style boards** pro všechny entity
 - 🪟 **Multi-Window Editing** - Popup okna s drag & drop layoutem, multi-monitor support
-- 🎨 **Customization Framework** - Uživatelé si mohou upravit layouts a sdílet s týmem
+- 🎨 **Customization Framework** - Uživatelé si mohou upravit layouts a sdílet s týmem, **saved filters & views**
 - 🔍 **Advanced Analytics** - Cube.js integration, filtrování, kontingenční tabulky, export
 - 📱 **Responsive Design** - Funguje na desktop, tablet, mobile
+- 🗂️ **Task Breakdown** - Hierarchical decomposition (epic → story → task → subtask)
+- 🎯 **Kanban Board** - View s filters, swimlanes, hierarchy, smart drag & drop
 
 ### Business Value
 
@@ -37,10 +39,10 @@
 - ✅ **Power user features** - Multi-window editing, pivot tables, advanced filters
 
 **Impact:**
-- 📈 **User productivity:** +200% (multi-window editing, saved filters)
-- 🎯 **Self-service:** 80% customization bez IT tickets
-- ⏱️ **Time to insight:** 5 min → 30 sec (saved filters, dashboards)
-- 💰 **ROI:** -70% development time (reusable components)
+- 📈 **User productivity:** +250% (multi-window editing, saved filters, kanban views)
+- 🎯 **Self-service:** 85% customization bez IT tickets (saved views, Miro boards)
+- ⏱️ **Time to insight:** 5 min → 20 sec (saved filters, dashboards, task breakdown)
+- 💰 **ROI:** -75% development time (reusable components, unified framework)
 
 ---
 
@@ -106,6 +108,36 @@
     - Replace MUI components with Design System
     - Forms (S3), Tables (S9), Loading (S7), Errors (S8)
 
+12. **Kanban Board View** 🆕
+    - Kanban columns with drag & drop
+    - Multi-select filters (Assignee, Priority, Tenant)
+    - Swimlanes (Group by Priority/Tenant/Assignee)
+    - Hierarchical cards (Epic → Story → Task → Subtask)
+    - Smart drag & drop (move child only, move parent with children, auto-update)
+    - Column customization with WIP limits
+
+13. **Saved Filters & View Presets** 🆕
+    - Save personal/shared filter presets
+    - Quick apply saved views
+    - Share system with permissions
+    - Version history for views
+    - View library with categories
+
+14. **Miro-style Freeform Board** 🆕
+    - Infinite canvas with zoom/pan
+    - Sticky notes (create, edit, resize, rotate)
+    - Freeform positioning (drag to any X/Y coordinate)
+    - Connection lines between notes
+    - Real-time collaboration (live cursors, presence)
+    - Export to image/PDF
+
+15. **Task Breakdown & Hierarchical Decomposition** 🆕
+    - Hierarchical tree view (Epic → Story → Task → Subtask)
+    - Add/edit subtasks with parent link preservation
+    - Collapse/expand branches
+    - Progress aggregation (bubbles up from leaves to root)
+    - Drag & drop reparenting (move subtask to different parent)
+
 ### ❌ OUT OF SCOPE
 
 - ❌ Backend Cube.js schemas → **EPIC-004** (already done)
@@ -119,7 +151,7 @@
 
 ## 📊 PROGRESS OVERVIEW
 
-**Overall Completion:** 🔴 **0%** (11 stories, 0 done)
+**Overall Completion:** 🔴 **0%** (15 stories, 0 done)
 
 ### Story Status
 
@@ -128,24 +160,28 @@
 | **S1** | [Universal Data View Engine](stories/S1-data-view-engine.md) | 📋 TODO | 80h | P0 | 1-2 | EPIC-014 S9 ⏳ |
 | **S2** | [Advanced Filtering & Search](stories/S2-filtering-search.md) | 📋 TODO | 60h | P0 | 2-3 | EPIC-014 S3 ⏳ |
 | **S3** | [Dashboard Grid Layout](stories/S3-dashboard-grid.md) | 📋 TODO | 70h | P0 | 3-4 | None |
-| **S4** | [Visual Query Builder](stories/S4-query-builder.md) | 📋 TODO | 45h | P1 | 5 | S3, EPIC-014 S3 ⏳ |
-| **S5** | [Multi-Window Detail Popups](stories/S5-multi-window-popups.md) | 📋 TODO | 100h | P0 | 6-8 | None |
-| **S6** | [Customizable Popup Layouts](stories/S6-customizable-popups.md) | 📋 TODO | 70h | P1 | 9-10 | S5 |
-| **S7** | [Export & Pagination](stories/S7-export-pagination.md) | 📋 TODO | 40h | P1 | 11 | S1 |
-| **S8** | [Kontingenční Tabulka (Pivot)](stories/S8-pivot-table.md) | 📋 TODO | 50h | P2 | 12 | S1, S4 |
-| **S9** | [Extended Widget Types](stories/S9-extended-widgets.md) | 📋 TODO | 150h | P2 | 13-16 | S4 |
-| **S10** | [Sharing & Collaboration](stories/S10-sharing.md) | 📋 TODO | 30h | P3 | 17 | S3 |
-| **S11** | [EPIC-014 Integration](stories/S11-epic014-integration.md) | 📋 TODO | 45h | P0 | 18 | ⏳ EPIC-014 S3, S9 |
+| **S4** | [Role-Based Default Dashboards](stories/S4-role-defaults.md) | 📋 TODO | 35h | P1 | 4 | S3 |
+| **S5** | [Multi-Window Detail Popups](stories/S5-multi-window-popups.md) | 📋 TODO | 100h | P0 | 5-7 | None |
+| **S6** | [Visual Query Builder](stories/S6-query-builder.md) | 📋 TODO | 50h | P1 | 8 | S3, EPIC-014 S3 ⏳ |
+| **S7** | [Extended Widget Types](stories/S7-extended-widgets.md) | 📋 TODO | 150h | P2 | 9-12 | S6 |
+| **S8** | [Customizable Popup Layouts](stories/S8-customizable-popups.md) | 📋 TODO | 70h | P1 | 13-14 | S5 |
+| **S9** | [Tile Click Actions](stories/S9-tile-actions.md) | 📋 TODO | 40h | P2 | 15 | S3 |
+| **S10** | [Layout Sharing](stories/S10-layout-sharing.md) | 📋 TODO | 30h | P3 | 16 | S3, S8 |
+| **S11** | [EPIC-014 Integration](stories/S11-epic014-integration.md) | 📋 TODO | 45h | P0 | 17 | ⏳ EPIC-014 S3, S9 |
+| **S12** | [Kanban Board View](stories/S12-kanban-board.md) 🆕 | 📋 TODO | 120h | P1 | 18-21 | S1, S2, EPIC-003 |
+| **S13** | [Saved Filters & View Presets](stories/S13-saved-filters-views.md) 🆕 | 📋 TODO | 40h | P2 | 22 | S2, S10 |
+| **S14** | [Miro-style Freeform Board](stories/S14-miro-board.md) 🆕 | 📋 TODO | 80h | P2 | 23-24 | S1, EPIC-003 |
+| **S15** | [Task Breakdown & Subtasks](stories/S15-task-breakdown.md) 🆕 | 📋 TODO | 35h | P2 | 25-26 | S12, S1 |
 
-**Total Effort:** ~740 hours (~18-19 sprints @ 40h/sprint)
+**Total Effort:** ~1,040 hours (~26 sprints @ 40h/sprint)
 
 ### Completion by Priority
 
 | Priority | Stories | Completed | Total Effort | % Done |
 |----------|---------|-----------|--------------|--------|
 | **P0** | 4 | 0/4 | 295h | 0% |
-| **P1** | 3 | 0/3 | 215h | 0% |
-| **P2** | 2 | 0/2 | 200h | 0% |
+| **P1** | 4 | 0/4 | 285h | 0% |
+| **P2** | 5 | 0/5 | 425h | 0% |
 | **P3** | 2 | 0/2 | 30h | 0% |
 
 ---
