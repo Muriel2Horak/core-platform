@@ -1,41 +1,109 @@
-# EPIC-006: Workflow Engine (W1-W12)
+# EPIC-006: Workflow Orchestration (Internal Engine + External n8n)
 
-**Status:** 🟢 **100% COMPLETE** (All 12 phases)  
-**Implementováno:** Říjen 2024 - Leden 2025  
-**LOC:** ~18,000 řádků (backend + frontend)  
-**Tests:** 119 unit tests + 15 integration tests  
-**Dokumentace:** `WORKFLOW_EPIC_W5_W12_COMPLETE.md`, `docs/workflow/WORKFLOW_EPIC_PROGRESS.md`
+> 🔄 **Unified Architecture:** Single EPIC s 2 vrstvami - Internal metamodel-driven engine + External n8n orchestration hub
+
+**Status:** � **70% COMPLETE** (Phase 1 done, Phase 2 in progress)  
+**Implementováno:** Říjen 2024 - Leden 2025 (W1-W12), **Listopad 2025+ (WF12-WF19, N8N1-N8N6)**  
+**LOC:** ~18,000 (existing) + ~8,300 (planned)  
+**Tests:** 119 unit + 15 integration (existing)  
+**Dokumentace:** [`WORKFLOW_UNIFIED_ARCHITECTURE.md`](../WORKFLOW_UNIFIED_ARCHITECTURE.md)
 
 ---
 
 ## 🎯 Vision
 
-**Vytvořit plně funkční workflow engine** s vizuálním designerem, execution runtime, verzováním a monitoringem pro orchestraci business procesů v core platformě.
+**2-vrstvá workflow orchestrace:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 1: INTERNAL ENGINE (metamodel-driven)                │
+│  - Core state machine (states, transitions, guards)         │
+│  - Typed executors: APPROVAL, REST_SYNC, KAFKA_COMMAND      │
+│  - Sequential step orchestration                            │
+│  - Scope: Core business procesy (Order, Invoice, Contract) │
+└────────────────────┬────────────────────────────────────────┘
+                     │ EXTERNAL_TASK executor
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│  LAYER 2: EXTERNAL n8n (visual orchestration)               │
+│  - Integrace: Jira, Confluence, Trello, M365, Google        │
+│  - AI/ML pipelines, ETL jobs                                │
+│  - 400+ built-in nodes (no custom connectors needed!)       │
+│  - Scope: External integrace + heavy data processing        │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ### Business Goals
-- **Automatizace procesů**: Nahradit manuální business procesy automatizovanými workflow
-- **Vizualizace stavu**: Real-time přehled o průběhu procesů
-- **Auditovatelnost**: Kompletní historie změn a rozhodnutí
-- **Flexibilita**: Změny workflow bez code deployment
+- **Automatizace procesů**: Core workflows + external integrations
+- **Vizualizace stavu**: Real-time přehled (internal + n8n)
+- **Auditovatelnost**: Kompletní historie změn
+- **Flexibilita**: Změny bez code deployment
+- **Plug & Play**: Leverage n8n 400+ nodes (Jira, Confluence, atd.)
 
 ---
 
 ## 📋 Stories Overview
 
+### ✅ Phase 1: Foundation (W1-W12) - COMPLETE
+
 | ID | Story | Status | LOC | Tests | Value |
 |----|-------|--------|-----|-------|-------|
-| [WORK-001](#work-001-workflow-definition-model-w1) | Definition Model (W1) | ✅ DONE | ~1,200 | 15 | JSON-based workflow schema |
-| [WORK-002](#work-002-workflow-persistence-w2) | Persistence Layer (W2) | ✅ DONE | ~800 | 12 | PostgreSQL storage |
-| [WORK-003](#work-003-designer-ui-w3-w4) | Designer UI (W3-W4) | ✅ DONE | ~2,500 | 18 | Visual drag-and-drop |
-| [WORK-004](#work-004-runtime-foundation-w5) | Runtime Foundation (W5) | ✅ DONE | ~3,000 | 44 | Execution engine |
-| [WORK-005](#work-005-frontend-ux-w6) | Frontend UX (W6) | ✅ DONE | ~2,000 | 36 | Graph + Timeline |
-| [WORK-006](#work-006-executors-w7) | Executors (W7) | ✅ DONE | ~2,500 | 24 | HTTP, Script, Human |
-| [WORK-007](#work-007-timers-sla-w8) | Timers & SLA (W8) | ✅ DONE | ~600 | - | Auto-transitions |
-| [WORK-008](#work-008-versioning-w9) | Versioning (W9) | ✅ DONE | ~1,800 | 8 | Schema evolution |
-| [WORK-009](#work-009-studio-ui-w10) | Studio UI (W10) | ✅ DONE | ~2,200 | 11 | Visual builder |
-| [WORK-010](#work-010-testing-w11) | Testing/Simulation (W11) | ✅ DONE | ~900 | - | Dry-run mode |
-| [WORK-011](#work-011-monitoring-w12) | Monitoring (W12) | ✅ DONE | ~1,500 | - | Grafana dashboards |
-| **TOTAL** | | **12/12** | **~18,000** | **119** | **Complete engine** |
+| W1 | Definition Model | ✅ DONE | ~1,200 | 15 | JSON state machine |
+| W2 | Persistence Layer | ✅ DONE | ~800 | 12 | PostgreSQL storage |
+| W3-W4 | Designer UI | ✅ DONE | ~2,500 | 18 | React Flow editor |
+| W5 | Runtime Foundation | ✅ DONE | ~3,000 | 44 | State transitions |
+| W6 | Frontend UX | ✅ DONE | ~2,000 | 36 | Graph + Timeline |
+| W7 | Executors Framework | ⚠️ PARTIAL | ~2,500 | 24 | Interface OK, **typed executors CHYBÍ** |
+| W8 | Timers & SLA | ✅ DONE | ~600 | - | Auto-transitions |
+| W9 | Versioning | ✅ DONE | ~1,800 | 8 | Schema evolution |
+| W10 | Studio UI | ⚠️ UI ONLY | ~2,200 | 11 | **Backend mock, no storage** |
+| W11 | Testing/Simulation | ✅ DONE | ~900 | - | Dry-run mode |
+| W12 | Monitoring | ⚠️ METRICS ONLY | ~1,500 | - | **Dashboards CHYBÍ** |
+
+**Subtotal:** 12/12 stories, ~18,000 LOC, 119 tests
+
+---
+
+### 🔨 Phase 2: Typed Executors & Runtime (WF12-WF19) - IN PROGRESS
+
+| ID | Story | Status | LOC | Priority | Dependencies |
+|----|-------|--------|-----|----------|--------------|
+| [WF12](stories/WF12-approval-executor/) | APPROVAL Executor | ✅ SPEC READY | 800 | 🔴 HIGH | W5, W7 |
+| WF13 | REST_SYNC Executor | ⏳ TODO | 1,200 | 🔴 HIGH | W5, W7 |
+| WF14 | KAFKA_COMMAND Executor | ⏳ TODO | 600 | 🔴 HIGH | W5, W7, Kafka |
+| WF15 | EXTERNAL_TASK Executor | ⏳ TODO | 800 | 🔴 HIGH | W5, W7, N8N6 |
+| WF16 | TIMER/DELAY Executor | ⏳ TODO | 400 | 🟡 MEDIUM | W5, W8 |
+| WF17 | Workflow Instance Runtime | ⏳ TODO | 1,500 | 🔴 HIGH | WF12-16 |
+| WF18 | Workflow Steps Schema | ⏳ TODO | 600 | 🔴 HIGH | META, W10 |
+| WF19 | Grafana Dashboards | ⏳ TODO | 300 | 🟡 MEDIUM | W12, Grafana |
+
+**Subtotal:** 1/8 specs ready, ~6,200 LOC planned
+
+---
+
+### 🚀 Phase 3: External n8n Layer (N8N1-N8N6) - TODO
+
+| ID | Story | Status | LOC | Priority | Dependencies |
+|----|-------|--------|-----|----------|--------------|
+| N8N1 | Platform Deployment | ⏳ TODO | 400 | 🔴 HIGH | PostgreSQL |
+| N8N2 | Keycloak SSO | ⏳ TODO | 300 | 🔴 HIGH | Keycloak, N8N1 |
+| N8N3 | Nginx Proxy | ⏳ TODO | 200 | 🔴 HIGH | Nginx, N8N1 |
+| N8N4 | Workflow Templates | ⏳ TODO | 500 | 🟡 MEDIUM | N8N1-3 |
+| N8N5 | Monitoring | ⏳ TODO | 400 | 🟡 MEDIUM | Grafana, N8N1 |
+| N8N6 | Backend BFF API | ⏳ TODO | 800 | 🔴 HIGH | N8N1-3 |
+
+**Subtotal:** 0/6 implemented, ~2,600 LOC planned
+
+---
+
+### 📊 Total Progress
+
+| Phase | Stories | Status | LOC | Tests |
+|-------|---------|--------|-----|-------|
+| **Phase 1 (W1-W12)** | 12/12 | ✅ DONE | ~18,000 | 119 |
+| **Phase 2 (WF12-WF19)** | 1/8 | 🔨 IN PROGRESS | ~6,200 | TBD |
+| **Phase 3 (N8N1-N8N6)** | 0/6 | ⏳ TODO | ~2,600 | TBD |
+| **TOTAL** | **13/26** | **50%** | **~26,800** | **119+** |
 
 ---
 
@@ -1200,6 +1268,376 @@ export const WorkflowMonitoring: React.FC = () => {
 
 ---
 
+## 🆕 Phase 2: NEW Stories (WF12-WF19)
+
+### WF12: APPROVAL Executor
+
+**Status:** ✅ **SPEC READY**  
+**Estimate:** 3 days, 800 LOC  
+**Priority:** � HIGH  
+**Dependencies:** W5 (WorkflowService), W7 (executor framework)
+
+#### Description
+APPROVAL step type s podporou 4 approval modes: SINGLE, ALL_OF, ANY_OF, QUORUM.
+
+#### Key Features
+- **Approval Types**:
+  - SINGLE: 1 approver stačí
+  - ALL_OF: všichni musí schválit
+  - ANY_OF: alespoň 1 ze seznamu
+  - QUORUM: N z M approverů
+- **Role-based access**: Approvers z Keycloak rolí
+- **SLA tracking**: Escalations po deadlinu
+- **Notifications**: Email + Slack alerts
+
+#### Database Schema
+```sql
+CREATE TABLE workflow_approval_requests (
+  id UUID PRIMARY KEY,
+  workflow_instance_id UUID,
+  approval_type VARCHAR(50),  -- SINGLE, ALL_OF, ANY_OF, QUORUM
+  required_approvals INTEGER,
+  approvers TEXT[],
+  due_at TIMESTAMP,
+  escalated BOOLEAN,
+  status VARCHAR(50)  -- PENDING, APPROVED, REJECTED, ESCALATED
+);
+
+CREATE TABLE workflow_approval_responses (
+  id UUID PRIMARY KEY,
+  approval_request_id UUID REFERENCES workflow_approval_requests(id),
+  user_id VARCHAR(100),
+  response VARCHAR(50),  -- APPROVE, REJECT
+  comment TEXT,
+  responded_at TIMESTAMP,
+  UNIQUE (approval_request_id, user_id)
+);
+```
+
+#### API Endpoints
+```java
+// ApprovalController.java
+POST /api/workflows/approvals/{requestId}/respond
+Body: { "response": "APPROVE", "comment": "LGTM" }
+
+GET /api/workflows/approvals/pending  // My pending approvals
+```
+
+**Detail:** [stories/WF12-approval-executor/README.md](stories/WF12-approval-executor/README.md)
+
+---
+
+### WF13: REST_SYNC Executor
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 5 days, 1,200 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** W5, W7
+
+#### Description
+REST_SYNC step type pro synchronní HTTP volání s OpenAPI support, retry logic, circuit breaker.
+
+#### Key Features
+- OpenAPI spec parsing (extract endpoint, method, schema)
+- HTTP client (Spring WebClient)
+- Retry logic (exponential backoff)
+- Circuit breaker (Resilience4j)
+- `${variable}` substitution v URL, headers, body
+- Idempotence via correlation ID
+
+---
+
+### WF14: KAFKA_COMMAND Executor
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 2 days, 600 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** W5, W7, Kafka
+
+#### Description
+KAFKA_COMMAND step type s request-reply pattern, correlation ID tracking, timeout → DLQ.
+
+---
+
+### WF15: EXTERNAL_TASK Executor ⚡ **KLÍČOVÝ PRO n8n**
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 3 days, 800 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** W5, W7, N8N6 (BFF API)
+
+#### Description
+EXTERNAL_TASK step type - most mezi Internal workflow engine a External n8n orchestrator.
+
+#### Key Features
+- Poll & complete pattern pro external workers
+- Worker registration + heartbeat
+- Timeout detection (scheduled job)
+- Callback API: `/external-tasks/{id}/complete`
+
+#### Database Schema
+```sql
+CREATE TABLE workflow_external_tasks (
+  id UUID PRIMARY KEY,
+  workflow_instance_id UUID,
+  task_type VARCHAR(100),  -- "n8n-jira-create-issue"
+  worker_id VARCHAR(100),
+  status VARCHAR(50),  -- PENDING, CLAIMED, COMPLETED, FAILED, TIMEOUT
+  input JSONB,
+  output JSONB,
+  timeout_at TIMESTAMP,
+  last_heartbeat_at TIMESTAMP
+);
+```
+
+**Integration Pattern:**
+```
+Core Workflow → ExternalTaskExecutor → BFF API → n8n → Jira
+                      ↓                                  ↓
+              external_task (PENDING)              callback
+                      ↓                                  ↓
+              Timeout checker ← ← ← ← ← ← /complete endpoint
+```
+
+---
+
+### WF16: TIMER/DELAY Executor
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 2 days, 400 LOC  
+**Priority:** 🟡 MEDIUM  
+**Dependencies:** W5, W8
+
+#### Description
+TIMER step type pro delayed actions, reminders, deadline enforcement.
+
+---
+
+### WF17: Workflow Instance Runtime ⚡ **KRITICKÝ - ORCHESTRATOR**
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 6 days, 1,500 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** WF12-WF16 (all executors)
+
+#### Description
+Runtime orchestration pro sequential step-by-step execution s context management.
+
+#### Key Features
+- Sequential execution: step 1 → wait → step 2 → wait → step 3
+- Runtime context: variables `${entityId}`, `${step-1.output.jiraKey}`
+- Error handling: onError routing
+- Compensation: rollback on failure
+
+#### Database Schema
+```sql
+CREATE TABLE workflow_instances (
+  id UUID PRIMARY KEY,
+  entity_type VARCHAR(100),
+  entity_id VARCHAR(100),
+  workflow_version_id BIGINT,
+  status VARCHAR(50),  -- RUNNING, COMPLETED, FAILED, CANCELLED
+  current_step_id VARCHAR(100),
+  context JSONB,  -- runtime variables
+  created_at TIMESTAMP,
+  completed_at TIMESTAMP
+);
+
+CREATE TABLE workflow_step_executions (
+  id UUID PRIMARY KEY,
+  workflow_instance_id UUID REFERENCES workflow_instances(id),
+  step_id VARCHAR(100),
+  step_type VARCHAR(50),  -- APPROVAL, REST_SYNC, KAFKA_COMMAND, etc.
+  status VARCHAR(50),  -- PENDING, RUNNING, SUCCESS, FAILED
+  input JSONB,
+  output JSONB,
+  error TEXT,
+  retry_count INTEGER,
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP
+);
+```
+
+#### API Endpoints
+```java
+POST /api/workflows/instances/{entityId}/start
+GET /api/workflows/instances/{instanceId}
+POST /api/workflows/instances/{instanceId}/cancel
+```
+
+---
+
+### WF18: Workflow Steps Schema v Metamodel
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 3 days, 600 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** META (metamodel CRUD), W10 (UI editor)
+
+#### Description
+Workflow steps jako součást entity definition v metamodelu (JSONB storage).
+
+#### Implementation
+```java
+// EntityDefinition.java
+@JsonProperty("workflowSteps")
+private List<WorkflowStep> workflowSteps;
+
+record WorkflowStep(
+  String id,
+  StepType type,  // APPROVAL, REST_SYNC, KAFKA_COMMAND, EXTERNAL_TASK, TIMER
+  String label,
+  Map<String, Object> config,
+  String onSuccess,
+  String onError,
+  RetryPolicy retry
+) {}
+```
+
+---
+
+### WF19: Workflow Grafana Dashboards
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 1 day, 300 LOC  
+**Priority:** 🟡 MEDIUM  
+**Dependencies:** W12 (metrics), Grafana
+
+#### Description
+Grafana dashboards pro internal workflow engine monitoring.
+
+#### Panels
+- Active workflow instances (by status)
+- Step executions/hour (by type)
+- Approval pending time (avg, p95, p99)
+- External task timeout rate
+- Executor retry rate
+
+---
+
+## 🚀 Phase 3: External n8n Layer (N8N1-N8N6)
+
+### N8N1: n8n Platform Deployment
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 1 day, 400 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** PostgreSQL
+
+#### Description
+n8n Community Edition Docker service s PostgreSQL backend.
+
+#### Docker Compose
+```yaml
+n8n:
+  image: n8nio/n8n:latest
+  environment:
+    - N8N_BASIC_AUTH_ACTIVE=false  # SSO via Keycloak
+    - DB_TYPE=postgresdb
+    - DB_POSTGRESDB_DATABASE=n8n
+    - DB_POSTGRESDB_HOST=core-db
+    - WEBHOOK_URL=https://admin.core-platform.local/n8n/webhook
+  ports:
+    - "5678"  # Internal only
+```
+
+---
+
+### N8N2: Keycloak SSO Integration
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 1 day, 300 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** Keycloak, N8N1
+
+#### Description
+n8n authentication via Keycloak OIDC.
+
+#### Keycloak Client Config
+- Client ID: `n8n-client`
+- Redirect URIs: `https://admin.core-platform.local/n8n/*`
+- Roles: `n8n-users`, `n8n-admins`
+
+---
+
+### N8N3: Nginx Reverse Proxy
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 0.5 day, 200 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** Nginx, N8N1, N8N2
+
+#### Description
+`/n8n/*` routing s SSL termination a Keycloak auth.
+
+---
+
+### N8N4: Workflow Templates
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 2 days, 500 LOC  
+**Priority:** 🟡 MEDIUM  
+**Dependencies:** N8N1-N8N3
+
+#### Description
+Pre-built n8n workflows pro common use cases.
+
+#### Templates
+1. `jira-create-issue.json` - Webhook → Jira create → callback
+2. `confluence-sync.json` - Webhook → Confluence update
+3. `trello-automation.json` - Webhook → Trello create card
+4. `ai-summarization.json` - Webhook → OpenAI → callback
+
+---
+
+### N8N5: n8n Monitoring
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 1 day, 400 LOC  
+**Priority:** 🟡 MEDIUM  
+**Dependencies:** Grafana, N8N1
+
+#### Description
+Grafana dashboards pro n8n execution monitoring.
+
+---
+
+### N8N6: Backend BFF API ⚡ **MOST PRO INTEGRACI**
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 3 days, 800 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** N8N1-N8N3, Spring Security, Redis
+
+#### Description
+Spring Boot proxy pro n8n REST API s JWT validation, tenant filtering, rate limiting.
+
+#### API Endpoints
+```java
+@RestController
+@RequestMapping("/api/n8n")
+public class N8nBffController {
+  @PostMapping("/workflows/{workflowId}/execute")
+  public ResponseEntity<ExecutionResult> executeWorkflow(
+    @PathVariable String workflowId,
+    @RequestBody Map<String, Object> input,
+    @AuthenticationPrincipal Jwt jwt
+  ) {
+    // 1. Validate JWT + extract tenant
+    // 2. Rate limit check
+    // 3. Audit log
+    // 4. Call n8n REST API
+    return webClient.post()
+      .uri("http://n8n:5678/api/v1/workflows/{id}/execute", workflowId)
+      .bodyValue(input)
+      .retrieve()
+      .toEntity(ExecutionResult.class);
+  }
+}
+```
+
+---
+
 ## 📊 Overall Impact
 
 ### Metrics
@@ -1207,26 +1645,46 @@ export const WorkflowMonitoring: React.FC = () => {
 - **Business Agility**: Workflow changes in hours (vs weeks)
 - **Audit Compliance**: 100% event tracking
 - **SLA Adherence**: 95%+ compliance rate
+- **Integration Coverage**: 400+ external systems via n8n (Jira, Confluence, Trello, M365, Google, AI)
 
 ### Business Value
-- **Cost Savings**: Reduced manual process overhead
-- **Faster Time-to-Market**: New processes deployed quickly
-- **Better Visibility**: Real-time process monitoring
+- **Cost Savings**: Reduced manual process overhead + no custom connector maintenance
+- **Faster Time-to-Market**: New processes + integrations deployed quickly
+- **Better Visibility**: Real-time process monitoring (internal + external)
 - **Compliance**: Full audit trail
+- **Plug & Play**: Leverage n8n's 400+ built-in nodes (no custom code)
 
 ---
 
-## 🎯 Future Enhancements (Not in Scope)
+## 🎯 Roadmap (5 týdnů)
 
-- **BPMN Import/Export**: Support standard BPMN 2.0 format
-- **External Integrations**: Zapier, IFTTT connectors
-- **Advanced Analytics**: ML-based bottleneck prediction
-- **Multi-Tenant**: Workflow isolation per tenant
-- **Collaboration**: Real-time multi-user editing
+### Week 1: Core Executors
+- WF12 APPROVAL Executor
+- WF14 KAFKA_COMMAND Executor
+
+### Week 2: Integration Executors
+- WF13 REST_SYNC Executor
+- WF15 EXTERNAL_TASK Executor ← **Klíčový pro n8n**
+- WF16 TIMER/DELAY Executor
+
+### Week 3: Workflow Runtime
+- WF17 Workflow Instance Runtime (orchestrator)
+- WF18 Workflow Steps Schema (metamodel)
+
+### Week 4: n8n Deployment
+- N8N1 Platform Deployment
+- N8N2 Keycloak SSO + N8N3 Nginx Proxy
+- N8N6 Backend BFF API
+- N8N4 Workflow Templates
+- N8N5 Monitoring
+
+### Week 5: Observability + E2E
+- WF19 Grafana Dashboards
+- E2E integration tests (Order approval, Jira sync, timeout scenarios)
 
 ---
 
-**For detailed implementation docs, see:**
-- `WORKFLOW_EPIC_W5_W12_COMPLETE.md` - Complete implementation summary
-- `docs/workflow/WORKFLOW_EPIC_PROGRESS.md` - Phase-by-phase progress
+**For detailed architecture, see:**
+- [`WORKFLOW_UNIFIED_ARCHITECTURE.md`](../WORKFLOW_UNIFIED_ARCHITECTURE.md) - Complete 2-layer design
+- `WORKFLOW_EPIC_W5_W12_COMPLETE.md` - Phase 1 implementation summary
 - `docs/workflow/W5_RUNTIME_GUIDE.md` - Runtime API guide
