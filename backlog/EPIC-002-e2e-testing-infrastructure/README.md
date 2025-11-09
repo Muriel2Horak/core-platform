@@ -81,7 +81,8 @@ Testing Framework (Multi-Tier)
 | [S12](#s12-testing-standards--guide) | Testing Standards & Guide | 🔵 TODO | ~600 | 8h | Dokumentace |
 | [S13](#s13-mock-services) | Mock Services Integration | 🔵 TODO | ~800 | 12h | Mocking ext. služeb |
 | [S14](#s14-test-data-management) | Test Data Management | 🔵 TODO | ~1,200 | 14h | Testovací data + izolace |
-| **TOTAL** | | **0/7** | **~4,500** | **~62h** | **Complete test infrastructure** |
+| [E2E15](#e2e15-github-actions-cicd-workflows) | **GitHub Actions CI/CD Workflows** | ✅ **DONE** | ~800 | 4h | **Dokumentace workflows** |
+| **TOTAL** | | **1/8** | **~5,300** | **~66h** | **Complete test infrastructure** |
 
 ---
 
@@ -948,6 +949,97 @@ public class TestDataController {
 
 ---
 
+## E2E15: GitHub Actions CI/CD Workflows
+
+> **Documentation:** Complete guide to all GitHub Actions workflows
+
+**See:** [E2E15-github-actions-workflows/README.md](stories/E2E15-github-actions-workflows/README.md)
+
+### Overview
+
+Kompletní dokumentace všech 13 GitHub Actions workflows v `.github/workflows-disabled/`:
+
+**Main Workflows:**
+- `ci.yml` - Main CI pipeline (build + unit tests, 15-20 min)
+- `pre-deploy.yml` - Pre-deploy smoke tests (5-7 min)
+- `post-deploy.yml` - Post-deploy full E2E (20-30 min)
+- `e2e.yml` - Full E2E test suite (20-30 min)
+
+**Quality & Security:**
+- `code-quality.yml` - Linting, SonarQube (5 min)
+- `security-scan.yml` - OWASP, dependency check (10 min)
+- `naming-lint.yml` - Java naming conventions (1 min)
+
+**Specialized:**
+- `reporting-tests.yml` - Reporting module (10 min)
+- `streaming-tests.yml` - Kafka CDC (8 min)
+- `tests-monitoring-bff.yml` - Monitoring BFF (5 min)
+
+### Current Status
+
+✅ **Workflows DISABLED** during EPIC-017 implementation
+- Location: `.github/workflows-disabled/`
+- Reason: Save CI minutes, prevent false failures
+- Re-enable: After modular architecture complete
+
+### Key Features Documented
+
+1. **Workflow Trigger Conditions**
+   - Push events (main, develop)
+   - Pull requests
+   - Scheduled runs (weekly security scans)
+   - Manual dispatch
+
+2. **Job Dependencies & Orchestration**
+   - Fast feedback loop (lint → unit → integration → E2E)
+   - Parallel matrix strategies (browsers, OS, Node versions)
+   - Conditional execution (deploy only on main)
+
+3. **Enable/Disable Workflows**
+   ```bash
+   # Disable all
+   mv .github/workflows/*.yml .github/workflows-disabled/
+   
+   # Enable all
+   mv .github/workflows-disabled/*.yml .github/workflows/
+   
+   # Enable selectively
+   mv .github/workflows-disabled/ci.yml .github/workflows/
+   ```
+
+4. **Skip CI on Specific Commits**
+   ```bash
+   git commit -m "docs: Update README [skip ci]"
+   ```
+
+5. **Troubleshooting Guide**
+   - Workflow doesn't trigger
+   - Tests timeout
+   - Environment variables missing
+   - Docker Compose fails
+   - Flaky E2E tests
+
+6. **Best Practices**
+   - Cache dependencies (Maven, npm)
+   - Matrix strategy for parallel tests
+   - Conditional job execution
+   - Artifacts for debugging
+   - Fast feedback loop
+
+### Deployment Flow
+
+```
+pre-deploy.yml (smoke)
+  ↓ PASS
+Deployment
+  ↓ SUCCESS
+post-deploy.yml (full E2E)
+  ↓ FAIL
+Rollback
+```
+
+---
+
 ## 📅 Implementation Plan
 
 ### Week 1: Test Registry Foundation
@@ -968,11 +1060,11 @@ public class TestDataController {
 
 ### Week 4: Dashboard & CI/CD
 - Day 1-2: Grafana coverage dashboard
-- Day 3-4: GitHub Actions quality gates
+- Day 3-4: GitHub Actions quality gates (integrate with E2E15 docs)
 - Day 5: Testing guide documentation
 
 ---
 
-**Total Effort:** ~62 hours (4 týdny)  
+**Total Effort:** ~66 hours (4 týdny)  
 **Priority:** P0 (Foundation for all future development)  
-**Value:** Test-driven culture + visibility + automation
+**Value:** Test-driven culture + visibility + automation + CI/CD transparency
