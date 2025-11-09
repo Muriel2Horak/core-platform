@@ -4,7 +4,7 @@
 **Priority:** P0 (SECURITY CRITICAL)  
 **Owner:** Security + DevOps + Platform Team  
 **Created:** 9. listopadu 2025  
-**Updated:** 9. listopadu 2025 (Konsolidace + Production Gate + AI/LLM pravidla)
+**Updated:** 9. listopadu 2025 (Security DoD Checklist + Secrets zpřesnění + Moduly + AI/LLM + Governance)
 
 ---
 
@@ -159,6 +159,23 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
   - Obcházet RBAC přes direct DB access
   - Sdílet data mezi tenanty bez explicit kontroly
 
+#### Zpřísněná Pravidla pro Moduly a Rozšíření (EPIC-017)
+
+**Žádný modul (projekt, plugin, rozšíření) NESMÍ:**
+- ❌ Zavádět vlastní login / autentizační mechanismus (pouze Keycloak)
+- ❌ Obcházet Keycloak / centrální RBAC (všechny role přes Keycloak)
+- ❌ Obcházet Tenant Guard (musí respektovat `tenant_id` z tokenu)
+- ❌ Přistupovat přímo na DB jiného modulu nebo systémové tabulky (pouze přes API/BFF)
+- ❌ Ukládat svoje secrety "po svém" (musí použít stejný secret management model - Vault/EPIC-012)
+
+**Moduly SMĚJÍ přinést pouze:**
+- ✅ Vlastní obrazovky (FE komponenty v rámci Design System)
+- ✅ Workflow definice (v rámci Workflow Engine)
+- ✅ Integrační kroky (n8n nodes, API connectors)
+- ✅ Entitní typy (metamodel extensions)
+- ✅ Konektory (external API integrations)
+- ✅ **VŠE v souladu s centrálním security modelem** (Keycloak auth, tenant guard, audit logging)
+
 **Tento dokument NEŘEŠÍ:**
 - Konkrétní vendor volby (Vault vs. AWS Secrets Manager, konkrétní WAF)
 - UI/UX design detaily (barvy, layouty, user journeys)
@@ -278,6 +295,26 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 - ✅ VŽDY z env vars nebo secret store (Vault, AWS Secrets Manager, atd.)
 - ✅ Rotace definovaná: DB passwords (90 dní), JWT signing keys (180 dní), API keys (on compromise)
 - ✅ Audit: kdo kdy přistoupil k jakému secretu (Vault audit log)
+
+**Environment-Specific Requirements:**
+
+**DEV (Development/Local):**
+- ✅ Tolerováno použití `.env` souborů, **ALE:**
+  - `.env` **MUSÍ být** v `.gitignore`
+  - Vzor je pouze `.env.example` **bez skutečných secretů**
+  - Lokální `.env` pouze pro lokální vývojové prostředí, NIKDY ne commitnuté
+
+**STAGE/PROD (Staging/Production):**
+- ✅ **POVINNÉ:**
+  - Kubernetes secrets / managed secret store / Vault (EPIC-012)
+  - DB hesla, Keycloak client secrets, integrační klíče, SMTP, externí API keys atd. se **NESMÍ psát do manifestů ani do image**
+  - JWT signing keys, šifrovací klíče, privátní klíče certifikátů jsou **verzované a rotačně spravované** přes secret manager
+- ❌ **ZAKÁZÁNO:**
+  - Plaintext secrets v Kubernetes YAML
+  - Secrets v Docker image layers
+  - Hardcoded credentials v application.properties/yml
+
+**EPIC-012 Vault Integration definuje závazný způsob správy secretů pro produkční prostředí; tento EPIC stanovuje principy, EPIC-012 jejich implementaci.**
 
 **EPIC-012 dodává řešení:**
 - Vault deployment (dev/staging/prod)
@@ -584,6 +621,24 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 - ✅ "AI analyzuj anonymizované metrics" (PII odstraněno před odesláním)
 - ✅ "AI asistent pro metamodel design" (pracuje s schema, ne s daty)
 
+#### AI & LLM Security - Specifické Požadavky (EPIC-016)
+
+**Všechna AI volání (ChatGPT, interní LLM, MCP tools) MUSÍ:**
+- ✅ Jít přes **bezpečnou backend vrstvu** (ne přímo z prohlížeče)
+- ✅ Používat **stejné RBAC a tenant omezení** jako lidský uživatel
+- ✅ Mít **auditovatelný log** (kdo/co/na základě čeho změnil)
+
+**Do LLM se NESMÍ posílat:**
+- ❌ Cross-tenant data (žádné "vezmi data z tenant-A a použij je v tenant-B")
+- ❌ Plné osobní údaje bez anonymizace / pseudonymizace
+- ❌ Secrety, tokeny, interní klíče, konfigurace (API keys, DB passwords, JWT secrets)
+
+**Jakýkoliv "AI agent" pracující s metadaty/metamodelem:**
+- ✅ Používá **stejné RBAC a tenant omezení** jako lidský uživatel (ne bypass přes service account s admin právy)
+- ✅ Má **auditovatelný log** (kdo/co/na základě čeho změnil schema/workflow/konfiguraci)
+- ✅ Změny konfigurace musí **projít člověkem** (Propose/Approve workflow, ne direct apply)
+- ❌ NESMÍ autonomně měnit produkční schema bez human approval
+
 #### External Connectors (M365, Google, Jira, Stripe, ...)
 
 **Všechny external integrace přes service accounts:**
@@ -763,6 +818,66 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 5. **Detailní Compliance Audity:**
    - Ne: "SOC 2 Type II audit report template"
    - Ano: "Audit logs musí být dostupné pro compliance review"
+
+---
+
+## ✅ Security DoD Checklist (Production-Ready)
+
+Před nasazením do produkce **MUSÍ být splněny** všechny následující body:
+
+### Autentizace & Autorizace
+- [ ] Všechny služby ověřují JWT (issuer, audience, expirace, signature, `alg != none`)
+- [ ] Tenant izolace je vynucená: subdoména → tenant → claim → backend guard (není možné cross-tenant čtení ani zápis)
+- [ ] Žádný endpoint neakceptuje `tenantId` nebo `orgId` pouze z query/body bez nezávislého ověření z tokenu
+- [ ] Všechny admin / internal endpointy jsou chráněné rolí (`CORE_ADMIN_*`/`SYSTEM`) a nejsou veřejně dostupné
+
+### Secrets Management
+- [ ] Žádné secrety, hesla, `client_secret`, API keys ani privátní klíče nejsou v Gitu (`.env`, YAML, JSON, shell, Dockerfile)
+- [ ] V produkci jsou všechny secrety spravované přes secret manager / Vault (EPIC-012), ne přes lokální `.env`
+
+### Network & TLS
+- [ ] HTTPS je povinné pro FE, API gateway, Keycloak, n8n, AI gateway i externí integrace
+- [ ] Konfigurované CORS je restriktivní (jen povolené originy, žádné `*` pro credentials)
+- [ ] Security hlavičky (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) jsou nastavené na ingress / Nginx úrovni
+
+### Logging & Audit
+- [ ] Logy a audity neobsahují citlivá data (PII, klíče, tokeny); technické detaily jsou logované strukturovaně do Loki
+- [ ] Všechny integrace (n8n, AI, konektory, moduly) komunikují výhradně přes BFF/API gateway nebo dedikovanou proxy, ne přímo na DB/Kafku/Loki
+
+### Testing & CI/CD
+- [ ] CI/CD pipeline spouští SCA (dependency scan), secret scan, lint, testy a failuje na HIGH/CRITICAL issues
+- [ ] E2E testy pokrývají: login, RBAC, multitenant izolaci, základní happy-path pro klíčové moduly
+
+### Incident Response
+- [ ] Existuje SECURITY_RUNBOOK / incident response postup, jak řešit únik, podezřelé chování, kompromitaci klíčů
+- [ ] Všechny změny security modelu procházejí code review a jsou reflektované v tomto EPICu
+
+---
+
+## 🔐 Governance & Ownership
+
+**Tento EPIC je "single source of truth" pro security model celé platformy.**
+
+**Jakákoliv změna, která ovlivňuje:**
+- Autentizaci (Keycloak, JWT, SSO)
+- Autorizaci (RBAC, role, permissions, scopes)
+- Správu secretů (Vault, env vars, rotation)
+- Multitenancy (tenant guard, izolace, cross-tenant policies)
+- Přístup k infrastruktuře (Loki, Kafka, DB, n8n, AI)
+
+**MUSÍ:**
+- ✅ Projít **security review** (code review s focus na security)
+- ✅ Být **zapsaná do tohoto dokumentu** (update EPIC-000 README)
+- ✅ Být **promítnutá do souvisejících EPICů** (007, 011, 012, 016, 017)
+
+**Ownership:**
+- **Primary Owner:** Security + DevOps + Platform Team
+- **Reviewers:** Tech Lead + Security Officer (pokud existuje)
+- **Approval Required:** Změny EPIC-000 vyžadují approval minimálně 2 members (Security + DevOps/Platform Lead)
+
+**Review Cycle:**
+- ✅ Quarterly review (každé 3 měsíce) - update dle nových threat vectors, compliance requirements
+- ✅ Ad-hoc review při security incidents, major architectural changes, new integrations
 
 ---
 
