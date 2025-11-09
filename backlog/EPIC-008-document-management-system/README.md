@@ -1,5 +1,9 @@
 # EPIC-008: Document Management System (DMS)
 
+**Status:** 🟡 **20% COMPLETE** (MinIO backend + Upload API v produkci od srpna 2024)  
+**Implementováno:** ~3,500 LOC (backend + frontend)  
+**Pending:** Document Versioning, Links, ACL, Templates, WebDAV, Multi-Storage
+
 > **Strategic Initiative:** Document Management jako First-Class Citizen vedle Metamodelu a Workflow
 
 ---
@@ -15,87 +19,83 @@ Vytvořit **kompletní DMS** jako samostatnou službu, která:
 
 ---
 
-## 📊 SOUČASNÝ STAV (Co MÁME)
+## 📊 PRODUCTION STATUS
 
-### ✅ IMPLEMENTOVÁNO (80%)
+### ✅ V PRODUKCI (August-September 2024)
 
-**1. MinIO Storage Backend** (~800 LOC)
-- MinioClient konfigurace
-- Bucket management (per-tenant)
-- Presigned URLs (upload/download)
-- Server-side encryption
+**Implementováno:** 3/15 stories (20%)  
+**LOC:** ~3,500 řádků (backend + frontend + integrace)  
+**Components:**
+- MinIO Storage Backend (~800 LOC) - DMS-001 (Note: v původním plánu EPIC-015)
+- Upload/Download API (~1,200 LOC) - DMS-002 (Note: v původním plánu EPIC-015)
+- Frontend File Manager (~1,000 LOC) - DMS-003 (Note: v původním plánu EPIC-015)
 
-**2. Core Document API** (~1,200 LOC)
+**Features:**
+- ✅ S3-compatible MinIO storage
+- ✅ Multi-tenant bucket isolation
+- ✅ REST API: upload, download, delete, list
+- ✅ React Dropzone UI component
+- ✅ File metadata management
+- ✅ Basic RBAC (role-based access)
+- ✅ Streaming support (large files)
+- ✅ Content-Type validation
+- ✅ Audit logging (upload/download events)
+
+**Docker Services:**
+```yaml
+minio:
+  image: minio/minio:latest
+  ports: 9000 (S3 API), 9001 (Web Console)
+  environment: MINIO_ROOT_USER, MINIO_ROOT_PASSWORD
 ```
-POST   /api/documents/upload
-GET    /api/documents/{id}
-GET    /api/documents/{id}/download
-DELETE /api/documents/{id}
-GET    /api/documents?entityType=X&entityId=Y
-```
 
-**3. Database Schema** (V1__init.sql)
+**Database Schema:**
 ```sql
-document (
-  id, tenant_id, entity_type, entity_id,
-  filename, mime_type, size_bytes, storage_key,
-  checksum_sha256, version, uploaded_by, uploaded_at
-)
-
-document_index (
-  document_id, extracted_text, search_vector, indexed_at
+documents (
+  id, tenant_id, file_name, storage_key,
+  content_type, size_bytes, uploaded_by, uploaded_at,
+  entity_type_id, entity_id, metadata, deleted
 )
 ```
 
-**4. Fulltext Search** (~500 LOC)
-- Apache Tika text extraction
-- PostgreSQL tsvector indexing
-- Search API: `GET /api/search?q=contract&types=Document`
+---
 
-**5. Frontend File Manager** (~1,000 LOC)
-- React Dropzone upload component
-- File grid view
-- Download links
+## 📋 Stories Overview
+
+| Phase | ID | Story | Status | LOC | Effort | Dependencies |
+|-------|----|----|--------|-----|--------|--------------|
+| **Foundation** | - | MinIO Backend | ✅ **DONE** | ~800 | - | Production Aug 2024 |
+| **Foundation** | - | Upload/Download API | ✅ **DONE** | ~1,200 | - | Production Aug 2024 |
+| **Foundation** | - | Frontend File Manager | ✅ **DONE** | ~1,000 | - | Production Aug 2024 |
+| **Phase 1** | [DMS-001](./stories/DMS-001-document-versioning/README.md) | Document Versioning | ⏳ PENDING | ~600 | 1d | MinIO, Upload API ✅ |
+| **Phase 1** | [DMS-002](./stories/DMS-002-document-links/README.md) | Document Links | ⏳ PENDING | ~500 | 1d | MinIO, Upload API ✅ |
+| **Phase 1** | [DMS-003](./stories/DMS-003-document-acl/README.md) | Document ACL | ⏳ PENDING | ~400 | 0.5d | MinIO, Upload API ✅ |
+| **Phase 1** | [DMS-004](./stories/DMS-004-audit-trail/README.md) | Audit Trail | ⏳ PENDING | ~300 | 0.5d | MinIO, Upload API ✅ |
+| **Phase 2** | [DMS-005](./stories/DMS-005-templates/README.md) | Document Templates | ⏳ PENDING | ~800 | 1d | DMS-001 |
+| **Phase 2** | [DMS-006](./stories/DMS-006-webdav-editing/README.md) | WebDAV Editing | ⏳ PENDING | ~500 | 0.5d | DMS-001, DMS-003 |
+| **Phase 2** | [DMS-007](./stories/DMS-007-share-links/README.md) | Share Links | ⏳ PENDING | ~400 | 0.5d | DMS-003, DMS-004 |
+| **Phase 3** | [DMS-008](./stories/DMS-008-storage-abstraction/README.md) | Storage Abstraction | ⏳ PENDING | ~400 | 0.5d | MinIO ✅ refactor |
+| **Phase 3** | [DMS-009](./stories/DMS-009-sharepoint-integration/README.md) | SharePoint Integration | ⏳ PENDING | ~600 | 1d | DMS-008 |
+| **Phase 3** | [DMS-010](./stories/DMS-010-google-drive-integration/README.md) | Google Drive | ⏳ PENDING | ~500 | 0.5d | DMS-008 |
+| **Phase 4** | [DMS-011](./stories/DMS-011-workflow-integration/README.md) | Workflow Integration | ⏳ PENDING | ~600 | 1d | DMS-005, DMS-012 |
+| **Phase 4** | [DMS-012](./stories/DMS-012-signatures-eid/README.md) | Signatures & eID | ⏳ PENDING | ~700 | 1d | DMS-001, DMS-004 |
+| **Phase 5** | [DMS-013](./stories/DMS-013-metamodel-features/README.md) | Metamodel Config | ⏳ PENDING | ~400 | 0.5d | DMS-002, DMS-003 |
+| **Phase 5** | [DMS-014](./stories/DMS-014-generic-documents-tab/README.md) | Generic Documents Tab | ⏳ PENDING | ~500 | 0.5d | DMS-013, File Manager ✅ |
+| **Phase 6** | [DMS-015](./stories/DMS-015-ai-template-suggestions/README.md) | AI Template Suggestions | ⏳ PENDING | ~300 | 0.5d | DMS-005, MCP |
+| **TOTAL** | | **18 components** | **3 DONE / 15 PENDING** | **~9,200** | **10d** | **20% Complete** |
 
 ---
 
-## ❌ CO CHYBÍ (20% - KRITICKÉ)
+## ❌ PENDING FEATURES (80% - 12/15 stories)
 
-### Phase 1: Core First-Class Components (KRITICKÉ)
-1. **Document Versioning** (document_version tabulka)
-2. **Document Links** (M:N vazby entity → documents)
-3. **Document ACL** (fine-grained permissions)
-4. **Audit Trail** (document_audit tabulka)
+### 🏗️ Phase 1: Core First-Class Components (3 dny) - VŠECHNO PENDING
 
-### Phase 2: Advanced Features
-5. **Document Templates** (template engine + GUI editor)
-6. **WebDAV Editing** (lock + Office integration)
-7. **Share Links** (public sharing s expirací)
-
-### Phase 3: Multi-Storage
-8. **StorageService abstrakce**
-9. **SharePoint implementation** (M365)
-10. **Google Drive implementation**
-
-### Phase 4: Workflow & Signatures
-11. **Workflow integration** (GENERATE_DOCUMENT, SIGN steps)
-12. **Podpisy** (BankID/eID integrace)
-
-### Phase 5: Metamodel Integration
-13. **entity.features.documents config**
-14. **Generický Documents tab** (FE)
-
----
-
-## 📋 STORIES (15 stories, 10 dní implementace)
-
-> **Detailní architektura:** [DMS_ARCHITECTURE_AUDIT.md](DMS_ARCHITECTURE_AUDIT.md)
-
-### 🏗️ Phase 1: Core First-Class Components (3 dny)
+**NOTE:** Základní infrastructure (MinIO + Upload API + File Manager) je DONE, ale pokročilé features níže jsou PENDING.
 
 #### DMS-001: Document Versioning
-**Status:** 📋 Not Started  
-**Effort:** 1 den (~600 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 1 den (~600 LOC)  
+**Dependencies:** ✅ MinIO backend, ✅ Upload API (infrastructure ready)
 
 **Scope:**
 - `document_version` tabulka (version_number, storage_key, checksum, created_by, signed_by)
@@ -113,8 +113,9 @@ document_index (
 ---
 
 #### DMS-002: Document Links (Entity Vazby)
-**Status:** � Not Started  
-**Effort:** 1 den (~500 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 1 den (~500 LOC)  
+**Dependencies:** ✅ MinIO backend, ✅ Upload API
 
 **Scope:**
 - `document_link` tabulka (document_id, entity_type, entity_id, link_role, display_order)
@@ -132,8 +133,9 @@ document_index (
 ---
 
 #### DMS-003: Document ACL (Access Control)
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~400 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~400 LOC)  
+**Dependencies:** ✅ MinIO backend, ✅ Upload API
 
 **Scope:**
 - `document_acl` tabulka (principal_type, principal_id, can_read/write/delete/share)
@@ -151,8 +153,9 @@ document_index (
 ---
 
 #### DMS-004: Document Audit Trail
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~300 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~300 LOC)  
+**Dependencies:** ✅ MinIO backend, ✅ Upload API
 
 **Scope:**
 - `document_audit` tabulka (action, user_id, ip_address, performed_at)
@@ -168,11 +171,12 @@ document_index (
 
 ---
 
-### � Phase 2: Advanced Features (2 dny)
+### 🚀 Phase 2: Advanced Features (2 dny) - VŠECHNO PENDING
 
 #### DMS-005: Document Templates
-**Status:** 📋 Not Started  
-**Effort:** 1 den (~800 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 1 den (~800 LOC)  
+**Dependencies:** ✅ MinIO backend, DMS-001 (versioning)
 
 **Scope:**
 - `document_template` tabulka (template_type, template_file_id, field_mappings JSONB)
@@ -190,8 +194,9 @@ document_index (
 ---
 
 #### DMS-006: WebDAV Editing (Office Integration)
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~500 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~500 LOC)  
+**Dependencies:** DMS-001 (versioning), DMS-003 (ACL)
 
 **Scope:**
 - Lock mechanism: `POST /api/dms/documents/{id}/lock` (acquire lock)
@@ -210,8 +215,9 @@ document_index (
 ---
 
 #### DMS-007: Share Links (Public Sharing)
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~400 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~400 LOC)  
+**Dependencies:** DMS-003 (ACL), DMS-004 (audit)
 
 **Scope:**
 - `document_share_link` tabulka (share_token, password_hash, max_downloads, expires_at)
@@ -229,11 +235,12 @@ document_index (
 
 ---
 
-### � Phase 3: Multi-Storage (2 dny)
+### 🔄 Phase 3: Multi-Storage (2 dny) - VŠECHNO PENDING
 
 #### DMS-008: StorageService Abstraction
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~400 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~400 LOC)  
+**Dependencies:** ✅ MinIO backend (refactor existing code)
 
 **Scope:**
 - `StorageService` interface (upload, download, delete, getPresignedUrl)
@@ -250,8 +257,9 @@ document_index (
 ---
 
 #### DMS-009: SharePoint Storage Implementation
-**Status:** 📋 Not Started  
-**Effort:** 1 den (~600 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 1 den (~600 LOC)  
+**Dependencies:** DMS-008 (StorageService abstraction)
 
 **Scope:**
 - `SharePointStorageService` implementation (Microsoft Graph API)
@@ -270,8 +278,9 @@ document_index (
 ---
 
 #### DMS-010: Google Drive Storage Implementation
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~500 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~500 LOC)  
+**Dependencies:** DMS-008 (StorageService abstraction)
 
 **Scope:**
 - `GoogleDriveStorageService` implementation (Google Drive API)
@@ -289,11 +298,12 @@ document_index (
 
 ---
 
-### 🔄 Phase 4: Workflow & Signatures (2 dny)
+### 🔄 Phase 4: Workflow & Signatures (2 dny) - VŠECHNO PENDING
 
 #### DMS-011: Workflow Integration
-**Status:** 📋 Not Started  
-**Effort:** 1 den (~600 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 1 den (~600 LOC)  
+**Dependencies:** DMS-005 (templates), DMS-012 (signatures)
 
 **Scope:**
 - Workflow step types: GENERATE_DOCUMENT, SIGN_DOCUMENT, ARCHIVE_DOCUMENT
@@ -311,8 +321,9 @@ document_index (
 ---
 
 #### DMS-012: Podpisy & eID Integrace
-**Status:** 📋 Not Started  
-**Effort:** 1 den (~700 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 1 den (~700 LOC)  
+**Dependencies:** DMS-001 (versioning), DMS-004 (audit)
 
 **Scope:**
 - `SigningRequest` entity (signing_token, signer_email, signature_method, status)
@@ -330,11 +341,12 @@ document_index (
 
 ---
 
-### 🧩 Phase 5: Metamodel Integration (1 den)
+### 🧩 Phase 5: Metamodel Integration (1 den) - VŠECHNO PENDING
 
 #### DMS-013: Metamodel Features Configuration
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~400 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~400 LOC)  
+**Dependencies:** DMS-002 (links), DMS-003 (ACL)
 
 **Scope:**
 - Metamodel schema extension: `entity.features.documents.enabled = true`
@@ -352,8 +364,9 @@ document_index (
 ---
 
 #### DMS-014: Generický Documents Tab (Frontend)
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~500 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~500 LOC)  
+**Dependencies:** DMS-013 (metamodel config), ✅ File Manager UI (existing)
 
 **Scope:**
 - `<DocumentsTab>` React component (generic pro všechny entity)
@@ -371,11 +384,12 @@ document_index (
 
 ---
 
-### 🤖 Phase 6: AI/MCP/n8n Napojení (BONUS)
+### 🤖 Phase 6: AI/MCP/n8n Napojení (BONUS) - VŠECHNO PENDING
 
 #### DMS-015: AI Template Suggestions
-**Status:** 📋 Not Started  
-**Effort:** 0.5 dne (~300 LOC)
+**Status:** ⏳ **PENDING**  
+**Effort:** 0.5 dne (~300 LOC)  
+**Dependencies:** DMS-005 (templates), MCP server integration
 
 **Scope:**
 - AI service: suggest template from metamodel schema
