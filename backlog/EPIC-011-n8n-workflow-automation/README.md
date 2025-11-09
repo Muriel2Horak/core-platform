@@ -242,6 +242,10 @@ const coreConnector = {
    - **n8n accounts**: 1 account per tenant (`tenant-{realm}`)
    - **Workflow ownership**: Všechny workflows patří tenant accountu
    - **Shared access**: Více adminů stejného tenanta sdílí 1 n8n account
+     - n8n Community Edition podporuje multiple concurrent sessions pro stejný účet
+     - Všichni tenant admins vidí stejné workflows, execution history, credentials (tenant-shared workspace)
+     - **Per-user audit trail**: BFF proxy předává X-Core-User header → Loki loguje kdo (Core user) dělal co v n8n UI
+     - Příklad: designer1@acme.com a designer2@acme.com sdílí account `tenant-acme`, ale Loki rozlišuje jejich akce
    - **Cross-tenant protection**: n8n workflows NEMOHOU pristupovat k jiným tenant datům
      - Backend validuje X-Core-Tenant header (must match JWT realm)
      - API calls bez správného headeru → 403 Forbidden
@@ -273,6 +277,21 @@ const coreConnector = {
    - Retention policy: 30 days execution history
    - NO direct DB access from n8n (API/events only, X-Core-Tenant validated)
    - Tenant-specific credentials stored v n8n (encrypted at rest)
+
+6. **AI/MCP Workflow Governance**
+   - **AI/MCP calls MUST go through Core Platform AI Gateway** (ne přímo OpenAI/external LLMs)
+   - Důvod: Centralizovaný audit, rate limiting, cost tracking, prompt injection protection
+   - n8n workflows používají Core API endpoint: `POST /api/ai/classify`, `/api/ai/summarize`
+   - Backend AI gateway loguje všechny AI volání do Loki s tenant context
+   - Tenant nemůže použít vlastní OpenAI API key v n8n (bezpečnostní riziko, non-compliant)
+
+7. **Integration with Core Platform Security**
+   - **OIDC/SSO**: Sladěno s [EPIC-000 Security Hardening](../EPIC-000-security-hardening/README.md)
+     - Multi-realm Keycloak, JWT validation, role-based access
+   - **Infrastructure deployment**: Řízeno přes [EPIC-007 Infrastructure Deployment](../EPIC-007-infrastructure-deployment/README.md)
+     - Nginx reverse proxy, SSL termination, Docker orchestration
+   - **Audit logging**: Integrace s [EPIC-003 Monitoring & Observability](../EPIC-003-monitoring-observability/README.md)
+     - Loki centralizovaný logging, Prometheus metrics, Grafana dashboards
 
 ---
 
@@ -678,27 +697,69 @@ test('n8n UI requires Keycloak login', async ({ page }) => {
 **Deliverables**:
 - Backend service: `n8nProvisioningService`
 - n8n REST API client (n8n management API)
-- Account creation flow:
-  1. User (tenant 'acme') navigates to `https://acme.${DOMAIN}/n8n`
-  2. Backend BFF extracts tenant from JWT (`realm=acme`)
-  3. Check if n8n account exists: `GET /api/v1/users?email=tenant-acme@n8n.local`
-  4. If NOT exists → create:
-     ```java
-     POST /api/v1/users {
-       "email": "tenant-acme@n8n.local",
-       "firstName": "Tenant",
-       "lastName": "ACME",
-       "password": generateSecurePassword()  // or magic link
-     }
-     ```
-  5. Log creation to Loki: `{action="n8n_account_created", tenant="acme", user="designer@acme.com"}`
-  6. Proxy user to n8n with session impersonation
 
-- Account naming convention:
+**Explicitní provisioning flow (krok za krokem):**
+
+```java
+// 1. User přistupuje s CORE_N8N_DESIGNER rolí
+GET https://acme.${DOMAIN}/n8n
+  → Nginx routes to: http://backend:8080/bff/n8n/proxy
+
+// 2. Backend BFF (N8nProxyController.ensureProvisioningAndProxy)
+@GetMapping("/bff/n8n/proxy/**")
+public ResponseEntity<String> proxyToN8n(
+  @RequestHeader("X-Core-Tenant") String tenant,  // acme (z JWT realm)
+  @RequestHeader("X-Core-User") String user,      // designer@acme.com (z JWT sub)
+  HttpServletRequest request
+) {
+  // Krok 2.1: Validuj že tenant v headeru = JWT realm
+  String jwtRealm = jwtService.extractRealm(request);
+  if (!tenant.equals(jwtRealm)) {
+    throw new ForbiddenException("Tenant mismatch");
+  }
+  
+  // Krok 2.2: Zkontroluj jestli n8n account existuje
+  String n8nAccountEmail = "tenant-" + tenant + "@n8n.local";
+  Optional<N8nUser> existingAccount = n8nClient.getUserByEmail(n8nAccountEmail);
+  
+  // Krok 2.3: Pokud NE → vytvoř nový account
+  if (existingAccount.isEmpty()) {
+    N8nUser newAccount = n8nClient.createUser(N8nUserRequest.builder()
+      .email(n8nAccountEmail)
+      .firstName("Tenant")
+      .lastName(tenant.toUpperCase())
+      .password(passwordGenerator.generateSecure(32))  // nebo magic link
+      .build()
+    );
+    
+    // Krok 2.4: Loguj vytvoření do Loki
+    log.info("n8n account created", Map.of(
+      "action", "n8n_account_created",
+      "tenant", tenant,
+      "user", user,
+      "n8n_account", n8nAccountEmail,
+      "timestamp", Instant.now()
+    ));
+  }
+  
+  // Krok 2.5: Získej n8n session token (impersonate account)
+  String n8nSessionToken = n8nAuthService.getSessionToken(n8nAccountEmail);
+  
+  // Krok 2.6: Proxy request to n8n s session cookie
+  return webClient.get()
+    .uri("http://n8n:5678" + extractN8nPath(request))
+    .header("Cookie", "n8n-auth=" + n8nSessionToken)
+    .retrieve()
+    .toEntity(String.class)
+    .block();
+}
+```
+
+**Account naming convention:**
   - Admin realm: `admin-instance-owner@n8n.local`
   - Tenant realms: `tenant-{subdomain}@n8n.local` (e.g., `tenant-acme@n8n.local`)
 
-- Environment config:
+**Environment config:**
   ```yaml
   n8n:
     environment:
@@ -935,13 +996,23 @@ public ResponseEntity<TenantDTO> createTenant(
 
 **Goal**: Custom n8n node pro safe tenant-scoped Core API calls
 
+**Proč custom node a ne generic HTTP Request?**
+- ✅ **Auto-inject X-Core-Tenant header** (odvozený z n8n account name)
+  - User nemůže zapomenout header → prevence cross-tenant leaku
+  - User nemůže manuálně změnit tenant → bezpečnost
+- ✅ **Pouze Core Platform API endpoints** (ne arbitrary URLs)
+  - Whitelisted routes: `/api/tenants`, `/api/ai/classify`, atd.
+  - Prevence phishing/data exfiltration
+- ✅ **Automatické SSL trust** (self-signed CA v dev)
+- ✅ **User-friendly resource picker** (Tenants, Users, AI Services)
+
 **Deliverables**:
 
 **1. Custom n8n Node Package:**
 ```typescript
 // packages/@core-platform/n8n-node-core-connector/src/CoreConnector.node.ts
 
-import { INodeType, INodeTypeDescription } from 'n8n-workflow';
+import { INodeType, INodeTypeDescription, IExecuteFunctions } from 'n8n-workflow';
 
 export class CoreConnector implements INodeType {
   description: INodeTypeDescription = {
@@ -950,23 +1021,132 @@ export class CoreConnector implements INodeType {
     group: ['transform'],
     version: 1,
     description: 'Call Core Platform API with automatic tenant context',
+    icon: 'file:core-platform.svg',
     defaults: {
       name: 'Core API',
     },
     inputs: ['main'],
     outputs: ['main'],
-    credentials: [
-      {
-        name: 'corePlatformApi',
-        required: true,
-      },
-    ],
     properties: [
       {
         displayName: 'Resource',
         name: 'resource',
         type: 'options',
         options: [
+          { name: 'Tenants', value: 'tenants' },
+          { name: 'Users', value: 'users' },
+          { name: 'AI Services', value: 'ai' },
+        ],
+        default: 'tenants',
+      },
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        displayOptions: {
+          show: { resource: ['tenants'] },
+        },
+        options: [
+          { name: 'Get', value: 'get' },
+          { name: 'Create', value: 'create' },
+          { name: 'Update', value: 'update' },
+        ],
+        default: 'get',
+      },
+      // ... další properties
+    ],
+  };
+
+  async execute(this: IExecuteFunctions) {
+    const items = this.getInputData();
+    const returnData = [];
+
+    // KRITICKÉ: Extrahuj tenant z n8n account credentials
+    const credentials = await this.getCredentials('corePlatformApi');
+    const n8nAccount = credentials.accountName as string;  // "tenant-acme@n8n.local"
+    const tenant = extractTenantFromAccount(n8nAccount);    // "acme"
+
+    for (let i = 0; i < items.length; i++) {
+      const resource = this.getNodeParameter('resource', i) as string;
+      const operation = this.getNodeParameter('operation', i) as string;
+
+      let endpoint = '';
+      let method = 'GET';
+      let body = {};
+
+      // Build endpoint based on resource/operation
+      if (resource === 'tenants' && operation === 'get') {
+        endpoint = '/api/tenants';
+        method = 'GET';
+      } else if (resource === 'ai' && operation === 'classify') {
+        endpoint = '/api/ai/classify';
+        method = 'POST';
+        body = { text: this.getNodeParameter('text', i) };
+      }
+
+      // ✅ AUTOMATIC TENANT HEADER INJECTION
+      const response = await this.helpers.request({
+        method,
+        url: `https://admin.${process.env.DOMAIN}${endpoint}`,  // ← ALWAYS admin.${DOMAIN}
+        headers: {
+          'X-Core-Tenant': tenant,  // ← AUTO-INJECTED (user nemůže override!)
+          'Content-Type': 'application/json',
+        },
+        body,
+        json: true,
+        rejectUnauthorized: false,  // Dev: trust self-signed cert
+      });
+
+      returnData.push({ json: response });
+    }
+
+    return [returnData];
+  }
+}
+
+function extractTenantFromAccount(accountName: string): string {
+  // "tenant-acme@n8n.local" → "acme"
+  const match = accountName.match(/^tenant-([a-z0-9-]+)@n8n\.local$/);
+  if (!match) {
+    throw new Error('Invalid n8n account format (expected: tenant-{realm}@n8n.local)');
+  }
+  return match[1];
+}
+```
+
+**2. Node Installation (v n8n Docker image):**
+```dockerfile
+# docker/n8n/Dockerfile
+FROM n8nio/n8n:1.66.0
+
+# Install Core Connector node
+WORKDIR /usr/local/lib/node_modules
+COPY packages/@core-platform/n8n-node-core-connector ./n8n-node-core-connector
+RUN cd n8n-node-core-connector && npm install && npm run build
+
+# Node discovery
+ENV N8N_CUSTOM_EXTENSIONS="/usr/local/lib/node_modules"
+```
+
+**3. Použití v n8n workflow (UI):**
+```
+1. Drag & drop "Core Platform API" node
+2. Select Resource: "Tenants"
+3. Select Operation: "Get"
+4. Execute
+
+→ Node automaticky volá: GET https://admin.core-platform.local/api/tenants
+→ Header: X-Core-Tenant: acme (extracted from tenant-acme@n8n.local)
+→ Backend BFF ověří tenant → vrátí POUZE acme data
+```
+
+**Security Benefits:**
+- ❌ User **NEMŮŽE** zadat arbitrary URL (jen whitelisted Core API routes)
+- ❌ User **NEMŮŽE** změnit X-Core-Tenant header (auto-derived z account)
+- ❌ User **NEMŮŽE** volat cross-tenant data (backend validuje header vs JWT)
+- ✅ User **MÁ** user-friendly UI (resource picker místo manuálního URL)
+
+**Acceptance Criteria**:
           { name: 'Tenants', value: 'tenants' },
           { name: 'Users', value: 'users' },
           { name: 'Documents', value: 'documents' },
