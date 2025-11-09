@@ -3,10 +3,10 @@
 > 🔄 **Unified Architecture:** Single EPIC s 2 vrstvami - Internal metamodel-driven engine + External n8n orchestration hub
 
 **Status:** � **70% COMPLETE** (Phase 1 done, Phase 2 in progress)  
-**Implementováno:** Říjen 2024 - Leden 2025 (W1-W12), **Listopad 2025+ (WF12-WF19, N8N1-N8N6)**  
-**LOC:** ~18,000 (existing) + ~8,300 (planned)  
+**Implementováno:** Říjen 2024 - Leden 2025 (W1-W12), **Listopad 2025+ (WF12-WF19, N8N1-N8N10)**  
+**LOC:** ~18,000 (existing) + ~10,600 (planned: Phase 2 ~6.2k + Phase 3 Multi-Tenant n8n ~4.4k)  
 **Tests:** 119 unit + 15 integration (existing)  
-**Dokumentace:** [`WORKFLOW_UNIFIED_ARCHITECTURE.md`](../WORKFLOW_UNIFIED_ARCHITECTURE.md)
+**Dokumentace:** [`WORKFLOW_UNIFIED_ARCHITECTURE.md`](../WORKFLOW_UNIFIED_ARCHITECTURE.md), [`EPIC-011-n8n-workflow-automation`](../EPIC-011-n8n-workflow-automation/README.md)
 
 ---
 
@@ -81,18 +81,32 @@
 
 ---
 
-### 🚀 Phase 3: External n8n Layer (N8N1-N8N6) - TODO
+### 🚀 Phase 3: Multi-Tenant n8n Integration Layer (N8N1-N8N10) - TODO
+
+> 📖 **Kompletní specifikace:** See [`EPIC-011-n8n-workflow-automation`](../EPIC-011-n8n-workflow-automation/README.md)
 
 | ID | Story | Status | LOC | Priority | Dependencies |
 |----|-------|--------|-----|----------|--------------|
 | N8N1 | Platform Deployment | ⏳ TODO | 400 | 🔴 HIGH | PostgreSQL |
-| N8N2 | Keycloak SSO | ⏳ TODO | 300 | 🔴 HIGH | Keycloak, N8N1 |
-| N8N3 | Nginx Proxy | ⏳ TODO | 200 | 🔴 HIGH | Nginx, N8N1 |
+| N8N2 | Keycloak SSO (Multi-Realm) | ⏳ TODO | 300 | 🔴 HIGH | Keycloak, N8N1 |
+| N8N3 | Nginx Proxy (Audit Headers) | ⏳ TODO | 200 | 🔴 HIGH | Nginx, N8N1 |
 | N8N4 | Workflow Templates | ⏳ TODO | 500 | 🟡 MEDIUM | N8N1-3 |
 | N8N5 | Monitoring | ⏳ TODO | 400 | 🟡 MEDIUM | Grafana, N8N1 |
-| N8N6 | Backend BFF API | ⏳ TODO | 800 | 🔴 HIGH | N8N1-3 |
+| N8N6 | Testing & Quality Gates | ⏳ TODO | 600 | 🔴 HIGH | N8N1-5 |
+| **N8N7** | **n8n Provisioning Service** | ⏳ TODO | 600 | 🔴 HIGH | N8N1-3 |
+| **N8N8** | **Multi-Tenant SSO & Routing** | ⏳ TODO | 500 | 🔴 HIGH | N8N7 |
+| **N8N9** | **Tenant Isolation & Audit** | ⏳ TODO | 400 | 🔴 HIGH | N8N8 |
+| **N8N10** | **Core API Connector Node** | ⏳ TODO | 300 | 🟡 MEDIUM | N8N1-3 |
 
-**Subtotal:** 0/6 implemented, ~2,600 LOC planned
+**Subtotal:** 0/10 implemented, ~4,400 LOC planned (base ~2,600 + multi-tenant ~1,800)
+
+**Multi-Tenant Features:**
+- Per-tenant n8n accounts (1 account per tenant: `tenant-{subdomain}`)
+- Access URLs: `https://{tenant}.${DOMAIN}/n8n` (per tenant), `https://admin.${DOMAIN}/n8n` (admin)
+- Auto-provisioning via n8nProvisioningService (backend BFF)
+- Nginx audit headers: X-Core-Tenant, X-Core-User, X-Core-N8N-Account
+- Tenant isolation: workflows owned by tenant account, validated by backend
+- Custom Core Connector node: auto-injects X-Core-Tenant header
 
 ---
 
@@ -102,8 +116,8 @@
 |-------|---------|--------|-----|-------|
 | **Phase 1 (W1-W12)** | 12/12 | ✅ DONE | ~18,000 | 119 |
 | **Phase 2 (WF12-WF19)** | 1/8 | 🔨 IN PROGRESS | ~6,200 | TBD |
-| **Phase 3 (N8N1-N8N6)** | 0/6 | ⏳ TODO | ~2,600 | TBD |
-| **TOTAL** | **13/26** | **50%** | **~26,800** | **119+** |
+| **Phase 3 (N8N1-N8N10)** | 0/10 | ⏳ TODO | ~4,400 | TBD |
+| **TOTAL** | **13/30** | **43%** | **~28,600** | **119+** |
 
 ---
 

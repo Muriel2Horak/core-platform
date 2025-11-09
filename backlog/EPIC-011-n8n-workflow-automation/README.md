@@ -1,110 +1,164 @@
 # EPIC-011: n8n Integration & Orchestration Hub
 
-> 🏛️ **DESIGN DECISION:** n8n is a **mandatory core component** of Virelio/Core Platform.  
+> 🏛️ **DESIGN DECISION:** n8n is a **mandatory core component** of Virelio/Core Platform with **multi-tenant support**.  
 > 📖 **Architecture:** See [`EPIC-007-infrastructure-deployment`](../EPIC-007-infrastructure-deployment/README.md) for infrastructure setup.
 
 **Status:** 🔴 **0% IMPLEMENTED** (Week 4-5)  
 **Dependencies:** EPIC-007 (n8n platform deployment), EPIC-006 (optional: WF15 EXTERNAL_TASK executor)  
-**LOC:** ~2,600  
-**Roadmap:** Week 4 of core platform rollout
+**LOC:** ~4,400 (base ~2,600 + multi-tenant ~1,800)  
+**Stories:** 10 (N8N1-N8N10: deployment, SSO, proxy, templates, monitoring, testing, provisioning, routing, isolation, connector)  
+**Roadmap:** Week 4-5 of core platform rollout
 
 ---
 
-## 🏛️ Design Decision: n8n jako Core Platform Component
+## 🏛️ Design Decision: n8n jako Multi-Tenant Integration Designer
 
-**n8n is a mandatory core component of Virelio/Core Platform.**
+**n8n is a mandatory core component of Virelio/Core Platform** with **multi-tenant workflow design support**.
 
 ### Rationale
 
-1. **Primary Integration & Orchestration Engine**
+1. **Multi-Tenant Integration & Orchestration Engine**
    - 400+ built-in nodes pro external systems (Jira, M365, Slack, Trello, Google Workspace)
    - Visual workflow builder (no-code integrations)
+   - **Per-tenant workflow designers** (každý tenant má svůj n8n account)
    - AI orchestration via MCP/LLM gateway (EPIC-016)
    - ETL/batch processing (CSV export, data transformation)
 
 2. **Security & Governance**
-   - **Always behind Keycloak SSO** (admin realm only)
-   - **Always behind Nginx reverse proxy** (SSL termination, rate limiting)
-   - **Observed via Loki/Prometheus** (logs + metrics)
-   - RBAC: `CORE_PLATFORM_ADMIN`, `INTEGRATION_ADMIN` roles
+   - **Always behind Keycloak SSO** (per-tenant + admin realm)
+   - **Always behind Nginx reverse proxy** (SSL termination, rate limiting, audit headers)
+   - **Observed via Loki/Prometheus** (logs + metrics + audit trail)
+   - RBAC: `CORE_N8N_DESIGNER` (per-tenant), `CORE_PLATFORM_ADMIN` (admin realm)
 
-3. **Architectural Principles**
+3. **Multi-Tenant Architecture**
+   - **1x n8n instance** (shared infrastructure)
+   - **N x n8n user accounts** (1 account per tenant: `tenant-{subdomain}`)
+   - **Access URLs**:
+     - Admin realm: `https://admin.${DOMAIN}/n8n` (Core admins)
+     - Tenant realms: `https://{tenant}.${DOMAIN}/n8n` (tenant designers)
+   - **Auto-provisioning**: n8nProvisioningService vytváří n8n accounts při prvním přístupu
+   - **Tenant isolation**: Workflows sdílené mezi více adminy stejného tenanta (shared account)
+
+4. **Architectural Principles**
    - n8n is NOT for internal Core business processes (that's EPIC-006 Workflow Engine)
-   - n8n IS for: external integrations, AI workflows, ETL/batch jobs
-   - n8n běží POUZE v admin realm/admin tenantovi
+   - n8n IS for: external integrations, AI workflows, ETL/batch jobs, **per-tenant custom workflows**
    - n8n přistupuje k Core POUZE přes API/eventy (NO direct DB access)
+   - **Core Connector node**: Custom n8n node pro tenant-scoped API calls (X-Core-Tenant header injection)
 
-4. **Deployment Requirements**
+5. **Deployment Requirements**
    - Docker/K8s deployment (same tier as Backend, Keycloak, PostgreSQL)
    - PostgreSQL database `n8n` (separate from `core`)
    - Health checks, volume persistence
    - Loki log shipping, Prometheus metrics scraping
+   - **User management ENABLED** (`N8N_USER_MANAGEMENT_DISABLED=false`)
 
 ### Non-Goals
 
 - ❌ **No public n8n endpoints** (always behind Nginx + Keycloak)
-- ❌ **No per-tenant n8n instances** (single admin realm instance)
+- ❌ **No per-tenant n8n instances** (shared instance, per-tenant accounts)
 - ❌ **No direct database access** from n8n (API/events only)
 - ❌ **No replacement of EPIC-006 Workflow Engine** (different scopes)
+- ❌ **No fork of n8n** (use n8n Community Edition as-is, custom node for Core Connector)
 
 ---
 
 ## 🎯 Epic Goal
 
-Configure **n8n Community Edition** jako mandatory integration hub pro:
+Configure **n8n Community Edition** jako mandatory **multi-tenant integration hub** pro:
 - 🔌 **External System Integrations** (Jira, Confluence, Trello, M365, Google Workspace, Slack)
 - 🤖 **AI Workflow Orchestration** (MCP/LLM gateway, document classification, enrichment)
 - 📊 **ETL/Batch Processing** (CSV export, data transformation, scheduled reports)
 - 🚀 **Visual No-Code Automation** (400+ built-in nodes, JSON workflow templates)
-- 🔐 **Secure Multi-Tenant Access** (Keycloak SSO, RBAC, audit logging)
+- 🏢 **Per-Tenant Workflow Design** (každý tenant může designovat vlastní integrace)
+- 🔐 **Secure Multi-Tenant Access** (Keycloak SSO, auto-provisioning, audit logging)
 
-**Access:** n8n běží na `https://admin.${DOMAIN}/n8n` (admin realm only).  
-**Integration:** n8n může volat Core Platform API, poslouchat Core eventy, orchestrovat AI/MCP calls.
+**Access:**
+- **Admin realm**: `https://admin.${DOMAIN}/n8n` (Core Platform admins)
+- **Tenant realms**: `https://{tenant}.${DOMAIN}/n8n` (tenant designers with `CORE_N8N_DESIGNER` role)
+
+**Integration:** n8n může volat Core Platform API, poslouchat Core eventy, orchestrovat AI/MCP calls. Každý workflow má tenant context (X-Core-Tenant header).
 
 ---
 
-## 🏗️ Architecture: Core Integration & Orchestration Layer
+## 🏗️ Architecture: Multi-Tenant Integration & Orchestration Layer
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│  ADMIN REALM / ADMIN TENANT (core-platform.local)                    │
+│  MULTI-TENANT ARCHITECTURE                                            │
 │                                                                       │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ USER                                                            │ │
-│  │  └─→ https://admin.core-platform.local/n8n (Keycloak login)   │ │
+│  │ USERS (per tenant/realm)                                        │ │
+│  │  Admin realm: admin@core.local → https://admin.${DOMAIN}/n8n   │ │
+│  │  Tenant 'acme': designer@acme.com → https://acme.${DOMAIN}/n8n │ │
+│  │  Tenant 'beta': designer@beta.com → https://beta.${DOMAIN}/n8n │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 │                               │                                       │
 │                               ▼                                       │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ NGINX REVERSE PROXY (SSL Termination, Rate Limiting)           │ │
-│  │  Route: /n8n/* → http://n8n:5678/                              │ │
-│  │  Auth: Keycloak SSO required (auth_request /auth)              │ │
-│  │  CSP: frame-ancestors 'self'                                   │ │
-│  │  Rate Limit: 50 req/s per IP                                   │ │
+│  │ KEYCLOAK SSO (Multi-Realm)                                      │ │
+│  │  Realms: admin, acme, beta, ...                                │ │
+│  │  Role: CORE_N8N_DESIGNER (per tenant)                          │ │
+│  │  JWT contains: realm (=tenant), user, roles                    │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 │                               │                                       │
 │                               ▼                                       │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ n8n COMMUNITY EDITION (Workflow Automation Engine)             │ │
+│  │ NGINX REVERSE PROXY (SSL + Audit Headers)                      │ │
+│  │  Route: /{tenant}/n8n/* → http://backend:8080/bff/n8n/proxy    │ │
+│  │  Auth: Keycloak SSO required                                   │ │
+│  │  Headers Injection:                                            │ │
+│  │    X-Core-Tenant: acme (from JWT realm claim)                  │ │
+│  │    X-Core-User: designer@acme.com (from JWT sub claim)         │ │
+│  │    X-Core-N8N-Account: tenant-acme (computed)                  │ │
+│  │  Logging: Promtail → Loki (audit trail)                        │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                               │                                       │
+│                               ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ BACKEND BFF (n8nProvisioningService)                           │ │
+│  │  1. Validate JWT, extract tenant + user                        │ │
+│  │  2. Check n8n account exists: GET /api/users (tenant-{realm})  │ │
+│  │  3. If NOT exists → auto-create:                               │ │
+│  │       POST /api/users { email: tenant-{realm}@n8n.local }      │ │
+│  │       POST /api/auth/magic-link (or OIDC if supported)         │ │
+│  │  4. Proxy request to n8n with n8n session (impersonate tenant) │ │
+│  │  5. Log action to Loki: {tenant, user, action, n8n_account}    │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                               │                                       │
+│                               ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ n8n COMMUNITY EDITION (Single Instance, Multi-Account)         │ │
 │  │  Port: 5678 (internal only)                                    │ │
 │  │  Database: PostgreSQL (database: n8n, user: n8n_app)           │ │
 │  │  Features: 400+ nodes, visual builder, webhook support         │ │
+│  │  User Management: ENABLED (N8N_USER_MANAGEMENT_DISABLED=false) │ │
+│  │                                                                 │ │
+│  │  Accounts (examples):                                          │ │
+│  │    - tenant-acme@n8n.local (workflows for 'acme' tenant)       │ │
+│  │    - tenant-beta@n8n.local (workflows for 'beta' tenant)       │ │
+│  │    - admin-instance-owner@n8n.local (Core Platform admin)      │ │
+│  │                                                                 │ │
+│  │  Workflows per tenant:                                         │ │
+│  │    - tenant-acme: Jira sync, Slack notifications, AI classify  │ │
+│  │    - tenant-beta: Confluence sync, Email enrichment, CSV export│ │
 │  └────────┬──────────────┬──────────────┬────────────────────────┘ │
 │           │              │              │                            │
 │           ▼              ▼              ▼                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────┐ │
 │  │ Core API    │  │ Core Events │  │ External Systems            │ │
 │  │ (REST)      │  │ (Kafka/CDC) │  │ - Jira, Confluence, Trello  │ │
-│  │ - GET /api/ │  │ - Tenant    │  │ - M365, Google Workspace    │ │
-│  │   tenants   │  │   created   │  │ - Slack, Gmail              │ │
-│  │ - POST /api/│  │ - User      │  │ - OpenAI, MCP/LLM gateway   │ │
-│  │   workflows │  │   onboard   │  └─────────────────────────────┘ │
-│  └─────────────┘  └─────────────┘                                   │
+│  │ Headers:    │  │ - Tenant    │  │ - M365, Google Workspace    │ │
+│  │ X-Core-     │  │   created   │  │ - Slack, Gmail              │ │
+│  │ Tenant: acme│  │ - User      │  │ - OpenAI, MCP/LLM gateway   │ │
+│  │ (from n8n   │  │   onboard   │  └─────────────────────────────┘ │
+│  │ workflow)   │  └─────────────┘                                   │
+│  └─────────────┘                                                     │
 │                                                                       │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │ OBSERVABILITY                                                   │ │
-│  │  - Loki: n8n logs {service="n8n", tenant="admin"}              │ │
-│  │  - Prometheus: n8n metrics (if available)                      │ │
+│  │ OBSERVABILITY & AUDIT                                           │ │
+│  │  - Loki: n8n logs {service="n8n", tenant="acme"}               │ │
+│  │  - Loki: Nginx audit logs {X-Core-Tenant, X-Core-User}         │ │
+│  │  - Prometheus: n8n metrics (per tenant if possible)            │ │
 │  │  - Grafana: n8n dashboard (workflow executions, error rates)   │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────┘
@@ -112,58 +166,113 @@ Configure **n8n Community Edition** jako mandatory integration hub pro:
 
 ### Integration Patterns
 
-**Pattern 1: External System Sync**
+**Pattern 1: Per-Tenant External System Sync**
 ```
-Core Platform Event (Tenant Created)
-  → Kafka → n8n Webhook Trigger
-  → n8n Workflow:
-      1. Create Jira Project
-      2. Create Confluence Space
-      3. Send Slack notification
+Core Platform Event (Tenant 'acme' Created)
+  → Kafka → n8n Webhook Trigger (tenant-acme account)
+  → n8n Workflow (tenant-acme owner):
+      1. Create Jira Project (key=ACME, tenant-specific credentials)
+      2. Create Confluence Space (key=acme, tenant-specific credentials)
+      3. Send Slack notification (tenant-specific channel)
       4. Call Core API: POST /api/integrations/sync-status
+         Headers: X-Core-Tenant: acme
 ```
 
-**Pattern 2: AI Workflow Orchestration**
+**Pattern 2: Multi-Tenant AI Workflow Orchestration**
 ```
-User uploads document → Core API
-  → n8n Workflow (via Core API call):
+User uploads document (tenant 'beta') → Core API
+  → n8n Workflow (tenant-beta account, via Core API call):
       1. Call MCP/LLM gateway: classify document
-      2. Extract metadata (OpenAI API)
+      2. Extract metadata (OpenAI API, tenant-specific API key)
       3. Store results: POST /api/documents/{id}/metadata
-      4. Trigger follow-up workflow (email notification)
+         Headers: X-Core-Tenant: beta
+      4. Trigger follow-up workflow (email notification, tenant-specific template)
 ```
 
-**Pattern 3: Scheduled ETL/Batch**
+**Pattern 3: Per-Tenant Scheduled ETL/Batch**
 ```
-n8n Cron Trigger (every day 2am)
+n8n Cron Trigger (tenant-acme account, every day 2am)
   → n8n Workflow:
       1. GET /api/reports/daily-export
-      2. Transform to CSV
-      3. Upload to S3/MinIO
-      4. Send email with download link
+         Headers: X-Core-Tenant: acme
+      2. Transform to CSV (tenant-specific columns)
+      3. Upload to S3/MinIO (tenant-specific bucket)
+      4. Send email with download link (tenant-specific recipients)
+```
+
+**Pattern 4: Core Connector Node (Tenant-Scoped API Calls)**
+```typescript
+// Custom n8n node: @core-platform/n8n-node-core-connector
+// Automatically injects X-Core-Tenant header based on n8n account
+
+const coreConnector = {
+  name: 'Core API',
+  type: 'n8n-nodes-base.httpRequest',
+  config: {
+    url: 'https://admin.core-platform.local/api/tenants',
+    authentication: 'predefinedCredentialType',
+    headers: {
+      'X-Core-Tenant': '{{$workflow.tenantId}}',  // Auto-injected by BFF
+      'X-Core-User': '{{$user.email}}',
+      'X-Core-N8N-Account': 'tenant-{{$workflow.tenantId}}'
+    }
+  }
+};
 ```
 
 ### Security & Compliance
 
 1. **Authentication & Authorization**
-   - SSO přes Keycloak admin realm
-   - Roles: `CORE_PLATFORM_ADMIN`, `INTEGRATION_ADMIN`
-   - n8n user management DISABLED (Keycloak only)
+   - SSO přes Keycloak (multi-realm support)
+   - **Admin realm**: `CORE_PLATFORM_ADMIN` role → full n8n access
+   - **Tenant realms**: `CORE_N8N_DESIGNER` role → per-tenant n8n account access
+   - **Auto-provisioning**: n8nProvisioningService (backend BFF)
+     - First access → creates n8n account `tenant-{realm}@n8n.local`
+     - Magic link or OIDC integration (if n8n supports)
+     - Subsequent accesses → reuse existing account
 
 2. **Access Control**
-   - n8n UI dostupné POUZE admin realm users
-   - n8n může volat Core API POUZE přes backend (ne přímo na DB)
+   - n8n UI dostupné PER TENANT přes BFF proxy:
+     - `https://acme.${DOMAIN}/n8n` → Backend BFF → n8n (account: tenant-acme)
+     - `https://beta.${DOMAIN}/n8n` → Backend BFF → n8n (account: tenant-beta)
+   - n8n může volat Core API POUZE s X-Core-Tenant header (validated by backend)
    - Webhooky chráněny Nginx rate limiting
 
-3. **Audit & Logging**
-   - Všechny workflow executions logovány do Loki
-   - Error tracking: Loki {level="error", service="n8n"}
+3. **Tenant Isolation**
+   - **n8n accounts**: 1 account per tenant (`tenant-{realm}`)
+   - **Workflow ownership**: Všechny workflows patří tenant accountu
+   - **Shared access**: Více adminů stejného tenanta sdílí 1 n8n account
+   - **Cross-tenant protection**: n8n workflows NEMOHOU pristupovat k jiným tenant datům
+     - Backend validuje X-Core-Tenant header (must match JWT realm)
+     - API calls bez správného headeru → 403 Forbidden
+
+4. **Audit & Logging**
+   - Všechny workflow executions logovány do Loki:
+     ```json
+     {
+       "service": "n8n",
+       "tenant": "acme",
+       "user": "designer@acme.com",
+       "n8n_account": "tenant-acme",
+       "workflow_id": "jira-sync",
+       "execution_id": "12345",
+       "status": "success"
+     }
+     ```
+   - Nginx access log obsahuje audit headers:
+     ```
+     X-Core-Tenant: acme
+     X-Core-User: designer@acme.com
+     X-Core-N8N-Account: tenant-acme
+     ```
+   - Error tracking: Loki `{level="error", service="n8n", tenant="acme"}`
    - Metrics: Prometheus scraping (pokud n8n expose /metrics)
 
-4. **Data Governance**
+5. **Data Governance**
    - n8n workflow data stored v PostgreSQL `n8n` database
    - Retention policy: 30 days execution history
-   - NO direct DB access from n8n (API/events only)
+   - NO direct DB access from n8n (API/events only, X-Core-Tenant validated)
+   - Tenant-specific credentials stored v n8n (encrypted at rest)
 
 ---
 
@@ -172,22 +281,26 @@ n8n Cron Trigger (every day 2am)
 
 | Component | Purpose | Port | Tech Stack | Status |
 |-----------|---------|------|------------|--------|
-| **n8n** | Workflow automation engine | 5678 | Node.js, PostgreSQL | ⏳ TODO (N8N1) |
-| **Nginx** | Reverse proxy, /n8n/* routing | 443 | Nginx 1.25+ | ⏳ TODO (N8N3) |
-| **Backend BFF** | n8n API proxy, monitoring | 8080 | Spring Boot, WebClient | ⏳ TODO (N8N6) |
-| **Keycloak** | SSO identity provider | 8443 | Java, PostgreSQL | ✅ EXISTS |
+| **n8n** | Multi-tenant workflow automation engine | 5678 | Node.js, PostgreSQL | ⏳ TODO (N8N1) |
+| **Nginx** | Reverse proxy, per-tenant routing, audit headers | 443 | Nginx 1.25+ | ⏳ TODO (N8N3, N8N8) |
+| **Backend BFF** | n8n provisioning, proxy, tenant validation | 8080 | Spring Boot, WebClient | ⏳ TODO (N8N6, N8N7, N8N8) |
+| **Keycloak** | Multi-realm SSO identity provider | 8443 | Java, PostgreSQL | ✅ EXISTS |
 | **Templates** | Pre-built n8n workflows | - | JSON exports | ⏳ TODO (N8N4) |
-| **Monitoring** | Grafana dashboards | 3000 | Grafana | ⏳ TODO (N8N5) |
+| **Monitoring** | Grafana dashboards + Loki audit | 3000 | Grafana, Loki | ⏳ TODO (N8N5, N8N9) |
+| **Core Connector** | Custom n8n node (tenant-scoped API calls) | - | TypeScript, n8n SDK | ⏳ TODO (N8N10) |
 
 ---
 
 ## 🎯 Success Metrics
 
-- **Security**: 100% n8n access requires Keycloak SSO login
+- **Security**: 100% n8n access requires Keycloak SSO login per tenant
+- **Multi-Tenancy**: N tenants → N n8n accounts (1:1 mapping)
+- **Tenant Isolation**: 0 cross-tenant data leaks (validated via tests)
+- **Audit Trail**: 100% workflow executions logged to Loki with tenant context
 - **Availability**: 99.9% uptime (n8n + BFF)
 - **Performance**: <200ms BFF API latency, <2s n8n UI load
-- **Adoption**: 50+ workflows created within first month
-- **Integration**: 10+ external systems connected (Jira, Confluence, Trello, M365, Google)
+- **Adoption**: 50+ workflows created within first month (across all tenants)
+- **Integration**: 10+ external systems connected per tenant (Jira, Confluence, Trello, M365, Google)
 
 ---
 
@@ -558,6 +671,437 @@ test('n8n UI requires Keycloak login', async ({ page }) => {
 
 ---
 
+### N8N7: n8n Provisioning Service (~600 LOC, 2 days)
+
+**Goal**: Auto-create n8n user accounts per tenant při prvním přístupu
+
+**Deliverables**:
+- Backend service: `n8nProvisioningService`
+- n8n REST API client (n8n management API)
+- Account creation flow:
+  1. User (tenant 'acme') navigates to `https://acme.${DOMAIN}/n8n`
+  2. Backend BFF extracts tenant from JWT (`realm=acme`)
+  3. Check if n8n account exists: `GET /api/v1/users?email=tenant-acme@n8n.local`
+  4. If NOT exists → create:
+     ```java
+     POST /api/v1/users {
+       "email": "tenant-acme@n8n.local",
+       "firstName": "Tenant",
+       "lastName": "ACME",
+       "password": generateSecurePassword()  // or magic link
+     }
+     ```
+  5. Log creation to Loki: `{action="n8n_account_created", tenant="acme", user="designer@acme.com"}`
+  6. Proxy user to n8n with session impersonation
+
+- Account naming convention:
+  - Admin realm: `admin-instance-owner@n8n.local`
+  - Tenant realms: `tenant-{subdomain}@n8n.local` (e.g., `tenant-acme@n8n.local`)
+
+- Environment config:
+  ```yaml
+  n8n:
+    environment:
+      - N8N_USER_MANAGEMENT_DISABLED=false  # ENABLE user management
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_JWT_SECRET}
+  ```
+
+**Acceptance Criteria**:
+- ✅ First access to n8n creates tenant account automatically
+- ✅ Subsequent accesses reuse existing account
+- ✅ Multiple admins of same tenant share 1 n8n account
+- ✅ Account creation logged to Loki with audit trail
+- ✅ Test: 100 tenants created → 100 n8n accounts
+
+**Effort**: ~2 days | **Details**: [stories/N8N7.md](./stories/N8N7.md)
+
+---
+
+### N8N8: Multi-Tenant SSO & Routing (~500 LOC, 2 days)
+
+**Goal**: Configure Nginx + BFF routing pro per-tenant n8n access
+
+**Deliverables**:
+
+**1. Nginx Configuration:**
+```nginx
+# Per-tenant n8n routing
+location ~ ^/([a-z0-9-]+)/n8n/ {
+  set $tenant $1;
+  
+  # Validate tenant exists (optional: call backend API)
+  # auth_request /api/tenants/$tenant/validate;
+  
+  # Keycloak SSO enforcement
+  auth_request /auth;
+  auth_request_set $auth_user $upstream_http_x_auth_request_user;
+  auth_request_set $auth_realm $upstream_http_x_auth_request_realm;
+  
+  # Inject audit headers
+  proxy_set_header X-Core-Tenant $auth_realm;
+  proxy_set_header X-Core-User $auth_user;
+  proxy_set_header X-Core-N8N-Account tenant-$auth_realm;
+  
+  # Proxy to backend BFF (NOT directly to n8n!)
+  proxy_pass http://backend:8080/bff/n8n/proxy;
+  proxy_set_header X-Original-URI $request_uri;
+  
+  # WebSocket support
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+}
+
+# Admin realm n8n routing
+location /n8n/ {
+  auth_request /auth;
+  auth_request_set $auth_user $upstream_http_x_auth_request_user;
+  
+  # Inject audit headers (admin realm)
+  proxy_set_header X-Core-Tenant admin;
+  proxy_set_header X-Core-User $auth_user;
+  proxy_set_header X-Core-N8N-Account admin-instance-owner;
+  
+  proxy_pass http://backend:8080/bff/n8n/proxy;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+}
+```
+
+**2. Backend BFF Proxy:**
+```java
+@RestController
+@RequestMapping("/bff/n8n/proxy")
+public class N8nProxyController {
+  
+  @GetMapping("/**")
+  public ResponseEntity<String> proxyGet(
+    @RequestHeader("X-Core-Tenant") String tenant,
+    @RequestHeader("X-Core-User") String user,
+    HttpServletRequest request
+  ) {
+    // 1. Validate tenant matches JWT realm
+    String jwtRealm = extractRealmFromJWT(request);
+    if (!tenant.equals(jwtRealm)) {
+      throw new ForbiddenException("Tenant mismatch");
+    }
+    
+    // 2. Ensure n8n account exists (provision if needed)
+    String n8nAccount = n8nProvisioningService.ensureAccountExists(tenant);
+    
+    // 3. Impersonate n8n account (get session token)
+    String n8nSession = n8nAuthService.getSessionToken(n8nAccount);
+    
+    // 4. Proxy request to n8n with session
+    return webClient.get()
+      .uri("http://n8n:5678" + request.getRequestURI().replace("/bff/n8n/proxy", ""))
+      .header("Cookie", "n8n-auth=" + n8nSession)
+      .retrieve()
+      .toEntity(String.class)
+      .block();
+  }
+  
+  // Similar for POST, PUT, DELETE
+}
+```
+
+**3. Keycloak Realm Mapping:**
+- Each tenant subdomain = Keycloak realm (`acme.${DOMAIN}` = realm `acme`)
+- Role `CORE_N8N_DESIGNER` required for n8n access
+- JWT contains `realm` claim (used for tenant identification)
+
+**Acceptance Criteria**:
+- ✅ Tenant 'acme' users access n8n at `https://acme.${DOMAIN}/n8n`
+- ✅ Tenant 'beta' users access n8n at `https://beta.${DOMAIN}/n8n`
+- ✅ Admin realm users access n8n at `https://admin.${DOMAIN}/n8n`
+- ✅ Nginx injects X-Core-* headers correctly
+- ✅ BFF validates tenant matches JWT realm
+- ✅ Session impersonation works (n8n shows correct account)
+
+**Effort**: ~2 days | **Details**: [stories/N8N8.md](./stories/N8N8.md)
+
+---
+
+### N8N9: Tenant Isolation & Audit Headers (~400 LOC, 1.5 days)
+
+**Goal**: Enforce tenant isolation a audit trail pro n8n actions
+
+**Deliverables**:
+
+**1. Tenant Isolation Tests:**
+```java
+@Test
+void tenantCannotAccessOtherTenantsWorkflows() {
+  // Tenant 'acme' user
+  String acmeToken = keycloak.getToken("designer@acme.com", "password");
+  
+  // Try to access tenant 'beta' workflows
+  Response response = RestAssured.given()
+    .header("Authorization", "Bearer " + acmeToken)
+    .get("https://beta.core-platform.local/n8n/workflows");
+  
+  // Expected: 403 Forbidden (tenant mismatch)
+  assertEquals(403, response.getStatusCode());
+}
+
+@Test
+void n8nWorkflowsCannotCrossAccessTenantData() {
+  // Create workflow in tenant 'acme' account
+  Workflow workflow = createN8nWorkflow("tenant-acme@n8n.local", "jira-sync");
+  
+  // Add HTTP node calling Core API
+  HttpNode httpNode = workflow.addNode("HttpRequest", {
+    url: "https://admin.core-platform.local/api/tenants"
+  });
+  
+  // Execute workflow
+  ExecutionResult result = n8nClient.executeWorkflow(workflow.id);
+  
+  // Assert: Core API received X-Core-Tenant header
+  var apiCall = mockServer.verify("/api/tenants");
+  assertEquals("acme", apiCall.getHeader("X-Core-Tenant"));
+  
+  // Assert: Backend validated tenant and returned ONLY acme data
+  assertFalse(result.output.contains("beta"));  // No cross-tenant data leak
+}
+```
+
+**2. Audit Trail Configuration:**
+```yaml
+# Promtail config: Scrape Nginx access logs
+scrape_configs:
+  - job_name: nginx-n8n-audit
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-n8n-audit
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      - regex:
+          expression: '.*X-Core-Tenant: (?P<tenant>[^ ]+).*X-Core-User: (?P<user>[^ ]+).*X-Core-N8N-Account: (?P<n8n_account>[^ ]+).*'
+      - labels:
+          tenant:
+          user:
+          n8n_account:
+```
+
+**3. Loki Queries (Audit Trail):**
+```logql
+# All n8n actions by tenant 'acme'
+{job="nginx-n8n-audit", tenant="acme"}
+
+# All n8n actions by user
+{job="nginx-n8n-audit", user="designer@acme.com"}
+
+# All n8n workflow executions (from n8n container logs)
+{service="n8n", tenant="acme"} |= "workflow execution"
+
+# Failed n8n workflows per tenant
+{service="n8n", level="error"} | json | tenant="acme"
+```
+
+**4. Core API Validation:**
+```java
+@PostMapping("/api/tenants")
+public ResponseEntity<TenantDTO> createTenant(
+  @RequestHeader("X-Core-Tenant") String tenant,
+  @RequestBody TenantRequest request,
+  @AuthenticationPrincipal Jwt jwt
+) {
+  // Validate tenant header matches JWT realm
+  String jwtRealm = jwt.getClaimAsString("realm");
+  if (!tenant.equals(jwtRealm)) {
+    log.warn("Tenant mismatch: header={}, jwt={}", tenant, jwtRealm);
+    throw new ForbiddenException("Tenant header does not match JWT realm");
+  }
+  
+  // Proceed with tenant-scoped operation
+  return ResponseEntity.ok(tenantService.createTenant(tenant, request));
+}
+```
+
+**Acceptance Criteria**:
+- ✅ Tenant 'acme' workflows CANNOT access tenant 'beta' data
+- ✅ Core API validates X-Core-Tenant matches JWT realm (403 if mismatch)
+- ✅ Nginx access logs contain X-Core-* headers
+- ✅ Loki audit trail shows who (user) did what (action) in which tenant
+- ✅ Test: 100 workflows executed → 100 audit log entries with correct tenant
+
+**Effort**: ~1.5 days | **Details**: [stories/N8N9.md](./stories/N8N9.md)
+
+---
+
+### N8N10: Core API Connector Node (~300 LOC, 1 day)
+
+**Goal**: Custom n8n node pro safe tenant-scoped Core API calls
+
+**Deliverables**:
+
+**1. Custom n8n Node Package:**
+```typescript
+// packages/@core-platform/n8n-node-core-connector/src/CoreConnector.node.ts
+
+import { INodeType, INodeTypeDescription } from 'n8n-workflow';
+
+export class CoreConnector implements INodeType {
+  description: INodeTypeDescription = {
+    displayName: 'Core Platform API',
+    name: 'corePlatformApi',
+    group: ['transform'],
+    version: 1,
+    description: 'Call Core Platform API with automatic tenant context',
+    defaults: {
+      name: 'Core API',
+    },
+    inputs: ['main'],
+    outputs: ['main'],
+    credentials: [
+      {
+        name: 'corePlatformApi',
+        required: true,
+      },
+    ],
+    properties: [
+      {
+        displayName: 'Resource',
+        name: 'resource',
+        type: 'options',
+        options: [
+          { name: 'Tenants', value: 'tenants' },
+          { name: 'Users', value: 'users' },
+          { name: 'Documents', value: 'documents' },
+          { name: 'Workflows', value: 'workflows' },
+        ],
+        default: 'tenants',
+      },
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        options: [
+          { name: 'Get', value: 'get' },
+          { name: 'List', value: 'list' },
+          { name: 'Create', value: 'create' },
+          { name: 'Update', value: 'update' },
+        ],
+        default: 'list',
+      },
+    ],
+  };
+
+  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+    const items = this.getInputData();
+    const returnData: INodeExecutionData[] = [];
+
+    // Get tenant from n8n account email (tenant-acme@n8n.local → acme)
+    const currentUser = this.getWorkflow().settings.callerIds?.userId;
+    const tenantMatch = currentUser?.match(/^tenant-([a-z0-9-]+)@/);
+    const tenant = tenantMatch ? tenantMatch[1] : 'admin';
+
+    for (let i = 0; i < items.length; i++) {
+      const resource = this.getNodeParameter('resource', i) as string;
+      const operation = this.getNodeParameter('operation', i) as string;
+
+      // Build API URL
+      const url = `https://admin.core-platform.local/api/${resource}`;
+
+      // Call Core API with tenant header
+      const response = await this.helpers.request({
+        method: operation === 'create' ? 'POST' : 'GET',
+        url,
+        headers: {
+          'X-Core-Tenant': tenant,  // Auto-injected!
+          'X-Core-N8N-Account': `tenant-${tenant}`,
+          'Authorization': `Bearer ${credentials.apiKey}`,  // Service account token
+        },
+        body: operation === 'create' ? items[i].json : undefined,
+        json: true,
+      });
+
+      returnData.push({ json: response });
+    }
+
+    return [returnData];
+  }
+}
+```
+
+**2. Node Credentials:**
+```typescript
+// packages/@core-platform/n8n-node-core-connector/credentials/CorePlatformApi.credentials.ts
+
+import { ICredentialType, INodeProperties } from 'n8n-workflow';
+
+export class CorePlatformApi implements ICredentialType {
+  name = 'corePlatformApi';
+  displayName = 'Core Platform API';
+  properties: INodeProperties[] = [
+    {
+      displayName: 'API Key',
+      name: 'apiKey',
+      type: 'string',
+      default: '',
+      description: 'Service account API key (per tenant)',
+    },
+  ];
+}
+```
+
+**3. Installation & Usage:**
+```bash
+# Build custom node package
+cd packages/@core-platform/n8n-node-core-connector
+npm run build
+
+# Install in n8n (Docker volume mount)
+docker cp dist/. core-n8n:/usr/local/lib/node_modules/@core-platform/n8n-node-core-connector/
+
+# Restart n8n to load custom node
+docker restart core-n8n
+```
+
+**4. Example Workflow (using Core Connector):**
+```json
+{
+  "nodes": [
+    {
+      "name": "Get Tenant Info",
+      "type": "@core-platform/corePlatformApi",
+      "parameters": {
+        "resource": "tenants",
+        "operation": "get"
+      },
+      "credentials": {
+        "corePlatformApi": "tenant-acme-service-account"
+      }
+    },
+    {
+      "name": "Create Document",
+      "type": "@core-platform/corePlatformApi",
+      "parameters": {
+        "resource": "documents",
+        "operation": "create",
+        "body": {
+          "title": "{{$node['Get Tenant Info'].json.name}} Report",
+          "content": "..."
+        }
+      }
+    }
+  ]
+}
+```
+
+**Acceptance Criteria**:
+- ✅ Custom node available in n8n UI (Core Platform API)
+- ✅ Node automatically injects X-Core-Tenant header (from n8n account email)
+- ✅ Workflows using Core Connector CANNOT manually override tenant header
+- ✅ Test: Workflow in tenant 'acme' calls Core API → backend receives X-Core-Tenant: acme
+- ✅ Documentation: How to use Core Connector node (screenshots, examples)
+
+**Effort**: ~1 day | **Details**: [stories/N8N10.md](./stories/N8N10.md)
+
+---
+
 ## 🔗 Integration with Core Workflow (EPIC-006)
 
 ### EXTERNAL_TASK Executor Pattern
@@ -744,67 +1288,93 @@ WF17: Orchestrator continues to next step
 - **Network Isolation**: n8n internal-only, accessible via Nginx proxy or BFF API
 - **Webhook Security**: Public webhooks for integrations (no auth required)
 
-## 🚀 Implementation Plan
+## 🚀 Implementation Plan (Multi-Tenant)
 
-### Phase 1: Foundation (Week 1)
+### Phase 1: Foundation (Week 4)
 
-- ✅ S1: Deploy n8n + PostgreSQL
-- ✅ S2: Configure Keycloak SSO client
-- ✅ S3: Nginx reverse proxy setup
+- ✅ N8N1: Deploy n8n + PostgreSQL (1 day)
+- ✅ N8N2: Configure Keycloak SSO client (1 day)
+- ✅ N8N3: Nginx reverse proxy setup (0.5 day)
 
 **DoD**: n8n accessible via SSO at https://admin.core-platform.local/n8n
 
-### Phase 2: Templates & Monitoring (Week 2)
+### Phase 2: Multi-Tenant Infrastructure (Week 4-5)
 
-- ✅ S4: Workflow templates + documentation
-- ✅ S5: Grafana monitoring integration
+- ✅ N8N7: n8n Provisioning Service (2 days)
+- ✅ N8N8: Multi-Tenant SSO & Routing (2 days)
+- ✅ N8N9: Tenant Isolation & Audit Headers (1.5 days)
 
-**DoD**: Starter templates available, metrics in Grafana
+**DoD**: Per-tenant n8n access functional (`https://acme.${DOMAIN}/n8n`), auto-provisioning works, audit trail in Loki
 
-### Phase 3: Backend Integration (Week 3)
+### Phase 3: Workflows & Monitoring (Week 5)
 
-- ✅ S6: Backend BFF API + React dashboard
+- ✅ N8N4: Workflow templates + documentation (2 days)
+- ✅ N8N5: Grafana monitoring integration (1 day)
+- ✅ N8N10: Core API Connector Node (1 day)
 
-**DoD**: Workflow monitoring dashboard operational, real-time updates
+**DoD**: Starter templates available, metrics in Grafana, Core Connector node operational
+
+### Phase 4: Testing & Quality (Week 5)
+
+- ✅ N8N6: Testing & Quality Gates (2 days)
+
+**DoD**: Security tests pass, tenant isolation validated, E2E tests pass
 
 ## 📚 Documentation
 
-- **N8N_SETUP_GUIDE.md**: Installation and configuration
-- **N8N_WORKFLOW_TEMPLATES.md**: Starter workflow examples
-- **N8N_USER_GUIDE.md**: End-user workflow creation guide
-- **N8N_API_DOCUMENTATION.md**: Backend BFF API reference
+- **N8N_MULTI_TENANT_SETUP_GUIDE.md**: Installation and multi-tenant configuration
+- **N8N_WORKFLOW_TEMPLATES.md**: Starter workflow examples (per-tenant)
+- **N8N_USER_GUIDE.md**: End-user workflow creation guide (tenant designers)
+- **N8N_API_DOCUMENTATION.md**: Backend BFF API reference (provisioning, proxy)
+- **N8N_CORE_CONNECTOR_GUIDE.md**: Custom Core Connector node usage
 
 ## 🎓 Dependencies
 
-- **External**: Keycloak (existing EPIC-003 Monitoring & Observability)
+- **External**: Keycloak (multi-realm support, EPIC-003 Monitoring & Observability)
 - **Infrastructure**: Nginx, Docker, PostgreSQL
-- **Backend**: Spring Boot, WebClient, Spring Security
-- **Frontend**: React, TypeScript, Axios
-- **Skills**: n8n workflow development, REST API integration, OAuth2/OIDC
+- **Backend**: Spring Boot, WebClient, Spring Security, n8nProvisioningService
+- **Frontend**: React, TypeScript, Axios (optional: n8n UI link)
+- **Skills**: n8n workflow development, multi-tenant architecture, REST API integration, OAuth2/OIDC
 
 ## 🏁 Definition of Done
 
-- [ ] All 6 stories implemented with acceptance criteria met
+- [ ] All 10 stories implemented with acceptance criteria met (N8N1-N8N10)
 - [ ] n8n running in Docker Compose with PostgreSQL backend
-- [ ] 100% UI access requires Keycloak SSO login
-- [ ] Webhooks publicly accessible (no auth) at /n8n/webhook/*
-- [ ] Keycloak client configured with n8n-users and n8n-admins roles
-- [ ] Nginx proxy routes /n8n/* to n8n service
-- [ ] Backend BFF API operational (GET /api/n8n/workflows, POST /api/n8n/workflows/:id/activate)
-- [ ] Frontend dashboard showing workflow status (active, executions, success rate)
-- [ ] Real-time execution monitoring (5s polling)
-- [ ] Role-based access enforced (users: read-only, admins: activate/deactivate)
-- [ ] Grafana dashboard displays n8n metrics (executions, success rate)
+- [ ] n8n user management ENABLED (`N8N_USER_MANAGEMENT_DISABLED=false`)
+- [ ] 100% UI access requires Keycloak SSO login (per tenant)
+- [ ] Per-tenant n8n access functional:
+  - [ ] Admin realm: `https://admin.${DOMAIN}/n8n`
+  - [ ] Tenant realms: `https://{tenant}.${DOMAIN}/n8n`
+- [ ] Auto-provisioning: First access creates n8n account (`tenant-{realm}@n8n.local`)
+- [ ] Keycloak role `CORE_N8N_DESIGNER` configured per tenant
+- [ ] Nginx proxy routes per-tenant + injects audit headers (X-Core-Tenant, X-Core-User, X-Core-N8N-Account)
+- [ ] Backend BFF validates tenant matches JWT realm (403 if mismatch)
+- [ ] Tenant isolation validated:
+  - [ ] Tenant 'acme' workflows CANNOT access tenant 'beta' data
+  - [ ] Core API validates X-Core-Tenant header
+- [ ] Audit trail in Loki:
+  - [ ] Nginx access logs with X-Core-* headers
+  - [ ] n8n workflow executions with tenant context
+- [ ] Core Connector node operational:
+  - [ ] Custom node available in n8n UI
+  - [ ] Auto-injects X-Core-Tenant header
+- [ ] Grafana dashboard displays n8n metrics (per tenant if possible)
 - [ ] Alerting configured (execution failures >10% threshold)
-- [ ] Workflow templates available (3+ starter examples)
-- [ ] Documentation complete (setup guide, user guide, API docs)
-- [ ] E2E tests passing (n8n login, workflow monitoring dashboard)
+- [ ] Workflow templates available (6+ examples: Jira, Confluence, Slack, AI, ETL)
+- [ ] Documentation complete (multi-tenant setup guide, user guide, API docs, Core Connector guide)
+- [ ] E2E tests passing:
+  - [ ] Multi-tenant SSO login flow
+  - [ ] Tenant isolation tests
+  - [ ] Workflow execution with audit headers
 
 ---
 
 **Epic Owner**: Platform Team  
-**Priority**: Medium  
+**Priority**: High (mandatory core component)  
 **Target**: Q1 2026  
+**Estimated Effort**: ~13 days (10 stories: N8N1-N8N10)  
+**LOC:** ~4,400 (base ~2,600 + multi-tenant ~1,800)  
+**Status**: 📝 Documentation complete, multi-tenant architecture redesigned, awaiting implementation
 **Estimated Effort**: ~40 hours (~1 week, 1 engineer)  
 **Status**: 📝 Documentation complete, awaiting implementation
 
