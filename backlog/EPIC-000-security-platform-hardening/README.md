@@ -29,6 +29,14 @@ Definuje minimální bezpečnostní standardy, které musí splňovat:
 
 ---
 
+## ⚠️ ZÁVAZNÝ MODEL MULTITENANCY
+
+**Core-platform závazně používá model `tenant = subdoména = Keycloak realm`.**
+
+Dřívější úvahy o "single-realm + tenant_id claims" jako bezpečnostní boundary jsou **opuštěny a nejsou podporovány**. Tento princip je **neměnný** - jakákoliv změna vyžaduje zásadní revizi celé architektury.
+
+---
+
 ## 🏛️ NÁŠ TENANT MODEL (NEMĚNIT)
 
 **Core Platform používá konzistentní model:**
@@ -39,8 +47,8 @@ tenant = subdoména = Keycloak realm
 
 ### Příklady
 
-- `admin.core-platform.local` → realm: `core-admin` (platform / superadmin)
-- `customer-a.core-platform.local` → realm: `customer-a`
+- `admin.core-platform.local` → realm: `admin` (platform / superadmin)
+- `ivigee.core-platform.local` → realm: `ivigee`
 - `acme.core-platform.local` → realm: `acme`
 
 ### Izolace Tenantů
@@ -79,7 +87,7 @@ Izolace tenantů je zajištěna na **třech úrovních:**
 - ✅ E2E Infrastructure - test data per realm, žádné míchání
 
 **❌ ZAKÁZÁNO:**
-- Míchání dat napříč realmy bez explicitního multi-realm scope (pouze pro core-admin)
+- Míchání dat napříč realmy bez explicitního multi-realm scope (pouze pro admin realm)
 - Sdílené login session mezi tenanty
 - Jakékoliv alternativní modely izolace (tenant model je POUZE realm-per-tenant)
 
@@ -246,15 +254,22 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 **Princip:** Keycloak je **jediný IdP** pro celou platformu. Žádný přímý přístup na interní služby bez tokenu od Keycloaku.
 
 #### Keycloak jako Sole IdP
-- **Realms:**
-  - **`admin` realm** - globální administrace a platformní role (`CORE_ADMIN`, `CORE_SUPPORT`, `CORE_AUDITOR`, atd.)
-  - **Každý tenant = vlastní realm**
-    - Příklad: `tenantA.core-platform.local` → realm: `tenantA`
-    - Příklad: `acme.core-platform.local` → realm: `acme`
-  - **Přihlášení FE/BE vždy probíhá proti realm-u odvozenému ze subdomény**
-  - **Není podporován model "všichni tenantí v jednom realm-u + tenant_id claim"**
-    - `tenant_id` claim může být použit jako doplňkový identifikátor napříč systémy
-    - **ALE není bezpečnostní boundary** - ta je POUZE na úrovni realmů
+
+**Architektura Keycloak:**
+
+- **`admin` realm** – slouží **pouze** pro správu platformy, globální administrátory, support a systémové integrace (`CORE_ADMIN_*`, `CORE_SUPPORT_*`, `CORE_AUDITOR` apod.)
+
+- **Každý tenant = vlastní realm.** Platí **invariant:**
+  - **subdoména tenanta = název / identifikátor jeho realm-u**
+  - Příklad: `ivigee.core-platform.local` → realm `ivigee`
+  - Příklad: `acme.core-platform.local` → realm `acme`
+  
+- **Frontend i backend vždy určují cílový realm z host/subdomény.** Login **nikdy nemíchá tenanty** do jednoho realm-u.
+
+- **Model "všichni tenantí v jednom realm-u + tenant_id claim" není podporovaný jako bezpečnostní boundary.**
+  - `tenant_id` claim lze používat **jen jako stabilní identifikátor** napříč systémy (pro reporting, integrace, tracking)
+  - **NE jako náhradu** realm izolace
+  - Primární bezpečnostní boundary zůstává **realm-per-tenant**
   
 - **Role Model:**
 
@@ -262,14 +277,14 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
   - **Nemusíme přidávat `tenant_id` do názvu role**, protože realm už je tenant boundary.
   - **Příklady:**
-    - V realmu `customer-a`: `TENANT_ADMIN`, `USER`, `FINANCE_MANAGER`
+    - V realmu `ivigee`: `TENANT_ADMIN`, `USER`, `FINANCE_MANAGER`
     - V realmu `acme`: `TENANT_ADMIN`, `USER`, `PROJECT_LEAD`
-    - V realmu `core-admin`: `CORE_PLATFORM_ADMIN`, `CORE_AUDITOR`, `CORE_SUPPORT`
-  - **Žádné sdílené globální role napříč realmy** (mimo core-admin realm s explicitními cross-realm pravomocemi)
+    - V realmu `admin`: `CORE_PLATFORM_ADMIN`, `CORE_AUDITOR`, `CORE_SUPPORT`
+  - **Žádné sdílené globální role napříč realmy** (mimo admin realm s explicitními cross-realm pravomocemi)
 
   | Role Type | Role Name | Scope | Permissions | Use Case |
   |-----------|-----------|-------|-------------|----------|
-  | **Platform** | `CORE_PLATFORM_ADMIN` | Cross-realm (pouze core-admin) | Full platform access, systém config, user mgmt across realms | DevOps, platform admin |
+  | **Platform** | `CORE_PLATFORM_ADMIN` | Cross-realm (pouze admin) | Full platform access, systém config, user mgmt across realms | DevOps, platform admin |
   | **Platform** | `CORE_AUDITOR` | Cross-realm read-only | Audit logs, compliance reports, cross-realm monitoring | Compliance officer |
   | **Platform** | `CORE_SUPPORT` | Cross-realm limited | Read user data (any realm), no write, no config | Customer support |
   | **Platform** | `INTEGRATION_ADMIN` | Cross-realm | Manage n8n workflows, API keys, service accounts | Integration specialist |
@@ -307,18 +322,25 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
 ### 2. Multitenancy & Isolation
 
-**Princip:** Tenant = subdoména = Keycloak realm + tenant_id (stabilní identifikátor) + data namespace. **Primární bezpečnostní boundary: realm.** **Zero cross-tenant data leak.**
+**Princip multitenance:**
+
+- **Tenant = subdoména = Keycloak realm**
+- **Každý request je mapován na realm podle host/subdomény**
+- **Všechny backendové služby používají `tenant_id`** (z realm + claims) **pro izolace v databázi, message brokerech, úložištích a logování**
+- **`tenant_id` je druhá vrstva izolace a trasovatelnosti** (DB schema/column, Loki label, MinIO prefix), **ne hlavní bezpečnostní hranice** – tou zůstává **realm-per-tenant**
+
+**Zero cross-tenant data leak.**
 
 #### Tenant Architecture
 
 **Identifikace tenanta (3 kontrolní body):**
 
 1. **Subdoména (doménová vrstva):**
-   - `customer-a.core-platform.local` → tenant: `customer-a`
+   - `ivigee.core-platform.local` → tenant: `ivigee`
    - `acme.core-platform.local` → tenant: `acme`
 
 2. **Keycloak Realm (identitní vrstva - PRIMÁRNÍ BOUNDARY):**
-   - JWT obsahuje `iss` (issuer): `https://customer-a.core-platform.local/realms/customer-a`
+   - JWT obsahuje `iss` (issuer): `https://ivigee.core-platform.local/realms/ivigee`
    - Každý tenant má vlastní realm
    - **Realm JE bezpečnostní hranice** - žádné sdílené identity mezi realmy
 
@@ -327,8 +349,8 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
      - **Slouží jako stabilní identifikátor** (např. pro integrační systémy, reporting)
      - **NENÍ primární bezpečnostní boundary** (ta je realm!)
      - Redundantní kontrola: backend může validovat `tenant_id` ↔ realm konzistenci
-   - S3 prefix: `customer-a/documents/`
-   - Loki label: `{realm="customer-a"}`
+   - S3 prefix: `ivigee/documents/`
+   - Loki label: `{realm="ivigee"}`
    - Metamodel scoping per realm
 
 **Backend ověřuje konzistenci:**
@@ -343,7 +365,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
   - Loki query execution
   - n8n workflow callbacks
 - Implementace: Spring Boot `@Component` + `@ControllerAdvice` nebo servlet filter
-- Testováno: E2E test "User z realm customer-a nesmí vidět data realm acme"
+- Testováno: E2E test "User z realm ivigee nesmí vidět data realm acme"
 
 #### Mandatory Tenant Checks
 
@@ -351,22 +373,22 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 |---------|----------------------|----------------|
 | **Metamodel API** | ✅ | JPA filter `@FilterDef`, `WHERE realm = :realm` nebo RLS policies |
 | **Workflow Execution** | ✅ | Workflow instance tagged `realm`, execution context izolovaný |
-| **DMS (Documents)** | ✅ | S3 bucket prefix `customer-a/documents/{file_id}` |
-| **Loki Logs** | ✅ | UI filtruje `{realm="customer-a"}`, API vrací jen own realm logs |
+| **DMS (Documents)** | ✅ | S3 bucket prefix `ivigee/documents/{file_id}` |
+| **Loki Logs** | ✅ | UI filtruje `{realm="ivigee"}`, API vrací jen own realm logs |
 | **Grafana Dashboards** | ✅ | Data source variable `$realm`, query filtered |
 | **n8n Workflows** | ✅ | Workflow tagged `realm`, nodes validate realm ownership |
 | **Modular Plugins** | ✅ | Plugin registry per realm, shared code bez cross-realm side effects |
 
 #### Separace Logů, Auditů, Reportingu
 - **Loki:** Label `realm={realm_name}` na všech logách, UI query vždy s realm filter
-- **Audit:** Audit events tagged s `realm` + `user_id`, no global audit across realms (pouze core-admin realm)
+- **Audit:** Audit events tagged s `realm` + `user_id`, no global audit across realms (pouze admin realm)
 - **Reporting:** Cube.js queries s `realm` filter, dashboards scoped per realm
 
 #### Cross-Tenant Přístup (Platformní Funkce)
 
 **NENÍ povolen implicitně. Pouze explicitně pro platformní administraci:**
 
-- **core-admin realm** má speciální role:
+- **admin realm** má speciální role:
   - `CORE_PLATFORM_ADMIN` - může číst/zapisovat cross-realm (debugging, support)
   - `CORE_AUDITOR` - může číst cross-realm (compliance, security audit)
   - `CORE_SUPPORT` - může číst cross-realm (customer support, limited scope)
@@ -405,9 +427,9 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
 **TenantId je odvozen z:**
 - ✅ **Subdoména** (z `Host` header)
-  - Příklad: `customer-a.core-platform.local` → tenant: `customer-a`
+  - Příklad: `ivigee.core-platform.local` → tenant: `ivigee`
 - ✅ **Realm / Issuer v JWT**
-  - `iss` claim: `https://customer-a.core-platform.local/realms/customer-a`
+  - `iss` claim: `https://ivigee.core-platform.local/realms/ivigee`
 - ✅ **Explicitní claim** (pokud je přítomen)
   - `realm` nebo `tenant` claim v JWT (doplňkový mechanismus)
 
@@ -418,7 +440,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 ```
 IF subdoména ≠ realm FROM JWT issuer:
   → REJECT request (401 Unauthorized nebo 403 Forbidden)
-  → LOG security event: "Realm mismatch: subdomain=customer-a, jwt.iss=acme"
+  → LOG security event: "Realm mismatch: subdomain=ivigee, jwt.iss=acme"
 
 IF explicitní claim `realm` ≠ subdoména:
   → REJECT request
@@ -435,7 +457,7 @@ IF explicitní claim `realm` ≠ subdoména:
 **NENÍ povolen nikdy implicitně.**
 
 **Pokud existují "platformní" funkce:**
-- Jsou v dedikovaném realmu **`core-admin`**
+- Jsou v dedikovaném realmu **`admin`**
 - Pod speciálními rolemi:
   - `CORE_PLATFORM_ADMIN` - plný cross-realm přístup (debugging, emergency operations)
   - `CORE_AUDITOR` - read-only cross-realm (compliance, security audit)
@@ -493,7 +515,7 @@ public class TenantGuard implements Filter {
 - [ ] TenantGuard filter implementován a aktivní (nejvyšší priorita v Spring chain)
 - [ ] Každý request validuje: subdoména ↔ JWT realm ↔ explicitní claim
 - [ ] Mismatche logovány do Loki (`security_violation=true`)
-- [ ] Cross-realm přístupy pouze přes core-admin realm + audit log
+- [ ] Cross-realm přístupy pouze přes admin realm + audit log
 - [ ] E2E test: mismatch realm → 403 Forbidden
 - [ ] E2E test: cross-realm attempt bez CORE_PLATFORM_ADMIN → 403 Forbidden
 
@@ -1105,7 +1127,7 @@ Před nasazením do produkce **MUSÍ být splněny** všechny následující bod
 **Tenant-aware monitoring:**
 - ✅ Loki, Prometheus, tracing **vždy tagovat `realm={realm_name}`**
 - ✅ UI dashboardy filtrované podle realmu (uživatel vidí jen svůj tenant)
-- ✅ Cross-realm monitoring pouze pro `core-admin` realm s rolemi CORE_AUDITOR/CORE_PLATFORM_ADMIN
+- ✅ Cross-realm monitoring pouze pro `admin` realm s rolemi CORE_AUDITOR/CORE_PLATFORM_ADMIN
 - ✅ Alerty per realm (ne globální alerty bez tenant context)
 
 ### EPIC-005: Metamodel & Studio
