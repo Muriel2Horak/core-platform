@@ -48,7 +48,7 @@ tenant = subdoména = Keycloak realm
 ### Příklady
 
 - `admin.core-platform.local` → realm: `admin` (platform / superadmin)
-- `ivigee.core-platform.local` → realm: `ivigee`
+- `tenant-a.core-platform.local` → realm: `tenant-a`
 - `acme.core-platform.local` → realm: `acme`
 
 ### Izolace Tenantů
@@ -261,7 +261,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
 - **Každý tenant = vlastní realm.** Platí **invariant:**
   - **subdoména tenanta = název / identifikátor jeho realm-u**
-  - Příklad: `ivigee.core-platform.local` → realm `ivigee`
+  - Příklad: `tenant-a.core-platform.local` → realm `tenant-a`
   - Příklad: `acme.core-platform.local` → realm `acme`
   
 - **Frontend i backend vždy určují cílový realm z host/subdomény.** Login **nikdy nemíchá tenanty** do jednoho realm-u.
@@ -277,7 +277,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
   - **Nemusíme přidávat `tenant_id` do názvu role**, protože realm už je tenant boundary.
   - **Příklady:**
-    - V realmu `ivigee`: `TENANT_ADMIN`, `USER`, `FINANCE_MANAGER`
+    - V realmu `tenant-a`: `TENANT_ADMIN`, `USER`, `FINANCE_MANAGER`
     - V realmu `acme`: `TENANT_ADMIN`, `USER`, `PROJECT_LEAD`
     - V realmu `admin`: `CORE_PLATFORM_ADMIN`, `CORE_AUDITOR`, `CORE_SUPPORT`
   - **Žádné sdílené globální role napříč realmy** (mimo admin realm s explicitními cross-realm pravomocemi)
@@ -336,11 +336,11 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 **Identifikace tenanta (3 kontrolní body):**
 
 1. **Subdoména (doménová vrstva):**
-   - `ivigee.core-platform.local` → tenant: `ivigee`
+   - `tenant-a.core-platform.local` → tenant: `tenant-a`
    - `acme.core-platform.local` → tenant: `acme`
 
 2. **Keycloak Realm (identitní vrstva - PRIMÁRNÍ BOUNDARY):**
-   - JWT obsahuje `iss` (issuer): `https://ivigee.core-platform.local/realms/ivigee`
+   - JWT obsahuje `iss` (issuer): `https://tenant-a.core-platform.local/realms/tenant-a`
    - Každý tenant má vlastní realm
    - **Realm JE bezpečnostní hranice** - žádné sdílené identity mezi realmy
 
@@ -349,8 +349,8 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
      - **Slouží jako stabilní identifikátor** (např. pro integrační systémy, reporting)
      - **NENÍ primární bezpečnostní boundary** (ta je realm!)
      - Redundantní kontrola: backend může validovat `tenant_id` ↔ realm konzistenci
-   - S3 prefix: `ivigee/documents/`
-   - Loki label: `{realm="ivigee"}`
+   - S3 prefix: `tenant-a/documents/`
+   - Loki label: `{realm="tenant-a"}`
    - Metamodel scoping per realm
 
 **Backend ověřuje konzistenci:**
@@ -365,7 +365,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
   - Loki query execution
   - n8n workflow callbacks
 - Implementace: Spring Boot `@Component` + `@ControllerAdvice` nebo servlet filter
-- Testováno: E2E test "User z realm ivigee nesmí vidět data realm acme"
+- Testováno: E2E test "User z realm tenant-a nesmí vidět data realm acme"
 
 #### Mandatory Tenant Checks
 
@@ -373,8 +373,8 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 |---------|----------------------|----------------|
 | **Metamodel API** | ✅ | JPA filter `@FilterDef`, `WHERE realm = :realm` nebo RLS policies |
 | **Workflow Execution** | ✅ | Workflow instance tagged `realm`, execution context izolovaný |
-| **DMS (Documents)** | ✅ | S3 bucket prefix `ivigee/documents/{file_id}` |
-| **Loki Logs** | ✅ | UI filtruje `{realm="ivigee"}`, API vrací jen own realm logs |
+| **DMS (Documents)** | ✅ | S3 bucket prefix `tenant-a/documents/{file_id}` |
+| **Loki Logs** | ✅ | UI filtruje `{realm="tenant-a"}`, API vrací jen own realm logs |
 | **Grafana Dashboards** | ✅ | Data source variable `$realm`, query filtered |
 | **n8n Workflows** | ✅ | Workflow tagged `realm`, nodes validate realm ownership |
 | **Modular Plugins** | ✅ | Plugin registry per realm, shared code bez cross-realm side effects |
@@ -427,9 +427,9 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
 **TenantId je odvozen z:**
 - ✅ **Subdoména** (z `Host` header)
-  - Příklad: `ivigee.core-platform.local` → tenant: `ivigee`
+  - Příklad: `tenant-a.core-platform.local` → tenant: `tenant-a`
 - ✅ **Realm / Issuer v JWT**
-  - `iss` claim: `https://ivigee.core-platform.local/realms/ivigee`
+  - `iss` claim: `https://tenant-a.core-platform.local/realms/tenant-a`
 - ✅ **Explicitní claim** (pokud je přítomen)
   - `realm` nebo `tenant` claim v JWT (doplňkový mechanismus)
 
@@ -440,7 +440,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 ```
 IF subdoména ≠ realm FROM JWT issuer:
   → REJECT request (401 Unauthorized nebo 403 Forbidden)
-  → LOG security event: "Realm mismatch: subdomain=ivigee, jwt.iss=acme"
+  → LOG security event: "Realm mismatch: subdomain=tenant-a, jwt.iss=acme"
 
 IF explicitní claim `realm` ≠ subdoména:
   → REJECT request
