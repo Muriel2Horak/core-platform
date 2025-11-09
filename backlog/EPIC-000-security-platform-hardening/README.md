@@ -47,21 +47,23 @@ tenant = subdoména = Keycloak realm
 
 Izolace tenantů je zajištěna na **třech úrovních:**
 
-1. **Keycloak realmy (primární izolace):**
+1. **Keycloak realmy (PRIMÁRNÍ BEZPEČNOSTNÍ BOUNDARY):**
    - Každý tenant má vlastní realm
-   - **Žádné sdílené realm-based identity mezi tenanty**
+   - **Realm = bezpečnostní hranice** - žádné sdílené identity mezi tenanty
    - Žádné cross-realm login sessions
+   - Model "všichni v jednom realm + tenant_id claim" NENÍ podporován
 
 2. **Backend vrstva (aplikační vynucení):**
-   - BFF (Backend-For-Frontend) kontroluje realm z tokenu
-   - RLS (Row-Level Security) na DB úrovni
+   - BFF (Backend-For-Frontend) kontroluje realm z JWT issuer
+   - `tenant_id` slouží jako **stabilní identifikátor** (ne security boundary)
+   - RLS (Row-Level Security) na DB úrovni s `tenant_id` sloupcem
    - Metamodel & data-scoping per realm
-   - Tenant Guard (centralizovaný filter)
+   - Tenant Guard (centralizovaný filter) validuje subdoména ↔ realm ↔ tenant_id konzistenci
 
 3. **Síťová vrstva (doménová izolace):**
    - Subdoména určuje realm
-   - Token claims musí sedět s doménou
-   - Všechny komponenty ověřují konzistenci (subdoména + realm + claims)
+   - Přihlášení FE/BE vždy proti realm-u odvozenému ze subdomény
+   - Všechny komponenty ověřují konzistenci (subdoména + realm + tenant_id)
 
 ### Závaznost Modelu
 
@@ -245,12 +247,14 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
 #### Keycloak jako Sole IdP
 - **Realms:**
-  - `core-admin` realm - **platformní administrace** (DevOps, Security, Support)
-  - **Každý tenant = vlastní Keycloak realm**
-  - Příklad:
-    - `customer-a.core-platform.local` → realm: `customer-a`
-    - `acme.core-platform.local` → realm: `acme`
-  - **Izolace na úrovni realmů, ne claims!**
+  - **`admin` realm** - globální administrace a platformní role (`CORE_ADMIN`, `CORE_SUPPORT`, `CORE_AUDITOR`, atd.)
+  - **Každý tenant = vlastní realm**
+    - Příklad: `tenantA.core-platform.local` → realm: `tenantA`
+    - Příklad: `acme.core-platform.local` → realm: `acme`
+  - **Přihlášení FE/BE vždy probíhá proti realm-u odvozenému ze subdomény**
+  - **Není podporován model "všichni tenantí v jednom realm-u + tenant_id claim"**
+    - `tenant_id` claim může být použit jako doplňkový identifikátor napříč systémy
+    - **ALE není bezpečnostní boundary** - ta je POUZE na úrovni realmů
   
 - **Role Model:**
 
@@ -303,7 +307,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 
 ### 2. Multitenancy & Isolation
 
-**Princip:** Tenant = subdoména = Keycloak realm. **Primární izolace na úrovni realmů.** **Zero cross-tenant data leak.**
+**Princip:** Tenant = subdoména = Keycloak realm + tenant_id (stabilní identifikátor) + data namespace. **Primární bezpečnostní boundary: realm.** **Zero cross-tenant data leak.**
 
 #### Tenant Architecture
 
@@ -313,13 +317,16 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
    - `customer-a.core-platform.local` → tenant: `customer-a`
    - `acme.core-platform.local` → tenant: `acme`
 
-2. **Keycloak Realm (identitní vrstva):**
+2. **Keycloak Realm (identitní vrstva - PRIMÁRNÍ BOUNDARY):**
    - JWT obsahuje `iss` (issuer): `https://customer-a.core-platform.local/realms/customer-a`
    - Každý tenant má vlastní realm
-   - **Žádné sdílené identity mezi realmy**
+   - **Realm JE bezpečnostní hranice** - žádné sdílené identity mezi realmy
 
 3. **Data Namespace (aplikační vrstva):**
-   - DB tabulky mohou mít `tenant_id` / `realm` sloupec (redundantní kontrola)
+   - `tenant_id` / `realm` sloupec v DB tabulkách
+     - **Slouží jako stabilní identifikátor** (např. pro integrační systémy, reporting)
+     - **NENÍ primární bezpečnostní boundary** (ta je realm!)
+     - Redundantní kontrola: backend může validovat `tenant_id` ↔ realm konzistenci
    - S3 prefix: `customer-a/documents/`
    - Loki label: `{realm="customer-a"}`
    - Metamodel scoping per realm
