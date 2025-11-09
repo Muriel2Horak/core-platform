@@ -222,14 +222,37 @@ const coreConnector = {
 
 ### Security & Compliance
 
+**🔒 KRITICKÉ: Všechen přístup do n8n jde POUZE přes Backend BFF**
+
+**Žádný direct access** z frontendu nebo webhooků přímo na n8n service:
+- ✅ Frontend → Nginx → **Backend BFF** → n8n
+- ✅ Webhooky → Nginx → **Backend BFF** → n8n  
+- ❌ ~~Frontend → Nginx → n8n~~ (ZAKÁZÁNO)
+
+**BFF Proxy Flow:**
+1. **Request přijde**: `https://acme.${DOMAIN}/n8n/workflows`
+2. **Nginx** ověří SSL, rate limit, směřuje na Backend BFF
+3. **Backend BFF (`N8nProxyController`):**
+   - Ověří JWT token (Keycloak)
+   - Extrahuje tenant z JWT realm (`acme`)
+   - Najde/vytvoří n8n account (`tenant-acme@n8n.local`)
+   - Získá n8n session token (impersonation)
+   - **Proxy request** na n8n s session cookie
+4. **n8n** vrátí response (workflows, UI, webhook execution)
+5. **BFF** loguje do Loki: `{tenant: "acme", user: "designer@acme.com", action: "view_workflows"}`
+
+**Důvod:** BFF kontroluje autorizaci, tenant isolation, audit logging. n8n service běží POUZE na interním Dockeru networku (port 5678 není exposed).
+
+---
+
 1. **Authentication & Authorization**
    - SSO přes Keycloak (multi-realm support)
    - **Admin realm**: `CORE_PLATFORM_ADMIN` role → full n8n access
    - **Tenant realms**: `CORE_N8N_DESIGNER` role → per-tenant n8n account access
    - **Auto-provisioning**: n8nProvisioningService (backend BFF)
      - First access → creates n8n account `tenant-{realm}@n8n.local`
-     - Magic link or OIDC integration (if n8n supports)
      - Subsequent accesses → reuse existing account
+     - **Poznámka**: Konkrétní provisioning mechanismus (REST API credentials, magic link, atd.) bude navržen v N8N1/N8N2 podle aktuálních možností n8n CE.
 
 2. **Access Control**
    - n8n UI dostupné PER TENANT přes BFF proxy:
@@ -277,6 +300,13 @@ const coreConnector = {
    - Retention policy: 30 days execution history
    - NO direct DB access from n8n (API/events only, X-Core-Tenant validated)
    - Tenant-specific credentials stored v n8n (encrypted at rest)
+   - **MANDATORY: Core Connector node pro všechna volání do Core Platform API**
+     - ❌ Generic HTTP Request node **NENÍ povolen** pro Core API (chybějící guardrails)
+     - ✅ Core Connector node **MUSÍ být použit** → auto-inject X-Core-Tenant, X-Core-User
+     - ✅ Whitelisted routes (`/api/tenants`, `/api/ai/*`, atd.) → prevence arbitrary URLs
+     - ✅ Pre-configured SSL trust (self-signed CA v dev)
+     - Příklad špatného workflow: `HTTP Request → https://admin.${DOMAIN}/api/tenants` (chybí X-Core-Tenant!)
+     - Příklad správného workflow: `Core Connector → Tenants → Get` (header auto-injected)
 
 6. **AI/MCP Workflow Governance**
    - **AI/MCP calls MUST go through Core Platform AI Gateway** (ne přímo OpenAI/external LLMs)
@@ -368,20 +398,25 @@ n8n:
 
 ### N8N2: Keycloak SSO Integration (~300 LOC, 1 day)
 
-**Goal**: Configure Keycloak client for n8n SSO authentication
+**Goal**: Configure Keycloak client for n8n SSO authentication + navrhnout provisioning mechanismus
 
 **Deliverables**:
 - Keycloak client: `n8n-client`
-- Redirect URIs: `https://admin.core-platform.local/n8n/*`
-- Client roles: `n8n-users`, `n8n-admins`
-- User group mapping
-- JWT token configuration
-- n8n OAuth2 config (disable basic auth)
+- Redirect URIs: `https://admin.core-platform.local/n8n/*`, `https://{tenant}.${DOMAIN}/n8n/*`
+- Client roles: `CORE_N8N_DESIGNER` (tenant realms), `CORE_PLATFORM_ADMIN` (admin realm)
+- User group mapping (realm-specific roles)
+- JWT token configuration (realm claim, sub, email)
+- **Provisioning mechanismus design:**
+  - Prozkoumat n8n CE REST API capabilities (`POST /api/v1/users`, `/api/v1/auth/*`)
+  - Navrhnout credential flow: password-based, magic link, nebo OIDC (podle dostupných n8n API)
+  - Definovat account naming convention: `tenant-{realm}@n8n.local`, `admin-instance-owner@n8n.local`
+  - Implementační poznámka: Nekomplikovat EPICem "magic-link/OIDC" pokud n8n CE to nepodporuje přímo – použít co funguje (REST API credentials)
 
 **Acceptance Criteria**:
 - ✅ Users redirected to Keycloak login when accessing /n8n
 - ✅ Successful login grants access to n8n UI
-- ✅ Roles n8n-users and n8n-admins enforced
+- ✅ Multi-realm support: admin realm + tenant realms
+- ✅ Provisioning strategy documented (REST API / credentials management)
 
 **Effort**: ~1 day | **Details**: [stories/N8N2.md](./stories/N8N2.md)
 
