@@ -9,7 +9,7 @@
 
 ## 🎯 Cíle EPICU
 
-**Stabilní, pragmatická a dlouhodobě udržitelná E2E/testovací infrastruktura** pro core-platform, která pokryje klíčové scénáře bez přílišné komplexity.
+**Stabilní, pragmatická a dlouhodobě udržitelná E2E/testovací infrastruktura** pro core-platform jako **plnohodnotná součást kvality**, ne jen Playwright setup.
 
 ### Hlavní Cíle
 
@@ -18,30 +18,59 @@
    - Konzistentní struktura: Page Object Model (POM), sdílené helpery
    - Jasné tagování testů pro organizaci a filtrování
 
-2. **Spolehlivé Smoke/E2E Scénáře**
-   - **Login** přes Keycloak SSO
-   - **Základní práce s entitami** a Metamodel UI
-   - **Workflow** (vytvoření instance, přechod stavů)
-   - **Monitoring** (Loki Log Viewer UI)
+2. **Test Data & Tenant Lifecycle Management**
+   - Každý E2E scénář používá dedikovaný test tenant (create → use → cleanup)
+   - Helper funkce: `createTenantForTest()`, `createUserWithRole()`, `seedData()`, `cleanupTenant()`
+   - Žádná PII - pouze syntetická data
+   - Deterministické testy (repeatable, stejný vstup = stejný výsledek)
 
-3. **API Contract Testing**
+3. **Spolehlivé Smoke/E2E Scénáře**
+   - **Tenant & Identity Lifecycle**: vytvoření tenanta, rolí, uživatelů, RBAC validace
+   - **Login** přes Keycloak SSO (multi-realm)
+   - **Core Application Flows**: entity CRUD, workflow transitions, document upload, DMS linkage
+   - **Monitoring**: Loki Log Viewer UI, fulltext search
+   - **n8n Orchestration**: základní workflow execution (když ready)
+
+4. **Performance & SLO-aware E2E**
+   - Měření času u klíčových scénářů (login, CRUD, workflow, search)
+   - Definované performance thresholdy (KPI/SLI):
+     - Login (OIDC flow): p95 < 2s
+     - Dashboard load: p95 < 1.5s
+     - Entity CRUD: p95 < 500ms
+     - Workflow transition: p95 < 1s
+     - Log search: p95 < 2s
+   - Test FAIL/WARN pokud threshold překročen
+
+5. **Metrics & Observability Integration**
+   - E2E runner publikuje metriky do Prometheus:
+     - `e2e_tests_total`, `e2e_tests_failed`
+     - `e2e_scenario_duration_seconds`
+     - `e2e_slo_violation_total`
+   - Vizualizace v admin-only dashboardu:
+     - Grafana (admin realm, `CORE_PLATFORM_ADMIN` role)
+     - Nebo vlastní Monitoring UI (EPIC-003)
+   - Hodnocení trendů: pass rate, flakiness, duration over time
+   - **Source of Truth**: CI status (HTML/JUnit reports), metriky = náhled
+
+6. **Production-Safe Non-Invasive Checks**
+   - Malý subset read-only E2E testů pro PROD (post-deploy)
+   - Pouze: login (test user), health endpoints, klíčové view dostupnost
+   - **Nikdy** nemodifikuje data, žádné create/update/delete
+   - Běží automatizovaně v CI po deploy
+
+7. **API Contract Testing**
    - Základní contract testy pro kritické BFF API
    - Detekce breaking changes v API
    - OpenAPI/JSON schema validation
 
-4. **Mock Services & Test Data**
-   - Mock pro externí závislosti (deterministické testy)
-   - Automatické vytváření a cleanup test dat
-   - Izolace od produkčních dat
-
-5. **CI Pipeline**
+8. **CI Pipeline & Quality Gates**
    - **PR checks:** Unit + Integration + Smoke E2E (mandatory)
-   - **Full/Regression E2E:** Volitelná, manuálně spouštěná
+   - **Full/Regression E2E:** Nightly nebo on-demand
    - Rozumné quality gates (ne "vše nebo nic")
 
-6. **Testing Guidelines**
+9. **Testing Guidelines**
    - Jasná dokumentace jak psát testy
-   - Konvence pro tagging, struktu, helpers
+   - Konvence pro tagging, strukturu, helpers
    - Best practices pro náš tým
 
 ### Principy
@@ -61,46 +90,78 @@
 E2E Testing Infrastructure
 │
 ├── E2E Tests (Playwright)
-│   ├── Smoke Tests (5-7 min) - Kritické cesty (login, základní CRUD)
-│   ├── Full E2E (20-30 min) - Kompletní scénáře (workflow, monitoring)
-│   ├── Security Tests - Tenant isolation, role-based access
-│   └── Test Tags: @SMOKE, @CRITICAL, @REGRESSION, @CORE-XXX
+│   ├── Smoke Tests (5-7 min) - Kritické cesty (login, CRUD, health)
+│   ├── Full E2E (20-30 min) - Kompletní scénáře (tenant lifecycle, workflow, n8n)
+│   ├── Performance E2E - SLO-aware tests (měření času, KPI assertions)
+│   ├── Security Tests - Tenant isolation, RBAC, cross-tenant protection
+│   ├── Prod-Safe Checks - Read-only post-deploy validation
+│   └── Test Tags: @SMOKE, @CRITICAL, @REGRESSION, @PERFORMANCE, @PROD-SAFE
+│
+├── Test Data & Tenant Lifecycle
+│   ├── createTenantForTest() - Dedikovaný test tenant per suite
+│   ├── createUserWithRole() - Users, roles, groups via Keycloak admin API
+│   ├── seedSampleData() - Entities, workflows, documents (deterministické)
+│   ├── cleanupTenant() - Teardown nebo test-only namespace cleanup
+│   └── NO PII - Pouze syntetická data, anonymizovaná fixtures
 │
 ├── Page Object Model (POM)
 │   ├── LoginPage, MainLayoutPage
+│   ├── TenantManagementPage (tenant lifecycle)
 │   ├── MetamodelStudioPage
 │   ├── WorkflowPage
-│   └── LokiLogViewerPage
+│   ├── LokiLogViewerPage
+│   └── n8nIntegrationPage (když ready)
+│
+├── Performance & KPI Tracking
+│   ├── Scenario Timers (login, CRUD, workflow, search)
+│   ├── SLI Thresholds (p95 < X seconds)
+│   ├── Assertions (fail if threshold exceeded)
+│   └── Metrics Export (Prometheus format)
+│
+├── Observability Integration
+│   ├── Prometheus Metrics:
+│   │   ├── e2e_tests_total (counter)
+│   │   ├── e2e_tests_failed (counter)
+│   │   ├── e2e_scenario_duration_seconds (histogram)
+│   │   └── e2e_slo_violation_total (counter)
+│   ├── Dashboards:
+│   │   ├── Grafana (admin-only, CORE_PLATFORM_ADMIN role)
+│   │   └── Custom Monitoring UI (EPIC-003 Loki/Prometheus frontend)
+│   └── Trend Analysis: pass rate, flakiness, duration over time
 │
 ├── API Contract Tests
-│   ├── Metamodel BFF API
+│   ├── Metamodel BFF API (OpenAPI schema validation)
 │   ├── Workflow BFF API
 │   ├── Loki BFF API
-│   └── Auth/Tenant API
+│   ├── Tenant Management API
+│   └── Auth/Identity API (Keycloak admin)
 │
 ├── Mock Services
+│   ├── External API Mocks (deterministic responses)
 │   ├── Keycloak Mock (pro některé scénáře)
-│   ├── Externí API Mocks
-│   └── Loki je real (není mockovaný)
+│   └── Real Services: Loki, Prometheus, n8n (NOT mocked)
 │
-└── Test Data Management
-    ├── Seed Scripts (users, tenants, roles)
-    ├── Clean Scripts (cleanup po testech)
-    ├── Test Tenant (izolované prostředí)
-    └── Opakovatelnost (deterministické testy)
+└── CI/CD Integration
+    ├── PR Checks: Unit + IT + Smoke E2E (mandatory)
+    ├── Nightly: Full E2E + Performance tests
+    ├── Post-Deploy: Prod-safe read-only checks
+    ├── Metrics Push: E2E results → Prometheus
+    └── Reports: HTML (JUnit/Playwright) + GitHub Actions artifacts
 ```
 
-### Test Types
+### Test Types & Metrics
 
-| Type | Framework | Purpose | Run Time | Trigger |
-|------|-----------|---------|----------|---------|
-| **Smoke E2E** | Playwright | Rychlá validace kritických cest | 5-7 min | PR mandatory |
-| **Full E2E** | Playwright | Kompletní flow (workflow, monitoring) | 20-30 min | Manual/nightly |
-| **Security E2E** | Playwright | Tenant isolation, RBAC | 5-10 min | PR/nightly |
-| **API Contract** | OpenAPI/JSON Schema | Detekce breaking changes | 3-5 min | PR mandatory |
-| **Unit (BE)** | JUnit | Service layer, business logic | 5-10 min | PR mandatory |
-| **Unit (FE)** | Vitest | React components, hooks | 2-5 min | PR mandatory |
-| **Integration (BE)** | Testcontainers | DB, Kafka, Redis | 10-15 min | PR mandatory |
+| Type | Framework | Purpose | Run Time | KPI/SLI | Trigger |
+|------|-----------|---------|----------|---------|---------|
+| **Smoke E2E** | Playwright | Rychlá validace kritických cest | 5-7 min | Login <2s, Dashboard <1.5s | PR mandatory |
+| **Full E2E** | Playwright | Kompletní flow (tenant, workflow, n8n) | 20-30 min | CRUD <500ms, Workflow <1s | Nightly |
+| **Performance E2E** | Playwright + metrics | SLO validation, threshold assertions | 10-15 min | Search <2s, Tenant create <20s | Nightly |
+| **Security E2E** | Playwright | Tenant isolation, RBAC, cross-tenant | 5-10 min | N/A | PR/nightly |
+| **Prod-Safe Checks** | Playwright | Read-only post-deploy validation | 3-5 min | Health <500ms | Post-deploy |
+| **API Contract** | OpenAPI/JSON Schema | Detekce breaking changes | 3-5 min | N/A | PR mandatory |
+| **Unit (BE)** | JUnit | Service layer, business logic | 5-10 min | N/A | PR mandatory |
+| **Unit (FE)** | Vitest | React components, hooks | 2-5 min | N/A | PR mandatory |
+| **Integration (BE)** | Testcontainers | DB, Kafka, Redis | 10-15 min | N/A | PR mandatory |
 
 ---
 
@@ -108,34 +169,46 @@ E2E Testing Infrastructure
 
 ### Phase 1 – Foundation (MUST HAVE)
 
-**Cíl:** Základní funkční E2E infrastruktura pro klíčové scénáře
+**Cíl:** Základní funkční E2E infrastruktura s test data lifecycle a tenant management
 
 **Stories:**
-- E2E1: Playwright Test Framework Setup
-- E2E2: Page Object Model (POM)
-- E2E9: Test Tagging System (@SMOKE, @CRITICAL, @CORE-XXX)
-- E2E12: Testing Standards Guide
+- E2E1: Playwright Test Framework Setup ✅ DONE
+- E2E2: Page Object Model (POM) ✅ DONE
+- E2E9: Test Tagging System (@SMOKE, @CRITICAL, @PERFORMANCE, @PROD-SAFE) ✅ DONE
+- **E2E14: Test Data & Tenant Lifecycle** (rozšířeno) ✅ DONE
 - E2E13: Mock Services Integration
-- E2E14: Test Data Management
-- E2E15: GitHub Actions CI/CD Workflows
-- **E2E16: Environment & Smoke Alignment** (nová)
+- E2E15: GitHub Actions CI/CD Workflows ✅ DONE
+- **E2E16: Environment & Smoke Alignment** ✅ DONE
 - **E2E17: Security & Negative E2E Scenarios** (nová)
+- **E2E18: Tenant & Identity Lifecycle E2E** (nová)
 
 **Výstup:**
 - ✅ Funkční Playwright setup s POM
-- ✅ Smoke scénáře (login, CRUD, workflow základy)
-- ✅ Test data s production safety
+- ✅ Test data lifecycle (createTenantForTest, createUserWithRole, seedData, cleanup)
+- ✅ Smoke scénáře (login, tenant creation, CRUD, workflow basics)
+- ✅ Tenant & identity E2E (multi-realm, RBAC validation)
 - ✅ Mock pro kritické závislosti
 - ✅ CI pipeline (smoke E2E v PR)
 
-### Phase 2 – Stabilita & Kvalita
+### Phase 2 – Performance, Metrics & Quality
 
-**Cíl:** Rozšíření coverage, API contract testy, rozumné quality gates
+**Cíl:** SLO-aware testy, observability integrace, production checks
 
 **Stories:**
+- **E2E19: Performance & SLO-aware E2E** (nová - měření času, KPI thresholdy)
+- **E2E20: Observability & Metrics Integration** (nová - Prometheus metrics, Grafana dashboards)
+- **E2E21: Production-Safe Non-Invasive Checks** (nová - read-only post-deploy tests)
 - E2E6: API Contract Testing (upraveno - focus na klíčové BFF)
-- E2E11: CI/CD Quality Gates (upraveno - rozumné thresholdy)
-- E2E5: Accessibility Testing (upraveno - incremental, best effort)
+- E2E11: CI/CD Quality Gates (upraveno - rozumné thresholdy + metrics)
+- E2E5: Accessibility Testing ✅ DONE
+
+**Výstup:**
+- ✅ Performance E2E s KPI assertions (login <2s, CRUD <500ms, workflow <1s)
+- ✅ Prometheus metrics z E2E testů (duration, pass rate, SLO violations)
+- ✅ Admin-only dashboard (Grafana nebo custom Monitoring UI)
+- ✅ Prod-safe checks (read-only, post-deploy validation)
+- ✅ Contract testy pro Metamodel, Workflow, Loki BFF
+- ✅ Quality gates s metrics-based thresholdy
 
 **Výstup:**
 - ✅ Contract testy pro Metamodel, Workflow, Loki BFF
@@ -169,23 +242,29 @@ E2E Testing Infrastructure
 | [E2E9](#e2e9-test-tagging-system) | Test Tagging System | 1 | ✅ DONE | ~300 | 4h | Organizace |
 | [E2E12](#e2e12-testing-standards-guide) | Testing Standards & Guide | 1 | 🔵 TODO | ~600 | 8h | Dokumentace |
 | [E2E13](#e2e13-mock-services) | Mock Services Integration | 1 | 🔵 TODO | ~600 | 10h | Deterministické testy |
-| [E2E14](#e2e14-test-data-management) | Test Data Management | 1 | ✅ DONE | ~800 | 12h | Test data + safety |
+| [E2E14](#e2e14-test-data-management) | Test Data Management | 1 | ✅ DONE | ~800 | 12h | Test data + safety (rozšířeno) |
 | [E2E15](#e2e15-github-actions-cicd-workflows) | GitHub Actions CI/CD Workflows | 1 | ✅ DONE | ~800 | 4h | CI/CD dokumentace |
 | [E2E16](#e2e16-environment--smoke-alignment) | **Environment & Smoke Alignment** | 1 | 🔵 TODO | ~400 | 6h | **Smoke testy** |
 | [E2E17](#e2e17-security--negative-e2e-scenarios) | **Security & Negative E2E Scenarios** | 1 | 🔵 TODO | ~500 | 8h | **Security** |
+| **[E2E18](#e2e18-tenant--identity-lifecycle-e2e)** | **Tenant & Identity Lifecycle E2E** | 1 | 🔵 TODO | **~800** | **12h** | **NEW: Multi-tenant, RBAC, isolation** |
+| **[E2E19](#e2e19-performance--slo-aware-e2e)** | **Performance & SLO-aware E2E** | 2 | 🔵 TODO | **~400** | **8h** | **NEW: KPI thresholds, timers** |
+| **[E2E20](#e2e20-observability--metrics-integration)** | **Observability & Metrics Integration** | 2 | 🔵 TODO | **~500** | **10h** | **NEW: Prometheus, Grafana** |
+| **[E2E21](#e2e21-production-safe-non-invasive-checks)** | **Production-Safe Non-Invasive Checks** | 2 | 🔵 TODO | **~300** | **6h** | **NEW: Read-only prod tests** |
 | [E2E6](#e2e6-api-contract-testing) | API Contract Testing | 2 | 🔵 TODO | ~400 | 6h | Breaking changes |
 | [E2E11](#e2e11-cicd-quality-gates) | CI/CD Quality Gates | 2 | 🔵 TODO | ~300 | 5h | Automatická validace |
 | [E2E5](#e2e5-accessibility-a11y-testing) | Accessibility (a11y) Testing | 2 | ✅ DONE | ~300 | 6h | WCAG checks |
 | [E2E4](#e2e4-visual-regression-testing) | Visual Regression Testing | 3 | 🔵 TODO | ~400 | 8h | **OPTIONAL** |
-| [E2E7](#e2e7-performance-testing) | Performance Testing | 3 | 🔵 TODO | ~300 | 6h | **OPTIONAL** |
+| [E2E7](#e2e7-performance-testing) | Performance Testing | 3 | 🔵 TODO | ~300 | 6h | **OPTIONAL** (merged → E2E19) |
 | [E2E8](#e2e8-test-reporting--overview) | Test Reporting & Overview | 3 | 🔵 TODO | ~300 | 5h | **OPTIONAL** |
 | [E2E10](#e2e10-coverage-dashboard) | Coverage Dashboard | 3 | 🔵 TODO | ~300 | 4h | **OPTIONAL** |
-| **TOTAL** | | | **5/16** | **~7,200** | **~106h** | **Pragmatic E2E infrastructure** |
+| **TOTAL** | | | **6/20** | **~9,200** | **~140h** | **Comprehensive E2E quality framework** |
 
 **Poznámky:**
-- **Phase 1 (MUST HAVE):** 9 stories, ~52h - Základní funkční infrastruktura (5 done, 4 todo)
-- **Phase 2 (Stabilita):** 3 stories, ~17h - Rozšíření coverage a quality (1 done, 2 todo)
+- **Phase 1 (Foundation):** 10 stories, ~64h - Základní infrastruktura + tenant lifecycle + security (6 done, 4 todo)
+- **Phase 2 (Performance & Quality):** 6 stories, ~42h - Metrics, observability, prod checks, contract tests (1 done, 5 todo)
 - **Phase 3 (NICE TO HAVE):** 4 stories, ~23h - Volitelné nadstavby (0 done, 4 todo)
+- **NEW Stories (E2E18-E2E21):** 4 stories, ~36h - Multi-tenant E2E, performance SLO, metrics, prod-safe
+- **Source of Truth:** CI status (HTML/JUnit reports, GitHub Actions) - Grafana pouze metrics visualization
 
 ---
 
@@ -464,7 +543,657 @@ E2E Testing Infrastructure
 
 ---
 
-### Phase 2: Stabilita & Kvalita
+#### E2E18: Tenant & Identity Lifecycle E2E
+
+> **NEW! Multi-tenant:** End-to-end testy pro tenant a identity lifecycle (creation, RBAC, isolation)
+
+**As a** product owner  
+**I want** E2E validaci tenant lifecycle  
+**So that** vím že tenant creation, multi-realm routing a identity funguje správně
+
+**Acceptance Criteria:**
+
+✅ **Tenant Creation Flow:**
+- Vytvoření tenant via API (Tenant Management) → realm v Keycloak + DB schema
+- Subdomain routing (https://TENANT.core-platform.local → správný realm)
+- Keycloak admin API: ověření realm existence, clients, roles
+
+✅ **Identity Management:**
+- Vytvoření admin user, groups, roles (via Keycloak admin API nebo BFF)
+- Login jako tenant admin → ověření access do admin sekce
+- Vytvoření regular user → ověření RBAC (nemá přístup do admin features)
+
+✅ **Tenant Isolation:**
+- Tenant A nevidí data tenant B (entities, workflows, documents, logs)
+- Ověření query isolation na úrovni DB nebo API
+
+✅ **Multi-realm Routing:**
+- https://admin.core-platform.local → admin realm (Master admin, platform operations)
+- https://tenant1.core-platform.local → tenant1 realm (Tenant-specific users)
+- https://tenant2.core-platform.local → tenant2 realm
+- Invalid tenant → 404 nebo fallback
+
+**Test Scenarios:**
+
+```typescript
+test('@TENANT @CRITICAL Tenant creation and admin user setup', async ({ page }) => {
+  // 1. Create tenant via API
+  const tenant = await createTenantForTest('acme-corp');
+  
+  // 2. Verify Keycloak realm created
+  const realm = await keycloakAdminApi.getRealm('acme-corp');
+  expect(realm).toBeDefined();
+  
+  // 3. Create admin user
+  const adminUser = await createUserWithRole(tenant, 'admin', 'TENANT_ADMIN');
+  
+  // 4. Login as admin → verify admin features visible
+  await page.goto('https://acme-corp.core-platform.local');
+  await loginAs(page, adminUser);
+  await expect(page.locator('[data-testid="admin-menu"]')).toBeVisible();
+});
+
+test('@TENANT @CRITICAL Tenant isolation validation', async ({ page }) => {
+  // 1. Create two tenants with sample data
+  const tenantA = await createTenantForTest('tenant-a');
+  await seedSampleData(tenantA, { projects: 5, tasks: 20 });
+  
+  const tenantB = await createTenantForTest('tenant-b');
+  await seedSampleData(tenantB, { projects: 3, tasks: 15 });
+  
+  // 2. Login to tenant A → verify only A data visible
+  await loginAsTenant(page, tenantA);
+  const projectsA = await api.get('/api/v1/projects');
+  expect(projectsA.length).toBe(5);
+  
+  // 3. Login to tenant B → verify only B data visible
+  await loginAsTenant(page, tenantB);
+  const projectsB = await api.get('/api/v1/projects');
+  expect(projectsB.length).toBe(3);
+  
+  // 4. Cleanup
+  await cleanupTenant(tenantA);
+  await cleanupTenant(tenantB);
+});
+
+test('@TENANT @RBAC User cannot access admin features', async ({ page }) => {
+  const tenant = await createTenantForTest('rbac-test');
+  const regularUser = await createUserWithRole(tenant, 'user', 'USER');
+  
+  await page.goto(`https://rbac-test.core-platform.local`);
+  await loginAs(page, regularUser);
+  
+  // Admin menu should NOT be visible
+  await expect(page.locator('[data-testid="admin-menu"]')).not.toBeVisible();
+  
+  // Direct navigation to admin route → redirect or 403
+  await page.goto(`https://rbac-test.core-platform.local/admin`);
+  await expect(page.locator('text=Unauthorized')).toBeVisible();
+});
+```
+
+**Helpers Needed:**
+
+```typescript
+// e2e/helpers/tenant.ts
+export async function createTenantForTest(slug: string, options?: TenantOptions): Promise<Tenant> {
+  // Call Tenant Management API → create realm + DB schema
+  const response = await fetch('/api/v1/admin/tenants', {
+    method: 'POST',
+    body: JSON.stringify({ slug, name: options?.name || slug, ...options })
+  });
+  return response.json();
+}
+
+export async function createUserWithRole(tenant: Tenant, username: string, role: string): Promise<User> {
+  // Keycloak admin API → create user in tenant realm
+  const keycloakAdmin = getKeycloakAdminClient();
+  const user = await keycloakAdmin.users.create({
+    realm: tenant.keycloakRealm,
+    username,
+    email: `${username}@${tenant.slug}.test`,
+    enabled: true,
+    credentials: [{ type: 'password', value: 'Test.1234' }]
+  });
+  
+  // Assign role
+  await keycloakAdmin.users.addRealmRoleMappings({
+    realm: tenant.keycloakRealm,
+    id: user.id,
+    roles: [{ name: role }]
+  });
+  
+  return { id: user.id, username, tenant, role };
+}
+
+export async function seedSampleData(tenant: Tenant, data: { projects?: number; tasks?: number }): Promise<void> {
+  // Create deterministic sample data for testing
+  const api = getApiClient(tenant);
+  
+  if (data.projects) {
+    for (let i = 1; i <= data.projects; i++) {
+      await api.post('/api/v1/projects', {
+        name: `Project ${i}`,
+        description: `Test project ${i} for ${tenant.slug}`
+      });
+    }
+  }
+  
+  // ... similar for tasks, documents, workflows
+}
+
+export async function cleanupTenant(tenant: Tenant): Promise<void> {
+  // Delete tenant → cascades to Keycloak realm + DB schema
+  await fetch(`/api/v1/admin/tenants/${tenant.id}`, { method: 'DELETE' });
+}
+```
+
+**LOC:** ~800 (helpers: ~400, tests: ~400)  
+**Effort:** ~12h  
+**Priority:** HIGH (Phase 1 - MUST HAVE)  
+**Status:** 🔵 **TODO**
+
+**Details:** [E2E18 Story](./stories/E2E18-tenant-identity-lifecycle/README.md) - **TODO: Vytvořit**
+
+---
+
+### Phase 2: Performance, Metrics & Quality
+
+#### E2E19: Performance & SLO-aware E2E
+
+> **NEW! Performance:** E2E testy s měřením času a KPI thresholdy (fail if exceeded)
+
+**As a** product owner  
+**I want** E2E testy které měří performance  
+**So that** detekuji regresi a vím že SLO jsou splněné
+
+**Acceptance Criteria:**
+
+✅ **KPI/SLI Definitions (p95 thresholds):**
+- Login (OIDC flow): **p95 < 2s**
+- Dashboard load (initial): **p95 < 1.5s**
+- Tenant creation (Keycloak + DB): **p95 < 10-20s**
+- Entity CRUD (create/update): **p95 < 500ms**
+- Workflow transition: **p95 < 1s**
+- Log search/list view: **p95 < 2s**
+
+✅ **Measurement:**
+- Každý performance scénář měří čas (start → end)
+- Playwright trace timing API nebo custom timers
+- Ukládá do Prometheus metrics (histogram: `e2e_scenario_duration_seconds`)
+
+✅ **Assertion Logic:**
+- Test FAILS pokud threshold překročen
+- Optional: WARN pokud threshold blízko (90% of limit)
+- Metrics export → Grafana dashboard zobrazí trend
+
+✅ **Test Tagging:**
+- `@PERFORMANCE` tag pro filtrování
+- Běží nightly (ne v každém PR - long-running)
+
+**Test Scenarios:**
+
+```typescript
+test('@PERFORMANCE Login OIDC flow p95 < 2s', async ({ page }) => {
+  const startTime = Date.now();
+  
+  await page.goto('https://admin.core-platform.local');
+  await loginAs(page, testUser);
+  await expect(page.locator('[data-testid="dashboard"]')).toBeVisible();
+  
+  const duration = (Date.now() - startTime) / 1000; // seconds
+  
+  // Publish metric
+  await publishMetric('e2e_scenario_duration_seconds', duration, {
+    scenario: 'login_oidc',
+    p95_threshold: 2
+  });
+  
+  // Assert threshold
+  expect(duration).toBeLessThan(2); // FAIL if > 2s
+  
+  // Optional: warn if close to threshold
+  if (duration > 1.8) {
+    console.warn(`⚠️ Login close to threshold: ${duration}s (limit: 2s)`);
+  }
+});
+
+test('@PERFORMANCE Entity CRUD p95 < 500ms', async ({ page }) => {
+  await loginAs(page, testUser);
+  
+  const startTime = Date.now();
+  
+  // Create entity
+  await page.click('[data-testid="new-entity-btn"]');
+  await page.fill('[name="entityName"]', 'Test Entity');
+  await page.click('[data-testid="save-btn"]');
+  await expect(page.locator('text=Entity created')).toBeVisible();
+  
+  const duration = (Date.now() - startTime) / 1000;
+  
+  await publishMetric('e2e_scenario_duration_seconds', duration, {
+    scenario: 'entity_create',
+    p95_threshold: 0.5
+  });
+  
+  expect(duration).toBeLessThan(0.5); // FAIL if > 500ms
+});
+
+test('@PERFORMANCE Workflow transition p95 < 1s', async ({ page }) => {
+  await loginAs(page, testUser);
+  
+  // Setup: Create workflow instance
+  const workflow = await createWorkflowInstance();
+  await page.goto(`/workflows/${workflow.id}`);
+  
+  const startTime = Date.now();
+  
+  // Trigger transition
+  await page.click('[data-testid="transition-approve"]');
+  await expect(page.locator('text=Approved')).toBeVisible();
+  
+  const duration = (Date.now() - startTime) / 1000;
+  
+  await publishMetric('e2e_scenario_duration_seconds', duration, {
+    scenario: 'workflow_transition',
+    p95_threshold: 1
+  });
+  
+  expect(duration).toBeLessThan(1);
+});
+```
+
+**Metrics Helper:**
+
+```typescript
+// e2e/helpers/metrics.ts
+import { Gauge, Histogram, Counter, Registry } from 'prom-client';
+
+const registry = new Registry();
+
+const scenarioDuration = new Histogram({
+  name: 'e2e_scenario_duration_seconds',
+  help: 'E2E scenario execution time in seconds',
+  labelNames: ['scenario', 'p95_threshold'],
+  buckets: [0.1, 0.5, 1, 2, 5, 10, 20]
+});
+
+const sloViolations = new Counter({
+  name: 'e2e_slo_violation_total',
+  help: 'Total E2E scenarios that exceeded SLO threshold',
+  labelNames: ['scenario', 'threshold']
+});
+
+registry.registerMetric(scenarioDuration);
+registry.registerMetric(sloViolations);
+
+export async function publishMetric(name: string, value: number, labels: Record<string, any>) {
+  scenarioDuration.observe(labels, value);
+  
+  // Count SLO violations
+  if (value > labels.p95_threshold) {
+    sloViolations.inc({ scenario: labels.scenario, threshold: labels.p95_threshold });
+  }
+}
+
+export async function exportMetrics(): Promise<string> {
+  return registry.metrics();
+}
+```
+
+**CI Integration:**
+
+```yaml
+# .github/workflows/e2e-performance.yml
+name: E2E Performance Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Nightly at 2 AM
+  workflow_dispatch:
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run performance E2E
+        run: npm run test:performance
+      
+      - name: Export metrics to Prometheus
+        run: |
+          curl -X POST http://prometheus:9090/api/v1/write \
+            -H "Content-Type: application/x-protobuf" \
+            --data-binary @e2e/metrics.bin
+      
+      - name: Check SLO violations
+        run: |
+          violations=$(grep 'e2e_slo_violation_total' metrics.txt | wc -l)
+          if [ $violations -gt 0 ]; then
+            echo "❌ $violations SLO violations detected!"
+            exit 1
+          fi
+```
+
+**LOC:** ~400 (helpers: ~100, tests: ~300)  
+**Effort:** ~8h  
+**Priority:** HIGH (Phase 2)  
+**Status:** 🔵 **TODO**
+
+**Details:** [E2E19 Story](./stories/E2E19-performance-slo-aware/README.md) - **TODO: Vytvořit**
+
+---
+
+#### E2E20: Observability & Metrics Integration
+
+> **NEW! Observability:** Export E2E metrics do Prometheus, Grafana dashboards, trend analysis
+
+**As a** platform engineer  
+**I want** E2E metrics v Grafana dashboards  
+**So that** vidím trend (pass rate, flakiness, duration) a můžu detekovat regresi
+
+**Acceptance Criteria:**
+
+✅ **Prometheus Metrics Export:**
+- `e2e_tests_total` (counter) - Celkový počet testů
+- `e2e_tests_failed` (counter) - Počet failed testů
+- `e2e_scenario_duration_seconds` (histogram) - Časy scénářů (login, CRUD, workflow, search)
+- `e2e_slo_violation_total` (counter) - Počet SLO porušení
+
+✅ **Grafana Dashboard (Admin-Only):**
+- Panel: E2E Pass Rate (last 7 days, last 30 days)
+- Panel: Scenario Duration Trends (p95, p50 over time)
+- Panel: SLO Violations (by scenario)
+- Panel: Flakiness Rate (retries, intermittent failures)
+- Access: CORE_PLATFORM_ADMIN role, admin realm (OIDC)
+
+✅ **Custom Monitoring UI Integration (EPIC-003):**
+- Link to E2E metrics from custom Monitoring UI
+- Admin-only section "E2E Test Health"
+- Show latest run status, duration, failures
+
+✅ **Trend Analysis:**
+- Historical data retention (90 days minimum)
+- Alerting: Slack/email pokud pass rate < 80%
+
+**Metrics Exporter:**
+
+```typescript
+// e2e/helpers/metrics-exporter.ts
+import { Registry, collectDefaultMetrics } from 'prom-client';
+import fs from 'fs';
+
+const registry = new Registry();
+collectDefaultMetrics({ register: registry });
+
+// ... register custom metrics (from E2E19)
+
+export async function exportToPrometheus(outputPath: string) {
+  const metrics = await registry.metrics();
+  fs.writeFileSync(outputPath, metrics);
+  console.log(`✅ Metrics exported to ${outputPath}`);
+}
+
+// In test global teardown:
+export async function globalTeardown() {
+  await exportToPrometheus('./e2e/metrics.txt');
+  
+  // Push to Prometheus pushgateway (if configured)
+  if (process.env.PROMETHEUS_PUSHGATEWAY) {
+    const gateway = new Pushgateway(process.env.PROMETHEUS_PUSHGATEWAY);
+    await gateway.pushAdd({ jobName: 'e2e-tests' });
+  }
+}
+```
+
+**Grafana Dashboard JSON:**
+
+```json
+{
+  "dashboard": {
+    "title": "E2E Test Health (Admin Only)",
+    "panels": [
+      {
+        "title": "E2E Pass Rate (Last 7 Days)",
+        "targets": [
+          {
+            "expr": "(1 - (sum(rate(e2e_tests_failed[7d])) / sum(rate(e2e_tests_total[7d])))) * 100"
+          }
+        ],
+        "type": "stat",
+        "thresholds": [
+          { "value": 0, "color": "red" },
+          { "value": 80, "color": "yellow" },
+          { "value": 95, "color": "green" }
+        ]
+      },
+      {
+        "title": "Scenario Duration p95 (Login, CRUD, Workflow)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(e2e_scenario_duration_seconds_bucket[1h])) by (scenario, le))",
+            "legendFormat": "{{scenario}}"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "SLO Violations (Last 24h)",
+        "targets": [
+          {
+            "expr": "sum(increase(e2e_slo_violation_total[24h])) by (scenario)"
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "access": {
+      "mode": "Admin Only",
+      "role": "CORE_PLATFORM_ADMIN",
+      "realm": "admin"
+    }
+  }
+}
+```
+
+**CI Integration:**
+
+```yaml
+# .github/workflows/e2e-post-deploy.yml
+- name: Export E2E metrics to Prometheus
+  if: always()
+  run: |
+    npm run test:export-metrics
+    
+    # Push to Prometheus pushgateway
+    curl -X POST http://prometheus-pushgateway:9091/metrics/job/e2e-tests \
+      --data-binary @e2e/metrics.txt
+
+- name: Notify if pass rate < 80%
+  run: |
+    pass_rate=$(curl -s http://prometheus:9090/api/v1/query?query='...' | jq '.data.result[0].value[1]')
+    if (( $(echo "$pass_rate < 80" | bc -l) )); then
+      echo "❌ E2E pass rate: $pass_rate% (threshold: 80%)"
+      # Send Slack notification
+    fi
+```
+
+**LOC:** ~500 (metrics exporter: ~150, dashboard JSON: ~200, integration: ~150)  
+**Effort:** ~10h  
+**Priority:** MEDIUM (Phase 2)  
+**Status:** 🔵 **TODO**
+
+**Details:** [E2E20 Story](./stories/E2E20-observability-metrics-integration/README.md) - **TODO: Vytvořit**
+
+---
+
+#### E2E21: Production-Safe Non-Invasive Checks
+
+> **NEW! Prod Validation:** Read-only E2E testy pro production environment (post-deploy validation)
+
+**As a** platform engineer  
+**I want** bezpečné read-only E2E testy pro PROD  
+**So that** můžu validovat deployment bez modifikace dat
+
+**Acceptance Criteria:**
+
+✅ **Read-Only Operations Only:**
+- Login (test user account)
+- GET operations (health, status, list views)
+- Navigation validation (routes accessible)
+- NO create/update/delete operations
+- NO data modifications
+
+✅ **Test Scenarios:**
+- Login flow (test user, OIDC)
+- Health endpoints (/api/actuator/health, /api/status)
+- Dashboard load (verify no errors)
+- Key views accessible (Metamodel Studio, Workflow, Logs)
+- API response validation (200 OK, no 500 errors)
+
+✅ **Dedicated Test Accounts:**
+- `prod-readonly@core-platform.test` (role: READ_ONLY)
+- NO admin privileges
+- Isolated from production users
+
+✅ **Post-Deploy CI Trigger:**
+- Runs automatically after deploy to PROD
+- Fail deployment if critical checks fail
+- Report to Slack/email
+
+**Test Scenarios:**
+
+```typescript
+test('@PROD-SAFE @CRITICAL Login and health check', async ({ page }) => {
+  const startTime = Date.now();
+  
+  // Login as read-only test user
+  await page.goto('https://core-platform.prod');
+  await loginAs(page, prodReadOnlyUser);
+  
+  // Verify dashboard loads
+  await expect(page.locator('[data-testid="dashboard"]')).toBeVisible();
+  
+  const duration = (Date.now() - startTime) / 1000;
+  expect(duration).toBeLessThan(3); // Health check threshold
+  
+  // Publish metric
+  await publishMetric('e2e_scenario_duration_seconds', duration, {
+    scenario: 'prod_login_health',
+    environment: 'production'
+  });
+});
+
+test('@PROD-SAFE API health endpoints', async ({ request }) => {
+  // Backend health
+  const backendHealth = await request.get('/api/actuator/health');
+  expect(backendHealth.status()).toBe(200);
+  expect(await backendHealth.json()).toMatchObject({ status: 'UP' });
+  
+  // Loki BFF health
+  const lokiHealth = await request.get('/api/loki/health');
+  expect(lokiHealth.status()).toBe(200);
+  
+  // Metamodel API
+  const metamodelHealth = await request.get('/api/v1/metamodel/health');
+  expect(metamodelHealth.status()).toBe(200);
+});
+
+test('@PROD-SAFE Key views accessible', async ({ page }) => {
+  await loginAs(page, prodReadOnlyUser);
+  
+  // Metamodel Studio
+  await page.goto('/metamodel-studio');
+  await expect(page.locator('h1:has-text("Metamodel Studio")')).toBeVisible();
+  
+  // Workflow Dashboard
+  await page.goto('/workflows');
+  await expect(page.locator('[data-testid="workflow-list"]')).toBeVisible();
+  
+  // Log Viewer
+  await page.goto('/logs');
+  await expect(page.locator('[data-testid="log-search"]')).toBeVisible();
+  
+  // NO errors in console
+  const errors = page.locator('.error-message');
+  await expect(errors).toHaveCount(0);
+});
+
+test('@PROD-SAFE NO data modifications allowed', async ({ page }) => {
+  await loginAs(page, prodReadOnlyUser);
+  
+  // Verify create/edit/delete buttons NOT visible
+  await page.goto('/metamodel-studio');
+  await expect(page.locator('[data-testid="new-entity-btn"]')).not.toBeVisible();
+  
+  // API write operations → 403 Forbidden
+  const createResponse = await page.request.post('/api/v1/entities', {
+    data: { name: 'Test Entity' }
+  });
+  expect(createResponse.status()).toBe(403);
+});
+```
+
+**CI Integration:**
+
+```yaml
+# .github/workflows/prod-safe-checks.yml
+name: Production Safe Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  prod-safe:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run prod-safe E2E checks
+        run: npm run test:prod-safe
+        env:
+          BASE_URL: ${{ secrets.PROD_BASE_URL }}
+          TEST_USER: ${{ secrets.PROD_READONLY_USER }}
+          TEST_PASSWORD: ${{ secrets.PROD_READONLY_PASSWORD }}
+      
+      - name: Publish metrics
+        if: always()
+        run: npm run test:export-metrics
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"❌ Prod-safe checks FAILED on ${{ github.event.inputs.environment }}"}'
+```
+
+**Security:**
+- Test user credentials → GitHub Secrets (ne hardcoded)
+- Read-only role enforcement (Keycloak RBAC)
+- Rate limiting (max 10 requests/minute)
+
+**LOC:** ~300 (tests: ~200, CI config: ~100)  
+**Effort:** ~6h  
+**Priority:** MEDIUM (Phase 2)  
+**Status:** 🔵 **TODO**
+
+**Details:** [E2E21 Story](./stories/E2E21-prod-safe-non-invasive-checks/README.md) - **TODO: Vytvořit**
+
+---
+
+### Phase 2: Stabilita & Kvalita (continued)
 
 #### E2E6: API Contract Testing
 
