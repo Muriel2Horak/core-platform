@@ -1,1070 +1,811 @@
-# EPIC-002: Testing Infrastructure & Framework
+# EPIC-002: E2E Testing Infrastructure
 
 **Status:** 🔵 **IN PROGRESS**  
 **Priority:** P0 (Critical Foundation)  
-**Effort:** ~60 hodin  
-**LOC:** ~4,500 řádků (framework + mocks + test data + config + documentation)
+**Effort:** ~80 hodin  
+**LOC:** ~6,000 řádků
 
 ---
 
-## 🎯 Vision
+## 🎯 Cíle EPICU
 
-**Standardizovaný testing framework** pro všechny typy testů (E2E, Unit, Integration, Backend) s automatickou evidencí pokrytí User Stories a integrací do CI/CD pipeline.
+**Stabilní, pragmatická a dlouhodobě udržitelná E2E/testovací infrastruktura** pro core-platform, která pokryje klíčové scénáře bez přílišné komplexity.
 
-### Business Goals
-- **Test-First Culture**: Každý feature má E2E + Unit + Backend testy
-- **Traceability**: Každý test mapuje na User Story (CORE-XXX)
-- **Automation**: Testy běží automaticky při build (make test-*)
-- **Coverage Tracking**: Víme jaké US jsou otestované a které ne
-- **Quality Gates**: Build failuje pokud testy selžou nebo coverage klesne
+### Hlavní Cíle
 
-### Principles
+1. **Stabilní E2E Framework (Playwright)**
+   - Testy běží nad reálným prostředím `core-platform.local`
+   - Konzistentní struktura: Page Object Model (POM), sdílené helpery
+   - Jasné tagování testů pro organizaci a filtrování
+
+2. **Spolehlivé Smoke/E2E Scénáře**
+   - **Login** přes Keycloak SSO
+   - **Základní práce s entitami** a Metamodel UI
+   - **Workflow** (vytvoření instance, přechod stavů)
+   - **Monitoring** (Loki Log Viewer UI)
+
+3. **API Contract Testing**
+   - Základní contract testy pro kritické BFF API
+   - Detekce breaking changes v API
+   - OpenAPI/JSON schema validation
+
+4. **Mock Services & Test Data**
+   - Mock pro externí závislosti (deterministické testy)
+   - Automatické vytváření a cleanup test dat
+   - Izolace od produkčních dat
+
+5. **CI Pipeline**
+   - **PR checks:** Unit + Integration + Smoke E2E (mandatory)
+   - **Full/Regression E2E:** Volitelná, manuálně spouštěná
+   - Rozumné quality gates (ne "vše nebo nic")
+
+6. **Testing Guidelines**
+   - Jasná dokumentace jak psát testy
+   - Konvence pro tagging, struktu, helpers
+   - Best practices pro náš tým
+
+### Principy
+
 ```
-Každá User Story vyžaduje:
-✅ E2E test (Playwright) - end-to-end flow
-✅ Unit testy (JUnit/Vitest) - business logika
-✅ Backend test (REST Assured) - API contract
-✅ Test ID tag - mapování na User Story (e.g., @CORE-123)
+✅ Trunk-based workflow: Vše v main, malé inkrementy, feature flagy
+✅ Pragmatismus: Pokrýt klíčové scénáře, ne všechno možné
+✅ Udržitelnost: Žádné enterprise QA platformy, co tým neutáhne
+✅ Incremental: Nejdřív stabilní malý set, potom rozšiřovat
 ```
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Architektura
 
 ```
-Testing Framework (Multi-Tier)
+E2E Testing Infrastructure
 │
 ├── E2E Tests (Playwright)
-│   ├── Pre-Deploy Smoke (5-7 min) - Critical paths
-│   ├── Post-Deploy Full (20-30 min) - Complete platform
-│   ├── Accessibility (Axe-core) - WCAG 2.1 AA
-│   └── Test Tags: @CORE-XXX (User Story mapping)
+│   ├── Smoke Tests (5-7 min) - Kritické cesty (login, základní CRUD)
+│   ├── Full E2E (20-30 min) - Kompletní scénáře (workflow, monitoring)
+│   ├── Security Tests - Tenant isolation, role-based access
+│   └── Test Tags: @SMOKE, @CRITICAL, @REGRESSION, @CORE-XXX
 │
-├── Unit Tests
-│   ├── Frontend (Vitest) - React components, hooks
-│   ├── Backend (JUnit) - Service layer, business logic
-│   └── Coverage Target: 80% line coverage
+├── Page Object Model (POM)
+│   ├── LoginPage, MainLayoutPage
+│   ├── MetamodelStudioPage
+│   ├── WorkflowPage
+│   └── LokiLogViewerPage
 │
-├── Integration Tests (Backend)
-│   ├── REST Assured - API contract testing
-│   ├── Testcontainers - DB + Kafka + Redis
-│   └── Spring Boot Test - Full context loading
+├── API Contract Tests
+│   ├── Metamodel BFF API
+│   ├── Workflow BFF API
+│   ├── Loki BFF API
+│   └── Auth/Tenant API
 │
-└── Test Registry (NEW!)
-    ├── Database: test_registry table
-    ├── Schema: test_id, user_story_id, type, status, coverage
-    ├── API: GET /api/test-registry/{storyId}
-    └── UI: Coverage dashboard (Grafana panel)
+├── Mock Services
+│   ├── Keycloak Mock (pro některé scénáře)
+│   ├── Externí API Mocks
+│   └── Loki je real (není mockovaný)
+│
+└── Test Data Management
+    ├── Seed Scripts (users, tenants, roles)
+    ├── Clean Scripts (cleanup po testech)
+    ├── Test Tenant (izolované prostředí)
+    └── Opakovatelnost (deterministické testy)
 ```
 
 ### Test Types
 
-| Type | Framework | Purpose | Run Time | Coverage Target |
-|------|-----------|---------|----------|-----------------|
-| **E2E Smoke** | Playwright | Fast feedback (PRE-deploy) | 5-7 min | Critical paths |
-| **E2E Full** | Playwright | Complete validation (POST-deploy) | 20-30 min | All features |
-| **Unit Frontend** | Vitest | React components, hooks | 2-5 min | 80% lines |
-| **Unit Backend** | JUnit | Service layer, business logic | 5-10 min | 80% lines |
-| **Integration** | REST Assured | API contracts, DB, messaging | 10-15 min | All endpoints |
-| **Accessibility** | Axe-core | WCAG 2.1 AA compliance | 3-5 min | All pages |
+| Type | Framework | Purpose | Run Time | Trigger |
+|------|-----------|---------|----------|---------|
+| **Smoke E2E** | Playwright | Rychlá validace kritických cest | 5-7 min | PR mandatory |
+| **Full E2E** | Playwright | Kompletní flow (workflow, monitoring) | 20-30 min | Manual/nightly |
+| **Security E2E** | Playwright | Tenant isolation, RBAC | 5-10 min | PR/nightly |
+| **API Contract** | OpenAPI/JSON Schema | Detekce breaking changes | 3-5 min | PR mandatory |
+| **Unit (BE)** | JUnit | Service layer, business logic | 5-10 min | PR mandatory |
+| **Unit (FE)** | Vitest | React components, hooks | 2-5 min | PR mandatory |
+| **Integration (BE)** | Testcontainers | DB, Kafka, Redis | 10-15 min | PR mandatory |
+
+---
+
+## 📊 Fázování
+
+### Phase 1 – Foundation (MUST HAVE)
+
+**Cíl:** Základní funkční E2E infrastruktura pro klíčové scénáře
+
+**Stories:**
+- E2E1: Playwright Test Framework Setup
+- E2E2: Page Object Model (POM)
+- E2E9: Test Tagging System (@SMOKE, @CRITICAL, @CORE-XXX)
+- E2E12: Testing Standards Guide
+- E2E13: Mock Services Integration
+- E2E14: Test Data Management
+- E2E15: GitHub Actions CI/CD Workflows
+- **E2E16: Environment & Smoke Alignment** (nová)
+- **E2E17: Security & Negative E2E Scenarios** (nová)
+
+**Výstup:**
+- ✅ Funkční Playwright setup s POM
+- ✅ Smoke scénáře (login, CRUD, workflow základy)
+- ✅ Test data s production safety
+- ✅ Mock pro kritické závislosti
+- ✅ CI pipeline (smoke E2E v PR)
+
+### Phase 2 – Stabilita & Kvalita
+
+**Cíl:** Rozšíření coverage, API contract testy, rozumné quality gates
+
+**Stories:**
+- E2E6: API Contract Testing (upraveno - focus na klíčové BFF)
+- E2E11: CI/CD Quality Gates (upraveno - rozumné thresholdy)
+- E2E5: Accessibility Testing (upraveno - incremental, best effort)
+
+**Výstup:**
+- ✅ Contract testy pro Metamodel, Workflow, Loki BFF
+- ✅ Quality gates (unit + IT + smoke mandatory, full E2E optional)
+- ✅ Základní a11y checks na klíčových stránkách
+
+### Phase 3 – Nadstavba (NICE TO HAVE)
+
+**Cíl:** Volitelné rozšíření pro vizuální regrese, performance, reporting
+
+**Stories:**
+- E2E4: Visual Regression Testing (volitelné, pár kritických obrazovek)
+- E2E7: Performance Testing (volitelné, 2-3 scénáře)
+- E2E8: Test Reporting & Overview (zjednodušeno - script z JUnit/Playwright reportů, bez vlastní DB)
+- E2E10: Coverage Dashboard (zjednodušeno - JaCoCo/Playwright HTML reports, GitHub Pages)
+
+**Výstup:**
+- ⚠️ Volitelné vizuální regrese (Percy/Chromatic)
+- ⚠️ Volitelné perf testy (login, search, workflow)
+- ⚠️ Jednoduchý overview report (tagy + coverage)
+- ⚠️ HTML coverage dashboard (bez Grafany)
 
 ---
 
 ## 📋 Stories Overview
 
-| ID | Story | Status | LOC | Effort | Value |
-|----|-------|--------|-----|--------|-------|
-| [S8](#s8-test-registry--tracking) | Test Registry & Tracking | 🔵 TODO | ~600 | 8h | Evidence testů |
-| [S9](#s9-test-tagging-system) | Test ID Tagging System | 🔵 TODO | ~400 | 6h | Mapování US → testy |
-| [S10](#s10-coverage-dashboard) | Coverage Dashboard | 🔵 TODO | ~500 | 8h | Visualizace pokrytí |
-| [S11](#s11-cicd-quality-gates) | CI/CD Quality Gates | 🔵 TODO | ~400 | 6h | Automatická validace |
-| [S12](#s12-testing-standards--guide) | Testing Standards & Guide | 🔵 TODO | ~600 | 8h | Dokumentace |
-| [S13](#s13-mock-services) | Mock Services Integration | 🔵 TODO | ~800 | 12h | Mocking ext. služeb |
-| [S14](#s14-test-data-management) | Test Data Management | 🔵 TODO | ~1,200 | 14h | Testovací data + izolace |
-| [E2E15](#e2e15-github-actions-cicd-workflows) | **GitHub Actions CI/CD Workflows** | ✅ **DONE** | ~800 | 4h | **Dokumentace workflows** |
-| **TOTAL** | | **1/8** | **~5,300** | **~66h** | **Complete test infrastructure** |
+| ID | Story | Phase | Status | LOC | Effort | Value |
+|----|-------|-------|--------|-----|--------|-------|
+| [E2E1](#e2e1-playwright-test-framework-setup) | Playwright Test Framework Setup | 1 | ✅ DONE | ~1,200 | 6h | Foundation |
+| [E2E2](#e2e2-page-object-model-pom) | Page Object Model (POM) | 1 | ✅ DONE | ~800 | 8h | Struktura testů |
+| [E2E9](#e2e9-test-tagging-system) | Test Tagging System | 1 | ✅ DONE | ~300 | 4h | Organizace |
+| [E2E12](#e2e12-testing-standards-guide) | Testing Standards & Guide | 1 | 🔵 TODO | ~600 | 8h | Dokumentace |
+| [E2E13](#e2e13-mock-services) | Mock Services Integration | 1 | 🔵 TODO | ~600 | 10h | Deterministické testy |
+| [E2E14](#e2e14-test-data-management) | Test Data Management | 1 | ✅ DONE | ~800 | 12h | Test data + safety |
+| [E2E15](#e2e15-github-actions-cicd-workflows) | GitHub Actions CI/CD Workflows | 1 | ✅ DONE | ~800 | 4h | CI/CD dokumentace |
+| [E2E16](#e2e16-environment--smoke-alignment) | **Environment & Smoke Alignment** | 1 | 🔵 TODO | ~400 | 6h | **Smoke testy** |
+| [E2E17](#e2e17-security--negative-e2e-scenarios) | **Security & Negative E2E Scenarios** | 1 | 🔵 TODO | ~500 | 8h | **Security** |
+| [E2E6](#e2e6-api-contract-testing) | API Contract Testing | 2 | 🔵 TODO | ~400 | 6h | Breaking changes |
+| [E2E11](#e2e11-cicd-quality-gates) | CI/CD Quality Gates | 2 | 🔵 TODO | ~300 | 5h | Automatická validace |
+| [E2E5](#e2e5-accessibility-a11y-testing) | Accessibility (a11y) Testing | 2 | ✅ DONE | ~300 | 6h | WCAG checks |
+| [E2E4](#e2e4-visual-regression-testing) | Visual Regression Testing | 3 | 🔵 TODO | ~400 | 8h | **OPTIONAL** |
+| [E2E7](#e2e7-performance-testing) | Performance Testing | 3 | 🔵 TODO | ~300 | 6h | **OPTIONAL** |
+| [E2E8](#e2e8-test-reporting--overview) | Test Reporting & Overview | 3 | 🔵 TODO | ~300 | 5h | **OPTIONAL** |
+| [E2E10](#e2e10-coverage-dashboard) | Coverage Dashboard | 3 | 🔵 TODO | ~300 | 4h | **OPTIONAL** |
+| **TOTAL** | | | **5/16** | **~7,200** | **~106h** | **Pragmatic E2E infrastructure** |
+
+**Poznámky:**
+- **Phase 1 (MUST HAVE):** 9 stories, ~52h - Základní funkční infrastruktura (5 done, 4 todo)
+- **Phase 2 (Stabilita):** 3 stories, ~17h - Rozšíření coverage a quality (1 done, 2 todo)
+- **Phase 3 (NICE TO HAVE):** 4 stories, ~23h - Volitelné nadstavby (0 done, 4 todo)
 
 ---
 
 ## 📖 Detailed Stories
 
-### S8: Test Registry & Tracking
+### Phase 1: Foundation (MUST HAVE)
 
-> **Evidence:** Databáze všech testů s mapováním na User Stories
+#### E2E1: Playwright Test Framework Setup
 
-**As a** developer  
-**I want** centrální registr testů s vazbou na User Stories  
-**So that** víme jaké US jsou otestované a které ne
-
-#### Acceptance Criteria
-
-**GIVEN** test s `@CORE-123` tagem  
-**WHEN** test proběhne  
-**THEN** zaznamená se do test_registry tabulky  
-**AND** status (PASS/FAIL) se uloží  
-**AND** coverage metriky se aktualizují
-
-#### Implementation
-
-**1. Database Schema**
-
-```sql
--- backend/src/main/resources/db/migration/V999__test_registry.sql
-CREATE TABLE test_registry (
-    id BIGSERIAL PRIMARY KEY,
-    test_id VARCHAR(255) NOT NULL UNIQUE,
-    user_story_id VARCHAR(50),
-    test_type VARCHAR(50) NOT NULL,
-    test_name VARCHAR(500) NOT NULL,
-    file_path VARCHAR(1000),
-    status VARCHAR(20) NOT NULL,
-    last_run_at TIMESTAMP,
-    duration_ms INTEGER,
-    coverage_lines DECIMAL(5,2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_test_registry_story ON test_registry(user_story_id);
-CREATE INDEX idx_test_registry_type ON test_registry(test_type);
-CREATE INDEX idx_test_registry_status ON test_registry(status);
-```
-
-**2. Backend Model**
-
-```java
-@Entity
-@Table(name = "test_registry")
-public class TestRegistry {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(unique = true, nullable = false)
-    private String testId;
-    
-    private String userStoryId;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TestType testType;
-    
-    private String testName;
-    private String filePath;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TestStatus status;
-    
-    private LocalDateTime lastRunAt;
-    private Integer durationMs;
-    private BigDecimal coverageLines;
-}
-
-public enum TestType {
-    E2E_SMOKE, E2E_FULL, UNIT_FE, UNIT_BE, INTEGRATION, A11Y
-}
-
-public enum TestStatus {
-    PASS, FAIL, SKIP
-}
-```
-
-**3. REST API**
-
-```java
-@RestController
-@RequestMapping("/api/test-registry")
-public class TestRegistryController {
-    
-    @GetMapping("/story/{storyId}")
-    public List<TestRegistry> getTestsByStory(@PathVariable String storyId) {
-        return testRegistryRepository.findByUserStoryId(storyId);
-    }
-    
-    @GetMapping("/coverage")
-    public Map<String, Object> getCoverageStats() {
-        long totalStories = userStoryRepository.count();
-        long testedStories = testRegistryRepository
-            .countDistinctUserStoryIdByStatus(TestStatus.PASS);
-        
-        return Map.of(
-            "totalStories", totalStories,
-            "testedStories", testedStories,
-            "coveragePercent", (testedStories * 100.0 / totalStories)
-        );
-    }
-    
-    @PostMapping
-    public TestRegistry recordTestRun(@RequestBody TestRunRequest request) {
-        return testRegistryService.record(request);
-    }
-}
-```
-
-**4. Playwright Reporter**
-
-```typescript
-// e2e/reporters/registry-reporter.ts
-import { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
-
-class RegistryReporter implements Reporter {
-  async onTestEnd(test: TestCase, result: TestResult) {
-    const testId = extractTestId(test);
-    const storyId = extractStoryTag(test);
-    
-    if (testId && storyId) {
-      await fetch('http://localhost:8080/api/test-registry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          testId,
-          userStoryId: storyId,
-          testType: 'E2E_SMOKE',
-          testName: test.title,
-          filePath: test.location.file,
-          status: result.status === 'passed' ? 'PASS' : 'FAIL',
-          durationMs: result.duration
-        })
-      });
-    }
-  }
-}
-
-function extractStoryTag(test: TestCase): string | null {
-  const storyTag = test.tags.find(t => t.startsWith('@CORE-'));
-  return storyTag?.substring(1);
-}
-```
-
-**5. JUnit Listener**
-
-```java
-public class TestRegistryListener extends RunListener {
-    @Override
-    public void testFinished(Description description) {
-        UserStory storyAnnotation = description.getAnnotation(UserStory.class);
-        
-        if (storyAnnotation != null) {
-            TestRegistry record = new TestRegistry();
-            record.setTestId(description.getMethodName());
-            record.setUserStoryId(storyAnnotation.value());
-            record.setTestType(TestType.UNIT_BE);
-            record.setStatus(TestStatus.PASS);
-            testRegistryRepository.save(record);
-        }
-    }
-}
-
-// Usage:
-@Test
-@UserStory("CORE-123")
-public void testUserCreation() {
-    // Test implementation
-}
-```
-
-#### Acceptance Checklist
-
-- [ ] Database schema created (test_registry table)
-- [ ] Backend model + repository
-- [ ] REST API (/api/test-registry)
-- [ ] Playwright reporter (registry-reporter.ts)
-- [ ] JUnit listener (@UserStory annotation)
-- [ ] Coverage stats endpoint
-
----
-
-### S9: Test Tagging System
-
-> **Standardizace:** Konvence pro tagování testů pomocí User Story ID
+> **Foundation:** Základní Playwright setup pro core-platform.local prostředí
 
 **As a** developer  
-**I want** standardní způsob tagování testů  
-**So that** každý test mapuje na konkrétní User Story
+**I want** funkční Playwright framework  
+**So that** můžu psát E2E testy nad reálným prostředím
 
-#### Acceptance Criteria
+**Acceptance Criteria:**
 
-**GIVEN** nový test pro User Story CORE-123  
-**WHEN** vytvořím test  
-**THEN** použiju tag `@CORE-123`  
-**AND** test se automaticky registruje v test_registry  
-**AND** můžu filtrovat testy pro danou US
+✅ Playwright nainstalován a nakonfigurován  
+✅ Konfigurace pro `core-platform.local` (SSL, Nginx, Keycloak, Loki)  
+✅ Základní login helper (Keycloak SSO flow)  
+✅ Environment configuration (`.env` pro test prostředí)  
+✅ První smoke test (login → redirect na /admin)
 
-#### Implementation
+**Scope:**
+- Instalace Playwright (`e2e/package.json`)
+- Config `playwright.config.ts` (baseURL: https://core-platform.local)
+- Login helper (`e2e/helpers/auth.ts`)
+- První test (`e2e/specs/smoke/login.spec.ts`)
 
-**1. Playwright Tagging**
+**Status:** ✅ **DONE** (Wave 1, červenec 2024)
 
-```typescript
-// e2e/specs/auth/login.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('Login Flow @CORE-123', () => {
-  test('should login with valid credentials @E2E-LOGIN-001', async ({ page }) => {
-    await page.goto('/');
-    await page.getByLabel('Username').fill('test');
-    await page.getByLabel('Password').fill('Test.1234');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await expect(page).toHaveURL(/\/admin/);
-  });
-});
-```
-
-**Tag Format:**
-- `@CORE-XXX` - User Story ID (required)
-- `@E2E-XXX-NNN` - Test ID (optional)
-- `@SMOKE` - Smoke test flag
-- `@CRITICAL` - Critical path flag
-
-**2. JUnit Tagging**
-
-```java
-@Tag("CORE-123")
-@Tag("UNIT_BE")
-public class UserServiceTest {
-    
-    @Test
-    @DisplayName("Should create user with valid data")
-    @UserStory("CORE-123")
-    public void testCreateUser() {
-        // Test implementation
-    }
-}
-
-// Custom annotation:
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface UserStory {
-    String value(); // CORE-XXX
-}
-```
-
-**3. Pre-commit Hook (Tag Validation)**
-
-```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-git diff --cached --name-only | grep -E '\.(spec\.ts|test\.(ts|tsx|java))$' | while read file; do
-  if ! grep -q '@CORE-' "$file"; then
-    echo "❌ ERROR: Test file $file missing @CORE-XXX tag"
-    exit 1
-  fi
-done
-```
-
-#### Acceptance Checklist
-
-- [ ] Tagging convention documented (@CORE-XXX format)
-- [ ] Playwright tag support
-- [ ] JUnit @UserStory annotation
-- [ ] Vitest tag support
-- [ ] Pre-commit hook (tag validation)
+**Details:** [E2E1 Story](./stories/E2E1-playwright-test-framework-setup/README.md)
 
 ---
 
-### S10: Coverage Dashboard
+#### E2E2: Page Object Model (POM)
 
-> **Visualizace:** Grafana dashboard pro test coverage metriky
+> **Structure:** Konzistentní struktura testů pomocí Page Objects
 
-**As a** product owner  
-**I want** dashboard zobrazující test coverage  
-**So that** vidím jaké User Stories jsou otestované
+**As a** developer  
+**I want** Page Object Model konvenci  
+**So that** testy jsou čitelné a maintainable
 
-#### Implementation
+**Acceptance Criteria:**
 
-```json
-{
-  "dashboard": {
-    "title": "Test Coverage Dashboard",
-    "panels": [
-      {
-        "id": 1,
-        "title": "Overall Test Coverage",
-        "type": "gauge",
-        "targets": [{
-          "expr": "SELECT (COUNT(DISTINCT user_story_id) FROM test_registry WHERE status='PASS') / (COUNT(*) FROM user_stories) * 100"
-        }],
-        "thresholds": [
-          {"value": 0, "color": "red"},
-          {"value": 70, "color": "yellow"},
-          {"value": 90, "color": "green"}
-        ]
-      },
-      {
-        "id": 2,
-        "title": "Coverage by Test Type",
-        "type": "bargauge"
-      },
-      {
-        "id": 3,
-        "title": "Untested User Stories",
-        "type": "table"
-      }
-    ]
-  }
-}
-```
+✅ Page objekty pro klíčové stránky:
+- `LoginPage` (Keycloak login)
+- `MainLayoutPage` (top bar, sidebar navigation)
+- `MetamodelStudioPage` (entity editor, schema designer)
+- `WorkflowPage` (workflow designer, instance viewer)
+- `LokiLogViewerPage` (log search, filters)
 
-#### Acceptance Checklist
+✅ Jednotná konvence (getters pro elementy, actions, assertions)  
+✅ Sdílené base page (`BasePage` s common utilities)
 
-- [ ] Grafana dashboard created
-- [ ] Coverage gauge panel
-- [ ] Coverage by type panel
-- [ ] Untested stories table
+**Scope:**
+- Struktura `e2e/pages/`
+- Page objects pro 5 klíčových stránek
+- Helper metody (waitForLoad, navigateTo)
+- Příklady použití v testech
+
+**Status:** ✅ **DONE** (Wave 1, červenec 2024)
+
+**Details:** [E2E2 Story](./stories/E2E2-page-object-model-pom-pattern/README.md)
 
 ---
 
-### S11: CI/CD Quality Gates
+#### E2E9: Test Tagging System
 
-> **Automation:** Automatická validace testů v CI/CD pipeline
+> **Organization:** Systém tagů pro filtrování a organizaci testů
+
+**As a** developer  
+**I want** standardní tagging konvenci  
+**So that** můžu spouštět jen relevantní testy (smoke, critical, regression)
+
+**Acceptance Criteria:**
+
+✅ Definované tagy:
+- `@SMOKE` - Rychlé smoke testy (5-7 min)
+- `@CRITICAL` - Kritické cesty (login, workflow základy)
+- `@REGRESSION` - Full regression suite
+- `@TENANT(admin)` - Tenant-specific testy
+- `@CORE-XXX` - Mapování na User Story (volitelné)
+
+✅ Filtrovací skripty (`npm run test:smoke`, `npm run test:critical`)  
+✅ CI integrace (smoke v PR, regression manuálně)
+
+**Scope:**
+- Dokumentace tagů (`docs/testing-tagging.md`)
+- Playwright tagging (test.describe decorators)
+- NPM skripty pro filtrování
+- CI konfigurace (GitHub Actions)
+
+**Status:** ✅ **DONE** (Wave 1, červenec 2024)
+
+**Details:** [E2E9 Story](./stories/E2E9-test-tagging-system-implementation-tasks/README.md)
+
+---
+
+#### E2E12: Testing Standards Guide
+
+> **Documentation:** Kompletní guide pro psaní testů
+
+**As a** developer  
+**I want** jasnou dokumentaci testing standardů  
+**So that** vím jak psát testy konzistentně
+
+**Acceptance Criteria:**
+
+✅ Dokumentace pokrývá:
+- Kdy psát E2E vs Unit vs Integration testy
+- Playwright + POM konvence
+- Tagging (@SMOKE, @CRITICAL)
+- Test data management
+- Mock services usage
+- Debugging tips
+
+✅ Konkrétní příklady pro každý typ testu  
+✅ Reflektuje reálný stack (Keycloak, Loki, core-platform.local)
+
+**Scope:**
+- `docs/testing-guide.md` (~600 LOC)
+- Příklady testů (smoke, full E2E, API contract)
+- Troubleshooting sekce
+- Best practices
+
+**Status:** 🔵 **TODO** - Potřeba aktualizovat pro pragmatický přístup
+
+**Details:** [E2E12 Story](./stories/E2E12-testing-standards-guide-implementation-t/README.md)
+
+---
+
+#### E2E13: Mock Services Integration
+
+> **Deterministické testy:** Mock pro externí služby (Keycloak, externí API)
+
+**As a** developer  
+**I want** mock servery pro externí závislosti  
+**So that** integration testy jsou rychlé, spolehlivé a nezávislé na external services
+
+**Acceptance Criteria:**
+
+✅ WireMock setup pro integration testy  
+✅ Mock pro Keycloak (token, user API) - pouze pro některé scénáře  
+✅ Mock pro externí API (pokud existují)  
+✅ Loki zůstává real (není mockovaný, pokud to jde jednoduše)  
+✅ Integration testy používají mocks
+
+**Scope:**
+- WireMock Testcontainer setup
+- Keycloak mock stubs
+- Externí API mocks (pokud potřeba)
+- Helper utility pro mocking
+
+**Status:** 🔵 **TODO** - Mock jen kde nutné, Loki real
+
+**Details:** [E2E13 Story](./stories/E2E13-mock-services-implementation-tasks/README.md)
+
+---
+
+#### E2E14: Test Data Management
+
+> **Opakovatelnost:** Automatické vytváření/mazání test dat + production safety
+
+**As a** developer  
+**I want** automatický systém pro test data  
+**So that** testy mají konzistentní data a NIKDY se nedostanou do produkce
+
+**Acceptance Criteria:**
+
+✅ Seed skripty (users, tenants, roles) s `test_` / `e2e_` prefixem  
+✅ Automatic cleanup po testech  
+✅ Production safety guards (@Profile, startup check, DB triggers)  
+✅ Test tenant pro izolaci  
+✅ Opakovatelnost (deterministické test data)
+
+**Scope:**
+- TestDataSeeder (@Profile("!production"))
+- ProductionSafetyConfig (startup check)
+- TestDataManager (cleanup utilities)
+- Database triggers (prevent test_ in production)
+- Playwright test data helpers
+
+**Status:** ✅ **DONE** (Wave 1, červenec 2024)
+
+**Details:** [E2E14 Story](./stories/E2E14-test-data-management-implementation-task/README.md)
+
+---
+
+#### E2E15: GitHub Actions CI/CD Workflows
+
+> **Dokumentace:** Kompletní guide pro všechny GitHub Actions workflows
+
+**Status:** ✅ **DONE**
+
+**As a** developer  
+**I want** jasnou dokumentaci CI/CD pipeline  
+**So that** rozumím jak funguje automatické testování a deployment
+
+**Acceptance Criteria:**
+
+✅ Dokumentace všech 13 workflows (ci, pre-deploy, post-deploy, e2e, code-quality, security-scan, atd.)  
+✅ Trigger conditions (push, PR, schedule, manual)  
+✅ Enable/disable procedures  
+✅ Troubleshooting guide  
+✅ Best practices (caching, matrix, conditional execution)
+
+**Current State:**
+- Workflows DISABLED (v `.github/workflows-disabled/`)
+- Důvod: EPIC-017 development, save CI minutes
+- Re-enable: Po implementaci modular architecture
+
+**Status:** ✅ **DONE** (Wave 1, červenec 2024)
+
+**Details:** [E2E15 Story](./stories/E2E15-github-actions-workflows/README.md)
+
+---
+
+#### E2E16: Environment & Smoke Alignment
+
+> **NEW!** Smoke testy:** Definice smoke scénářů pro core-platform.local prostředí
+
+**As a** developer  
+**I want** jasně definované smoke scénáře  
+**So that** můžu rychle validovat kritické cesty (5-7 min)
+
+**Acceptance Criteria:**
+
+✅ Jasný popis core-platform.local prostředí (Docker setup, služby, SSL)  
+✅ 4 smoke scénáře: Login, CRUD entity, Workflow krok, Log Viewer  
+✅ Shell script na health checks (backend, Loki BFF, Keycloak)  
+✅ Environment dokumentace (services, test users)  
+✅ Makefile integrace (`make test-smoke`)
+
+**Scope:**
+- 4 smoke Playwright testy (@SMOKE tag)
+- Shell script pro endpoint validation
+- Environment config documentation
+- NPM script `test:smoke`
+
+**Status:** 🔵 **TODO** - Nová story (Phase 1 MUST HAVE)
+
+**Details:** [E2E16 Story](./stories/E2E16-environment-smoke-alignment/README.md) - **TODO: Vytvořit**
+
+---
+
+#### E2E17: Security & Negative E2E Scenarios
+
+> **NEW! Security:** Ověření tenant isolation, RBAC, authentication
+
+**As a** developer  
+**I want** security E2E scénáře  
+**So that** vím že tenant isolation a RBAC funguje správně
+
+**Acceptance Criteria:**
+
+✅ 3-5 security E2E scénářů:
+- Nepřihlášený uživatel → redirect na login
+- Tenant A nevidí data tenant B (isolation)
+- User bez admin role nemá přístup do admin sekce
+- Expirovaný token → redirect na login
+- CSRF token validation
+
+✅ Negative scénáře (unauthorized access, invalid input)  
+✅ @SECURITY tag pro filtrování
+
+**Scope:**
+- 5 Playwright security testů
+- Tenant isolation validation
+- RBAC checks
+- Authentication edge cases
+
+**Status:** 🔵 **TODO** - Nová story (Phase 1-2 HIGH VALUE)
+
+**Details:** [E2E17 Story](./stories/E2E17-security-negative-scenarios/README.md) - **TODO: Vytvořit**
+
+---
+
+### Phase 2: Stabilita & Kvalita
+
+#### E2E6: API Contract Testing
+
+> **Breaking changes:** Detekce změn v API pomocí OpenAPI/JSON schema
+
+**As a** developer  
+**I want** contract testy pro BFF API  
+**So that** detekuji breaking changes před deployem
+
+**Acceptance Criteria:**
+
+✅ Contract testy pro klíčové BFF API:
+- Metamodel BFF (entity schema, CRUD)
+- Workflow BFF (instance, transitions)
+- Loki BFF (log query, filters)
+- Auth/Tenant API (login, tenant info)
+
+✅ OpenAPI/JSON schema validation  
+✅ CI integrace (fail build na breaking change)
+
+**Scope:**
+- OpenAPI specs pro BFF
+- Contract test runner (Pact/Portman)
+- JSON schema assertions
+- CI workflow
+
+**Status:** 🔵 **TODO** (Phase 2 - Stabilita, focus na klíčové BFF)
+
+**Poznámka:** Cíl je detect breaking changes, ne API management platform.
+
+**Details:** [E2E6 Story](./stories/E2E6-api-contract-testing/README.md)
+
+---
+
+#### E2E11: CI/CD Quality Gates
+
+> **Rozumné gates:** PR checks (unit + IT + smoke), optional full E2E
 
 **As a** DevOps engineer  
-**I want** quality gates v CI/CD  
-**So that** build failuje pokud testy selžou nebo coverage klesne
+**I want** rozumné quality gates  
+**So that** PR checks jsou rychlé a mandatory E2E nepřetěžuje CI
 
-#### Implementation
+**Acceptance Criteria:**
 
-```yaml
-# .github/workflows/quality-gates.yml
-name: Quality Gates
-on: [pull_request]
+✅ **PR Pipeline (mandatory):**
+- Unit testy (BE + FE)
+- Integration testy (BE)
+- Smoke E2E (5-7 min)
+- Coverage: 70-80% BE, 60% FE
 
-jobs:
-  e2e-smoke:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run E2E Smoke Tests
-        run: |
-          cd e2e
-          npm ci
-          npx playwright install --with-deps
-          npm run test:pre
-  
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Backend Unit Tests
-        run: |
-          cd backend
-          ./mvnw test
-      - name: Check Coverage
-        run: |
-          COVERAGE=$(cat frontend/coverage/coverage-summary.json | jq '.total.lines.pct')
-          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
-            echo "❌ Coverage $COVERAGE% is below 80%"
-            exit 1
-          fi
-```
+✅ **Full/Regression E2E (optional):**
+- Manual trigger nebo nightly
+- Nepřetěžuje PR reviews
 
-#### Acceptance Checklist
+✅ Žádné hard gates na experimentální testy
 
-- [ ] E2E smoke tests in PR checks
-- [ ] Unit test execution
-- [ ] Coverage threshold validation (80%)
-- [ ] Build fails on test failure
+**Scope:**
+- PR quality gates workflow
+- Full E2E workflow (manual/nightly)
+- Coverage thresholds
+- Fail fast strategy
+
+**Status:** 🔵 **TODO** (Phase 2 - Stabilita, rozumné gates bez přílišných omezení)
+
+**Details:** [E2E11 Story](./stories/E2E11-ci-cd-quality-gates-implementation-tasks/README.md)
 
 ---
 
-### S12: Testing Standards & Guide
+#### E2E5: Accessibility (a11y) Testing
 
-> **Dokumentace:** Comprehensive testing guide pro vývojáře
-
-#### Implementation
-
-**File:** `docs/testing-guide.md`
-
-```markdown
-# Testing Guide - Core Platform
-
-## Test Types
-
-### E2E Tests (Playwright)
-- **When**: End-to-end user flows
-- **Location**: `e2e/specs/`
-- **Tag**: `@CORE-XXX @E2E-XXX-NNN`
-
-### Unit Tests (Frontend)
-- **Framework**: Vitest + React Testing Library
-- **Location**: `frontend/src/**/*.test.tsx`
-- **Coverage**: 80% target
-
-### Unit Tests (Backend)
-- **Framework**: JUnit 5
-- **Location**: `backend/src/test/`
-- **Tag**: `@UserStory("CORE-XXX")`
-
-## Writing Tests
-
-### 1. Tag with User Story
-```typescript
-test.describe('Login Flow @CORE-123', () => {
-  test('should login @E2E-LOGIN-001', async ({ page }) => {
-    // Test
-  });
-});
-```
-
-### 2. Follow AAA Pattern
-```typescript
-test('should create user', async () => {
-  // ARRANGE
-  const user = { name: 'John' };
-  
-  // ACT
-  await userService.create(user);
-  
-  // ASSERT
-  expect(await userService.find(user.id)).toBeTruthy();
-});
-```
-
-## Running Tests
-
-```bash
-# E2E Smoke
-make test-e2e-pre
-
-# Backend Unit
-make test-backend
-
-# All tests
-make test-all
-```
-```
-
-#### Acceptance Checklist
-
-- [ ] Testing guide documentation
-- [ ] Examples for all test types
-- [ ] Tagging conventions
-- [ ] Running instructions
-
----
-
-### S13: Mock Services
-
-> **Integration Testing:** WireMock pro mockování external služeb
+> **Incremental:** Základní a11y checks, best effort
 
 **As a** developer  
-**I want** mock servery pro Keycloak, MinIO, n8n webhooks  
-**So that** integration testy jsou rychlé a spolehlivé (bez závislosti na external services)
+**I want** základní accessibility checks  
+**So that** klíčové stránky splňují WCAG základy
 
-#### Implementation
+**Acceptance Criteria:**
 
-**1. WireMock Setup**
+✅ Axe/pa11y check na 3-5 klíčových stránkách (Login, Dashboard, Metamodel, Workflow)  
+✅ WCAG 2.1 Level A checks  
+✅ Incremental/best effort (ne hard gate)
 
-```xml
-<!-- backend/pom.xml -->
-<dependency>
-    <groupId>com.github.tomakehurst</groupId>
-    <artifactId>wiremock-jre8-standalone</artifactId>
-    <version>2.35.0</version>
-    <scope>test</scope>
-</dependency>
-```
+**Scope:**
+- Axe-core integrace
+- A11y checks na vybrané stránky
+- Reportování (ne auto-fail)
+- Optional CI check
 
-**2. Mock Keycloak Token**
+**Poznámka:** Označeno jako "incremental / best effort", ne mandatory blocker.
 
-```java
-// Integration test base class
-@SpringBootTest
-@Testcontainers
-public abstract class BaseIntegrationTest {
-    
-    @Container
-    static WireMockContainer wireMock = new WireMockContainer("wiremock/wiremock:2.35.0");
-    
-    @BeforeEach
-    void setupMocks() {
-        wireMock.stubFor(
-            post("/realms/admin/protocol/openid-connect/token")
-                .willReturn(okJson("""
-                    {
-                        "access_token": "mock-token-123",
-                        "token_type": "Bearer",
-                        "expires_in": 300
-                    }
-                    """))
-        );
-    }
-}
-```
+**Status:** ✅ **DONE** (Wave 1, červenec 2024) - Best effort, non-blocking
 
-**3. Mock n8n Webhooks**
-
-```java
-@Test
-void shouldTriggerWebhookOnUserCreation() {
-    wireMock.stubFor(post("/webhook/user-created").willReturn(ok()));
-    
-    userService.createUser("testuser", "test@example.com");
-    
-    wireMock.verify(postRequestedFor(urlEqualTo("/webhook/user-created")));
-}
-```
-
-#### Acceptance Checklist
-
-- [ ] WireMock Testcontainer setup
-- [ ] Keycloak mock (token, user API)
-- [ ] MinIO mock (S3 upload/download)
-- [ ] n8n webhook mock
-- [ ] External API mock helpers
-- [ ] Integration tests using mocks
-
-**Details:** [S13 Full Story](./stories/S13.md)
+**Details:** [E2E5 Story](./stories/E2E5-accessibility-a11y-testing/README.md)
 
 ---
 
-### S14: Test Data Management
+### Phase 3: Nadstavba (NICE TO HAVE)
 
-> **Test Data:** Automatické vytváření/mazání test dat + izolace od produkce
+#### E2E4: Visual Regression Testing
+
+> **OPTIONAL:** Vizuální regrese pro pár kritických obrazovek
 
 **As a** developer  
-**I want** automatický systém pro test data (users, tenants, roles)  
-**So that** testy mají konzistentní data A NIKDY se nedostanou do produkce
+**I want** visual regression checks  
+**So that** detekovány nechtěné UI změny
 
-#### Critical Requirements
+**Acceptance Criteria:**
 
-🔴 **SECURITY**: Test data NESMÍ být v produkci
-- Environment-aware data seeding (pouze dev/test)
-- Test user prefix (`test_*`, `e2e_*`)
-- Automatic cleanup po testech
-- Production safety checks
+✅ Vizuální regrese na 2-3 stránkách (Login, Dashboard, Metamodel Studio)  
+✅ Percy/Chromatic/Playwright screenshots  
+✅ Explicitně OPTIONAL (není blokátor)
 
-#### Implementation
+**Scope:**
+- Percy nebo Chromatic setup
+- Screenshots pro 2-3 stránky
+- Optional CI
 
-**1. Test Data Seeders (Environment-Aware)**
+**Status:** 🔵 **TODO** (Phase 3 - OPTIONAL, low priority)
 
-```java
-// backend/src/test-data/java/cz/muriel/core/testdata/TestDataSeeder.java
-@Component
-@Profile("!production") // CRITICAL: Only run in non-prod
-public class TestDataSeeder {
-    
-    @PostConstruct
-    public void seed() {
-        if (isProdEnvironment()) {
-            throw new IllegalStateException("❌ Test data seeder attempted to run in PRODUCTION!");
-        }
-        
-        log.info("🌱 Seeding test data for environment: {}", environment);
-        seedTestUsers();
-        seedTestTenants();
-        seedTestRoles();
-    }
-    
-    private boolean isProdEnvironment() {
-        return environment.getProperty("spring.profiles.active", "").contains("production");
-    }
-    
-    private void seedTestUsers() {
-        // ALWAYS prefix with 'test_' or 'e2e_'
-        createUser("test_admin", "test-admin@example.com", Role.ADMIN);
-        createUser("test_user", "test-user@example.com", Role.USER);
-        createUser("e2e_login_user", "e2e@example.com", Role.USER);
-    }
-    
-    private void seedTestTenants() {
-        createTenant("test_tenant_alpha", TenantType.STANDARD);
-        createTenant("test_tenant_beta", TenantType.PREMIUM);
-    }
-    
-    private void seedTestRoles() {
-        createRole("test_custom_role", Permission.READ, Permission.WRITE);
-    }
-}
-```
+**Poznámka:** Phase 3 - volitelné, low priority.
 
-**2. Production Safety Guards**
-
-```java
-// backend/src/main/java/cz/muriel/core/config/ProductionSafetyConfig.java
-@Configuration
-public class ProductionSafetyConfig {
-    
-    @Bean
-    @ConditionalOnProperty(name = "spring.profiles.active", havingValue = "production")
-    public CommandLineRunner productionSafetyCheck(UserRepository userRepository) {
-        return args -> {
-            // Check for test users in production
-            List<User> testUsers = userRepository.findByUsernameStartingWith("test_");
-            if (!testUsers.isEmpty()) {
-                log.error("❌ CRITICAL: {} test users found in PRODUCTION!", testUsers.size());
-                throw new IllegalStateException("Test data detected in production environment!");
-            }
-            
-            // Check for test tenants
-            List<Tenant> testTenants = tenantRepository.findByNameStartingWith("test_");
-            if (!testTenants.isEmpty()) {
-                log.error("❌ CRITICAL: {} test tenants found in PRODUCTION!", testTenants.size());
-                throw new IllegalStateException("Test tenants detected in production environment!");
-            }
-            
-            log.info("✅ Production safety check passed - no test data found");
-        };
-    }
-}
-```
-
-**3. Test Data Cleanup (After Each Test)**
-
-```java
-// backend/src/integration-test/java/cz/muriel/core/BaseIntegrationTest.java
-@SpringBootTest
-@Transactional
-public abstract class BaseIntegrationTest {
-    
-    @Autowired
-    protected TestDataManager testDataManager;
-    
-    @AfterEach
-    void cleanupTestData() {
-        testDataManager.deleteAllTestUsers();
-        testDataManager.deleteAllTestTenants();
-        testDataManager.deleteAllTestRoles();
-    }
-}
-
-@Component
-public class TestDataManager {
-    
-    public void deleteAllTestUsers() {
-        userRepository.deleteByUsernameStartingWith("test_");
-        userRepository.deleteByUsernameStartingWith("e2e_");
-    }
-    
-    public void deleteAllTestTenants() {
-        tenantRepository.deleteByNameStartingWith("test_");
-    }
-    
-    public void deleteAllTestRoles() {
-        roleRepository.deleteByNameStartingWith("test_");
-    }
-}
-```
-
-**4. Test Data Builders**
-
-```java
-// backend/src/integration-test/java/cz/muriel/core/testutil/TestDataBuilder.java
-public class TestDataBuilder {
-    
-    public static User testUser() {
-        return User.builder()
-            .username("test_user_" + UUID.randomUUID().toString().substring(0, 8))
-            .email("test-" + UUID.randomUUID() + "@example.com")
-            .enabled(true)
-            .build();
-    }
-    
-    public static Tenant testTenant(String name) {
-        return Tenant.builder()
-            .name("test_" + name)
-            .type(TenantType.STANDARD)
-            .build();
-    }
-    
-    public static Role testRole(String name, Permission... permissions) {
-        return Role.builder()
-            .name("test_" + name)
-            .permissions(Set.of(permissions))
-            .build();
-    }
-}
-```
-
-**5. E2E Test Data Setup (Playwright)**
-
-```typescript
-// e2e/helpers/test-data.ts
-export class TestDataHelper {
-  
-  /**
-   * Create test user via API (ONLY in test environment)
-   */
-  static async createTestUser(username: string, email: string): Promise<User> {
-    const response = await fetch('http://localhost:8080/api/test-data/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: `e2e_${username}`, // ALWAYS prefix with e2e_
-        email: `e2e-${email}`,
-        password: 'Test.1234'
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create test user');
-    }
-    
-    return response.json();
-  }
-  
-  /**
-   * Cleanup all E2E test data
-   */
-  static async cleanup(): Promise<void> {
-    await fetch('http://localhost:8080/api/test-data/cleanup', { method: 'DELETE' });
-  }
-}
-```
-
-**6. Database Constraints (Extra Safety)**
-
-```sql
--- backend/src/main/resources/db/migration/V998__test_data_constraints.sql
-
--- Production safety: Prevent test data insertion in production
-CREATE OR REPLACE FUNCTION prevent_test_data_in_production()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF current_setting('app.environment', true) = 'production' THEN
-        IF NEW.username LIKE 'test_%' OR NEW.username LIKE 'e2e_%' THEN
-            RAISE EXCEPTION 'Test users are not allowed in production environment';
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER check_test_users_in_production
-    BEFORE INSERT OR UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_test_data_in_production();
-
--- Similar trigger for tenants
-CREATE TRIGGER check_test_tenants_in_production
-    BEFORE INSERT OR UPDATE ON tenants
-    FOR EACH ROW
-    EXECUTE FUNCTION prevent_test_data_in_production();
-```
-
-**7. Test Data API Controller (Test Environment Only)**
-
-```java
-// backend/src/test-data/java/cz/muriel/core/testdata/TestDataController.java
-@RestController
-@RequestMapping("/api/test-data")
-@Profile("!production") // CRITICAL: Only available in test/dev
-public class TestDataController {
-    
-    @PostMapping("/users")
-    public User createTestUser(@RequestBody CreateUserRequest request) {
-        if (!request.getUsername().startsWith("test_") && !request.getUsername().startsWith("e2e_")) {
-            throw new IllegalArgumentException("Test users must start with 'test_' or 'e2e_'");
-        }
-        
-        return userService.createUser(request);
-    }
-    
-    @DeleteMapping("/cleanup")
-    public void cleanup() {
-        testDataManager.deleteAllTestUsers();
-        testDataManager.deleteAllTestTenants();
-        testDataManager.deleteAllTestRoles();
-    }
-    
-    @GetMapping("/seed")
-    public void seed() {
-        testDataSeeder.seed();
-    }
-}
-```
-
-#### Test Data Categories
-
-| Category | Prefix | Example | Cleanup |
-|----------|--------|---------|---------|
-| **E2E Users** | `e2e_*` | `e2e_login_user` | After E2E suite |
-| **Integration Users** | `test_*` | `test_admin` | After each test |
-| **Tenants** | `test_*` | `test_tenant_alpha` | After each test |
-| **Roles** | `test_*` | `test_custom_role` | After each test |
-
-#### Production Safety Checklist
-
-- [ ] ❌ **BLOCK**: Test data seeder @Profile("!production")
-- [ ] ❌ **BLOCK**: Test data API controller @Profile("!production")
-- [ ] ✅ **CHECK**: Production safety check on startup
-- [ ] ✅ **VERIFY**: Database triggers prevent test_ inserts in prod
-- [ ] ✅ **CLEANUP**: @AfterEach cleanup in integration tests
-- [ ] ✅ **PREFIX**: All test data has 'test_' or 'e2e_' prefix
-- [ ] ✅ **VALIDATE**: Pre-commit hook checks for hardcoded test credentials
-
-#### Acceptance Checklist
-
-- [ ] Test data seeders (users, tenants, roles)
-- [ ] Production safety guards (@Profile, startup check)
-- [ ] Database triggers (prevent test_ in production)
-- [ ] Test data cleanup (@AfterEach)
-- [ ] Test data builders (TestDataBuilder)
-- [ ] E2E test data helpers (Playwright)
-- [ ] Test data API (POST /api/test-data/users)
-- [ ] Documentation (test data conventions)
-
-**Details:** [S14 Full Story](./stories/S14.md)
+**Details:** [E2E4 Story](./stories/E2E4-visual-regression-testing/README.md)
 
 ---
 
-## 🎯 Definition of Done
+#### E2E7: Performance Testing
 
-- [ ] Test registry database schema created
-- [ ] REST API for test tracking (/api/test-registry)
-- [ ] Playwright reporter registering tests
-- [ ] JUnit listener for backend tests
-- [ ] Test tagging system (@CORE-XXX)
-- [ ] Pre-commit hook validating tags
-- [ ] WireMock integration for external services
-- [ ] Test data seeders (environment-aware)
-- [ ] Production safety checks (prevent test data leak)
-- [ ] Test data cleanup (automatic after tests)
-- [ ] Grafana coverage dashboard
-- [ ] CI/CD quality gates (GitHub Actions)
-- [ ] Testing guide documentation
-- [ ] 80%+ test coverage for new code
+> **OPTIONAL:** Performance baseline pro 2-3 scénáře
+
+**As a** developer  
+**I want** performance baseline  
+**So that** detekovány výkonnostní regrese
+
+**Acceptance Criteria:**
+
+✅ Performance testy (Login < 2s, Search < 1s, Workflow step < 500ms)  
+✅ K6/Lighthouse/Playwright performance API  
+✅ Neblokující (samostatně spouštěné)
+
+**Scope:**
+- K6 nebo Playwright perf API
+- 2-3 testy
+- Baseline measurements
+- Optional CI (nightly)
+
+**Status:** 🔵 **TODO** (Phase 3 - OPTIONAL, non-blocking)
+
+**Poznámka:** Phase 3 - volitelné, není v PR.
+
+**Details:** [E2E7 Story](./stories/E2E7-performance-testing/README.md)
+
+---
+
+#### E2E8: Test Reporting & Overview
+
+> **OPTIONAL, zjednodušeno:** Script z JUnit/Playwright reportů, žádná DB
+
+**As a** developer  
+**I want** jednoduchý report overview  
+**So that** vidím které testy prošly/selhaly
+
+**Acceptance Criteria:**
+
+✅ Script parsující JUnit/Playwright XML/JSON reporty  
+✅ Generuje HTML/Markdown overview (test ID, tags, pass/fail, duration)  
+✅ ŽÁDNÁ vlastní databáze  
+✅ ŽÁDNÉ API
+
+**Scope:**
+- Node.js/Python parser script
+- HTML output
+- GitHub Pages (optional)
+- Žádná DB, žádné API
+
+**Status:** 🔵 **TODO** (Phase 3 - OPTIONAL, zjednodušeno oproti S8)
+
+**Poznámka:** Phase 3 - zjednodušené oproti původní S8 (Test Registry s DB).
+
+**Details:** [E2E8 Story](./stories/E2E8-s8-implementation-tasks/README.md)
+
+---
+
+#### E2E10: Coverage Dashboard
+
+> **OPTIONAL, zjednodušeno:** JaCoCo/Playwright HTML reports, žádná Grafana
+
+**As a** developer  
+**I want** přehled coverage metrik  
+**So that** vidím pokrytí kódu
+
+**Acceptance Criteria:**
+
+✅ Standardní coverage reports (JaCoCo, Playwright, Vitest) → HTML  
+✅ GitHub Pages publikace (optional)  
+✅ ŽÁDNÁ Grafana závislost  
+✅ ŽÁDNÁ vlastní dashboard app
+
+**Scope:**
+- JaCoCo/Istanbul coverage config
+- HTML report generation
+- GitHub Pages deploy
+- Žádná custom app
+
+**Status:** 🔵 **TODO** (Phase 3 - OPTIONAL, bez Grafany)
+
+**Poznámka:** Phase 3 - zjednodušené, bez Grafany.
+
+**Details:** [E2E10 Story](./stories/E2E10-coverage-dashboard-implementation-tasks/README.md)
+
+---
+
+## 🎯 Definition of Done (Phase 1)
+
+- [ ] Playwright framework setup (E2E1)
+- [ ] Page Object Model pro 5 klíčových stránek (E2E2)
+- [ ] Test tagging system (@SMOKE, @CRITICAL, @CORE-XXX) (E2E9)
+- [ ] Testing standards guide dokumentace (E2E12)
+- [ ] Mock services (WireMock pro Keycloak, externí API) (E2E13)
+- [ ] Test data management (seeders, cleanup, production safety) (E2E14)
+- [ ] GitHub Actions CI/CD dokumentace (E2E15) ✅ DONE
+- [ ] Smoke tests (4 scénáře: login, CRUD, workflow, logs) (E2E16)
+- [ ] Security E2E tests (tenant isolation, RBAC, auth) (E2E17)
+- [ ] PR pipeline (unit + IT + smoke E2E)
+- [ ] Production safety checks (no test_ data in prod)
 
 ---
 
 ## 📈 Success Metrics
 
-- **Coverage Tracking**: 100% testů mapuje na User Stories
-- **Automation**: 100% testů běží v CI/CD
-- **Quality**: <5% failed builds kvůli chybějícím testům
-- **Visibility**: PO vidí coverage dashboard denně
-- **Adoption**: Všichni deví píší testy před mergem PR
-- **Data Safety**: 0 test users/tenants v produkci (automated checks)
+- **Smoke Testy:** < 7 min execution time (kritické cesty covered)
+- **PR Pipeline:** < 20 min total (unit + IT + smoke)
+- **Test Data Safety:** 0 test users/tenants v produkci (automated guards)
+- **CI Reliability:** < 5% failed builds kvůli flaky testům
+- **Adoption:** Všichni devs píší smoke testy pro nové features
+- **Coverage:** 70-80% line coverage (BE), 60% (FE)
 
 ---
 
 ## 🔗 Dependencies
 
-- **EPIC-001**: Backlog system (User Stories existují)
-- **EPIC-003**: CI/CD pipeline (GitHub Actions)
-- Playwright 1.42+ (tag support)
-- JUnit 5 (custom annotations)
-- WireMock 2.35+ (HTTP mocking)
-- Grafana (dashboards)
-- PostgreSQL (test_registry table)
+- **EPIC-001**: Backlog system (User Stories pro mapování)
+- **EPIC-003**: CI/CD pipeline (GitHub Actions workflows)
+- Playwright 1.42+
+- JUnit 5
+- WireMock 2.35+
+- Testcontainers
+- PostgreSQL (pro integration testy)
+- core-platform.local environment (Docker setup)
 
 ---
 
-## E2E15: GitHub Actions CI/CD Workflows
+## 📅 Implementation Roadmap
 
-> **Documentation:** Complete guide to all GitHub Actions workflows
+### Phase 1: Foundation (8-10 týdnů, MUST HAVE)
 
-**See:** [E2E15-github-actions-workflows/README.md](stories/E2E15-github-actions-workflows/README.md)
+**Week 1-2: Playwright Setup & POM**
+- E2E1: Playwright framework setup
+- E2E2: Page Object Model (5 page objects)
+- První smoke test (login)
 
-### Overview
+**Week 3: Smoke Tests & Environment**
+- E2E16: Environment & Smoke Alignment (4 smoke scénáře)
+- Health check script
+- Environment dokumentace
 
-Kompletní dokumentace všech 13 GitHub Actions workflows v `.github/workflows-disabled/`:
+**Week 4-5: Test Data & Mocking**
+- E2E14: Test Data Management (seeders, cleanup, production safety)
+- E2E13: Mock Services (WireMock, Keycloak mocks)
 
-**Main Workflows:**
-- `ci.yml` - Main CI pipeline (build + unit tests, 15-20 min)
-- `pre-deploy.yml` - Pre-deploy smoke tests (5-7 min)
-- `post-deploy.yml` - Post-deploy full E2E (20-30 min)
-- `e2e.yml` - Full E2E test suite (20-30 min)
+**Week 6: Security Tests**
+- E2E17: Security & Negative E2E Scenarios (5 security testů)
 
-**Quality & Security:**
-- `code-quality.yml` - Linting, SonarQube (5 min)
-- `security-scan.yml` - OWASP, dependency check (10 min)
-- `naming-lint.yml` - Java naming conventions (1 min)
+**Week 7: Tagging & Standards**
+- E2E9: Test Tagging System (@SMOKE, @CRITICAL)
+- E2E12: Testing Standards Guide
 
-**Specialized:**
-- `reporting-tests.yml` - Reporting module (10 min)
-- `streaming-tests.yml` - Kafka CDC (8 min)
-- `tests-monitoring-bff.yml` - Monitoring BFF (5 min)
+**Week 8-10: CI/CD Integration**
+- E2E11: CI/CD Quality Gates (PR pipeline)
+- E2E15: GitHub Actions documentation ✅ (already done)
+- Integration všech komponent
 
-### Current Status
+### Phase 2: Stabilita (4-5 týdnů)
 
-✅ **Workflows DISABLED** during EPIC-017 implementation
-- Location: `.github/workflows-disabled/`
-- Reason: Save CI minutes, prevent false failures
-- Re-enable: After modular architecture complete
+**Week 11-12: API Contract Testing**
+- E2E6: API Contract Testing (Metamodel, Workflow, Loki BFF)
 
-### Key Features Documented
+**Week 13: Accessibility**
+- E2E5: Accessibility Testing (3-5 klíčových stránek)
 
-1. **Workflow Trigger Conditions**
-   - Push events (main, develop)
-   - Pull requests
-   - Scheduled runs (weekly security scans)
-   - Manual dispatch
+**Week 14-15: Quality Gates Tuning**
+- Optimalizace PR pipeline
+- Rozšíření coverage
 
-2. **Job Dependencies & Orchestration**
-   - Fast feedback loop (lint → unit → integration → E2E)
-   - Parallel matrix strategies (browsers, OS, Node versions)
-   - Conditional execution (deploy only on main)
+### Phase 3: Nadstavba (4-6 týdnů, OPTIONAL)
 
-3. **Enable/Disable Workflows**
-   ```bash
-   # Disable all
-   mv .github/workflows/*.yml .github/workflows-disabled/
-   
-   # Enable all
-   mv .github/workflows-disabled/*.yml .github/workflows/
-   
-   # Enable selectively
-   mv .github/workflows-disabled/ci.yml .github/workflows/
-   ```
+**Week 16-17: Visual Regression (optional)**
+- E2E4: Visual Regression Testing (2-3 stránky)
 
-4. **Skip CI on Specific Commits**
-   ```bash
-   git commit -m "docs: Update README [skip ci]"
-   ```
+**Week 18-19: Performance (optional)**
+- E2E7: Performance Testing (baseline measurements)
 
-5. **Troubleshooting Guide**
-   - Workflow doesn't trigger
-   - Tests timeout
-   - Environment variables missing
-   - Docker Compose fails
-   - Flaky E2E tests
-
-6. **Best Practices**
-   - Cache dependencies (Maven, npm)
-   - Matrix strategy for parallel tests
-   - Conditional job execution
-   - Artifacts for debugging
-   - Fast feedback loop
-
-### Deployment Flow
-
-```
-pre-deploy.yml (smoke)
-  ↓ PASS
-Deployment
-  ↓ SUCCESS
-post-deploy.yml (full E2E)
-  ↓ FAIL
-Rollback
-```
+**Week 20-21: Reporting (optional)**
+- E2E8: Test Reporting & Overview (script z reportů)
+- E2E10: Coverage Dashboard (HTML reports, GitHub Pages)
 
 ---
 
-## 📅 Implementation Plan
+## 🔄 Aktuální Stav (Status Tracking)
 
-### Week 1: Test Registry Foundation
-- Day 1-2: Database schema + migration
-- Day 3-4: Backend API (TestRegistryController)
-- Day 5: Playwright reporter
+| Story | Status | Progress | Notes |
+|-------|--------|----------|-------|
+| E2E1 | 🔵 TODO | 0% | Playwright setup |
+| E2E2 | 🔵 TODO | 0% | POM - 5 page objects |
+| E2E5 | 🔵 TODO | 0% | Phase 2 - Accessibility (incremental) |
+| E2E6 | 🔵 TODO | 0% | Phase 2 - API Contract Testing |
+| E2E9 | 🔵 TODO | 0% | Test tagging (@SMOKE, @CRITICAL) |
+| E2E11 | 🔵 TODO | 0% | Phase 2 - Quality gates |
+| E2E12 | 🔵 TODO | 0% | Testing guide |
+| E2E13 | 🔵 TODO | 0% | Mock services (Keycloak, ext API) |
+| E2E14 | 🔵 TODO | 0% | Test data + production safety |
+| E2E15 | ✅ DONE | 100% | CI/CD workflows dokumentace |
+| E2E16 | 🔵 TODO | 0% | **NEW!** Smoke tests environment |
+| E2E17 | 🔵 TODO | 0% | **NEW!** Security & negative tests |
+| E2E4 | 🔵 TODO | 0% | Phase 3 - Visual regression (OPTIONAL) |
+| E2E7 | 🔵 TODO | 0% | Phase 3 - Performance (OPTIONAL) |
+| E2E8 | 🔵 TODO | 0% | Phase 3 - Test reporting (OPTIONAL) |
+| E2E10 | 🔵 TODO | 0% | Phase 3 - Coverage dashboard (OPTIONAL) |
 
-### Week 2: Tagging & Validation
-- Day 1-2: Test tagging system (@CORE-XXX)
-- Day 3: JUnit @UserStory annotation
-- Day 4: Pre-commit hook
-- Day 5: Tag extraction utilities
+### Current Focus
+🎯 **Phase 1 Foundation** - Preparing for implementation  
+✅ E2E15 dokumentace kompletní  
+🔜 Next up: E2E1 (Playwright setup)
 
-### Week 3: Mocking & Test Data
-- Day 1-2: WireMock setup (Keycloak, MinIO, n8n)
-- Day 3-4: Test data seeders + production safety
-- Day 5: Test data cleanup + builders
-
-### Week 4: Dashboard & CI/CD
-- Day 1-2: Grafana coverage dashboard
-- Day 3-4: GitHub Actions quality gates (integrate with E2E15 docs)
-- Day 5: Testing guide documentation
+### Blockers
+- Žádné aktuální blokátory
+- GitHub Actions workflows disabled během EPIC-017 (expected)
 
 ---
 
-**Total Effort:** ~66 hours (4 týdny)  
-**Priority:** P0 (Foundation for all future development)  
-**Value:** Test-driven culture + visibility + automation + CI/CD transparency
+**Total Effort:** ~106 hours (~13 týdnů)  
+**Priority:** P0 (Foundation for quality assurance)  
+**Value:** Stabilní E2E infrastruktura + pragmatický přístup + udržitelnost
+
+**Last Updated:** 9. listopadu 2025
