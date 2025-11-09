@@ -58,6 +58,7 @@ Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`*
 | EPIC-012: Vault | `VLT` | `VLT1-vault-skeleton-staging` |
 | EPIC-014: UX/UI | `UX` | `UX1-mui-theme-foundation` |
 | EPIC-016: Data UX | `DUX` | `DUX1-universal-data-view-engine` |
+| EPIC-020: Secure SDLC | `SECQ` | `SECQ1-sonarqube-quality-gates` |
 
 **Proč popisné názvy?**
 - ✅ **Okamžitá čitelnost**: `PH1-naming-conventions` vs. `S1`

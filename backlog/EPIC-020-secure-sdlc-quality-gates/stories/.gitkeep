@@ -1,0 +1,14 @@
+# Stories pro EPIC-020
+
+Tento adresář obsahuje detailní stories:
+
+- SECQ1.md - Statická analýza & quality gate (SonarQube/CodeQL)
+- SECQ2.md - Dependency & container scanning (OWASP DC, Trivy)
+- SECQ3.md - Secret scanning & policies (GitLeaks/TruffleHog)
+- SECQ4.md - DAST smoke test (OWASP ZAP Headless)
+- SECQ5.md - IaC/Docker/Nginx linting & misconfig detection
+- SECQ6.md - CI orchestrator: quality gate pipeline
+- SECQ7.md - AI-generated code guardrails
+- SECQ8.md - Documentation & onboarding
+
+Stories budou vytvořeny podle potřeby implementace.

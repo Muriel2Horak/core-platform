@@ -441,7 +441,78 @@ public class Product extends TenantAwareEntity {
 
 ---
 
-## 📊 Summary Statistics
+### � EPIC-020: Secure SDLC & Quality Gates
+**Status:** 🔴 NOT STARTED (0%)  
+**Vytvořeno:** 9. listopadu 2025  
+**Priority:** P0 (CROSS-CUTTING BASELINE)  
+**Dokumentace:** `backlog/EPIC-020-secure-sdlc-quality-gates/README.md`
+
+**Epic Goal:**
+Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a release. Ochrana proti AI-generated security vulnerabilities a enforcement security best practices.
+
+**Hlavní Komponenty:**
+
+1. **SAST (Static Analysis)**
+   - SonarQube Community Edition
+   - GitHub CodeQL (alternative)
+   - Quality gates (80% coverage, 0 critical issues)
+
+2. **SCA (Dependency Scanning)**
+   - OWASP Dependency-Check (Maven)
+   - Trivy (container scanning)
+   - CVE whitelisting & exceptions
+
+3. **Secret Scanning**
+   - GitLeaks pre-commit hooks
+   - PR secret detection
+   - Nightly full repo scans
+
+4. **DAST (Dynamic Analysis)**
+   - OWASP ZAP headless
+   - Nightly scans against core-platform.local
+   - Non-destructive testing only
+
+5. **IaC/Config Linting**
+   - hadolint (Dockerfiles)
+   - yamllint (YAML configs)
+   - kube-linter (Kubernetes)
+   - actionlint (GitHub Actions)
+
+6. **AI Code Governance**
+   - Security checklist pro AI-generated code
+   - CODEOWNERS for critical paths
+   - Automated risky pattern detection
+
+7. **CI Orchestration**
+   - PR pipeline (blocking quality gates)
+   - Nightly regression (E2E + DAST)
+   - Release pipeline (strict gates)
+
+**User Stories:**
+- 🔴 SECQ1: SonarQube/CodeQL integration (~3 days)
+- 🔴 SECQ2: Dependency & container scanning (~2 days)
+- 🔴 SECQ3: Secret scanning & policies (~1.5 days)
+- 🔴 SECQ4: DAST smoke test (~2 days)
+- 🔴 SECQ5: IaC/Docker/Nginx linting (~1.5 days)
+- 🔴 SECQ6: CI orchestrator pipeline (~2 days)
+- 🔴 SECQ7: AI code guardrails (~1 day)
+- 🔴 SECQ8: Documentation & onboarding (~1.5 days)
+
+**Integration Points:**
+- EPIC-000: Vynucuje security architekturu (Keycloak, RBAC)
+- EPIC-002: Orchestruje E2E testy (PR smoke vs. nightly full)
+- EPIC-003: Loguje findings do Loki
+- EPIC-007: Lintuje Docker/Nginx/K8s configs
+- EPIC-012: Vynucuje Vault usage (no plaintext secrets)
+- EPIC-017: Validuje moduly (quality gates platí i pro moduly)
+
+**Technologie:** SonarQube, Trivy, GitLeaks, OWASP ZAP, hadolint  
+**LOC:** ~2,600 řádků (scripts + configs + docs)  
+**Timeline:** ~14 days effort (4 weeks elapsed)
+
+---
+
+## �📊 Summary Statistics
 
 | Epic | Status | Stories | LOC | Completion |
 |------|--------|---------|-----|------------|
@@ -454,31 +525,38 @@ public class Product extends TenantAwareEntity {
 | EPIC-007: Platform | 🟢 DONE | S1-S10 | ~10,000 | 100% |
 | EPIC-008: DMS | 🔶 PARTIAL | ~5 | ~3,000 | 80% |
 | EPIC-009: AI/MCP | 🔶 IN PROGRESS | TBD | TBD | 40% |
-| **TOTAL** | | **~90** | **~80,500** | **~90%** |
+| EPIC-020: Secure SDLC | 🔴 NOT STARTED | 8 | ~2,600 | 0% |
+| **TOTAL** | | **~100** | **~83,100** | **~88%** |
 
 ---
 
 ## 🎯 Next Steps
 
-**Doporučené priorit:**
+**Doporučené priority:**
 
-1. **EPIC-008 Completion** (DMS)
+1. **EPIC-020: Secure SDLC (URGENT - P0)**
+   - Implementovat mandatory quality gates
+   - SonarQube + Trivy + GitLeaks setup
+   - AI code governance checklist
+   - Timeline: 4 weeks
+
+2. **EPIC-008 Completion** (DMS)
    - Metadata search implementation
    - Document versioning
    - Full-text search
 
-2. **EPIC-009 Development** (AI/MCP)
+3. **EPIC-009 Development** (AI/MCP)
    - MCP server implementation
    - Copilot integration
    - Code generation features
 
-3. **EPIC-001 Phase 2** (Backlog Enhancements)
+4. **EPIC-001 Phase 2** (Backlog Enhancements)
    - CORE-009: Makefile Integration
    - CORE-010: Copilot Prompt Generator
    - CORE-011: Quality Metrics
    - CORE-012: Dashboard Generator
 
-4. **Platform Features**
+5. **Platform Features**
    - Groups E2E fixes
    - Advanced reporting
    - Performance optimizations
