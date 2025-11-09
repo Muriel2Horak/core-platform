@@ -21,6 +21,44 @@
 
 ---
 
+## 🏛️ Design Decision: n8n jako Core Platform Component
+
+**n8n is a mandatory core component of Virelio/Core Platform.**
+
+### Rationale
+
+1. **Primary Integration & Orchestration Engine:**
+   - n8n slouží jako centrální hub pro všechny integrace s externími systémy (Jira, Confluence, Trello, M365, Google Workspace, Slack)
+   - Eliminuje potřebu custom integračního kódu - 400+ built-in nodes pokrývají majority use-cases
+   - AI workflow orchestration přes MCP/LLM gateway (EPIC-016)
+
+2. **Security & Governance:**
+   - **ALWAYS deployed behind Keycloak SSO** (admin realm only)
+   - **ALWAYS protected by Nginx gateway** (TLS termination, rate limiting)
+   - **ALWAYS observed via Loki/Prometheus** (audit logs, metrics)
+   - **NO direct database access** - pouze přes Core Platform API/events
+
+3. **Architectural Principles:**
+   - n8n UI accessible only at `https://admin.${DOMAIN}/n8n`
+   - Authentication: OIDC/SSO against admin realm (roles: `CORE_PLATFORM_ADMIN`, `INTEGRATION_ADMIN`)
+   - All n8n → Core Platform interactions go through official REST API or event bus (Kafka)
+   - n8n logs shipped to Loki with labels: `{service="n8n", tenant="admin"}`
+   - n8n metrics exposed to Prometheus: `/metrics` endpoint
+
+4. **Deployment Requirements:**
+   - Docker/K8s deployment as core service (same tier as Backend, Keycloak, PostgreSQL)
+   - Separate PostgreSQL database: `n8n` (isolated from `core`, `keycloak`)
+   - Health checks: `/healthz` endpoint monitored by orchestrator
+   - Volume persistence: workflow data, credentials (encrypted at rest)
+
+### Non-Goals (Out of Scope)
+
+- ❌ **No public n8n endpoints** outside Nginx/Keycloak protection
+- ❌ **No per-tenant n8n instances** - single admin-realm instance for entire platform
+- ❌ **No direct DB access from n8n** - API/events only
+
+---
+
 ## 📋 Definition of Done
 
 EPIC-007 je **HOTOVO**, pokud:
@@ -55,27 +93,38 @@ make clean && make up
 ### 4. Observabilita je dostupná
 
 **Ověření:**
-- ✅ Prometheus: `http://localhost:9090` - metriky z backendu dostupné
-- ✅ Loki: logy z klíčových služeb (nginx, backend, keycloak) sbírány
+- ✅ Prometheus: `http://localhost:9090` - metriky z backendu a n8n dostupné
+- ✅ Loki: logy z klíčových služeb (nginx, backend, keycloak, n8n) sbírány
 - ✅ Grafana: minimálně 1 dashboard pro zdraví systému nebo popis jak ověřit metriky/logy
 
-### 5. Konfigurace a secrety jsou čisté
+### 5. n8n Integration Hub je funkční
+
+**Ověření:**
+- ✅ n8n dostupné na `https://admin.core-platform.local/n8n`
+- ✅ SSO přes Keycloak admin realm funguje (OIDC login flow)
+- ✅ n8n UI se načte a zobrazí workflow editor
+- ✅ PostgreSQL database `n8n` existuje a je funkční
+- ✅ n8n logy viditelné v Loki s labelem `{service="n8n"}`
+- ✅ n8n metriky scrapované Promethem (pokud dostupné)
+
+### 6. Konfigurace a secrety jsou čisté
 
 **Ověření:**
 - ✅ **Žádné hardcoded hodnoty** v `application.properties` (DB URL, hesla)
 - ✅ `.env` není v Gitu (v `.gitignore`)
 - ✅ `.env.example` existuje s bezpečnými placeholdery
-- ✅ Všechny důležité hodnoty (DB host, jména DB, hesla, doména, Keycloak klienti) řízeny přes env proměnné
+- ✅ Všechny důležité hodnoty (DB host, jména DB, hesla, doména, Keycloak klienti, n8n config) řízeny přes env proměnné
 
 **Konfigurační hodnoty v `.env.example`:**
 - `DOMAIN` - doména systému
 - `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
 - `KEYCLOAK_BASE_URL`, `KEYCLOAK_ADMIN_PASSWORD`, `KEYCLOAK_ADMIN_CLIENT_SECRET`
 - `OIDC_ISSUER_URI`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`
+- `N8N_ENCRYPTION_KEY`, `N8N_USER_MANAGEMENT_JWT_SECRET`
 - SSL cert paths
-- Service URLs (Loki, Prometheus, Grafana)
+- Service URLs (Loki, Prometheus, Grafana, n8n)
 
-### 6. Smoke test validuje prostředí
+### 7. Smoke test validuje prostředí
 
 ```bash
 make smoke-test-env
@@ -89,9 +138,10 @@ bash scripts/smoke-test-env.sh
   1. Backend health: `https://admin.core-platform.local/api/actuator/health` → 200
   2. Frontend load: `https://admin.core-platform.local` → 200 (HTML response)
   3. Keycloak: `https://admin.core-platform.local/auth/realms/admin/.well-known/openid-configuration` → 200
-  4. Loki: `http://loki:3100/ready` → 200 (internal)
-  5. Prometheus: `http://prometheus:9090/-/ready` → 200 (internal)
-  6. Realm initialized: Keycloak client `admin-client` existuje
+  4. n8n UI: `https://admin.core-platform.local/n8n` → 200 (requires auth)
+  5. Loki: `http://loki:3100/ready` → 200 (internal)
+  6. Prometheus: `http://prometheus:9090/-/ready` → 200 (internal)
+  7. Realm initialized: Keycloak client `admin-client`, `n8n-client` existují
 - ✅ Smoke test je součástí README s příklady
 
 ---
@@ -104,10 +154,11 @@ bash scripts/smoke-test-env.sh
 ┌─────────────────────────────────────────────────────────────┐
 │ FRONTEND LAYER                                              │
 ├─────────────────────────────────────────────────────────────┤
-│  Nginx (SSL Termination)                                    │
+│  Nginx (SSL Termination & Gateway)                          │
 │    ├─→ https://admin.core-platform.local → Frontend SPA    │
 │    ├─→ https://admin.core-platform.local/api → Backend     │
-│    └─→ https://admin.core-platform.local/auth → Keycloak   │
+│    ├─→ https://admin.core-platform.local/auth → Keycloak   │
+│    └─→ https://admin.core-platform.local/n8n → n8n UI      │
 └─────────────────────────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -121,6 +172,12 @@ bash scripts/smoke-test-env.sh
 │  Frontend (React 18, TypeScript, Vite)                      │
 │    ├─→ OAuth2 Client (Authorization Code Flow)             │
 │    └─→ Static assets served by Nginx                       │
+│                                                             │
+│  n8n (Workflow Automation & Integration Hub)               │
+│    ├─→ External integrations (Jira, M365, Slack)           │
+│    ├─→ AI workflow orchestration (MCP/LLM)                 │
+│    ├─→ ETL/batch processing                                │
+│    └─→ 400+ built-in nodes (no custom code)                │
 └─────────────────────────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -128,23 +185,24 @@ bash scripts/smoke-test-env.sh
 ├─────────────────────────────────────────────────────────────┤
 │  Keycloak (Auth Server)                                     │
 │    ├─→ Realm: admin                                         │
-│    ├─→ Client: admin-client                                 │
+│    ├─→ Client: admin-client, n8n-client                     │
 │    └─→ Users: test_admin, test_user                         │
 │                                                             │
 │  PostgreSQL 16                                              │
 │    ├─→ Database: core (main app)                            │
 │    ├─→ Database: keycloak (auth data)                       │
-│    └─→ Database: grafana (dashboards)                       │
+│    ├─→ Database: grafana (dashboards)                       │
+│    └─→ Database: n8n (workflow executions)                  │
 └─────────────────────────────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ OBSERVABILITY LAYER                                         │
 ├─────────────────────────────────────────────────────────────┤
 │  Loki (Log Aggregation)                                     │
-│    └─→ Collects from: nginx, backend, keycloak             │
+│    └─→ Collects from: nginx, backend, keycloak, n8n        │
 │                                                             │
 │  Prometheus (Metrics)                                       │
-│    └─→ Scrapes: backend actuator, node-exporter            │
+│    └─→ Scrapes: backend actuator, n8n metrics, node-exp    │
 │                                                             │
 │  Grafana (Dashboards)                                       │
 │    └─→ Data sources: Loki, Prometheus                      │
@@ -156,17 +214,23 @@ bash scripts/smoke-test-env.sh
 ```
 Browser
   ↓ HTTPS (443)
-Nginx (SSL Termination)
+Nginx (SSL Termination & Reverse Proxy)
   ↓ HTTP (internal)
-Backend (8080) ← JWT validation → Keycloak (8443)
-  ↓
-PostgreSQL (5432)
-  ├─ core database
-  ├─ keycloak database
-  └─ grafana database
-  
-Loki (3100) ← logs from containers
-Prometheus (9090) ← metrics from backend
+├─→ Backend (8080) ← JWT validation → Keycloak (8443)
+│     ↓
+│   PostgreSQL (5432)
+│     ├─ core database
+│     ├─ keycloak database
+│     ├─ grafana database
+│     └─ n8n database
+│
+├─→ n8n (5678) ← SSO auth → Keycloak (8443)
+│     ├─→ Backend API (8080) - integrations only
+│     └─→ External APIs (Jira, M365, Slack, etc.)
+│
+└─→ Observability Stack
+    ├─ Loki (3100) ← logs from: nginx, backend, keycloak, n8n
+    └─ Prometheus (9090) ← metrics from: backend, n8n
 ```
 
 ---
@@ -264,6 +328,20 @@ server {
 | `REDIS_HOST` | Redis hostname | `redis` | ✅ | 🟢 Public |
 | `REDIS_PORT` | Redis port | `6379` | ✅ | 🟢 Public |
 | `REDIS_PASSWORD` | Redis password | `` (empty for dev) | ⚠️ | 🟡 None |
+| **n8n Integration Hub** |
+| `N8N_HOST` | n8n hostname | `n8n` | ✅ | 🟢 Public |
+| `N8N_PORT` | n8n port | `5678` | ✅ | 🟢 Public |
+| `N8N_PROTOCOL` | n8n protocol | `https` | ✅ | 🟢 Public |
+| `N8N_EDITOR_BASE_URL` | n8n base URL | `https://admin.core-platform.local/n8n` | ✅ | 🟢 Public |
+| `N8N_WEBHOOK_URL` | n8n webhook URL | `https://admin.core-platform.local/webhook` | ✅ | 🟢 Public |
+| `N8N_ENCRYPTION_KEY` | n8n data encryption | `<random-32-char-string>` | ✅ | 🔴 SECRET |
+| `N8N_USER_MANAGEMENT_JWT_SECRET` | n8n JWT secret | `<random-string>` | ✅ | 🔴 SECRET |
+| `N8N_DB_TYPE` | n8n database type | `postgresdb` | ✅ | 🟢 Public |
+| `N8N_DB_HOST` | n8n DB host | `core-db` | ✅ | 🟢 Public |
+| `N8N_DB_PORT` | n8n DB port | `5432` | ✅ | 🟢 Public |
+| `N8N_DB_NAME` | n8n database name | `n8n` | ✅ | 🟢 Public |
+| `N8N_DB_USER` | n8n DB user | `n8n_app` | ✅ | 🔴 SECRET |
+| `N8N_DB_PASSWORD` | n8n DB password | `<strong-password>` | ✅ | 🔴 SECRET |
 | **Observability** |
 | `LOKI_URL` | Loki endpoint | `http://loki:3100` | ✅ | 🟢 Public |
 | `PROMETHEUS_URL` | Prometheus endpoint | `http://prometheus:9090` | ✅ | 🟢 Public |
@@ -521,6 +599,49 @@ Následující **NEPATŘÍ** do EPIC-007 a budou řešeny jinými EPICy:
 - ✅ Funkční smoke test script
 - ✅ Makefile integrace
 - ✅ Dokumentace v README
+
+### Fáze 3.5 – n8n Integration Hub Deployment (Week 3, ~10h)
+
+**Úkoly:**
+1. **Docker Compose Integration**
+   - Přidat n8n service do `docker-compose.yml`
+   - Konfigurace PostgreSQL database `n8n`
+   - Separate DB user: `n8n_app` (isolace od `core`)
+   - Volume persistence: `n8n_data:/root/.n8n`
+   - Health check: `/healthz` endpoint
+
+2. **Keycloak OIDC Configuration**
+   - Vytvořit Keycloak client: `n8n-client` v admin realm
+   - OIDC redirect URIs: `https://admin.${DOMAIN}/n8n/*`
+   - Role mapping: `CORE_PLATFORM_ADMIN`, `INTEGRATION_ADMIN`
+   - Service account enabled (pro API calls)
+
+3. **Nginx Reverse Proxy**
+   - Route `/n8n/*` → `http://n8n:5678/`
+   - SSL termination (TLS 1.2+)
+   - CSP headers: `frame-ancestors 'self'`
+   - Rate limiting: 50 req/s per IP
+   - Auth validation: Keycloak SSO required
+
+4. **Observability Integration**
+   - Loki: ship n8n logs s labelem `{service="n8n"}`
+   - Prometheus: scrape n8n metrics (pokud dostupné)
+   - Health checks: `make verify` kontroluje n8n endpoint
+
+5. **Environment Variables**
+   - Přidat do `.env.template`:
+     * `N8N_ENCRYPTION_KEY` (32-char random)
+     * `N8N_USER_MANAGEMENT_JWT_SECRET`
+     * `N8N_EDITOR_BASE_URL`, `N8N_WEBHOOK_URL`
+     * `N8N_DB_*` credentials
+
+**Deliverables:**
+- ✅ n8n běží na `https://admin.${DOMAIN}/n8n`
+- ✅ SSO přes Keycloak admin realm funguje
+- ✅ PostgreSQL database `n8n` vytvořena
+- ✅ Logy v Loki, metriky v Prometheus (pokud dostupné)
+- ✅ Smoke test kontroluje n8n health endpoint
+- ✅ Dokumentace v README (n8n env vars, access, security)
 
 ### Fáze 4 – Dokumentace (Week 4, ~12h)
 

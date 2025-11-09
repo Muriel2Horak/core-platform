@@ -1,58 +1,171 @@
-# EPIC-011: n8n External Orchestration Layer
+# EPIC-011: n8n Integration & Orchestration Hub
 
-> ⚠️ **MERGED WITH EPIC-006:** Tento EPIC je nyní **Phase 3** unified Workflow Orchestration architektury.  
-> 📖 **See:** [`WORKFLOW_UNIFIED_ARCHITECTURE.md`](../WORKFLOW_UNIFIED_ARCHITECTURE.md) pro kompletní design.
+> 🏛️ **DESIGN DECISION:** n8n is a **mandatory core component** of Virelio/Core Platform.  
+> 📖 **Architecture:** See [`EPIC-007-infrastructure-deployment`](../EPIC-007-infrastructure-deployment/README.md) for infrastructure setup.
 
-**Status:** 🔴 **0% IMPLEMENTED** (planned for Week 4-5)  
-**Dependencies:** EPIC-006 Phase 2 (WF15 EXTERNAL_TASK executor)  
+**Status:** 🔴 **0% IMPLEMENTED** (Week 4-5)  
+**Dependencies:** EPIC-007 (n8n platform deployment), EPIC-006 (optional: WF15 EXTERNAL_TASK executor)  
 **LOC:** ~2,600  
-**Roadmap:** Week 4 of unified implementation
+**Roadmap:** Week 4 of core platform rollout
+
+---
+
+## 🏛️ Design Decision: n8n jako Core Platform Component
+
+**n8n is a mandatory core component of Virelio/Core Platform.**
+
+### Rationale
+
+1. **Primary Integration & Orchestration Engine**
+   - 400+ built-in nodes pro external systems (Jira, M365, Slack, Trello, Google Workspace)
+   - Visual workflow builder (no-code integrations)
+   - AI orchestration via MCP/LLM gateway (EPIC-016)
+   - ETL/batch processing (CSV export, data transformation)
+
+2. **Security & Governance**
+   - **Always behind Keycloak SSO** (admin realm only)
+   - **Always behind Nginx reverse proxy** (SSL termination, rate limiting)
+   - **Observed via Loki/Prometheus** (logs + metrics)
+   - RBAC: `CORE_PLATFORM_ADMIN`, `INTEGRATION_ADMIN` roles
+
+3. **Architectural Principles**
+   - n8n is NOT for internal Core business processes (that's EPIC-006 Workflow Engine)
+   - n8n IS for: external integrations, AI workflows, ETL/batch jobs
+   - n8n běží POUZE v admin realm/admin tenantovi
+   - n8n přistupuje k Core POUZE přes API/eventy (NO direct DB access)
+
+4. **Deployment Requirements**
+   - Docker/K8s deployment (same tier as Backend, Keycloak, PostgreSQL)
+   - PostgreSQL database `n8n` (separate from `core`)
+   - Health checks, volume persistence
+   - Loki log shipping, Prometheus metrics scraping
+
+### Non-Goals
+
+- ❌ **No public n8n endpoints** (always behind Nginx + Keycloak)
+- ❌ **No per-tenant n8n instances** (single admin realm instance)
+- ❌ **No direct database access** from n8n (API/events only)
+- ❌ **No replacement of EPIC-006 Workflow Engine** (different scopes)
 
 ---
 
 ## 🎯 Epic Goal
 
-Deploy **n8n Community Edition** jako external orchestration hub pro:
-- 🔌 **Integrace třetích stran** (Jira, Confluence, Trello, M365, Google, Slack)
-- 🤖 **AI/ML pipelines** (Langchain, OpenAI, local LLMs)
-- 📊 **ETL/batch jobs** (CSV export, data transformation)
-- 🚀 **Visual workflow builder** (400+ built-in nodes)
+Configure **n8n Community Edition** jako mandatory integration hub pro:
+- 🔌 **External System Integrations** (Jira, Confluence, Trello, M365, Google Workspace, Slack)
+- 🤖 **AI Workflow Orchestration** (MCP/LLM gateway, document classification, enrichment)
+- 📊 **ETL/Batch Processing** (CSV export, data transformation, scheduled reports)
+- 🚀 **Visual No-Code Automation** (400+ built-in nodes, JSON workflow templates)
+- 🔐 **Secure Multi-Tenant Access** (Keycloak SSO, RBAC, audit logging)
 
-**Integration:** n8n workflows voláné z Core Platform via **EXTERNAL_TASK executor (WF15)**.
+**Access:** n8n běží na `https://admin.${DOMAIN}/n8n` (admin realm only).  
+**Integration:** n8n může volat Core Platform API, poslouchat Core eventy, orchestrovat AI/MCP calls.
 
 ---
 
-## 🏗️ Architecture (Layer 2 of Unified Workflow)
+## 🏗️ Architecture: Core Integration & Orchestration Layer
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 1: INTERNAL WORKFLOW ENGINE (EPIC-006)               │
-│  - Core business procesy (Order, Invoice, Contract)         │
-│  - Typed executors: APPROVAL, REST_SYNC, KAFKA_COMMAND      │
-└────────────────────┬────────────────────────────────────────┘
-                     │ WF15: EXTERNAL_TASK executor
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  LAYER 2: EXTERNAL n8n ORCHESTRATION (EPIC-011)             │
-│                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐ │
-│  │ n8n Platform │    │ Backend BFF  │    │ Nginx Proxy  │ │
-│  │ (N8N1)       │◄───│ API (N8N6)   │◄───│ (N8N3)       │ │
-│  │ - Workflows  │    │ - JWT valid  │    │ - /n8n/*     │ │
-│  │ - 400+ nodes │    │ - Tenant     │    │ - Keycloak   │ │
-│  │ - PostgreSQL │    │ - Rate limit │    │   SSO (N8N2) │ │
-│  └──────┬───────┘    └──────────────┘    └──────────────┘ │
-│         │                                                   │
-│         ▼                                                   │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │ Built-in Nodes (No Custom Code Needed!)              │ │
-│  │ - Jira, Confluence, Trello                           │ │
-│  │ - Slack, Gmail, Google Sheets                        │ │
-│  │ - HTTP Request, Webhook                              │ │
-│  │ - OpenAI, Langchain                                  │ │
-│  └──────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  ADMIN REALM / ADMIN TENANT (core-platform.local)                    │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ USER                                                            │ │
+│  │  └─→ https://admin.core-platform.local/n8n (Keycloak login)   │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                               │                                       │
+│                               ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ NGINX REVERSE PROXY (SSL Termination, Rate Limiting)           │ │
+│  │  Route: /n8n/* → http://n8n:5678/                              │ │
+│  │  Auth: Keycloak SSO required (auth_request /auth)              │ │
+│  │  CSP: frame-ancestors 'self'                                   │ │
+│  │  Rate Limit: 50 req/s per IP                                   │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+│                               │                                       │
+│                               ▼                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ n8n COMMUNITY EDITION (Workflow Automation Engine)             │ │
+│  │  Port: 5678 (internal only)                                    │ │
+│  │  Database: PostgreSQL (database: n8n, user: n8n_app)           │ │
+│  │  Features: 400+ nodes, visual builder, webhook support         │ │
+│  └────────┬──────────────┬──────────────┬────────────────────────┘ │
+│           │              │              │                            │
+│           ▼              ▼              ▼                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────┐ │
+│  │ Core API    │  │ Core Events │  │ External Systems            │ │
+│  │ (REST)      │  │ (Kafka/CDC) │  │ - Jira, Confluence, Trello  │ │
+│  │ - GET /api/ │  │ - Tenant    │  │ - M365, Google Workspace    │ │
+│  │   tenants   │  │   created   │  │ - Slack, Gmail              │ │
+│  │ - POST /api/│  │ - User      │  │ - OpenAI, MCP/LLM gateway   │ │
+│  │   workflows │  │   onboard   │  └─────────────────────────────┘ │
+│  └─────────────┘  └─────────────┘                                   │
+│                                                                       │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ OBSERVABILITY                                                   │ │
+│  │  - Loki: n8n logs {service="n8n", tenant="admin"}              │ │
+│  │  - Prometheus: n8n metrics (if available)                      │ │
+│  │  - Grafana: n8n dashboard (workflow executions, error rates)   │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
 ```
+
+### Integration Patterns
+
+**Pattern 1: External System Sync**
+```
+Core Platform Event (Tenant Created)
+  → Kafka → n8n Webhook Trigger
+  → n8n Workflow:
+      1. Create Jira Project
+      2. Create Confluence Space
+      3. Send Slack notification
+      4. Call Core API: POST /api/integrations/sync-status
+```
+
+**Pattern 2: AI Workflow Orchestration**
+```
+User uploads document → Core API
+  → n8n Workflow (via Core API call):
+      1. Call MCP/LLM gateway: classify document
+      2. Extract metadata (OpenAI API)
+      3. Store results: POST /api/documents/{id}/metadata
+      4. Trigger follow-up workflow (email notification)
+```
+
+**Pattern 3: Scheduled ETL/Batch**
+```
+n8n Cron Trigger (every day 2am)
+  → n8n Workflow:
+      1. GET /api/reports/daily-export
+      2. Transform to CSV
+      3. Upload to S3/MinIO
+      4. Send email with download link
+```
+
+### Security & Compliance
+
+1. **Authentication & Authorization**
+   - SSO přes Keycloak admin realm
+   - Roles: `CORE_PLATFORM_ADMIN`, `INTEGRATION_ADMIN`
+   - n8n user management DISABLED (Keycloak only)
+
+2. **Access Control**
+   - n8n UI dostupné POUZE admin realm users
+   - n8n může volat Core API POUZE přes backend (ne přímo na DB)
+   - Webhooky chráněny Nginx rate limiting
+
+3. **Audit & Logging**
+   - Všechny workflow executions logovány do Loki
+   - Error tracking: Loki {level="error", service="n8n"}
+   - Metrics: Prometheus scraping (pokud n8n expose /metrics)
+
+4. **Data Governance**
+   - n8n workflow data stored v PostgreSQL `n8n` database
+   - Retention policy: 30 days execution history
+   - NO direct DB access from n8n (API/events only)
+
+---
 
 
 ## 📊 Component Overview
@@ -169,44 +282,90 @@ location /n8n/ {
 
 ---
 
-### N8N4: Workflow Templates (~500 LOC, 2 days)
+### N8N4: Reference Workflows & Templates (~500 LOC, 2 days)
 
-**Goal**: Pre-built n8n workflows pro common use cases
+**Goal**: Pre-built n8n workflows pro common integration patterns
 
 **Deliverables**:
-- n8n workflow JSON exports:
-  1. **jira-create-issue.json**
-     - Trigger: Webhook (from Core via WF15)
-     - Node 1: Jira create issue
-     - Node 2: HTTP callback → `/external-tasks/{id}/complete`
-  2. **confluence-sync.json**
-     - Trigger: Webhook
-     - Node 1: Confluence update page
-     - Node 2: Callback
-  3. **trello-automation.json**
-     - Trigger: Webhook
-     - Node 1: Trello create card
-     - Node 2: Callback
-  4. **ai-summarization.json**
-     - Trigger: Webhook
-     - Node 1: OpenAI API (text summarization)
-     - Node 2: Callback
 
-- Import script:
+**1. External System Sync Templates:**
+- **`jira-sync-on-tenant-created.json`**
+  - Trigger: Webhook (Kafka CDC event: tenant.created)
+  - Actions:
+    1. Jira: Create Project (key=tenant.subdomain)
+    2. Jira: Create default issue types
+    3. Core API: POST /api/integrations/jira/sync-status
+  - Security: Webhook URL protected by Nginx rate limiting
+
+- **`confluence-space-onboarding.json`**
+  - Trigger: Webhook (tenant.created event)
+  - Actions:
+    1. Confluence: Create Space (key=tenant.subdomain)
+    2. Confluence: Apply default templates
+    3. Core API: POST /api/integrations/confluence/sync-status
+
+- **`slack-notification-workflow.json`**
+  - Trigger: Webhook (user.onboarded event)
+  - Actions:
+    1. Slack: Post message to #onboarding channel
+    2. Slack: Send DM to user
+    3. Core API: POST /api/notifications/sent
+
+**2. AI Orchestration Templates:**
+- **`ai-document-classification.json`**
+  - Trigger: HTTP Request (from Core API: POST /workflows/classify-document)
+  - Actions:
+    1. MCP/LLM Gateway: Classify document (invoice, contract, receipt)
+    2. Extract metadata (date, amount, parties)
+    3. Core API: POST /api/documents/{id}/metadata
+  - Security: API key validation
+
+- **`ai-email-enrichment.json`**
+  - Trigger: Webhook (email.received event)
+  - Actions:
+    1. OpenAI: Summarize email body
+    2. OpenAI: Extract action items
+    3. Core API: POST /api/emails/{id}/enrichment
+
+**3. ETL/Batch Processing Templates:**
+- **`csv-export-daily.json`**
+  - Trigger: Cron (every day 2am)
+  - Actions:
+    1. Core API: GET /api/reports/daily-export
+    2. Transform to CSV
+    3. MinIO: Upload to S3 bucket
+    4. Email: Send download link to admins
+
+**Import Script:**
 ```bash
-n8n import:workflow --input=templates/jira-create-issue.json
+#!/bin/bash
+# scripts/n8n/import-templates.sh
+
+templates=(
+  "jira-sync-on-tenant-created.json"
+  "confluence-space-onboarding.json"
+  "slack-notification-workflow.json"
+  "ai-document-classification.json"
+  "ai-email-enrichment.json"
+  "csv-export-daily.json"
+)
+
+for template in "${templates[@]}"; do
+  echo "Importing $template..."
+  docker exec core-n8n n8n import:workflow --input=/templates/$template
+done
 ```
 
-- Documentation (README per template):
-  - Input schema
-  - Output schema
-  - Configuration steps
-  - Screenshots
+**Documentation (per template):**
+- Input schema (webhook payload/API request)
+- Output schema (API responses)
+- Configuration steps (API keys, credentials)
+- Screenshots (workflow canvas)
 
 **Acceptance Criteria**:
-- ✅ All 4 templates imported and functional
+- ✅ All 6 templates imported and functional
 - ✅ Documentation complete
-- ✅ End-to-end test: Core workflow → n8n template → external system
+- ✅ End-to-end test: Core event → n8n workflow → external system → Core API callback
 
 **Effort**: ~2 days | **Details**: [stories/N8N4.md](./stories/N8N4.md)
 
@@ -253,92 +412,149 @@ n8n import:workflow --input=templates/jira-create-issue.json
 
 ---
 
-### N8N6: Backend BFF API ⚡ **KLÍČOVÝ PRO INTEGRACI** (~800 LOC, 3 days)
+### N8N6: Testing & Quality Gates (~600 LOC, 2 days)
 
-**Goal**: Spring Boot proxy pro n8n REST API s JWT validation, tenant filtering, rate limiting
+**Goal**: Ověřit security, compliance a funkčnost n8n integrace
 
 **Deliverables**:
-- `N8nBffController.java`:
-```java
-@RestController
-@RequestMapping("/api/n8n")
-public class N8nBffController {
-  
-  @PostMapping("/workflows/{workflowId}/execute")
-  public ResponseEntity<ExecutionResult> executeWorkflow(
-    @PathVariable String workflowId,
-    @RequestBody Map<String, Object> input,
-    @AuthenticationPrincipal Jwt jwt
-  ) {
-    // 1. Validate JWT
-    String tenantId = jwt.getClaim("tenant_id");
-    String userId = jwt.getSubject();
-    
-    // 2. Rate limit check (Redis-based)
-    if (!rateLimiter.allowRequest(tenantId, userId)) {
-      throw new RateLimitExceededException();
-    }
-    
-    // 3. Audit log
-    auditLog.log("n8n_workflow_execute", workflowId, input, userId);
-    
-    // 4. Call n8n REST API
-    return webClient.post()
-      .uri("http://n8n:5678/api/v1/workflows/{id}/execute", workflowId)
-      .header("Authorization", "Bearer " + n8nApiToken)
-      .bodyValue(input)
-      .retrieve()
-      .toEntity(ExecutionResult.class)
-      .block();
+
+**1. Security Tests:**
+- **Test Scenario 1: Unauthorized Access**
+  ```bash
+  # Test: n8n UI vyžaduje Keycloak SSO
+  curl -I https://admin.core-platform.local/n8n
+  # Expected: 302 redirect to Keycloak login
+  # Expected: NO 200 response without auth
+  ```
+
+- **Test Scenario 2: Direct DB Access Prevention**
+  ```java
+  @Test
+  void n8nCannotAccessCoreDatabase() {
+    // Verify n8n DB user 'n8n_app' nemá GRANT na 'core' schema
+    assertThrows(SQLException.class, () -> {
+      Connection conn = DriverManager.getConnection(
+        "jdbc:postgresql://core-db:5432/core",
+        "n8n_app",
+        System.getenv("N8N_DB_PASSWORD")
+      );
+    });
   }
+  ```
+
+- **Test Scenario 3: API-Only Access**
+  ```typescript
+  // Verify n8n workflows can ONLY call Core API
+  // NOT direct SQL queries
   
-  @GetMapping("/workflows")
-  @Cacheable(value = "n8n-workflows", ttl = 300)  // 5 min cache
-  public List<WorkflowSummary> listWorkflows(@AuthenticationPrincipal Jwt jwt) {
-    String tenantId = jwt.getClaim("tenant_id");
+  test('n8n workflow uses Core API not direct DB', async () => {
+    const workflow = await loadWorkflow('jira-sync-on-tenant-created.json');
+    const nodes = workflow.nodes;
     
-    // Filter workflows by tenant (if multi-tenant support added)
-    return webClient.get()
-      .uri("http://n8n:5678/api/v1/workflows")
-      .retrieve()
-      .bodyToFlux(WorkflowSummary.class)
-      .collectList()
-      .block();
-  }
+    // Assert: NO PostgreSQL nodes in workflow
+    const dbNodes = nodes.filter(n => n.type === 'n8n-nodes-base.postgres');
+    expect(dbNodes).toHaveLength(0);
+    
+    // Assert: HTTP Request nodes target Core API
+    const httpNodes = nodes.filter(n => n.type === 'n8n-nodes-base.httpRequest');
+    httpNodes.forEach(node => {
+      expect(node.parameters.url).toMatch(/^https:\/\/admin\.core-platform\.local\/api\//);
+    });
+  });
+  ```
+
+**2. Compliance Tests:**
+- **Test Scenario 4: Audit Logging**
+  ```bash
+  # Test: All n8n workflow executions logged to Loki
   
-  @GetMapping("/executions/{executionId}")
-  public ExecutionDetail getExecution(
-    @PathVariable String executionId,
-    @AuthenticationPrincipal Jwt jwt
-  ) {
-    return webClient.get()
-      .uri("http://n8n:5678/api/v1/executions/{id}", executionId)
-      .retrieve()
-      .bodyToMono(ExecutionDetail.class)
-      .block();
+  # 1. Execute workflow
+  workflow_id=$(curl -X POST https://admin.core-platform.local/api/n8n/workflows/jira-sync/execute \
+    -H "Authorization: Bearer $KEYCLOAK_TOKEN" \
+    -d '{"tenantId": "acme"}')
+  
+  # 2. Query Loki for execution log
+  logs=$(curl -G "http://loki:3100/loki/api/v1/query" \
+    --data-urlencode 'query={service="n8n", workflow_id="jira-sync"}')
+  
+  # 3. Assert: Log entry exists
+  echo "$logs" | jq -e '.data.result | length > 0'
+  ```
+
+- **Test Scenario 5: RBAC Enforcement**
+  ```java
+  @Test
+  void onlyAdminCanAccessN8nUI() {
+    // User without CORE_PLATFORM_ADMIN role
+    String regularUserToken = keycloak.getToken("user@acme.com", "password");
+    
+    // Try to access n8n UI
+    Response response = RestAssured.given()
+      .header("Authorization", "Bearer " + regularUserToken)
+      .get("https://admin.core-platform.local/n8n");
+    
+    // Expected: 403 Forbidden (not authorized)
+    assertEquals(403, response.getStatusCode());
   }
-}
+  ```
+
+**3. Functional Tests:**
+- **Test Scenario 6: End-to-End Workflow Execution**
+  ```typescript
+  test('Jira sync workflow executes successfully', async () => {
+    // 1. Trigger workflow via Core API
+    const response = await fetch('https://admin.core-platform.local/api/n8n/workflows/jira-sync/execute', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${keycloakToken}` },
+      body: JSON.stringify({ tenantId: 'acme', action: 'create-project' })
+    });
+    
+    // 2. Verify workflow executed
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.status).toBe('success');
+    
+    // 3. Verify Jira project created
+    const jiraProject = await jiraClient.getProject('ACME');
+    expect(jiraProject).toBeDefined();
+    
+    // 4. Verify Core API callback received
+    const syncStatus = await coreAPI.get(`/api/integrations/jira/sync-status/acme`);
+    expect(syncStatus.status).toBe('synced');
+  });
+  ```
+
+**Playwright E2E Tests:**
+```typescript
+// e2e/specs/n8n/n8n-sso.spec.ts
+
+test('n8n UI requires Keycloak login', async ({ page }) => {
+  // 1. Navigate to n8n UI
+  await page.goto('https://admin.core-platform.local/n8n');
+  
+  // 2. Should redirect to Keycloak
+  await expect(page).toHaveURL(/.*auth\/realms\/admin\/protocol\/openid-connect\/auth.*/);
+  
+  // 3. Login as admin
+  await page.fill('input[name=username]', 'admin');
+  await page.fill('input[name=password]', 'admin');
+  await page.click('input[type=submit]');
+  
+  // 4. Should redirect back to n8n
+  await expect(page).toHaveURL('https://admin.core-platform.local/n8n/');
+  
+  // 5. n8n UI should be visible
+  await expect(page.locator('.n8n-canvas')).toBeVisible();
+});
 ```
 
-- Features:
-  - JWT validation (Keycloak token)
-  - Tenant extraction from token
-  - Rate limiting (100 requests/minute per user)
-  - Cache (workflow definitions, 5 min TTL)
-  - Audit logging (kdo volal n8n API, kdy, s jakými daty)
-
-**API Endpoints:**
-- `POST /api/n8n/workflows/{id}/execute` - Execute n8n workflow
-- `GET /api/n8n/workflows` - List all workflows (cached)
-- `GET /api/n8n/executions/{id}` - Get execution details
-
 **Acceptance Criteria**:
-- ✅ JWT validation funguje (reject unauthorized)
-- ✅ Rate limiting enforced (429 Too Many Requests)
-- ✅ Audit log records all API calls
-- ✅ Cache reduces n8n API load
+- ✅ Security tests pass (unauthorized access blocked, direct DB blocked, API-only)
+- ✅ Compliance tests pass (audit logging, RBAC)
+- ✅ Functional tests pass (end-to-end workflow execution)
+- ✅ Playwright E2E tests pass (SSO login flow)
 
-**Effort**: ~3 days | **Details**: [stories/N8N6.md](./stories/N8N6.md)
+**Effort**: ~2 days | **Details**: [stories/N8N6.md](./stories/N8N6.md)
 
 ---
 
