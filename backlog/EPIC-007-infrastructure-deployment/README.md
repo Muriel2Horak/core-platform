@@ -25,37 +25,47 @@
 
 **n8n is a mandatory core component of Virelio/Core Platform** with **multi-tenant workflow design support**.
 
+> 📖 **Business logic & integration patterns**: See [EPIC-011 n8n Integration & Orchestration Hub](../EPIC-011-n8n-workflow-automation/README.md)
+
+### Infrastructure Scope (EPIC-007)
+
+**EPIC-007 řeší POUZE infrastrukturu:**
+- ✅ Docker Compose deployment (n8n service + PostgreSQL database)
+- ✅ Nginx reverse proxy config (SSL termination, per-tenant routing)
+- ✅ Keycloak OIDC clients (admin realm + tenant realms)
+- ✅ Observability integration (Loki logs, Prometheus metrics, Nginx audit headers)
+- ✅ Environment variables (DB credentials, SSL paths, URLs)
+- ✅ Smoke test (n8n health endpoint check)
+
+**Business logic (NOT in EPIC-007, see EPIC-011):**
+- ❌ n8n provisioning service (auto-create tenant accounts) → **EPIC-011**
+- ❌ Core Connector custom node (tenant-scoped API calls) → **EPIC-011**
+- ❌ Workflow templates (Jira sync, AI orchestration) → **EPIC-011**
+- ❌ BFF proxy implementation (JWT validation, audit logging) → **EPIC-011**
+
 ### Rationale
 
 1. **Mandatory Integration & Orchestration Layer**
-   - n8n slouží jako centrální hub pro všechny integrace s externími systémy (Jira, Confluence, Trello, M365, Google Workspace, Slack)
+   - n8n slouží jako centrální hub pro integrace s externími systémy (Jira, Confluence, Trello, M365, Slack)
    - 400+ built-in nodes covering most SaaS platforms
    - **Per-tenant workflow designers**: každý tenant může designovat vlastní integrace
    - Visual no-code automation (reduces custom code maintenance)
-   - AI orchestration (MCP/LLM gateway workflows, document classification, enrichment)
 
 2. **Multi-Tenant Architecture**
    - **1x n8n instance** (shared infrastructure)
    - **N x n8n user accounts** (1 account per tenant: `tenant-{subdomain}`)
    - **Access URLs**:
-     - Admin realm: `https://admin.${DOMAIN}/n8n` (Core admins, instance owner)
-     - Tenant realms: `https://{tenant}.${DOMAIN}/n8n` (tenant designers with `CORE_N8N_DESIGNER` role)
-   - **Auto-provisioning**: n8nProvisioningService (backend BFF) creates n8n accounts on first access
-   - **Tenant isolation**: Workflows owned by tenant account, multiple admins of same tenant share 1 account
+     - Admin realm: `https://admin.${DOMAIN}/n8n`
+     - Tenant realms: `https://{tenant}.${DOMAIN}/n8n`
+   - **Auto-provisioning**: Backend BFF creates n8n accounts on first access
+   - **Tenant isolation**: Workflows owned by tenant account
 
-3. **Security & Compliance Requirements**
-   - n8n UI accessible only via Nginx reverse proxy (no direct port exposure)
-   - Always behind Keycloak SSO (multi-realm support)
-   - All n8n → Core Platform interactions go through official REST API or event bus (Kafka)
-   - **Audit trail**: Nginx access logs contain X-Core-Tenant, X-Core-User, X-Core-N8N-Account headers
-   - n8n logs shipped to Loki with labels: `{service="n8n", tenant="acme"}`
-   - n8n metrics exposed to Prometheus: `/metrics` endpoint
-
-4. **Integration Patterns (Multi-Tenant)**
-   - Separate PostgreSQL database: `n8n` (isolated from `core`, `keycloak`)
-   - n8n workflow data stored per account (tenant-acme, tenant-beta, admin)
-   - Backend validates X-Core-Tenant header matches JWT realm (403 if mismatch)
-   - Custom Core Connector node: Auto-injects X-Core-Tenant header in API calls
+3. **Infrastructure Requirements**
+   - Nginx reverse proxy (SSL, rate limiting, audit headers)
+   - Keycloak OIDC (multi-realm SSO)
+   - PostgreSQL separate database: `n8n`
+   - Loki log shipping: `{service="n8n", tenant="acme"}`
+   - Prometheus metrics scraping
 
 ### Non-Goals
 
@@ -613,88 +623,65 @@ Následující **NEPATŘÍ** do EPIC-007 a budou řešeny jinými EPICy:
 
 ### Fáze 3.5 – n8n Multi-Tenant Integration Hub Deployment (Week 3, ~12h)
 
-**Úkoly:**
-1. **Docker Compose Integration (Multi-Tenant)**
+> 📖 **Business logic**: Provisioning service, Core Connector node, workflow templates → see [EPIC-011](../EPIC-011-n8n-workflow-automation/README.md)
+
+**Úkoly (INFRA ONLY):**
+
+1. **Docker Compose Integration**
    - Přidat n8n service do `docker-compose.yml`
-   - Konfigurace PostgreSQL database `n8n`
-   - Separate DB user: `n8n_app` (isolace od `core`)
+   - Konfigurace PostgreSQL database `n8n` (separate DB user: `n8n_app`)
    - Volume persistence: `n8n_data:/root/.n8n`
    - Health check: `/healthz` endpoint
-   - **Multi-tenant env**: `N8N_USER_MANAGEMENT_DISABLED=false` (ENABLE user management!)
+   - **Critical env var**: `N8N_USER_MANAGEMENT_DISABLED=false` (ENABLE user management!)
 
-2. **Keycloak OIDC Configuration (Multi-Realm)**
-   - **Admin realm client**: `n8n-admin-client` (Core admins)
+2. **Keycloak OIDC Configuration**
+   - **Admin realm client**: `n8n-admin-client`
      - OIDC redirect URIs: `https://admin.${DOMAIN}/n8n/*`
      - Role mapping: `CORE_PLATFORM_ADMIN`
-   - **Tenant realm role**: `CORE_N8N_DESIGNER` (per-tenant workflow designers)
+   - **Tenant realm role**: `CORE_N8N_DESIGNER`
      - Applied to all tenant realms (acme, beta, etc.)
-     - Access via BFF proxy (not direct to n8n)
-   - Service account enabled (pro API calls)
+   - Service account enabled (pro API calls z backend BFF)
 
-3. **Nginx Reverse Proxy (Multi-Tenant Routing + Audit Headers)**
-   - **Per-tenant routing**:
-     ```nginx
-     # Tenant-specific n8n access
-     location ~ ^/([a-z0-9-]+)/n8n/ {
-       set $tenant $1;
-       auth_request /auth;
-       auth_request_set $auth_user $upstream_http_x_auth_request_user;
-       auth_request_set $auth_realm $upstream_http_x_auth_request_realm;
-       
-       # Inject audit headers
-       proxy_set_header X-Core-Tenant $auth_realm;
-       proxy_set_header X-Core-User $auth_user;
-       proxy_set_header X-Core-N8N-Account tenant-$auth_realm;
-       
-       # Proxy to backend BFF (NOT directly to n8n!)
-       proxy_pass http://backend:8080/bff/n8n/proxy;
-       proxy_set_header Upgrade $http_upgrade;
-       proxy_set_header Connection "upgrade";
-     }
-     
-     # Admin realm n8n access
-     location /n8n/ {
-       auth_request /auth;
-       auth_request_set $auth_user $upstream_http_x_auth_request_user;
-       
-       proxy_set_header X-Core-Tenant admin;
-       proxy_set_header X-Core-User $auth_user;
-       proxy_set_header X-Core-N8N-Account admin-instance-owner;
-       
-       proxy_pass http://backend:8080/bff/n8n/proxy;
-       proxy_set_header Upgrade $http_upgrade;
-       proxy_set_header Connection "upgrade";
-     }
-     ```
+3. **Nginx Reverse Proxy (Multi-Tenant Routing)**
+   - **Per-tenant routing**: `https://{tenant}.${DOMAIN}/n8n/` → Backend BFF
+   - **Admin routing**: `https://admin.${DOMAIN}/n8n/` → Backend BFF
    - SSL termination (TLS 1.2+)
-   - CSP headers: `frame-ancestors 'self'`
+   - WebSocket support (n8n editor)
    - Rate limiting: 50 req/s per IP
+   - **Audit headers injection**: X-Core-Tenant, X-Core-User, X-Core-N8N-Account
+     - Nginx extracts z Keycloak JWT response
+     - Přidá jako headers pro downstream (BFF)
 
-4. **Observability Integration (Multi-Tenant Audit)**
-   - **Loki**: ship n8n logs s tenant labelem `{service="n8n", tenant="acme"}`
+4. **Observability Integration**
+   - **Loki**: ship n8n container logs s labelem `{service="n8n"}`
    - **Nginx access logs**: Audit trail s X-Core-* headers
-     - Promtail scrape config: Extract tenant, user, n8n_account z headers
-   - Prometheus: scrape n8n metrics (pokud dostupné)
+     - Promtail scrape config: Extract tenant, user, n8n_account
+   - Prometheus: scrape n8n `/metrics` endpoint (pokud dostupné)
    - Health checks: `make verify` kontroluje n8n endpoint
 
-5. **Environment Variables (Multi-Tenant)**
+5. **Environment Variables**
    - Přidat do `.env.template`:
      * `N8N_ENCRYPTION_KEY` (32-char random)
-     * `N8N_USER_MANAGEMENT_DISABLED=false` **← CRITICAL: ENABLE user management!**
+     * `N8N_USER_MANAGEMENT_DISABLED=false` **← CRITICAL!**
      * `N8N_USER_MANAGEMENT_JWT_SECRET` (JWT signing key)
-     * `N8N_EDITOR_BASE_URL`, `N8N_WEBHOOK_URL`
-     * `N8N_DB_*` credentials
+     * `N8N_EDITOR_BASE_URL=https://admin.${DOMAIN}/n8n`
+     * `N8N_WEBHOOK_URL=https://admin.${DOMAIN}/n8n/webhook`
+     * `N8N_DB_TYPE=postgresdb`, `N8N_DB_HOST=core-db`, `N8N_DB_NAME=n8n`
 
 **Deliverables:**
 - ✅ n8n běží na `https://admin.${DOMAIN}/n8n` (admin realm)
-- ✅ **Per-tenant access**: `https://acme.${DOMAIN}/n8n` (tenant 'acme')
+- ✅ **Per-tenant access**: `https://acme.${DOMAIN}/n8n` routes to BFF (Nginx config ready)
 - ✅ SSO přes Keycloak (multi-realm) funguje
-- ✅ Nginx injects X-Core-Tenant, X-Core-User, X-Core-N8N-Account headers
-- ✅ PostgreSQL database `n8n` vytvořena
-- ✅ **User management enabled**: n8n může vytvářet N user accounts
-- ✅ Logy v Loki s tenant context, Nginx audit trail s X-Core-* headers
+- ✅ Nginx injects X-Core-* headers (tenant, user, n8n account)
+- ✅ PostgreSQL database `n8n` vytvořena s user management enabled
+- ✅ Logy v Loki, Nginx audit trail
 - ✅ Smoke test kontroluje n8n health endpoint
-- ✅ Dokumentace v README (n8n env vars, multi-tenant access, security)
+- ✅ Dokumentace: n8n env vars, multi-tenant URLs, security headers
+
+**NOT in EPIC-007 (see EPIC-011 for business logic):**
+- ❌ Backend BFF proxy implementation (JWT validation, account provisioning)
+- ❌ Core Connector custom node (tenant-scoped API calls)
+- ❌ Workflow templates (Jira sync, AI orchestration, ETL jobs)
 
 ### Fáze 4 – Dokumentace (Week 4, ~12h)
 

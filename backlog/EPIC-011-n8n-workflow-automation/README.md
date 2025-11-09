@@ -1,13 +1,83 @@
 # EPIC-011: n8n Integration & Orchestration Hub
 
 > 🏛️ **DESIGN DECISION:** n8n is a **mandatory core component** of Virelio/Core Platform with **multi-tenant support**.  
-> 📖 **Architecture:** See [`EPIC-007-infrastructure-deployment`](../EPIC-007-infrastructure-deployment/README.md) for infrastructure setup.
+> 📖 **Infrastructure prerequisite:** This EPIC builds on n8n infrastructure deployed in [EPIC-007 Infrastructure & Deployment](../EPIC-007-infrastructure-deployment/README.md).
 
 **Status:** 🔴 **0% IMPLEMENTED** (Week 4-5)  
-**Dependencies:** EPIC-007 (n8n platform deployment), EPIC-006 (optional: WF15 EXTERNAL_TASK executor)  
+**Dependencies:** 
+- **EPIC-007** (n8n platform deployment: Docker, Nginx, Keycloak SSO, PostgreSQL, Loki/Prometheus) ← **REQUIRED**
+- EPIC-006 (optional: WF15 EXTERNAL_TASK executor for n8n → Camunda integration)
+
 **LOC:** ~4,400 (base ~2,600 + multi-tenant ~1,800)  
 **Stories:** 10 (N8N1-N8N10: deployment, SSO, proxy, templates, monitoring, testing, provisioning, routing, isolation, connector)  
 **Roadmap:** Week 4-5 of core platform rollout
+
+---
+
+## 🔗 EPIC-007 Infrastructure Prerequisite
+
+**EPIC-011 assumes n8n infrastructure is deployed and functional per EPIC-007:**
+
+✅ **What EPIC-007 provides (infrastructure layer):**
+- n8n Docker service running (`n8n:5678` internal network)
+- PostgreSQL database `n8n` with user management **ENABLED** (`N8N_USER_MANAGEMENT_DISABLED=false`)
+- Keycloak OIDC clients configured (admin realm + tenant realms)
+- Nginx reverse proxy with SSL termination, per-tenant routing, audit headers
+- Loki log shipping (`{service="n8n"}`)
+- Prometheus metrics scraping
+- Smoke test validation (`make smoke-test-env`)
+
+✅ **How EPIC-007 maps Keycloak realms to n8n:**
+- **Nginx routing**: `https://{tenant}.${DOMAIN}/n8n` → Backend BFF (with X-Core-Tenant header)
+- **Audit headers injected by Nginx**:
+  - `X-Core-Tenant: acme` (z JWT realm claim)
+  - `X-Core-User: designer@acme.com` (z JWT sub)
+  - `X-Core-N8N-Account: tenant-acme` (derived)
+- **Multi-realm SSO**: Keycloak client `n8n-admin-client` (admin realm) + role `CORE_N8N_DESIGNER` (tenant realms)
+
+❌ **What EPIC-007 does NOT provide (business logic in EPIC-011):**
+- Backend BFF proxy implementation (`N8nProxyController`)
+- n8n account provisioning service (auto-create `tenant-{realm}@n8n.local`)
+- Core Connector custom node (tenant-scoped API calls)
+- Workflow templates (Jira sync, AI orchestration, ETL jobs)
+- Integration testing (Playwright E2E for n8n workflows)
+
+**Single sign-on flow (EPIC-007 infra + EPIC-011 BFF logic):**
+
+```
+1. User (tenant 'acme') navigates: https://acme.core-platform.local/n8n
+   ↓
+2. Nginx: SSL termination, auth_request /auth (Keycloak validation)
+   ↓ (if not authenticated)
+3. Keycloak: Redirect to login (realm 'acme'), user logs in
+   ↓
+4. Keycloak: Issues JWT (claims: realm=acme, sub=designer@acme.com, role=CORE_N8N_DESIGNER)
+   ↓
+5. Nginx: Extracts JWT claims, injects headers:
+   - X-Core-Tenant: acme
+   - X-Core-User: designer@acme.com
+   - X-Core-N8N-Account: tenant-acme
+   ↓
+6. Nginx: Proxies to Backend BFF: http://backend:8080/bff/n8n/proxy
+   ↓
+7. **Backend BFF (EPIC-011)**: N8nProxyController
+   - Validates X-Core-Tenant matches JWT realm (security)
+   - Checks if n8n account 'tenant-acme@n8n.local' exists
+   - If NOT exists → auto-creates via n8n REST API (provisioning)
+   - Obtains n8n session token (impersonate account)
+   - Proxies request to n8n:5678 with session cookie
+   - Logs action to Loki: {tenant: "acme", user: "designer@acme.com", action: "view_workflows"}
+   ↓
+8. n8n: Returns workflow editor UI (authenticated as tenant-acme account)
+   ↓
+9. Frontend: User sees n8n workflows owned by tenant 'acme'
+```
+
+**Audit behavior via proxy/logs (NOT n8n fork):**
+- **Per-user audit**: BFF logs every action to Loki with X-Core-User header
+  - Multiple designers (designer1@acme.com, designer2@acme.com) share account `tenant-acme`, but Loki distinguishes their actions
+- **Tenant isolation**: BFF validates X-Core-Tenant header matches JWT realm (403 if mismatch)
+- **n8n remains vanilla**: No custom audit code in n8n itself - all tracking via BFF proxy + Nginx access logs
 
 ---
 
