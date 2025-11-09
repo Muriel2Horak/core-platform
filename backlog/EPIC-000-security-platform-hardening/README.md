@@ -3,1253 +3,608 @@
 **Status:** 🔴 **MASTER REFERENCE** (Continuous)  
 **Priority:** P0 (SECURITY CRITICAL)  
 **Owner:** Security + DevOps + Platform Team  
-**Created:** 9. listopadu 2025
-
-> **MASTER SECURITY EPIC**: Tento dokument je **jediný zdroj pravdy** pro všechna bezpečnostní pravidla v core-platform. Všechny ostatní EPICy se na něj musí odkazovat a dodržovat jeho požadavky.
-
----
-
-## 🎯 Účel
-
-**EPIC-000 sjednocuje všechny security požadavky napříč platformou a definuje závazná pravidla pro:**
-- EPIC-002 (E2E Testing) - security test scenarios
-- EPIC-003 (Monitoring) - audit & alerting
-- EPIC-007 (Infrastructure) - config & secrets management
-- EPIC-011 (n8n Workflow) - integration security
-- EPIC-012 (Vault) - secrets backend
-- EPIC-016 (AI/MCP) - data protection & AI safety
-- EPIC-017 (Modular Architecture) - module isolation
-
-**Není to teoretický "security bla bla" – každé pravidlo je implementovatelné a testovatelné.**
+**Created:** 9. listopadu 2025  
+**Updated:** 9. listopadu 2025 (Konsolidace + alignment)
 
 ---
 
-## 📋 Scope
+## 🎯 Purpose
 
-Tento EPIC pokrývá:
-
-1. **Identity & Access Management** - Keycloak jako jediný IdP
-2. **RBAC & Tenant Isolation** - Multi-tenant access control
-3. **API & Network Security** - HTTPS, rate limiting, CORS
-4. **Secrets & Certificates** - Vault integration, rotation
-5. **Logging & Audit** - Structured logs, audit trails
-6. **External Integrations** - n8n, AI, third-party APIs
-7. **Build & Supply Chain** - Dependency scanning, secret scanning
-8. **Security Testing** - E2E security tests, compliance
+**EPIC-000 je jediný závazný "Security Master Contract" pro celou core-platform.** Definuje bezpečnostní principy, výstupy a kontrolní mechanismy, které VŠECHNY ostatní EPICy musí dodržovat. Nejde o implementační EPIC – konkrétní řešení jsou v navazujících EPICech. Tohle je **rámec a baseline**, proti kterému se všechno měří.
 
 ---
 
-## 🔐 1. Identity & Access Management (Keycloak)
+## 📋 Scope & Návaznosti
 
-### Pravidla
+EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak** to implementovat řeší:
 
-**Keycloak je jediný zdroj identity:**
-- ✅ Každý člověk = uživatelský účet v Keycloaku
-- ✅ Každý backend service / n8n / integrace = service account v Keycloaku
-- ✅ Žádné long-lived tokeny v localStorage pro sensitive operace
-- ✅ Všechny důležité API calls: `access_token` + `audience` / `scope` kontrola
+- **EPIC-002** (E2E Testing) - security test scenarios, regresní testy auth/RBAC/multi-tenant
+- **EPIC-003** (Monitoring & Observability) - security metriky, alerty, audit dashboards
+- **EPIC-007** (Infrastructure & Deployment) - Keycloak deployment, SSL, secrets management, network izolace
+- **EPIC-011** (n8n Workflow Automation) - service account auth, integration security, Vault pro credentials
+- **EPIC-012** (Vault Integration) - secrets storage, rotace, policies (implementuje požadavky EPIC-000 Pillar 3)
+- **EPIC-014** (UX/UI Design System) - security UI komponenty (login, consent, error states)
+- **EPIC-016** (AI/MCP Collaboration) - AI safety, data protection, PII anonymizace
+- **EPIC-017** (Modular Architecture) - module isolation, tenant-scoped plugin registry
 
-### Core Role Definitions
-
-| Role | Scope | Permissions | Use Case |
-|------|-------|-------------|----------|
-| `CORE_ADMIN` | Global | Full platform access, user mgmt, system config | DevOps, platform admin |
-| `TENANT_ADMIN` | Tenant-scoped | Tenant config, user mgmt (own tenant), billing | Organization admin |
-| `INTEGRATION_ADMIN` | Tenant-scoped | n8n workflows, API keys, webhooks | Integration specialist |
-| `METAMODEL_DESIGNER` | Tenant-scoped | Metamodel design, workflow design | Business analyst |
-| `USER` | Tenant-scoped | Read/write data (own tenant), execute workflows | End user |
-| `AUDITOR` | Global (read-only) | Audit logs, compliance reports | Compliance officer |
-| `SERVICE_ACCOUNT` | Service-scoped | API access (specific service) | Backend, n8n, AI |
-
-### Keycloak → Application Mapping
-
-**JWT Claims Structure:**
-```json
-{
-  "sub": "user-uuid",
-  "preferred_username": "john.doe@tenant.com",
-  "realm": "admin",
-  "tenant_id": "tenant-123",
-  "roles": ["TENANT_ADMIN", "METAMODEL_DESIGNER"],
-  "scope": "openid profile email",
-  "audience": ["backend-api", "n8n-api"]
-}
-```
-
-**Backend Permission Check:**
-```java
-@PreAuthorize("hasRole('TENANT_ADMIN') and @tenantService.canAccess(#tenantId)")
-public void updateTenantConfig(String tenantId, ConfigDTO config) {
-    // Implementation
-}
-```
-
-**Multi-Tenant Mapping:**
-- `tenant_id` claim v JWT (povinný pro všechny user requesty)
-- Subdomain → tenant mapping: `tenant-123.core-platform.local` → `tenant_id=tenant-123`
-- Realm per environment: `admin` (dev/staging/prod mají stejnou strukturu)
-
-### Security Requirements
-
-**Frontend:**
-- ❌ NIKDY: `localStorage.setItem('api_key', ...)` nebo long-lived credentials
-- ✅ VŽDY: Authorization Code Flow s PKCE
-- ✅ Token refresh: automatický (silent iframe nebo refresh token)
-- ✅ Logout: clear session + Keycloak logout endpoint
-
-**Backend:**
-- ✅ JWT validation: signature, expiry, issuer, audience
-- ✅ Role extraction: z Keycloak JWT claims
-- ✅ Service accounts: client credentials flow (ne user password!)
-
-**Návaznost na EPICy:**
-- **EPIC-007**: Keycloak deployment, SSL, realm config
-- **EPIC-011**: n8n používá service account s limited scope
-- **EPIC-016**: AI assistant má service account, ne user credentials
+**Tento dokument NEŘEŠÍ:**
+- Konkrétní vendor volby (Vault vs. AWS Secrets Manager, konkrétní WAF)
+- UI/UX design detaily (barvy, layouty, user journeys)
+- Detailní implementační plány (ty jsou v jednotlivých story README)
 
 ---
 
-## 🔒 2. RBAC & Tenant Isolation
+## 🔒 Security Pillars
 
-### Global Rule: Žádný Short-Cut!
+### 1. Identity & Access Management
 
-**Každý request do backendu MUSÍ:**
-1. Extrahovat `tenant_id` z JWT / host / realm
-2. Ověřit že uživatel má přístup KE SVÉMU tenantu
-3. Žádný přístup napříč tenanty (ani přes n8n, ani přes AI, ani přes DMS)
+**Princip:** Keycloak je **jediný IdP** pro celou platformu. Žádný přímý přístup na interní služby bez tokenu od Keycloaku.
 
-### Tenant Isolation Matrix
-
-| Feature | Tenant Check | Implementation |
-|---------|--------------|----------------|
-| **Metamodel** | ✅ Required | `@TenantScoped` annotation, JPA filter |
-| **Workflow Engine** | ✅ Required | Workflow instance tagged with `tenant_id` |
-| **DMS (Documents)** | ✅ Required | S3 bucket prefix: `tenant-123/documents/` |
-| **Loki UI** | ✅ Required | LogQL filter: `{tenant="tenant-123"}` |
-| **Monitoring Dashboards** | ✅ Required | Grafana data source variable: `$tenant_id` |
-| **n8n Workflows** | ✅ Required | Workflow tagged with `tenant_id`, execution context isolated |
-| **Modular Plugins** | ✅ Required | Module registration per tenant, shared code isolated |
-
-### Implementation Examples
-
-**JPA Tenant Filter (Backend):**
-```java
-@Entity
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = "string"))
-@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
-public class WorkflowDefinition {
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
-    // ...
-}
-
-@Component
-public class TenantContext {
-    private static final ThreadLocal<String> currentTenant = new ThreadLocal<>();
-    
-    public static void setTenant(String tenantId) {
-        currentTenant.set(tenantId);
-    }
-    
-    public static String getTenant() {
-        return currentTenant.get();
-    }
-}
-```
-
-**n8n Workflow Execution (Isolated):**
-```typescript
-// n8n custom node: TenantAwareHttpRequest
-async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-  const tenantId = this.getNodeParameter('tenantId', 0) as string;
+#### Keycloak jako Sole IdP
+- **Realms:**
+  - `admin` realm - globální administrace + všechny tenanty (centralizovaný provoz)
+  - Každý tenant = vlastní subdoména, ale **ne** vlastní realm (izolace přes claims, ne realms)
   
-  // Verify workflow's tenant matches execution context
-  if (tenantId !== this.getWorkflow().settings.tenantId) {
-    throw new Error('Tenant mismatch: workflow cannot access other tenants');
-  }
-  
-  const url = `https://backend/api/tenants/${tenantId}/data`;
-  // ... fetch with tenant-scoped token
-}
-```
+- **Role Model:**
 
-**Loki Query (UI Filter):**
-```logql
-{app="backend", tenant="tenant-123"} |= "ERROR"
-```
+  | Role Type | Role Name | Scope | Permissions | Use Case |
+  |-----------|-----------|-------|-------------|----------|
+  | **Platform** | `CORE_ADMIN` | Global | Full platform access, systém config, user mgmt across tenants | DevOps, platform admin |
+  | **Platform** | `CORE_AUDITOR` | Global (read-only) | Audit logs, compliance reports, cross-tenant monitoring | Compliance officer |
+  | **Platform** | `CORE_SUPPORT` | Global (limited) | Read user data (any tenant), no write, no config | Customer support |
+  | **Platform** | `INTEGRATION_ADMIN` | Global | Manage n8n workflows, API keys, service accounts | Integration specialist |
+  | **Tenant** | `TENANT_ADMIN` | Tenant-scoped | Tenant config, user mgmt (own tenant only), billing | Organization admin |
+  | **Tenant** | `TENANT_USER` | Tenant-scoped | Read/write data (own tenant), execute workflows, upload docs | End user |
+  | **Service** | `SERVICE_ACCOUNT` | Service-scoped | API access (specific service, limited scope) | Backend, n8n, AI/MCP |
 
-### Security Requirements
+- **SSO Across Components:**
+  - ✅ Frontend (React) → Authorization Code Flow + PKCE
+  - ✅ Backend BFF (Spring Boot) → Resource Server (JWT validation)
+  - ✅ Admin FE → Same flow as frontend, role check `CORE_ADMIN`
+  - ✅ n8n → Reverse proxy autentizace přes Keycloak (OAuth2 Proxy nebo custom middleware) + dedicated client
+  - ✅ Grafana (optional) → OAuth2 plugin, ale **BEZ tight-coupling** (standalone fallback možný)
 
-**Kontroly pro všechny features:**
-- ✅ Metamodel API: `GET /api/metamodels?tenant={tenant_id}` - jen "svoje" modely
-- ✅ Workflow API: `POST /api/workflows/{id}/execute` - kontrola že workflow patří danému tenantu
-- ✅ DMS API: `GET /api/documents/{id}` - kontrola tenant_id v metadatech dokumentu
-- ✅ Monitoring: Grafana dashboard variables musí filtrovat podle `$tenant_id`
-- ✅ n8n: Workflow nemůže číst/psát data jiného tenanta
+- **Požadavek:** Žádný direct access na DB, Kafka, Redis, Loki, MinIO bez validního Keycloak tokenu. Service accounts pro backend-to-backend komunikaci (Client Credentials flow).
 
-**Testování:**
-- ✅ E2E test: User z `tenant-A` nesmí vidět data z `tenant-B`
-- ✅ Integration test: API vrací 403 Forbidden při pokusu o cross-tenant access
-- ✅ Audit: Každý cross-tenant attempt logován do Loki
+#### Implementace (odkazy na EPICy)
+- **EPIC-007:** Keycloak deployment s SSL, realm config, service account setup
+- **EPIC-011:** n8n používá service account, OAuth2 proxy konfigurace
+- **EPIC-016:** AI/MCP má service account, ne user credentials
 
-**Návaznost na EPICy:**
-- **EPIC-002**: E2E testy zahrnují tenant isolation scenarios
-- **EPIC-005**: Metamodel Studio respektuje tenant scope
-- **EPIC-006**: Workflow Engine izoluje execution context
-- **EPIC-008**: DMS používá tenant-scoped S3 prefixes
-- **EPIC-011**: n8n workflows tagged with tenant_id
-- **EPIC-017**: Modular plugins registered per tenant
+#### Outcomes
+- [ ] Keycloak realm `admin` nakonfigurován s definovanými rolemi (platform + tenant)
+- [ ] Všechny frontend aplikace používají Authorization Code Flow + PKCE
+- [ ] Backend validuje JWT, extrahuje role, no direct DB access bez tokenu
+- [ ] n8n je za reverse proxy s Keycloak auth
+- [ ] Service accounts pro všechny backend-to-backend integrace
 
 ---
 
-## 🔑 3. Secrets & Vault Integration
+### 2. Multitenancy & Isolation
 
-### Pravidla
+**Princip:** Tenant = subdoména + `tenant_id` claim v JWT + data prefix/namespace. **Zero cross-tenant data leak.**
 
-**Všechna hesla, client secrets, API klíče, DB přístupy:**
-- ❌ NIKDY v Gitu (`.env` v `.gitignore`)
-- ❌ NIKDY hardcoded v kódu, Dockerfile, YAML
-- ❌ NIKDY plaintext v n8n workflows
-- ✅ V secrets manageru (Vault nebo kompatibilní backend)
-- ✅ Přístup přes role-based policies
-- ✅ Rotace definovaná (DB, JWT signing keys, API keys)
+#### Tenant Architecture
+- **Identifikace tenanta:**
+  - Subdoména: `tenant-123.core-platform.local` → `tenant_id=tenant-123`
+  - JWT claim: `tenant_id` (povinný pro všechny user requesty, ne service accounts)
+  - Data namespace: DB tabulky s `tenant_id` sloupcem, S3 prefix `tenant-123/`, Loki label `{tenant="tenant-123"}`
 
-### Secret Categories
+- **Tenant Guard (Centralizovaný Filter/Interceptor):**
+  - Kontrola `tenant_id` na **všech BE boundaries:**
+    - REST API endpoints
+    - Kafka message consumption
+    - Loki query execution
+    - n8n workflow callbacks
+  - Implementace: Spring Boot `@Component` + `@ControllerAdvice` nebo servlet filter
+  - Testováno: E2E test "User z tenant-A nesmí vidět data tenant-B"
+
+#### Mandatory Tenant Checks
+
+| Feature | Tenant Check Required | Implementation |
+|---------|----------------------|----------------|
+| **Metamodel API** | ✅ | JPA filter `@FilterDef`, `WHERE tenant_id = :tenantId` |
+| **Workflow Execution** | ✅ | Workflow instance tagged `tenant_id`, execution context izolovaný |
+| **DMS (Documents)** | ✅ | S3 bucket prefix `tenant-123/documents/{file_id}` |
+| **Loki Logs** | ✅ | UI filtruje `{tenant="tenant-123"}`, API vrací jen own tenant logs |
+| **Grafana Dashboards** | ✅ | Data source variable `$tenant_id`, query filtered |
+| **n8n Workflows** | ✅ | Workflow tagged `tenant_id`, nodes validate tenant ownership |
+| **Modular Plugins** | ✅ | Plugin registry per tenant, shared code bez cross-tenant side effects |
+
+#### Separace Logů, Auditů, Reportingu
+- **Loki:** Label `tenant={tenant_id}` na všech logách, UI query vždy s tenant filter
+- **Audit:** Audit events tagged s `tenant_id` + `user_id`, no global audit across tenants
+- **Reporting:** Cube.js queries s `tenant_id` filter, dashboards scoped per tenant
+
+#### Implementace (odkazy na EPICy)
+- **EPIC-002:** E2E testy zahrnují tenant isolation scenarios (negative tests)
+- **EPIC-005:** Metamodel Studio respektuje tenant scope v UI i API
+- **EPIC-006:** Workflow Engine izoluje execution context per tenant
+- **EPIC-008:** DMS používá tenant-scoped S3 prefixes + metadata
+- **EPIC-011:** n8n workflows tagged `tenant_id`, nodes validate ownership
+- **EPIC-017:** Modular plugins registered per tenant
+
+#### Outcomes
+- [ ] Centralizovaný Tenant Guard implementován a aktivní (Spring filter/interceptor)
+- [ ] Všechny DB entity mají `tenant_id` sloupec + JPA filter
+- [ ] S3 buckets používají tenant prefixes
+- [ ] Loki logs tagged `tenant={tenant_id}`
+- [ ] E2E test: cross-tenant isolation verified (403 Forbidden při pokusu o access)
+- [ ] Audit: každý cross-tenant attempt logován do Loki
+
+---
+
+### 3. Secrets & Certificates
+
+**Princip:** Všechny credentials (DB passwords, API keys, JWT signing keys, M365/Google/n8n connectors) **mimo GIT, načítané z env/secret store, rotované, auditované**. TLS všude.
+
+#### Requirements (EPIC-000 definuje, EPIC-012 implementuje)
+
+**EPIC-000 říká "co musí být":**
+- ❌ NIKDY v Gitu: `.env`, SSL private keys, API keys, DB passwords
+- ❌ NIKDY hardcoded v kódu: `password="admin123"`, `apiKey="sk-..."`
+- ✅ VŽDY z env vars nebo secret store (Vault, AWS Secrets Manager, atd.)
+- ✅ Rotace definovaná: DB passwords (90 dní), JWT signing keys (180 dní), API keys (on compromise)
+- ✅ Audit: kdo kdy přistoupil k jakému secretu (Vault audit log)
+
+**EPIC-012 dodává řešení:**
+- Vault deployment (dev/staging/prod)
+- AppRole auth pro backend
+- Secret paths: `secret/data/database`, `secret/data/keycloak`, `secret/data/integrations`
+- Rotation policies + automated rotation (kde možné)
+
+#### Certificates & TLS
+- **Development/Local:**
+  - Self-signed certifikáty OK (generované pomocí `docker/ssl/generate-ssl.sh`)
+  - Wildcard cert `*.core-platform.local`
+  
+- **Production:**
+  - ✅ Důvěryhodná CA (Let's Encrypt nebo podniková CA)
+  - ✅ Automatizovaná obnova (Certbot, cert-manager)
+  - ✅ HTTPS all the way: Nginx front door, backend-to-Keycloak, backend-to-Kafka (optional SASL_SSL)
+
+- **TLS Enforcement:**
+  - Nginx: `ssl_protocols TLSv1.2 TLSv1.3;`
+  - Backend: Spring Boot SSL bundle pro Keycloak komunikaci
+  - Kafka: SASL_SSL pro produkci (dev může být PLAINTEXT)
+
+#### Secret Categories & Rotation
 
 | Category | Examples | Rotation Period | Owner |
 |----------|----------|-----------------|-------|
 | **Database** | `POSTGRES_PASSWORD`, `REDIS_PASSWORD` | 90 dní | DevOps |
 | **Keycloak** | `KEYCLOAK_ADMIN_PASSWORD`, `OIDC_CLIENT_SECRET` | 180 dní | Security team |
-| **SMTP** | `SMTP_PASSWORD` | 180 dní | DevOps |
-| **External APIs** | `OPENAI_API_KEY`, `STRIPE_SECRET_KEY` | On compromise | Integration admin |
+| **External APIs** | `OPENAI_API_KEY`, `M365_CLIENT_SECRET`, `STRIPE_SECRET_KEY` | On compromise | Integration admin |
 | **n8n** | `N8N_ENCRYPTION_KEY`, webhook secrets | 90 dní | Integration admin |
-| **SSL/TLS** | Private keys, CA certs | 365 dní (auto Let's Encrypt) | DevOps |
 | **JWT Signing** | `JWT_SECRET` | 180 dní | Security team |
 
-### Implementation Flow
+#### Implementace (odkazy na EPICy)
+- **EPIC-007:** `.env` v `.gitignore`, SSL certifikáty generované, no hardcoded DB URLs
+- **EPIC-012:** Vault deployment, secret paths, rotation policies, audit logging
 
-```
-Application Startup
-  ↓
-1. Read .env (VAULT_ADDR, VAULT_TOKEN, VAULT_ROLE)
-  ↓
-2. Authenticate to Vault (AppRole or Kubernetes auth)
-  ↓
-3. Fetch secrets from Vault paths:
-   - secret/data/database (DB credentials)
-   - secret/data/keycloak (OAuth2 secrets)
-   - secret/data/integrations (API keys)
-  ↓
-4. Inject into application (Spring Boot properties, env vars)
-  ↓
-5. Runtime: Never log secrets, never return in API responses
-```
+#### Outcomes
+- [ ] `.env` v `.gitignore`, `.env.example` jako template (bez secrets)
+- [ ] Žádné plaintext secrets v Git history (TruffleHog check v CI)
+- [ ] Vault nakonfigurován s AppRole auth (nebo ekvivalent)
+- [ ] Backend načítá secrets z Vault při startupu
+- [ ] n8n credentials uložené ve Vaultu (ne plaintext v workflows)
+- [ ] SSL certifikáty: self-signed pro dev, Let's Encrypt (nebo CA) pro prod
+- [ ] Rotace secrets documented + automated kde možné
 
-**Spring Boot Integration:**
-```yaml
-# application.yml
-spring:
-  cloud:
-    vault:
-      uri: ${VAULT_ADDR:http://vault:8200}
-      authentication: APPROLE
-      app-role:
-        role-id: ${VAULT_ROLE_ID}
-        secret-id: ${VAULT_SECRET_ID}
-      database:
-        enabled: true
-        role: backend-db-role
-        backend: database
-```
+---
 
-**n8n Credential Loading:**
-```typescript
-// n8n custom credential type: VaultBackedCredential
-import { ICredentialType, INodeProperties } from 'n8n-workflow';
+### 4. Network & Boundary Protection
 
-export class VaultBackedOpenAI implements ICredentialType {
-  name = 'vaultBackedOpenAI';
-  displayName = 'OpenAI (Vault)';
+**Princip:** Nginx/API Gateway jako **jediný vstupní bod**. Všechno ostatní internal network only. Rate limiting, security headers, IP allow/deny pro admin.
+
+#### Nginx jako Front Door
+- **Všechny requesty jdou přes Nginx:**
+  - Frontend static files (React build)
+  - Backend API (`/api/*`)
+  - Keycloak (`/realms/*`, `/admin/*`)
+  - Grafana (`/grafana/*`)
+  - n8n webhook endpoints (optional, pokud exposed)
+
+- **Security Headers (Nginx config):**
+  ```nginx
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" always;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  ```
+
+- **Rate Limiting:**
+  - Public endpoints (login, signup): 10 req/min per IP
+  - API endpoints: 100 req/min per user (token-based)
+  - Admin endpoints: 50 req/min + IP allowlist
+
+- **IP Allow/Deny:**
+  - Admin console (`/admin/*`): allowlist (VPN IPs, office IPs)
+  - Public frontend: no IP restrictions
+
+#### Internal Network Isolation
+- ❌ **ZAKÁZÁNO zvenku (direct access):**
+  - PostgreSQL (port 5432) - pouze Docker internal network
+  - Redis (port 6379) - pouze internal
+  - Kafka (port 9092) - pouze internal
+  - MinIO (port 9000) - pouze internal, S3 API přes backend proxy
+  - Loki (port 3100) - pouze internal, UI přes Grafana
+
+- ✅ **Povoleno pouze přes Nginx/Backend:**
+  - Frontend → Nginx → Backend API
+  - Backend → DB/Redis/Kafka (internal network)
+  - Loki UI → Grafana datasource (internal HTTP)
+
+#### Implementace (odkazy na EPICy)
+- **EPIC-007:** Nginx config, SSL termination, upstream definitions, security headers
+- **EPIC-003:** Grafana datasource pro Loki (internal URL)
+
+#### Outcomes
+- [ ] Nginx jediný exposed port (80/443)
+- [ ] DB, Redis, Kafka, MinIO, Loki ne exposed na host (docker-compose `expose` ne `ports`)
+- [ ] Security headers v Nginx config
+- [ ] Rate limiting active na public endpoints
+- [ ] IP allowlist pro admin console
+- [ ] E2E test: direct DB access z venku fails (connection refused)
+
+---
+
+### 5. Logging, Auditing & Observability
+
+**Princip:** Všechny kritické akce **auditovatelné**. Strukturované logy → Loki. Security events filtrovatelné per tenant + user.
+
+#### Audit Requirements (Co Musí Být Logováno)
+- **User Actions:**
+  - Login (success, failed attempts, lockout)
+  - Role changes (add/remove role, permission change)
+  - Tenant management (create tenant, suspend, delete)
   
-  properties: INodeProperties[] = [
-    {
-      displayName: 'Vault Path',
-      name: 'vaultPath',
-      type: 'string',
-      default: 'secret/data/openai',
-      description: 'Path to secret in Vault',
-    },
-  ];
+- **Workflow Actions:**
+  - Workflow execution (start, stop, error)
+  - Metamodel changes (create, update, delete schema)
   
-  async authenticate(credentials: any): Promise<string> {
-    const vaultClient = getVaultClient();
-    const secret = await vaultClient.read(credentials.vaultPath);
-    return secret.data.api_key;
+- **DMS Operations:**
+  - File upload, download, delete
+  - Share/unshare, permission change
+  
+- **Configuration Changes:**
+  - System config update (admin)
+  - Integration config (API keys, webhooks)
+  
+- **n8n Integrations:**
+  - Workflow create/update/delete
+  - External API calls (M365, Google, Jira)
+
+#### Structured Logs → Loki
+- **Format:** JSON (Logback, Winston)
+- **Mandatory Fields:**
+  ```json
+  {
+    "timestamp": "2025-11-09T14:23:45Z",
+    "level": "INFO",
+    "service": "backend",
+    "tenant_id": "tenant-123",
+    "user_id": "user-456",
+    "action": "workflow_executed",
+    "workflow_id": "wf-789",
+    "result": "success",
+    "duration_ms": 234
   }
-}
-```
+  ```
 
-### Security Requirements
+- **Loki Labels:**
+  - `{app="backend", environment="prod", tenant="tenant-123"}`
+  - Umožňuje query: `{app="backend", tenant="tenant-123"} |= "ERROR"`
 
-**Načítání secrets:**
-- ✅ Backend: Spring Cloud Vault nebo Vault Java SDK
-- ✅ n8n: Custom credential types s Vault backend
-- ✅ Frontend: NIKDY! Secrets jen v backendu
-- ✅ CI/CD: GitHub Actions secrets → injektované přes env vars
+#### Security Events (Filtrovatelné)
+- **Per Tenant:** `{tenant="tenant-123", action="login_failed"}`
+- **Per User:** `{user_id="user-456", action="role_changed"}`
+- **Cross-Tenant Attempts:** `{action="cross_tenant_access_denied"}` → trigger alert
 
-**Rotace:**
-- ✅ Automated rotation: Vault dynamic secrets (DB credentials)
-- ✅ Manual rotation: API keys (documented procedure)
-- ✅ Notification: Slack alert 7 days before expiry
+#### Monitoring & Alerts (Odkaz na EPIC-003)
+- **EPIC-000 říká:** Security events musí být monitorovatelné a alertovatelné
+- **EPIC-003 implementuje:** Grafana dashboards, Prometheus alerts, PagerDuty integrace
 
-**Audit:**
-- ✅ Každý Vault access logován (kdo, kdy, jaký secret)
-- ✅ Logy v Loki: `{app="vault-audit"}`
+**Příklad alert:** "10+ failed login attempts za 5 minut → notify security team"
 
-**Návaznost na EPICy:**
-- **EPIC-007**: `.env` management, gitignore rules
-- **EPIC-012**: Vault deployment, policy management, rotation automation
-- **EPIC-011**: n8n Vault-backed credentials
+#### Implementace (odkazy na EPICy)
+- **EPIC-003:** Loki deployment, Grafana datasource, alert rules, dashboards
+- **EPIC-007:** Logback config (backend), Winston config (frontend), Loki appender
 
----
-
-## 🌐 4. API & Network Security
-
-### Pravidla
-
-**HTTPS Everywhere:**
-- ✅ Nginx jako vstupní brána (SSL termination)
-- ✅ Backend internal HTTP OK (Docker network izolovaný)
-- ✅ External APIs: POUZE HTTPS (Let's Encrypt certs)
-
-**Network Segmentation:**
-- ✅ Public tier: Nginx (port 443)
-- ✅ Application tier: Backend, Frontend static (internal)
-- ✅ Data tier: PostgreSQL, Redis, Kafka (internal, ne exposed)
-- ✅ Monitoring tier: Loki, Prometheus, Grafana (internal + auth)
-
-### Nginx Configuration
-
-**Rate Limiting:**
-```nginx
-# /etc/nginx/conf.d/rate-limit.conf
-limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
-
-location /api/ {
-    limit_req zone=api burst=20 nodelay;
-    # ...
-}
-
-location /auth/realms/admin/protocol/openid-connect/token {
-    limit_req zone=login burst=3 nodelay;
-    # ...
-}
-```
-
-**WAF Rules (Basic):**
-```nginx
-# Block SQL injection attempts
-if ($args ~* "(\<|%3C).*script.*(\>|%3E)") {
-    return 403;
-}
-
-if ($query_string ~* "union.*select.*\(") {
-    return 403;
-}
-
-# Block common attack patterns
-location ~ /\. {
-    deny all;
-}
-```
-
-**CORS Policy:**
-```nginx
-# Strict CORS - NO wildcards
-add_header 'Access-Control-Allow-Origin' 'https://admin.core-platform.local' always;
-add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
-add_header 'Access-Control-Max-Age' '3600' always;
-```
-
-### Security Headers
-
-```nginx
-# Security headers (all responses)
-add_header X-Frame-Options "DENY" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-XSS-Protection "1; mode=block" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://admin.core-platform.local;" always;
-add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
-```
-
-### API Endpoint Classification
-
-| Type | Examples | Access Control | Exposure |
-|------|----------|----------------|----------|
-| **Public** | Health checks, static assets | None | Internet |
-| **Authenticated** | `/api/metamodels`, `/api/workflows` | JWT required | Authenticated users |
-| **Admin** | `/api/admin/users`, `/api/admin/tenants` | `CORE_ADMIN` role | Platform admins only |
-| **Internal** | Actuator endpoints, metrics | IP whitelist or mTLS | Internal network only |
-| **Service-to-Service** | n8n → Backend, Backend → Keycloak | Service account + mTLS | Docker network |
-
-### Multi-Tenant Subdomains
-
-**Subdomain Routing:**
-```nginx
-server {
-    server_name ~^(?<tenant>[^.]+)\.core-platform\.local$;
-    
-    location / {
-        # Inject tenant ID into headers
-        proxy_set_header X-Tenant-ID $tenant;
-        proxy_pass http://backend:8080;
-    }
-}
-```
-
-**Backend Tenant Extraction:**
-```java
-@Component
-public class TenantInterceptor implements HandlerInterceptor {
-    @Override
-    public boolean preHandle(HttpServletRequest request, ...) {
-        String tenantId = request.getHeader("X-Tenant-ID");
-        if (tenantId == null) {
-            // Fallback: extract from JWT claim
-            tenantId = extractTenantFromJWT(request);
-        }
-        TenantContext.setTenant(tenantId);
-        return true;
-    }
-}
-```
-
-### Security Requirements
-
-**Endpoint Protection:**
-- ✅ Žádný přímý přístup na Loki, DB, Keycloak admin (pouze přes Nginx)
-- ✅ Frontend NIKDY nevolá interní služby přímo (pouze přes backend API)
-- ✅ Rate limiting na všech public endpoints
-- ✅ CORS: strict allow-list (ne `*`)
-
-**Testování:**
-- ✅ E2E test: Rate limit enforcement (429 Too Many Requests)
-- ✅ E2E test: CORS headers correct
-- ✅ Security scan: No exposed internal ports
-
-**Návaznost na EPICy:**
-- **EPIC-007**: Nginx SSL config, reverse proxy setup
-- **EPIC-003**: Monitoring WAF metrics (blocked requests)
+#### Outcomes
+- [ ] Všechny kritické akce logované do Loki (JSON format)
+- [ ] Loki labels obsahují `tenant`, `user_id`, `action`
+- [ ] Grafana dashboard pro security events (login fails, cross-tenant attempts, role changes)
+- [ ] Alert rule: >10 failed logins za 5 min → notify
+- [ ] E2E test: failed login je vidět v Loki s `action="login_failed"`
 
 ---
 
-## 📊 5. Logging, Audit & Monitoring
+### 6. Secure Development & CI/CD
 
-### Pravidla
+**Princip:** Security checks **v CI pipeline, blokující**, ne optional. No high/critical CVEs, no plaintext secrets v repo.
 
-**Structured Logging:**
-- ✅ JSON format (Loki-friendly)
-- ✅ Citlivá data maskovaná (hesla, API klíče, PII)
-- ✅ Context propagation (tenant_id, user_id, request_id)
+#### Mandatory CI Checks
 
-**Audit Trail:**
-- ✅ Každá změna metamodelu → audit event
-- ✅ Každá změna workflow definice → audit event
-- ✅ Každé spuštění n8n workflow → audit event
-- ✅ Každý upload/delete dokumentu (DMS) → audit event
-- ✅ Každá změna uživatelských oprávnění → audit event
+| Check Type | Tool | Blocker | What It Catches |
+|------------|------|---------|-----------------|
+| **SAST** | CodeQL (GitHub) nebo SpotBugs | ✅ | SQL injection, XSS, unsafe deserialization |
+| **Dependency Scanning** | OWASP Dependency-Check, `npm audit`, `osv-scanner` | ✅ | Known CVEs v dependencies |
+| **Container Scanning** | Trivy, Grype | ✅ | Vulnerable base images, OS packages |
+| **Secrets Scanning** | TruffleHog, GitLeaks | ✅ | API keys, passwords, private keys v Git |
+| **Lint + Format** | ESLint, Prettier (FE), Checkstyle (BE) | ⚠️ | Code style violations (warning, ne blocker) |
 
-**Monitoring:**
-- ✅ Backend, Frontend, Loki, Kafka, DB, Keycloak → metrics exportované
-- ✅ Alerty: error rate, latence, anomálie, security events
-
-### Log Structure
-
-**Backend (Spring Boot):**
-```json
-{
-  "timestamp": "2025-11-09T10:30:45.123Z",
-  "level": "INFO",
-  "logger": "cz.muriel.core.metamodel.MetamodelService",
-  "message": "Metamodel updated",
-  "tenant_id": "tenant-123",
-  "user_id": "user-456",
-  "request_id": "req-789",
-  "metamodel_id": "model-abc",
-  "operation": "UPDATE",
-  "changes": {
-    "fields_added": 3,
-    "fields_removed": 1
-  }
-}
-```
-
-**Sensitive Data Masking:**
-```java
-@Component
-public class LogMaskingConverter extends ClassicConverter {
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile("password\":\"[^\"]+\"");
-    
-    @Override
-    public String convert(ILoggingEvent event) {
-        String message = event.getFormattedMessage();
-        return PASSWORD_PATTERN.matcher(message).replaceAll("password\":\"***MASKED***\"");
-    }
-}
-```
-
-### Audit Events
-
-**Event Types:**
-```typescript
-enum AuditEventType {
-  METAMODEL_CREATED = 'metamodel.created',
-  METAMODEL_UPDATED = 'metamodel.updated',
-  METAMODEL_DELETED = 'metamodel.deleted',
-  WORKFLOW_CREATED = 'workflow.created',
-  WORKFLOW_EXECUTED = 'workflow.executed',
-  WORKFLOW_FAILED = 'workflow.failed',
-  DOCUMENT_UPLOADED = 'document.uploaded',
-  DOCUMENT_DELETED = 'document.deleted',
-  USER_ROLE_CHANGED = 'user.role_changed',
-  TENANT_CONFIG_UPDATED = 'tenant.config_updated',
-  N8N_WORKFLOW_TRIGGERED = 'n8n.workflow_triggered',
-  AI_PROMPT_EXECUTED = 'ai.prompt_executed',
-}
-```
-
-**Audit Event Storage:**
-```sql
-CREATE TABLE audit_events (
-  id UUID PRIMARY KEY,
-  timestamp TIMESTAMPTZ NOT NULL,
-  tenant_id VARCHAR(255) NOT NULL,
-  user_id VARCHAR(255),
-  event_type VARCHAR(100) NOT NULL,
-  resource_type VARCHAR(100),
-  resource_id VARCHAR(255),
-  changes JSONB,
-  metadata JSONB,
-  ip_address INET,
-  user_agent TEXT
-);
-
-CREATE INDEX idx_audit_tenant_time ON audit_events (tenant_id, timestamp DESC);
-CREATE INDEX idx_audit_event_type ON audit_events (event_type, timestamp DESC);
-```
-
-**Loki Labels:**
-```logql
-{
-  app="backend",
-  tenant="tenant-123",
-  level="ERROR",
-  audit="true"
-}
-```
-
-### Monitoring Metrics
-
-**Backend Actuator (Prometheus):**
-```yaml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,prometheus,metrics
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-    tags:
-      application: core-platform-backend
-      tenant: ${TENANT_ID:default}
-```
-
-**Custom Metrics:**
-```java
-@Component
-public class SecurityMetrics {
-    private final Counter authFailures;
-    private final Counter tenantIsolationViolations;
-    
-    public SecurityMetrics(MeterRegistry registry) {
-        this.authFailures = Counter.builder("security.auth.failures")
-            .description("Authentication failures")
-            .tag("type", "jwt_validation")
-            .register(registry);
-            
-        this.tenantIsolationViolations = Counter.builder("security.tenant.violations")
-            .description("Tenant isolation violations detected")
-            .register(registry);
-    }
-}
-```
-
-**Grafana Alerts:**
-```yaml
-# alert-rules.yml
-groups:
-  - name: security
-    interval: 1m
-    rules:
-      - alert: HighAuthFailureRate
-        expr: rate(security_auth_failures_total[5m]) > 10
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High authentication failure rate"
-          
-      - alert: TenantIsolationViolation
-        expr: increase(security_tenant_violations_total[5m]) > 0
-        for: 0m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Tenant isolation violation detected!"
-```
-
-### Security Requirements
-
-**Minimální audit trail:**
-- ✅ Metamodel změny: kdo, kdy, co změnil
-- ✅ Workflow execution: kdo spustil, vstup, výstup, chyby
-- ✅ n8n workflows: trigger source, execution context, API calls
-- ✅ DMS dokumenty: upload, download, delete actions
-- ✅ User management: role změny, přidání/odebrání uživatelů
-
-**Retention:**
-- ✅ Application logs: 30 dní (Loki)
-- ✅ Audit events: 1 rok (PostgreSQL)
-- ✅ Metrics: 90 dní (Prometheus)
-
-**Compliance:**
-- ✅ GDPR: Audit logs obsahují consent events
-- ✅ SOC 2: Immutable audit trail, tamper-evident
-
-**Návaznost na EPICy:**
-- **EPIC-003**: Monitoring & Observability - Loki deployment, Grafana dashboards
-- **EPIC-005**: Metamodel Studio - audit events při změnách
-- **EPIC-006**: Workflow Engine - execution audit trail
-- **EPIC-011**: n8n - workflow execution logging
-
----
-
-## 🔗 6. External Integrations (n8n, AI, APIs)
-
-### Pravidla
-
-**n8n jako Internal Orchestrator:**
-- ✅ n8n běží jako service account (`n8n-service@core-platform.local`)
-- ✅ Všechny API volání přes oficiální backend API (ne přímý DB access)
-- ✅ Secrets POUZE z Vaultu (ne hardcoded v workflow JSON)
-- ✅ Workflow execution auditovaná (kdo spustil, vstup, výstup)
-- ✅ Workflow s AI / externími službami = konfigurovatelné, vypnutelné
-
-### n8n Security Architecture
-
-```
-User/Trigger
-  ↓
-n8n Workflow Execution
-  ↓
-1. Authenticate as service account (Keycloak)
-  ↓
-2. Fetch secrets from Vault (API keys, credentials)
-  ↓
-3. Call Backend API (tenant-scoped)
-  ↓
-4. Log execution to audit trail
-  ↓
-5. Return result (no secrets in response)
-```
-
-**n8n Service Account:**
-```json
-{
-  "clientId": "n8n-service",
-  "clientSecret": "${VAULT:secret/n8n/client-secret}",
-  "serviceAccountsEnabled": true,
-  "roles": ["INTEGRATION_SERVICE"],
-  "scope": ["backend-api:read", "backend-api:write"]
-}
-```
-
-**Workflow Security Context:**
-```typescript
-interface WorkflowSecurityContext {
-  tenantId: string;           // Workflow belongs to tenant
-  executedBy: string;         // User or trigger source
-  allowedApis: string[];      // Whitelist of callable APIs
-  secretsScope: string[];     // Vault paths accessible
-  maxExecutionTime: number;   // Timeout (prevent runaway)
-}
-```
-
-### AI & LLM Integration
-
-**Data Protection Rules:**
-- ❌ NIKDY neposílat PII do AI bez policy checku
-- ❌ NIKDY celý DB dump do LLM
-- ✅ Anonymizace kde to dává smysl (hash user IDs, mask emails)
-- ✅ Allow-list pro AI endpoints (OpenAI, Anthropic, Azure OpenAI)
-- ✅ Rate limiting pro AI calls (cost control)
-
-**AI Safety Policy:**
-```yaml
-# config/ai-safety-policy.yml
-ai:
-  providers:
-    openai:
-      enabled: true
-      models: ['gpt-4', 'gpt-3.5-turbo']
-      max_tokens: 4000
-      rate_limit: 100/hour/tenant
-    anthropic:
-      enabled: false  # Disabled for now
-      
-  data_protection:
-    pii_detection: true
-    anonymization: true
-    allowed_fields:
-      - metamodel.name
-      - metamodel.description
-    blocked_fields:
-      - user.email
-      - user.phone
-      - document.content  # Unless explicitly allowed
-      
-  audit:
-    log_prompts: true
-    log_responses: true
-    retention_days: 90
-```
-
-**Metamodel + AI Integration:**
-```typescript
-// MCP Server: Metamodel Tools
-async function getMetamodelSchema(tenantId: string, modelId: string): Promise<Schema> {
-  // 1. Verify tenant access
-  if (!canAccessTenant(tenantId)) {
-    throw new Error('Unauthorized');
-  }
+#### Blocking Conditions
+- ❌ **CI FAIL pokud:**
+  - High nebo Critical CVE v dependency
+  - Plaintext secret detected v Git
+  - SAST najde SQL injection, XSS, nebo unsafe deserializace
+  - Container image má critical vulnerability
   
-  // 2. Fetch schema (structure only, no data)
-  const schema = await fetchMetamodel(tenantId, modelId);
-  
-  // 3. Anonymize sensitive fields
-  return anonymizeSchema(schema, ['createdBy', 'modifiedBy']);
-}
-```
+- ⚠️ **CI WARNING (ne fail) pokud:**
+  - Medium CVE (review required, ale ne auto-block)
+  - Code style violation (ESLint)
 
-### Third-Party API Security
+#### E2E Security Tests (Odkaz na EPIC-002)
+- **EPIC-000 požaduje:** Bezpečnostní scénáře v E2E testech
+- **EPIC-002 implementuje:** Story E2E17-security-negative-scenarios
+  - Auth bypass attempts (401, 403 expected)
+  - RBAC violations (user bez role nesmí access admin endpoint)
+  - Multi-tenant isolation (user z tenant-A nesmí vidět data tenant-B)
+  - CSRF protection (missing token → 403)
 
-**API Key Management:**
-```typescript
-// n8n custom node: SecureApiCall
-export class SecureApiCall implements INodeType {
-  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-    const apiKeyPath = this.getNodeParameter('vaultPath', 0) as string;
-    
-    // 1. Fetch API key from Vault
-    const apiKey = await this.helpers.getCredential('vaultBackedApiKey', apiKeyPath);
-    
-    // 2. Validate allow-list
-    const url = this.getNodeParameter('url', 0) as string;
-    if (!isAllowedDomain(url)) {
-      throw new Error(`Domain ${url} not in allow-list`);
-    }
-    
-    // 3. Make request with audit logging
-    const response = await this.helpers.request({
-      url,
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-    });
-    
-    // 4. Audit log
-    await logAuditEvent({
-      type: 'EXTERNAL_API_CALL',
-      url,
-      tenantId: this.getWorkflow().settings.tenantId,
-    });
-    
-    return response;
-  }
-}
-```
+#### Implementace (odkazy na EPICy)
+- **EPIC-002:** E2E security scenarios (E2E17 story)
+- **EPIC-007:** CI pipeline definice (GitHub Actions workflow)
 
-**Domain Allow-List:**
-```typescript
-const ALLOWED_EXTERNAL_DOMAINS = [
-  'api.openai.com',
-  'api.anthropic.com',
-  'api.stripe.com',
-  'hooks.slack.com',
-  // Tenant-specific (from config)
-  ...getTenantAllowedDomains(tenantId)
-];
-
-function isAllowedDomain(url: string): boolean {
-  const domain = new URL(url).hostname;
-  return ALLOWED_EXTERNAL_DOMAINS.includes(domain);
-}
-```
-
-### Security Requirements
-
-**n8n:**
-- ✅ Service account autentizace (Keycloak)
-- ✅ Secrets z Vaultu (ne hardcoded)
-- ✅ Tenant isolation (workflow execution context)
-- ✅ Audit trail (každé spuštění logováno)
-- ✅ Rate limiting (prevent abuse)
-
-**AI:**
-- ✅ PII detection before sending to LLM
-- ✅ Anonymization kde možno
-- ✅ Allow-list AI providers
-- ✅ Cost tracking (token usage per tenant)
-- ✅ Prompt + response logging (compliance)
-
-**Testování:**
-- ✅ E2E test: n8n workflow nemůže volat nepovolené API
-- ✅ E2E test: AI call s PII je blokován
-- ✅ Integration test: Secrets loaded z Vaultu (ne env vars)
-
-**Návaznost na EPICy:**
-- **EPIC-011**: n8n deployment, custom nodes, Vault integration
-- **EPIC-016**: AI/MCP server, prompt safety, data protection
-- **EPIC-012**: Vault secret management for API keys
+#### Outcomes
+- [ ] GitHub Actions workflow s SAST, dependency scan, container scan, secrets scan
+- [ ] CI fails pokud high/critical CVE detected
+- [ ] TruffleHog pre-commit hook (optional, recommended)
+- [ ] E2E security tests (E2E17) v rámci post-deploy testu
+- [ ] Security scan report v každém PR (GitHub Security tab)
 
 ---
 
-## 🛡️ 7. Build & Supply Chain Security
+### 7. Integration Security (n8n, AI/MCP, External Connectors)
 
-### Pravidla
+**Princip:** n8n za reverse proxy, auth přes Keycloak. AI/MCP bez production secrets/PII bez anonymizace. External connectors přes service accounts, secrets ve Vaultu.
 
-**Dependency Scanning:**
-- ✅ OWASP Dependency Check (Java backend)
-- ✅ npm audit (Frontend)
-- ✅ Trivy (Docker image scanning)
-- ✅ CI pipeline blokuje CRITICAL CVEs
+#### n8n Security Architecture
 
-**Secret Scanning:**
-- ✅ GitLeaks pre-commit hook
-- ✅ GitHub Secret Scanning (repo level)
-- ✅ CI check: fail pokud secret leak
+**n8n NIKDY ne direct exposed:**
+- ✅ Vždy za reverse proxy (Nginx nebo OAuth2 Proxy)
+- ✅ Autentizace přes Keycloak/OpenID
+  - OAuth2 Proxy (`oauth2-proxy`) před n8n UI
+  - n8n API calls: `Authorization: Bearer {keycloak_token}`
+  
+- ✅ Limited internal API access:
+  - n8n může volat backend API jen přes BFF (ne direct DB access)
+  - Backend ověří token, extrahuje `tenant_id`, aplikuje tenant guard
+  
+- ✅ Service account pro n8n:
+  - Keycloak client `n8n-service-account` (Client Credentials flow)
+  - Scope: `workflow:execute`, `api:read`, `api:write` (limited, ne admin)
+  
+- ❌ Zakázáno:
+  - n8n direct access na PostgreSQL
+  - n8n execute arbitrary SQL
+  - n8n workflows bez tenant tagging
 
-**Image Provenance:**
-- ✅ Signed Docker images (cosign nebo Docker Content Trust)
-- ✅ SBOM (Software Bill of Materials) generovaný
-- ✅ Image tags: semantic versioning (ne `latest`)
+#### AI/MCP Security
 
-### CI/CD Security Pipeline
+**AI Gateway / Policy Layer (Princip):**
+- **EPIC-000 říká:** Všechny AI requesty musí jít přes "AI Gateway" nebo policy layer
+- **EPIC-016 implementuje:** Konkrétní implementace (proxy, rate limiting, PII detection)
 
-```yaml
-# .github/workflows/security.yml
-name: Security Checks
+**Requirements:**
+- ❌ NIKDY production secrets do AI bez explicitní anonymizace:
+  - API keys, DB passwords, user emails → anonymizované nebo redacted
+  - PII (jména, adresy, čísla karet) → detekované a blokovány
+  
+- ✅ AI Gateway kontroluje:
+  - Rate limiting (10 req/min per user)
+  - Allow-list pro AI integrations (OpenAI, Claude, local LLM)
+  - PII detection (regex, NER model)
+  - Audit log: kdo kdy volal AI s jakým promptem
+  
+- ✅ Service account pro AI/MCP:
+  - Keycloak client `ai-mcp-service-account`
+  - Scope: `ai:query`, `mcp:read` (limited)
 
-on: [push, pull_request]
+#### External Connectors (M365, Google, Jira, Stripe, ...)
 
-jobs:
-  secret-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: GitLeaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-  dependency-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: OWASP Dependency Check
-        run: |
-          cd backend
-          ./mvnw dependency-check:check
-      - name: Upload Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: dependency-check-report
-          path: backend/target/dependency-check-report.html
-          
-  image-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build Image
-        run: docker build -t core-platform/backend:${{ github.sha }} .
-      - name: Trivy Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: core-platform/backend:${{ github.sha }}
-          severity: CRITICAL,HIGH
-          exit-code: 1  # Fail on findings
-          
-  sbom-generation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Generate SBOM
-        run: |
-          syft core-platform/backend:${{ github.sha }} -o spdx-json > sbom.json
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v3
-        with:
-          name: sbom
-          path: sbom.json
-```
+**Všechny external integrace přes service accounts:**
+- ✅ M365: Azure AD service principal, client secret ve Vaultu
+- ✅ Google Workspace: Service account JSON key ve Vaultu
+- ✅ Jira: API token ve Vaultu
+- ✅ Stripe: Secret key ve Vaultu
 
-### Dependency Management
+**Audit všech volání:**
+- Loki log: `{action="external_api_call", service="m365", user_id="..."}`
+- Obsahuje: endpoint, method, response status, duration
 
-**Backend (Maven):**
-```xml
-<!-- pom.xml -->
-<build>
-  <plugins>
-    <plugin>
-      <groupId>org.owasp</groupId>
-      <artifactId>dependency-check-maven</artifactId>
-      <version>8.4.0</version>
-      <configuration>
-        <failBuildOnCVSS>7</failBuildOnCVSS>  <!-- Fail on HIGH severity -->
-        <suppressionFiles>
-          <suppressionFile>owasp-suppressions.xml</suppressionFile>
-        </suppressionFiles>
-      </configuration>
-    </plugin>
-  </plugins>
-</build>
-```
+#### Implementace (odkazy na EPICy)
+- **EPIC-011:** n8n deployment za OAuth2 Proxy, service account config, Vault credentials
+- **EPIC-012:** Vault paths pro external connector secrets
+- **EPIC-016:** AI Gateway implementace, PII detection, rate limiting
 
-**Frontend (npm):**
-```json
-{
-  "scripts": {
-    "audit": "npm audit --audit-level=high",
-    "audit:fix": "npm audit fix"
-  }
-}
-```
-
-**Pre-Commit Hooks (Lefthook):**
-```yaml
-# lefthook.yml
-pre-commit:
-  commands:
-    gitleaks:
-      run: gitleaks protect --staged --verbose
-    dependency-check:
-      glob: "{pom.xml,package.json}"
-      run: make security-check
-```
-
-### Docker Image Hardening
-
-**Multi-Stage Build:**
-```dockerfile
-# Backend Dockerfile (security-hardened)
-FROM eclipse-temurin:21-jre-alpine AS runtime
-
-# Non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Copy only necessary artifacts
-COPY --chown=appuser:appgroup target/backend.jar /app/backend.jar
-
-# Drop privileges
-USER appuser
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
-
-ENTRYPOINT ["java", "-jar", "/app/backend.jar"]
-```
-
-**Image Signing (Cosign):**
-```bash
-# Sign image after build
-cosign sign --key cosign.key core-platform/backend:v1.2.3
-
-# Verify before deployment
-cosign verify --key cosign.pub core-platform/backend:v1.2.3
-```
-
-### Security Requirements
-
-**CI/CD Gates:**
-- ✅ Secret scan PASS (no leaks)
-- ✅ Dependency scan PASS (no CRITICAL CVEs)
-- ✅ Image scan PASS (no HIGH/CRITICAL vulnerabilities)
-- ✅ SBOM generated and attached to release
-
-**Build Artifacts:**
-- ✅ Docker images: semantic versioning (`v1.2.3`, ne `latest`)
-- ✅ Signed images (verifiable provenance)
-- ✅ SBOM (CycloneDX nebo SPDX format)
-
-**Monitoring:**
-- ✅ Dependabot alerts (GitHub)
-- ✅ Weekly dependency review
-- ✅ Incident response plan for zero-day CVEs
-
-**Návaznost na EPICy:**
-- **EPIC-002**: E2E tests zahrnují security scans
-- **EPIC-007**: Dockerfile hardening, image build process
+#### Outcomes
+- [ ] n8n za OAuth2 Proxy, autentizace přes Keycloak
+- [ ] n8n service account v Keycloaku (Client Credentials flow)
+- [ ] n8n credentials (M365, Google, Jira) uložené ve Vaultu (ne plaintext)
+- [ ] AI Gateway/policy layer implementován (rate limiting, PII detection)
+- [ ] AI service account v Keycloaku
+- [ ] Audit log: všechny external API calls logované do Loki
+- [ ] E2E test: n8n workflow s Vault credential úspěšně vykoná external API call
 
 ---
 
-## 🧪 8. Security Testing & Definition of Done
+### 8. Threat Model & OWASP Alignment
 
-### Minimální DoD pro Feature / EPIC
+**Princip:** Cíl je **OWASP Top 10, CIS Benchmarks, Zero Trust foundation**. Explicitní coverage hlavních attack vectors.
 
-Každý feature merge MUSÍ splňovat:
+#### OWASP Top 10 Coverage
 
-**1. Žádný Secret Leak**
-- ✅ GitLeaks pre-commit check PASS
-- ✅ No hardcoded API keys, passwords, tokens v diffu
-- ✅ `.env` changes reviewed (no real secrets)
+| OWASP Risk | Protection Mechanism | Implementation |
+|------------|---------------------|----------------|
+| **A01: Broken Access Control** | Keycloak RBAC, tenant guard, `@PreAuthorize` | EPIC-000 Pillar 1, 2 |
+| **A02: Cryptographic Failures** | TLS everywhere, Vault pro secrets, bcrypt passwords | EPIC-000 Pillar 3, 4 |
+| **A03: Injection** | Prepared statements (JPA), no string SQL, input validation | Backend coding standards |
+| **A04: Insecure Design** | Threat modeling, security reviews v PR | EPIC-000 + EPIC-002 |
+| **A05: Security Misconfiguration** | `.env` v `.gitignore`, no default passwords, automated config checks | EPIC-007, EPIC-012 |
+| **A06: Vulnerable Components** | Dependency scanning (OWASP Dep-Check, osv), CI blocks high CVEs | EPIC-000 Pillar 6 |
+| **A07: Identification & Auth Failures** | Keycloak, MFA (optional), account lockout, no weak passwords | EPIC-000 Pillar 1 |
+| **A08: Software & Data Integrity** | Container signing (optional), Git commit signing (optional) | Future EPIC |
+| **A09: Logging & Monitoring Failures** | Structured logs → Loki, audit trail, alerts | EPIC-000 Pillar 5, EPIC-003 |
+| **A10: SSRF** | URL allowlist, no user-controlled URLs v backend fetch | Backend coding standards |
 
-**2. RBAC & Tenant Isolation Tested**
-- ✅ Unit test: User z `tenant-A` nesmí vidět data z `tenant-B`
-- ✅ Integration test: API vrací 403 Forbidden při cross-tenant access
-- ✅ E2E test: UI zakáže cross-tenant actions
+#### Specific Attack Vector Guards
 
-**3. Logy Neobsahují Citlivá Data**
-- ✅ Manual review: Logy nemaskují PII (emails, phones, API keys)
-- ✅ Automated check: Regex scan pro common secrets patterns
+**Injection Guard:**
+- ✅ Backend: JPA/Hibernate (prepared statements), no `EntityManager.createNativeQuery(userInput)`
+- ✅ Frontend: No `eval()`, no `dangerouslySetInnerHTML` s user input
+- ✅ SQL: Všechny queries přes JPA Criteria API nebo `@Query` s parametry
 
-**4. Externí Integrace = Auditované & Limited**
-- ✅ n8n workflow: secrets z Vaultu (ne hardcoded)
-- ✅ AI call: PII detection enabled
-- ✅ API call: domain allow-list enforced
-- ✅ Audit event logován do Loki
+**XSS Guard:**
+- ✅ CSP header: `script-src 'self'` (no inline scripts kromě whitelistu)
+- ✅ React: automatický escaping (default behavior)
+- ✅ No `innerHTML` s user input
 
-**5. E2E Security Tests PASS**
-- ✅ Authentication flow (login, token refresh, logout)
-- ✅ Authorization (role-based access control)
-- ✅ Tenant isolation (cross-tenant blocked)
-- ✅ Rate limiting (429 after threshold)
-- ✅ CORS (correct headers)
+**CSRF Guard:**
+- ✅ Same-Site cookies: `SameSite=Strict` pro session cookies
+- ✅ CSRF tokens v forms (Spring Security default)
+- ✅ Double-submit cookie pattern (optional)
 
-### E2E Security Test Suite
+**Secure File Upload (DMS):**
+- ✅ Content-Type validation (ne jen extension check)
+- ✅ File size limit (např. 100MB)
+- ✅ Antivirus scan (ClamAV nebo cloud service) před uložením do S3
+- ✅ S3 bucket public access DISABLED
 
-**Test Categories:**
+**Rate Limiting + Brute-Force Protection:**
+- ✅ Login endpoint: max 5 failed attempts → account lockout 15 min
+- ✅ Nginx rate limiting: 10 req/min na `/auth/login`
+- ✅ API rate limiting: 100 req/min per user token
 
-| Category | Test Count | Examples |
-|----------|------------|----------|
-| **Authentication** | 5 | Login success, invalid credentials, token expiry, refresh flow, logout |
-| **Authorization** | 8 | Role-based access, tenant isolation, cross-tenant blocked, admin-only endpoints |
-| **API Security** | 6 | Rate limiting, CORS, SQL injection, XSS, CSRF |
-| **Secrets** | 4 | No secrets in response, Vault integration, rotation trigger |
-| **Audit** | 3 | Audit event created, audit log query, retention |
+#### CIS Benchmarks & Zero Trust
 
-**Example E2E Test (Playwright):**
-```typescript
-// e2e/specs/security/tenant-isolation.spec.ts
-test('User cannot access other tenant data', async ({ page, request }) => {
-  // Login as user from tenant-A
-  await loginAsUser(page, 'user-tenant-a@example.com', 'Test.1234');
-  
-  // Get tenant-A metamodel (should succeed)
-  const tenantAModel = await request.get('/api/metamodels/model-123', {
-    headers: { 'X-Tenant-ID': 'tenant-a' }
-  });
-  expect(tenantAModel.status()).toBe(200);
-  
-  // Try to access tenant-B metamodel (should fail)
-  const tenantBModel = await request.get('/api/metamodels/model-456', {
-    headers: { 'X-Tenant-ID': 'tenant-b' }
-  });
-  expect(tenantBModel.status()).toBe(403);
-  
-  // Verify audit event logged
-  const auditLogs = await request.get('/api/admin/audit', {
-    params: { event_type: 'TENANT_ISOLATION_VIOLATION' }
-  });
-  expect(auditLogs.json()).toHaveLength(1);
-});
-```
+**CIS Docker Benchmark:**
+- ✅ Non-root users v containers
+- ✅ Read-only root filesystems (kde možné)
+- ✅ Minimal base images (alpine, distroless)
+- ✅ No privileged containers
 
-**Example Security Test (Rate Limiting):**
-```typescript
-test('API enforces rate limiting', async ({ request }) => {
-  const requests = [];
-  
-  // Send 15 requests rapidly (limit is 10/s)
-  for (let i = 0; i < 15; i++) {
-    requests.push(request.get('/api/health'));
-  }
-  
-  const responses = await Promise.all(requests);
-  
-  // First 10 should succeed
-  expect(responses.slice(0, 10).every(r => r.status() === 200)).toBe(true);
-  
-  // Remaining should be rate-limited
-  expect(responses.slice(10).some(r => r.status() === 429)).toBe(true);
-});
-```
+**Zero Trust Principles:**
+- ✅ "Never trust, always verify" - každý request autentizovaný + autorizovaný
+- ✅ Least privilege - service accounts mají jen nutné scope
+- ✅ Micro-segmentation - internal network isolation (DB, Kafka ne exposed)
 
-### Compliance Checklist
+#### Implementace (odkazy na EPICy)
+- **EPIC-002:** Security negative tests (injection, XSS, CSRF attempts)
+- **EPIC-007:** CIS Docker benchmarks v Dockerfile
+- **EPIC-008:** DMS antivirus scan, file type validation
 
-**GDPR:**
-- ✅ User consent tracking (audit trail)
-- ✅ Right to deletion (cascade delete user data)
-- ✅ Data export (API endpoint pro user data)
-- ✅ PII minimization (only collect necessary data)
-
-**SOC 2:**
-- ✅ Immutable audit logs (write-only, no delete)
-- ✅ Access controls tested (RBAC verified)
-- ✅ Encryption in transit (HTTPS everywhere)
-- ✅ Encryption at rest (DB, S3 buckets)
-
-**ISO 27001:**
-- ✅ Security policy documented (tento EPIC)
-- ✅ Risk assessment (vulnerability scanning)
-- ✅ Incident response plan (runbook)
-
-### Security Requirements
-
-**Každý PR musí:**
-- ✅ Pass GitLeaks (no secrets)
-- ✅ Pass dependency scan (no CRITICAL CVEs)
-- ✅ Include security test coverage (pokud mění auth/RBAC/API)
-
-**Každý EPIC musí:**
-- ✅ Mít "Security Alignment" sekci v README
-- ✅ Reference na EPIC-000 pravidla
-- ✅ DoD zahrnuje security checks
-
-**Návaznost na EPICy:**
-- **EPIC-002**: E2E Testing - security test scenarios
-- **EPIC-007**: Infrastructure - hardening checklist
+#### Outcomes
+- [ ] OWASP Top 10 coverage documented v README
+- [ ] Prepared statements všude (no string SQL from UI)
+- [ ] CSP header active, no inline scripts
+- [ ] CSRF tokens v forms
+- [ ] DMS: antivirus scan active, content-type validation
+- [ ] Rate limiting na login endpoint (max 5 attempts)
+- [ ] CIS Docker benchmark compliance (non-root users, minimal images)
+- [ ] E2E test: injection attempt → 400 Bad Request, XSS attempt → escaped output
 
 ---
 
-## 📚 Security Alignment v Ostatních EPICech
+## � Deliverables / Definition of Done
 
-Každý EPIC MUSÍ mít sekci **"Security Alignment"**, která říká:
-- Jak tento EPIC respektuje EPIC-000
-- Jaké konkrétní security pravidlo přebírá
+**EPIC-000 je splněný, když:**
 
-### Template pro Security Alignment
+1. **Keycloak Configuration + Role Model**
+   - [ ] Keycloak realm `admin` nakonfigurován
+   - [ ] Role model documented: platform roles (CORE_ADMIN, CORE_AUDITOR, CORE_SUPPORT) + tenant roles (TENANT_ADMIN, TENANT_USER)
+   - [ ] Service accounts vytvořené: `backend-service-account`, `n8n-service-account`, `ai-mcp-service-account`
 
-```markdown
-## 🔒 Security Alignment (EPIC-000)
+2. **Security Policies Documented**
+   - [ ] Tento README.md je single source of truth pro security baseline
+   - [ ] Coding standards zahrnují security best practices (prepared statements, no eval, input validation)
+   - [ ] PR checklist obsahuje security review položky
 
-**Tento EPIC dodržuje následující pravidla z [EPIC-000](../EPIC-000-security-platform-hardening/README.md):**
+3. **CI Pipeline s Security Checks**
+   - [ ] GitHub Actions workflow s SAST, dependency scan, container scan, secrets scan
+   - [ ] CI blokuje PR při high/critical CVE nebo detected secret
+   - [ ] Security scan report v každém PR (GitHub Security tab nebo Markdown report)
 
-### Identity & Access Management
-- ✅ Používá Keycloak jako jediný IdP
-- ✅ Service accounts pro integrace
-- ✅ Žádné long-lived tokeny v kódu
+4. **Audit Logs v Klíčových Bodech**
+   - [ ] Login (success, failed), role changes, tenant management logované do Loki
+   - [ ] Workflow execution, DMS operations, config changes logované
+   - [ ] Cross-tenant access attempts logované + alert triggered
 
-### RBAC & Tenant Isolation
-- ✅ Všechny API requesty: tenant_id kontrola
-- ✅ Data scoped per tenant (JPA filter, S3 prefix, atd.)
+5. **Multi-Tenant Boundary Tests Verified**
+   - [ ] E2E test: user z tenant-A nesmí vidět data tenant-B (403 Forbidden)
+   - [ ] E2E test: API s `tenant_id=tenant-B` v JWT vrací 403 pokud request z tenant-A
+   - [ ] Tenant Guard filter active a testovaný
 
-### Secrets Management
-- ✅ Secrets načítány z Vaultu (ne .env hardcoded)
-- ✅ Rotace definovaná (90-day cycle pro DB credentials)
+6. **Secrets Management Operational**
+   - [ ] Vault deployed (dev/staging/prod) nebo ekvivalent
+   - [ ] Backend načítá DB credentials, Keycloak secrets, external API keys z Vaultu
+   - [ ] `.env` v `.gitignore`, žádné plaintext secrets v Git history
 
-### Logging & Audit
-- ✅ Strukturované logy (JSON, Loki)
-- ✅ Audit trail: všechny změny logované
+7. **Network Security Active**
+   - [ ] Nginx jediný exposed port, DB/Redis/Kafka/Loki internal only
+   - [ ] Security headers v Nginx config (CSP, HSTS, X-Frame-Options)
+   - [ ] Rate limiting active na public endpoints
 
-### Testing
-- ✅ E2E security tests: [odkaz na test specs]
-- ✅ DoD zahrnuje security checklist
-```
+8. **Integration Security Enforced**
+   - [ ] n8n za OAuth2 Proxy, autentizace přes Keycloak
+   - [ ] AI Gateway/policy layer implementován (rate limiting, PII detection)
+   - [ ] External connectors (M365, Google, Jira) používají service accounts + Vault credentials
 
----
-
-## 🔗 EPIC Dependencies
-
-**EPIC-000 poskytuje pravidla pro:**
-
-| EPIC | Security Requirement | Implementation |
-|------|----------------------|----------------|
-| **EPIC-002** | E2E security tests | Authentication, RBAC, tenant isolation test scenarios |
-| **EPIC-003** | Monitoring & alerts | Security metrics (auth failures, tenant violations), alerting |
-| **EPIC-007** | Infrastructure hardening | .env management, Nginx WAF, SSL config |
-| **EPIC-011** | n8n security | Service account auth, Vault secrets, audit logging |
-| **EPIC-012** | Vault integration | Secret storage, rotation, policy management |
-| **EPIC-016** | AI safety | PII detection, anonymization, allow-list |
-| **EPIC-017** | Module isolation | Plugin tenant scoping, module permissions |
-
-**EPIC-000 závisí na:**
-- **EPIC-007**: Keycloak deployment, Nginx config, SSL setup
-- **EPIC-012**: Vault backend pro secrets management
+9. **OWASP Top 10 Coverage**
+   - [ ] Injection guard (prepared statements), XSS guard (CSP), CSRF guard (tokens)
+   - [ ] Secure file upload (antivirus, content-type validation)
+   - [ ] Brute-force protection (rate limiting, lockout)
 
 ---
 
-## 📝 Implementation Roadmap
+## 🚫 Non-Goals
 
-### Phase 1: Foundation (Week 1-2)
-- ✅ Keycloak role model defined (core roles documented)
-- ✅ Tenant isolation JPA filters (backend)
-- ✅ Security headers (Nginx config)
-- ✅ GitLeaks pre-commit hook
+**EPIC-000 NEŘEŠÍ:**
 
-### Phase 2: Secrets & Vault (Week 3-4)
-- 🔵 Vault integration (EPIC-012)
-- 🔵 Secret rotation automation (DB credentials)
-- 🔵 n8n Vault-backed credentials
+1. **Konkrétní Vendor Volby:**
+   - Ne: "Musíme použít HashiCorp Vault" (může být AWS Secrets Manager, Azure Key Vault, atd.)
+   - Ano: "Musíme mít secrets storage s rotací a audit logem"
 
-### Phase 3: Monitoring & Audit (Week 5-6)
-- 🔵 Audit event schema (PostgreSQL table)
-- 🔵 Structured logging (backend + n8n)
-- 🔵 Security metrics (Prometheus + Grafana)
+2. **UI/UX Design Detaily:**
+   - Ne: "Login form má mít modrou tlačítko 48px high"
+   - Ano: "Login form musí podporovat Keycloak Authorization Code Flow + PKCE"
 
-### Phase 4: Testing & Compliance (Week 7-8)
-- 🔵 E2E security test suite (Playwright)
-- 🔵 CI/CD security gates (dependency scan, image scan)
-- 🔵 Compliance documentation (GDPR, SOC 2)
+3. **Implementační Plány Jednotlivých EPICů:**
+   - Ne: "EPIC-012 Vault má 15 stories, tady jsou všechny"
+   - Ano: "EPIC-012 implementuje secrets storage requirements z EPIC-000 Pillar 3"
 
----
+4. **Produkční Vendor-Specific Konfigurace:**
+   - Ne: "Let's Encrypt certbot config pro produkční cluster"
+   - Ano: "Produkce musí mít důvěryhodnou CA, self-signed jen pro dev"
 
-## 🎯 Success Criteria
-
-**EPIC-000 je úspěšný pokud:**
-
-1. ✅ **Všechny EPICy mají "Security Alignment" sekci**
-2. ✅ **Zero secrets v Git** (GitLeaks clean history)
-3. ✅ **Tenant isolation 100%** (E2E testy pass)
-4. ✅ **Vault integration** (všechny secrets z Vault, ne .env)
-5. ✅ **Audit trail complete** (metamodel, workflow, DMS, users)
-6. ✅ **CI/CD security gates** (dependency scan, secret scan, image scan)
-7. ✅ **E2E security tests** (auth, RBAC, rate limit, CORS)
-8. ✅ **Compliance-ready** (GDPR, SOC 2 documentation)
+5. **Detailní Compliance Audity:**
+   - Ne: "SOC 2 Type II audit report template"
+   - Ano: "Audit logs musí být dostupné pro compliance review"
 
 ---
 
-## 📖 References
+## 📚 References
 
-- **EPIC-002**: [E2E Testing Infrastructure](../EPIC-002-e2e-testing-infrastructure/README.md)
-- **EPIC-003**: [Monitoring & Observability](../EPIC-003-monitoring-observability/README.md)
-- **EPIC-007**: [Infrastructure & Deployment](../EPIC-007-infrastructure-deployment/README.md)
-- **EPIC-011**: [n8n Workflow Automation](../EPIC-011-n8n-workflow-automation/README.md)
-- **EPIC-012**: [Vault Integration](../EPIC-012-vault-integration/README.md)
-- **EPIC-016**: [AI/MCP Collaboration](../EPIC-016-ai-metamodel-collaboration/README.md)
-- **EPIC-017**: [Modular Architecture](../EPIC-017-modular-architecture/README.md)
-
-**External:**
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [Keycloak Documentation](https://www.keycloak.org/documentation)
-- [HashiCorp Vault Best Practices](https://developer.hashicorp.com/vault/tutorials/recommended-patterns)
-- [GDPR Compliance Guide](https://gdpr.eu/)
+- **OWASP Top 10 (2021):** https://owasp.org/Top10/
+- **CIS Docker Benchmark:** https://www.cisecurity.org/benchmark/docker
+- **Keycloak Documentation:** https://www.keycloak.org/documentation
+- **NIST Cybersecurity Framework:** https://www.nist.gov/cyberframework
+- **Zero Trust Architecture (NIST SP 800-207):** https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf
 
 ---
 
 **Last Updated:** 9. listopadu 2025  
-**Epic Owner:** Security Team + Martin Horak (@Muriel2Horak)  
-**Status:** 🔴 MASTER REFERENCE (Continuous)
+**Owned by:** Security + DevOps + Platform Team  
+**Review Cycle:** Quarterly (každé 3 měsíce security review + update)
