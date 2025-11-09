@@ -1,0 +1,28 @@
+# ⚠️ DEPRECATED
+
+**Tento soubor byl konsolidován do `README.md`.**
+
+**Datum deprecace:** 9. listopadu 2025  
+**Důvod:** Duplicitní content, contradictory status (100% complete vs 0% complete in README), single source of truth policy.
+
+**Užitečný obsah přesunut do:**
+- `README.md` - Architektura, seznam služeb, environment variables reference
+
+---
+
+Pro aktuální informace o EPIC-007 viz:
+👉 [README.md](./README.md)
+
+---
+
+## Historický kontext (pro referenci)
+
+Tento dokument tvrdil "🎉 100% KOMPLETNÍ (24/24 stories)" (7,914 LOC specs), což contradikovalo README status "🔴 TODO (0% Complete)".
+
+**Služby zmíněné v tomto dokumentu** (zachováno v novém README):
+- Infrastructure: nginx, postgres x2, pgadmin
+- Core: backend, frontend, keycloak
+- Monitoring: grafana, loki, promtail, prometheus, node-exporter, cadvisor, postgres-exporter
+- Data: redis, kafka, kafka-ui, minio, cube
+
+**Originální 24 INF stories** byly nahrazeny pragmatickým 4-phase plánem (cleanup, stabilní env, smoke test, dokumentace).

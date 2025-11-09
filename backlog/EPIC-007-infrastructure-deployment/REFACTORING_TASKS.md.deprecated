@@ -1,0 +1,32 @@
+# ⚠️ DEPRECATED
+
+**Tento soubor byl konsolidován do `README.md`.**
+
+**Datum deprecace:** 9. listopadu 2025  
+**Důvod:** Užitečný technický content přesunut do README (Configuration Standards section), single source of truth policy.
+
+**Užitečný obsah přesunut do:**
+- `README.md` → Configuration Standards (hardcoded DB URL problém, .env management)
+- `SECURITY_CONFIG_AUDIT.md` → Kompletní audit .env variants a credentials
+
+---
+
+Pro aktuální informace o EPIC-007 viz:
+👉 [README.md](./README.md)
+
+---
+
+## Historický kontext (pro referenci)
+
+Tento dokument obsahoval 2 REFACTOR tasky:
+
+**REFACTOR-001: Consolidate .env Variants**
+- Problém: 5 různých .env files (.env, .env.template, .env.development, .env.staging, .env.production, .env.test, .env.example, .env.backup)
+- Řešení: Single `.env.example` template + `.env` (gitignored)
+
+**REFACTOR-002: Remove Hardcoded DB URLs**
+- Problém: `spring.datasource.url=jdbc:postgresql://db:5432/core` v `application.properties`
+- Dopad: Hardcoded hodnoty OVERRIDE environment variables (properties file má vyšší prioritu)
+- Řešení: Používat `application.yml` s `${DATABASE_URL}` placeholder
+
+Obě tyto problémy jsou nyní part of Definition of Done v README.md.
