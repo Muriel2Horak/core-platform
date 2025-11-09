@@ -4,13 +4,92 @@
 **Priority:** P0 (SECURITY CRITICAL)  
 **Owner:** Security + DevOps + Platform Team  
 **Created:** 9. listopadu 2025  
-**Updated:** 9. listopadu 2025 (Konsolidace + alignment)
+**Updated:** 9. listopadu 2025 (Konsolidace + Production Gate + AI/LLM pravidla)
 
 ---
 
 ## 🎯 Purpose
 
 **EPIC-000 je jediný závazný "Security Master Contract" pro celou core-platform.** Definuje bezpečnostní principy, výstupy a kontrolní mechanismy, které VŠECHNY ostatní EPICy musí dodržovat. Nejde o implementační EPIC – konkrétní řešení jsou v navazujících EPICech. Tohle je **rámec a baseline**, proti kterému se všechno měří.
+
+### Účel EPIC-000
+
+EPIC-000 je **zastřešující bezpečnostní epic pro celou platformu Virelio/Core Platform.**
+
+Definuje minimální bezpečnostní standardy, které musí splňovat:
+- ✅ Všechny ostatní EPICy (002-017)
+- ✅ Všechny moduly (core i zákaznické)
+- ✅ Všechny integrační body (FE, BE, Keycloak, n8n, AI, DMS, monitoring)
+- ✅ Produkční i předprodukční prostředí
+
+**Bez splnění tohoto EPICu není povoleno:**
+- ❌ Označit release jako "production-ready"
+- ❌ Připojit nové integrační systémy
+- ❌ Zpřístupnit službu externím tenantům
+
+---
+
+## 🚨 Production Readiness Gate (Minimální Bezpečnostní Baseline)
+
+Následující body tvoří **"hard" baseline**. Musí být splněny **PŘED nasazením do produkce:**
+
+### 1. Identita & SSO
+- ✅ Keycloak je jediný IdP pro FE, BE, admin nástroje (+ pokud je to rozumné: Grafana, n8n)
+- ✅ Všechna rozhraní (GUI, API) ověřují uživatele přes JWT z Keycloaku
+- ✅ Všechna JWT jsou ověřována proti správnému issuer + audience + podpisu (JWK/JWKS)
+- ❌ Žádné `alg=none`, žádné weak klíče
+
+### 2. TLS / HTTPS
+- ✅ Všechen provoz zvenku běží přes HTTPS
+- ✅ TLS terminace na ingress / reverse proxy
+- ✅ Interní komunikace mezi kontejnery buď:
+  - Běží jen v privátní síti bez přímého přístupu zvenku, nebo
+  - Je chráněna (mTLS / network policy), podle prostředí
+- ❌ Žádné login/API endpointy přes plain HTTP dostupné zvenku
+
+### 3. Secrety a Konfigurace
+- ❌ **ŽÁDNÉ secrety v Gitu** (`.env`, certy, klíče, hesla)
+- ✅ `.env`, privátní klíče a podobné soubory jsou v `.gitignore`
+- ✅ Konfigurace používá environment variables nebo secret manager (Vault/KMS)
+- ✅ Připravená integrace na Vault (EPIC-012) – aby šlo secrety postupně přemigrovat
+
+### 4. Tenant Isolation
+- ✅ Každý request je jednoznačně mapovaný na tenant (z JWT / subdomény / contextu)
+- ✅ Všechny BFF/API vrsty aplikují tenant filter server-side
+- ❌ Není možné dotazovat nebo měnit data jiného tenantu pouze změnou ID v URL
+- ✅ Audit logy obsahují tenant + uživatele + akci
+
+### 5. Autorizace & RBAC
+- ✅ Role, permissiony a scopes spravované centrálně (Keycloak / metamodel)
+- ✅ Admin funkce (studio, workflow designer, DMS nastavení, integrace, monitoring) pouze pro dedikované role:
+  - `CORE_PLATFORM_ADMIN`, `CORE_SECURITY_ADMIN`, `CORE_TENANT_ADMIN`
+- ❌ Žádná "hardcoded" privilegia v kódu mimo definovaný model
+
+### 6. Logging, Audit, Observabilita
+- ✅ Aplikace loguje strukturovaně (JSON), včetně:
+  - `correlation-id`, `tenant`, `user` (pokud dává smysl), typ operace
+- ✅ Bezpečnostní a administrativní operace jsou auditovány:
+  - Změny konfigurace
+  - Změny rolí
+  - Přístupy k citlivým datům
+  - Workflow & DMS klíčové akce
+- ✅ Logy směrovány do centrálního úložiště (Loki/ELK), s řízeným přístupem
+- ✅ Monitoring (Prometheus/Grafana/Loki UI) má alerty pro:
+  - Zvýšenou chybovost
+  - Podezřelé patterny (brute force, opakované 401/403)
+  - Výpadky klíčových komponent
+
+### 7. CI/CD & Dependency Security
+- ✅ Povinný dependency scanning (SCA) na všech repozitářích
+- ✅ Povinný secret scanning
+- ❌ Build failuje při kritických CVE nebo nalezených secretech
+- ✅ Infrastructure-as-code (Docker, K8s, GitHub Actions) prochází lintem a základním security scanem
+- ✅ Release pipeline má quality gates (testy, coverage, security checks)
+
+### 8. Perimetr & Integrace
+- ✅ Všechna admin a interní rozhraní chráněná (IP range, VPN, SSO, role)
+- ✅ Externí integrace (n8n, webhooky, AI, konektory) běží přes bezpečné proxy / BFF
+- ❌ Žádné přímé přístupy z integračních nástrojů do databází bez kontrolní vrstvy
 
 ---
 
@@ -26,6 +105,59 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 - **EPIC-014** (UX/UI Design System) - security UI komponenty (login, consent, error states)
 - **EPIC-016** (AI/MCP Collaboration) - AI safety, data protection, PII anonymizace
 - **EPIC-017** (Modular Architecture) - module isolation, tenant-scoped plugin registry
+
+### Detailní Vazby na Ostatní EPICy
+
+**EPIC-003: Monitoring & Observability**
+- Musí používat bezpečné logování, korektní práci s PII
+- Řízený přístup k logům a dashboardům (tenant isolation)
+- Audit trail pro security events (login fails, role changes, cross-tenant attempts)
+
+**EPIC-005: Metamodel & Studio**
+- Metamodel musí umožnit definici:
+  - Datové klasifikace (PII, citlivá data, veřejná data)
+  - Přístupových pravidel (role-based, tenant-scoped)
+  - Auditovatelných změn modelu (kdo kdy změnil schema)
+- Vše v souladu s tímto security framework
+
+**EPIC-007: Infrastructure & Deployment**
+- Deployment musí podporovat:
+  - TLS terminaci (Nginx, Ingress)
+  - Bezpečné nakládání se secrety (Vault, env vars)
+  - Síťovou segmentaci (DB/Redis/Kafka internal only)
+  - Readiness/liveness/health pro bezpečné rollouty
+
+**EPIC-011: n8n Workflow Automation**
+- n8n (nebo jiný orchestrátor) **NESMÍ:**
+  - Obcházet RBAC (každý workflow má tenant + role context)
+  - Přistupovat přímo k DB (pouze přes BFF/API)
+  - Posílat citlivá data mimo bezpečné boundary (audit required)
+- Přístup jen přes BFF/proxy s jasnými scopes
+
+**EPIC-012: Vault Integration**
+- Implementuje konkrétní mechanismus pro správu:
+  - Klíčů (DB passwords, API keys, JWT signing keys)
+  - Hesel (Keycloak admin, SMTP, external services)
+  - Certifikátů (SSL/TLS, CA certs)
+  - Rotaci (automated kde možné)
+- V souladu s požadavky EPIC-000 Pillar 3
+
+**EPIC-014: UX/UI Design System**
+- UI musí respektovat bezpečnostní stavy:
+  - Locky (read-only režimy)
+  - Session expiry (automatický logout)
+  - Error states (bez internal stack traces)
+- Neukazovat interní IDs a citlivá data tam, kde to není nutné
+
+**EPIC-017: Modular Architecture**
+- Každý modul (core i zákaznický) **MUSÍ:**
+  - Používat centrální autentizaci/autorizaci (Keycloak)
+  - Respektovat tenant izolaci (tenant guard)
+  - Respektovat audit logging (structured logs)
+- **NESMÍ:**
+  - Zavádět vlastní "login" mechanismus
+  - Obcházet RBAC přes direct DB access
+  - Sdílet data mezi tenanty bez explicit kontroly
 
 **Tento dokument NEŘEŠÍ:**
 - Konkrétní vendor volby (Vault vs. AWS Secrets Manager, konkrétní WAF)
@@ -412,6 +544,45 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 - ✅ Service account pro AI/MCP:
   - Keycloak client `ai-mcp-service-account`
   - Scope: `ai:query`, `mcp:read` (limited)
+
+#### AI, LLM & Data Protection (Detailní Pravidla)
+
+**Jakákoliv integrace AI/LLM** (MCP, asistenti, generování workflow/modelů, analýza logů) **NESMÍ** bez výslovné konfigurace a kontroly posílat:
+- ❌ Produkční PII (jména, emaily, telefonní čísla, osobní identifikátory)
+- ❌ Citlivá obchodní data (finance, strategie, interní know-how)
+- ❌ Tenant-specific tajemství (API keys, přístupové údaje, proprietary algoritmy)
+- ❌ Jakákoliv data mimo kontrolovaný boundary
+
+**MUSÍ používat:**
+- ✅ **Předzpracování:**
+  - Maskování (replace PII s placeholders: `USER_123`, `EMAIL_456`)
+  - Anonymizace (agregace, generalizace, k-anonymita)
+  - Redaction (odstranění celých bloků citlivých dat)
+  
+- ✅ **Bezpečné připojení:**
+  - HTTPS only (TLS 1.2+)
+  - Authentication tokens (API keys v Vaultu, ne hardcoded)
+  - Timeout & retry policies (avoid hanging connections)
+  
+- ✅ **Logování a audit:**
+  - Kdo volal AI (user_id, tenant_id)
+  - Co poslal (prompt hash, ne full prompt pokud citlivý)
+  - Kdy a s jakým výsledkem (timestamp, status code, token count)
+  
+- ✅ **Centrální konfigurace:**
+  - Feature flags (které AI features jsou povolené per tenant)
+  - Povolené scénáře (code generation OK, document analysis requires review)
+  - Schválené nástroje (OpenAI API, Claude, local Llama, ne arbitrary endpoints)
+
+**Příklady zakázaných scénářů:**
+- ❌ "Pošli celý audit log do ChatGPT pro analýzu" (obsahuje PII + citlivá data)
+- ❌ "AI vygeneruj SQL query na základě user inputu" (injection risk)
+- ❌ "Nech AI přistupovat k production DB pro 'lepší kontext'" (data leak)
+
+**Příklady povolených scénářů (s kontrolou):**
+- ✅ "AI vygeneruj workflow template" (žádná citlivá data v promptu)
+- ✅ "AI analyzuj anonymizované metrics" (PII odstraněno před odesláním)
+- ✅ "AI asistent pro metamodel design" (pracuje s schema, ne s daty)
 
 #### External Connectors (M365, Google, Jira, Stripe, ...)
 
