@@ -36,12 +36,12 @@ So that only licensed tenants can use premium modules and tampering is prevented
 {
   "iss": "core-platform.com",
   "sub": "module:helpdesk",
-  "aud": "tenant:ivigee",
+  "aud": "tenant:customer-a",
   "iat": 1704067200,
   "exp": 1735689600,
   "claims": {
     "moduleId": "helpdesk",
-    "tenantId": "ivigee",
+    "tenantId": "customer-a",
     "validFrom": "2024-01-01",
     "validTo": "2025-01-01",
     "maxUsers": 100,
@@ -387,7 +387,7 @@ import java.util.Map;
 
 /**
  * CLI tool to generate module licenses.
- * Usage: java LicenseGenerator --module helpdesk --tenant ivigee --months 12 --users 100
+ * Usage: java LicenseGenerator --module helpdesk --tenant customer-a --months 12 --users 100
  */
 public class LicenseGenerator {
     
@@ -490,14 +490,14 @@ class LicenseValidatorTest {
     @Test
     void shouldValidateValidLicense() {
         // Given: Valid license in DB
-        String license = generateValidLicense("helpdesk", "ivigee", 12);
+        String license = generateValidLicense("helpdesk", "customer-a", 12);
         licenseRepository.save(new ModuleLicense(
-            "helpdesk", "ivigee", license, 
+            "helpdesk", "customer-a", license, 
             LocalDate.now(), LocalDate.now().plusMonths(12), 100
         ));
         
         // When: Validate
-        LicenseValidationResult result = validator.validate("helpdesk", "ivigee");
+        LicenseValidationResult result = validator.validate("helpdesk", "customer-a");
         
         // Then: Valid
         assertThat(result.isValid()).isTrue();
@@ -507,14 +507,14 @@ class LicenseValidatorTest {
     @Test
     void shouldRejectExpiredLicense() {
         // Given: Expired license (validTo in past)
-        String license = generateExpiredLicense("helpdesk", "ivigee");
+        String license = generateExpiredLicense("helpdesk", "customer-a");
         licenseRepository.save(new ModuleLicense(
-            "helpdesk", "ivigee", license, 
+            "helpdesk", "customer-a", license, 
             LocalDate.now().minusMonths(12), LocalDate.now().minusDays(1), 100
         ));
         
         // When: Validate
-        LicenseValidationResult result = validator.validate("helpdesk", "ivigee");
+        LicenseValidationResult result = validator.validate("helpdesk", "customer-a");
         
         // Then: Expired
         assertThat(result.isValid()).isFalse();
@@ -524,16 +524,16 @@ class LicenseValidatorTest {
     @Test
     void shouldRejectTamperedLicense() {
         // Given: License with tampered claims (changed moduleId)
-        String validLicense = generateValidLicense("helpdesk", "ivigee", 12);
+        String validLicense = generateValidLicense("helpdesk", "customer-a", 12);
         String tamperedLicense = validLicense.replace("helpdesk", "crm");
         
         licenseRepository.save(new ModuleLicense(
-            "crm", "ivigee", tamperedLicense, 
+            "crm", "customer-a", tamperedLicense, 
             LocalDate.now(), LocalDate.now().plusMonths(12), 100
         ));
         
         // When: Validate
-        LicenseValidationResult result = validator.validate("crm", "ivigee");
+        LicenseValidationResult result = validator.validate("crm", "customer-a");
         
         // Then: Invalid signature
         assertThat(result.isValid()).isFalse();
@@ -543,17 +543,17 @@ class LicenseValidatorTest {
     @Test
     void shouldEnforceUserLimit() {
         // Given: License with maxUsers=100, but tenant has 105 active users
-        String license = generateValidLicense("helpdesk", "ivigee", 12);
+        String license = generateValidLicense("helpdesk", "customer-a", 12);
         licenseRepository.save(new ModuleLicense(
-            "helpdesk", "ivigee", license, 
+            "helpdesk", "customer-a", license, 
             LocalDate.now(), LocalDate.now().plusMonths(12), 100
         ));
         
         // Mock: 105 active users
-        when(tenantUserCounter.countActiveUsers("ivigee")).thenReturn(105);
+        when(tenantUserCounter.countActiveUsers("customer-a")).thenReturn(105);
         
         // When: Validate
-        LicenseValidationResult result = validator.validate("helpdesk", "ivigee");
+        LicenseValidationResult result = validator.validate("helpdesk", "customer-a");
         
         // Then: User limit exceeded
         assertThat(result.isValid()).isFalse();

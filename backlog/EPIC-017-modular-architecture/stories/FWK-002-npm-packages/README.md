@@ -10,7 +10,7 @@
 
 ## 📖 User Story
 
-**As a vendor (like Ivigee)**,  
+**As a vendor (like VendorPartner)**,  
 I want to use Core Platform UI components as NPM packages,  
 So that I can build custom frontends on top of CORE.
 
@@ -72,9 +72,9 @@ export { WorkflowStateView } from './WorkflowStateView';
 export { DynamicMenu } from './DynamicMenu';
 ```
 
-### Usage Example (Ivigee)
+### Usage Example (VendorPartner)
 
-**File:** `ivigee-frontend/package.json`
+**File:** `vendor-partner-frontend/package.json`
 
 ```json
 {
@@ -85,7 +85,7 @@ export { DynamicMenu } from './DynamicMenu';
 }
 ```
 
-**File:** `ivigee-frontend/src/App.tsx`
+**File:** `vendor-partner-frontend/src/App.tsx`
 
 ```tsx
 import React from 'react';

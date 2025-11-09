@@ -28,7 +28,7 @@ Core Platform je monolitický systém. Každé nové rozšíření (projektové 
 **Výsledek:**
 - ✅ Core zůstává MIT, moduly mohou být komerční
 - ✅ Vendor může vydat licenci pro modul X pro tenant Y na 12 měsíců
-- ✅ Ivigee může stavět nad CORE jako dependency (bez forku)
+- ✅ Partner vendor může stavět nad CORE jako dependency (bez forku)
 - ✅ Tenant admin vidí jen povolené moduly (RBAC + licensing)
 - ✅ Moduly nepřepisují core (namespacy, manifest validace)
 
@@ -203,7 +203,7 @@ Modul může obsahovat:
 | **Core** (RBAC, Metamodel, Workflow) | MIT | Always enabled | Free |
 | **Free Modules** (Task Mgmt, Audit) | MIT | Enabled by default | Free |
 | **Premium Modules** (CRM, Helpdesk) | Proprietary | Requires license | €X/tenant/month |
-| **Partner Modules** (Ivigee, vendor) | Vendor license | Vendor-issued JWT | Revenue share |
+| **Partner Modules** (third-party vendor) | Vendor license | Vendor-issued JWT | Revenue share |
 
 ### License Structure (JWT)
 
@@ -213,12 +213,12 @@ Modul může obsahovat:
 {
   "iss": "core-platform.com",
   "sub": "module:helpdesk",
-  "aud": "tenant:ivigee",
+  "aud": "tenant:customer-a",
   "iat": 1704067200,
   "exp": 1735689600,
   "claims": {
     "moduleId": "helpdesk",
-    "tenantId": "ivigee",
+    "tenantId": "customer-a",
     "maxUsers": 100,
     "features": ["sla", "automations", "reports"],
     "validFrom": "2024-01-01",
@@ -241,7 +241,7 @@ Backend checks:
   → Allow request
   
 If any check fails:
-  → 403 Forbidden: "Module 'helpdesk' is not licensed for tenant 'ivigee'"
+  → 403 Forbidden: "Module 'helpdesk' is not licensed for tenant 'customer-a'"
 ```
 
 ---
@@ -315,7 +315,7 @@ If any check fails:
 
 ### Distribution Model
 
-**Goal:** Ivigee (or any vendor) can build on CORE without forking.
+**Goal:** Partner vendors can build on CORE without forking.
 
 **Artifacts:**
 
@@ -424,13 +424,13 @@ public interface WorkflowRegistry {
 | Revenue Stream | Annual Value | Notes |
 |----------------|-------------|-------|
 | **Premium Modules** (CRM, Helpdesk, Advanced Analytics) | €300,000 | €50/tenant/month × 500 tenants |
-| **Partner Licensing** (Ivigee, third-party vendors) | €150,000 | Revenue share 20% |
+| **Partner Licensing** (third-party vendors) | €150,000 | Revenue share 20% |
 | **Enterprise Support** (custom module development) | €100,000 | Professional services |
 | **TOTAL** | **€550,000/year** | Conservative estimate |
 
 ### Cost Avoidance
 
-- **No forking:** Ivigee builds on CORE, not separate codebase → €200k/year saved
+- **No forking:** Partners build on CORE, not separate codebase → €200k/year saved
 - **Module marketplace:** Third-party vendors contribute modules → ecosystem growth
 - **Faster TTM:** New features as modules (weeks, not months) → competitive advantage
 
@@ -472,7 +472,7 @@ public interface WorkflowRegistry {
 
 ### Phase 5: Ecosystem (Q3 2026, ongoing)
 - ✅ First premium module: Helpdesk
-- ✅ Ivigee migration to CORE framework
+- ✅ Partner vendor migration to CORE framework
 - ✅ Module marketplace (optional)
 
 ---
@@ -536,19 +536,19 @@ public interface WorkflowRegistry {
 - Connectors: Email (ticket creation), Slack (notifications)
 - Roles: `HELPDESK_AGENT`, `HELPDESK_ADMIN`
 
-**Tenant:** Ivigee buys license for 12 months, 100 users  
+**Tenant:** Customer-A buys license for 12 months, 100 users  
 **Activation:** Admin uploads JWT license → backend validates → module enabled  
-**Usage:** Ivigee users see "Helpdesk" in menu, can create/manage tickets
+**Usage:** Customer-A users see "Helpdesk" in menu, can create/manage tickets
 
-### Use Case 2: Ivigee Custom Module (Partner)
+### Use Case 2: Partner Custom Module
 
-**Vendor:** Ivigee s.r.o.  
-**License:** Ivigee-signed JWT (self-licensing)  
+**Vendor:** Partner Vendor s.r.o.  
+**License:** Partner-signed JWT (self-licensing)  
 **Module:** "Project Portfolio Management"  
 **Built on:** CORE framework (Maven dependencies)  
-**Deployment:** Ivigee's own infrastructure (Helm chart)  
+**Deployment:** Partner's own infrastructure (Helm chart)  
 **Extends:** CORE entities (`User`, `Group`) + adds `Portfolio`, `Program`  
-**Revenue:** Ivigee sells to their clients, CORE gets 20% revenue share
+**Revenue:** Partner sells to their clients, CORE gets 20% revenue share
 
 ---
 

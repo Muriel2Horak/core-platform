@@ -10,7 +10,7 @@
 
 ## 📖 User Story
 
-**As a vendor (like Ivigee)**,  
+**As a vendor (like VendorPartner)**,  
 I want to use Core Platform as Maven dependency,  
 So that I can build on top of CORE without forking.
 
@@ -102,14 +102,14 @@ So that I can build on top of CORE without forking.
 </project>
 ```
 
-### Usage Example (Ivigee)
+### Usage Example (VendorPartner)
 
-**File:** `ivigee-platform/pom.xml`
+**File:** `vendor-partner-platform/pom.xml`
 
 ```xml
 <project>
-    <groupId>cz.ivigee</groupId>
-    <artifactId>ivigee-platform</artifactId>
+    <groupId>cz.vendor-partner</groupId>
+    <artifactId>vendor-partner-platform</artifactId>
     <version>1.0.0</version>
     
     <dependencies>
@@ -120,10 +120,10 @@ So that I can build on top of CORE without forking.
             <version>1.0.0</version>
         </dependency>
         
-        <!-- Ivigee custom modules -->
+        <!-- VendorPartner custom modules -->
         <dependency>
-            <groupId>cz.ivigee</groupId>
-            <artifactId>ivigee-custom-module</artifactId>
+            <groupId>cz.vendor-partner</groupId>
+            <artifactId>vendor-partner-custom-module</artifactId>
             <version>1.0.0</version>
         </dependency>
     </dependencies>

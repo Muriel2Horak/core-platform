@@ -170,7 +170,7 @@ class LicenseEnforcementTest {
     @Test
     void shouldReturn403WhenLicenseExpired() throws Exception {
         // Given: Expired license
-        when(licenseValidator.validate("helpdesk", "ivigee"))
+        when(licenseValidator.validate("helpdesk", "customer-a"))
             .thenReturn(LicenseValidationResult.invalid("License expired"));
         
         // When/Then: Request denied
@@ -183,7 +183,7 @@ class LicenseEnforcementTest {
     @Test
     void shouldReturn402WhenUserLimitExceeded() throws Exception {
         // Given: Valid license but user limit exceeded
-        when(licenseValidator.validate("helpdesk", "ivigee"))
+        when(licenseValidator.validate("helpdesk", "customer-a"))
             .thenReturn(LicenseValidationResult.valid(50)); // max 50 users
         
         // Mock 60 active users

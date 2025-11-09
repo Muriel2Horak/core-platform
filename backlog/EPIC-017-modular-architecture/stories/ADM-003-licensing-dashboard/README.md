@@ -47,7 +47,7 @@ export const LicensingDashboard: React.FC = () => {
             <Warning /> Expiring Soon
           </Typography>
           <List>
-            <ListItem>Helpdesk (Ivigee) - 7 days</ListItem>
+            <ListItem>Helpdesk (Partner Vendor) - 7 days</ListItem>
             <ListItem>CRM (Acme Corp) - 15 days</ListItem>
           </List>
         </CardContent>
