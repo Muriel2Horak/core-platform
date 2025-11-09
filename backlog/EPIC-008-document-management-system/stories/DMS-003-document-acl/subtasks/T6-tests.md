@@ -1,0 +1,51 @@
+---
+id: DMS-003-T6
+story: DMS-003
+title: "Unit + E2E Tests"
+status: todo
+assignee: ""
+estimate: "2.5 hours"
+created: 2025-11-08
+updated: 2025-11-08
+---
+
+# DMS-003-T6: Unit + E2E Tests
+
+> **Parent Story:** [DMS-003: Document ACL](../README.md)  
+> **Status:** todo | **Estimate:** 2.5 hours
+
+## 🎯 Subtask Goal
+
+[IMPLEMENTATION DETAILS TO BE FILLED - See parent story README.md for complete specification]
+
+Tento subtask implementuje **Unit + E2E Tests** pro Document ACL story.
+
+## ✅ Acceptance Criteria
+
+Tento subtask je hotový pokud:
+
+- [ ] Implementace podle specifikace v parent story README.md
+- [ ] Kód prošel code review
+- [ ] Všechny testy procházejí (unit + integration)
+- [ ] Dokumentace aktualizovaná (pokud relevantní)
+- [ ] Commit message: `feat(DMS-003-T6): Unit + E2E Tests`
+
+## 📂 Files to Modify/Create
+
+[Files will be listed based on parent story Implementation Mapping section]
+
+## 🔧 Implementation Steps
+
+[Detailed steps based on parent story specification]
+
+## 🧪 Testing
+
+[Test scenarios based on parent story Acceptance Criteria]
+
+## ✅ Definition of Done
+
+- [ ] Code implemented per spec
+- [ ] Unit tests written and passing
+- [ ] Integration tests (if applicable)
+- [ ] Code review approved
+- [ ] Merged to main branch
