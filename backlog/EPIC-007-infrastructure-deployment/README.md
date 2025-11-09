@@ -113,11 +113,10 @@ make clean && make up
 - ✅ **Loki**: logy z klíčových služeb (nginx, backend, keycloak, n8n) sbírány
 - ✅ **Prometheus**: `http://localhost:9090` - metriky z backendu a n8n dostupné
 - ✅ **Minimální požadavek**: Loki + Prometheus funkční
-- ✅ **Grafana** (volitelná): `https://admin.${DOMAIN}/grafana` - admin-only via Keycloak OIDC
-  - **Scope**: Pouze pro Core Platform adminy (admin realm, `CORE_PLATFORM_ADMIN` role)
-  - **NOT multi-tenant**: Není vystavená běžným zákazníkům/tenant adminům
-  - **NOT embedded**: Není embedovaná do vlastního FE (standalone component)
-  - **Alternative**: Vlastní Monitoring UI dle [EPIC-003 Monitoring & Observability](../EPIC-003-monitoring-observability/README.md)
+- ✅ **Grafana** (volitelná): `https://admin.${DOMAIN}/grafana` - admin realm only, za Keycloak SSO
+  - **Scope**: Pouze Core Platform admins (`CORE_PLATFORM_ADMIN` role)
+  - **NO JWT SSO embed**: Standalone Grafana, žádná magie s JWT embedem do vlastního FE
+  - **Details**: Viz [EPIC-003 Monitoring & Observability](../EPIC-003-monitoring-observability/README.md)
 
 > 📖 **Monitoring strategy**: Loki + Prometheus jsou povinné. Grafana nebo vlastní Monitoring UI (EPIC-003) jsou volitelné vizualizační nástroje pro adminy.
 
@@ -129,8 +128,12 @@ make clean && make up
 - ✅ **Per-tenant access**: `https://acme.${DOMAIN}/n8n` (tenant 'acme' s `CORE_N8N_DESIGNER` rolí)
 - ✅ **SSO flow**: User z `{tenant}` realm s rolí `CORE_N8N_DESIGNER` → Keycloak login → n8n → automatické namapování na účet `tenant-{subdomain}@n8n.local`
   - Příklad: User `designer@acme.com` (realm 'acme') → n8n account `tenant-acme@n8n.local`
+  - **Provisioning je idempotentní**: Při každém přihlášení tenant admina se kontroluje existence účtu, vytvoří se pouze pokud neexistuje
 - ✅ **Tenant isolation**: Každý tenant vidí **pouze své workflows** (přes vlastnictví účtu)
   - Core admin account (`admin-instance-owner@n8n.local`) má globální přístup pro support/audit
+- ✅ **Tenant lifecycle strategy**:
+  - Tenant smazán/rename: n8n account **deaktivován** (ne smazán) → historie workflows zachována pro audit
+  - Reaktivace tenanta: Stejný n8n account obnoven (kontinuita workflow historie)
 - ✅ Keycloak SSO login required (multi-realm)
 - ✅ n8n UI se načte a zobrazí workflow editor
 - ✅ PostgreSQL database `n8n` existuje a je funkční
