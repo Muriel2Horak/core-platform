@@ -677,8 +677,50 @@ make smoke-test-env
 
 ---
 
-## 📚 References
+## � Security Alignment (EPIC-000)
 
+**Tento EPIC dodržuje následující pravidla z [EPIC-000](../EPIC-000-security-platform-hardening/README.md):**
+
+### Identity & Access Management
+- ✅ **Keycloak deployment**: Jediný IdP, realm config, SSL setup
+- ✅ **Service accounts**: n8n, backend services mají vlastní Keycloak identities
+- ✅ **JWT validation**: Backend ověřuje tokeny z Keycloak issuer
+
+### Secrets Management
+- ✅ **No hardcoded secrets**: Žádné DB URLs, hesla, API klíče v `application.properties`
+- ✅ **`.env` gitignored**: Plain-text secrets nejsou v Gitu
+- ✅ **`.env.example` template**: Bezpečné placeholdery pro onboarding
+- ✅ **Environment variables**: Všechny secrets načítány z env (připraveno pro Vault migration)
+
+### API & Network Security
+- ✅ **Nginx SSL termination**: Wildcard cert `*.core-platform.local`
+- ✅ **Internal network isolation**: PostgreSQL, Redis, Kafka nejsou exposed ven
+- ✅ **HTTPS everywhere**: Public endpoints pouze HTTPS
+
+### Logging & Audit
+- ✅ **Structured logs**: JSON format do Loki
+- ✅ **Loki centralization**: Všechny logy (nginx, backend, keycloak) sbírány centrálně
+
+### Build & Supply Chain
+- ✅ **Docker image hardening**: Multi-stage builds, non-root users
+- ✅ **SSL cert generation**: Automated `generate-ssl.sh` script
+- ✅ **Config templates**: `envsubst` based generation (traceable, repeatable)
+
+### Testing
+- ✅ **Smoke test**: `make smoke-test-env` validuje security basics (HTTPS, auth endpoints)
+- ✅ **DoD includes**: Žádné hardcoded secrets v diff, .env v .gitignore
+
+**Security Improvements Planned:**
+- 🔵 Migration to Vault (EPIC-012): Replace `.env` secrets with Vault dynamic secrets
+- 🔵 Let's Encrypt integration: Auto SSL cert rotation (production)
+- 🔵 Rate limiting: Nginx rate limit rules (API protection)
+- 🔵 WAF rules: Basic SQL injection, XSS protection
+
+---
+
+## �📚 References
+
+- **Security Master:** [EPIC-000](../EPIC-000-security-platform-hardening/README.md) - Security & Access Control Platform Hardening
 - **Security Audit:** [SECURITY_CONFIG_AUDIT.md](../../SECURITY_CONFIG_AUDIT.md) - Kompletní audit 47 env vars a 12 secrets
 - **DB Users Plan:** [DB_SEPARATE_USERS_PLAN.md](../../DB_SEPARATE_USERS_PLAN.md) - Migrace na separate DB users
 - **Makefile:** [Makefile](../../Makefile) - Build orchestration
