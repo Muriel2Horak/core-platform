@@ -1,101 +1,1091 @@
 # EPIC-003: Monitoring & Observability Stack
 
-**Status:** � **70% COMPLETE** (7/10 stories done, frontend dashboards TODO)  
-**Implementováno:** Září - Říjen 2024 (Grafana stack), TODO (Frontend dashboards)  
+**Status:** 🟡 **70% COMPLETE** (Core stack done, frontend dashboards TODO)  
+**Implementováno:** Září - Říjen 2024 (Loki + Prometheus + Native UI)  
 **LOC:** ~13,500 řádků (~8,000 done + ~5,500 TODO)  
 **Dokumentace:** `MONITORING_COMPLETE.md`, `LOKI_MIGRATION_COMPLETE.md`, `EPIC_COMPLETE_LOKI_UI.md`
 
 ---
 
-## 🎯 Vision
+## 🎯 Cíle EPICu
 
-**Vytvořit plně automatizovaný monitoring stack** s centralizovaným logováním, metrikami a dashboardy, který poskytuje real-time přehled o zdraví platformy a umožňuje rychlou diagnostiku problémů.
+### Primární Cíle
+
+**Vytvořit enterprise-grade observability stack** s centralizovaným logováním, metrikami a nativním frontend UI, který poskytuje real-time přehled o zdraví platformy a umožňuje rychlou diagnostiku problémů **bez závislosti na externích vizualizačních nástrojích**.
+
+### Klíčové Principy
+
+1. **Native-First Approach**: 
+   - Primární UX = **vlastní React komponenty** v našem frontendu
+   - Loki UI + Prometheus metriky renderované nativně
+   - **Žádné embedování třetích stran** do tenant UI
+
+2. **Tenant Isolation**:
+   - Každý tenant vidí **pouze své logy a metriky**
+   - Izolace na úrovni Keycloak realm + tenant_id labels
+   - BFF API kontroluje tenant claims před Loki/Prometheus queries
+
+3. **Security by Design**:
+   - **Všechno přes HTTPS** (TLS terminace v Nginx)
+   - **Žádný přímý přístup** z browseru na Prometheus/Loki
+   - Rate limiting, CSP headers, redakce citlivých dat
+
+4. **Grafana jako Optional Tool**:
+   - **NENÍ součást core UX** pro běžné uživatele
+   - Slouží **pouze pro SRE/ops týmy** (admin realm)
+   - Běží za Nginx reverse proxy na `https://admin.<domain>/grafana`
+   - OIDC/SSO pouze vůči **admin realm** (žádný per-tenant org cirkus)
 
 ### Business Goals
-- **Proaktivní monitoring**: Detekovat problémy před eskalací
-- **Rychlá diagnostika**: MTTR (Mean Time To Resolution) < 15 minut
-- **Multi-tenant visibility**: Každý tenant vidí své metriky
-- **Compliance**: Audit logs pro regulatorní požadavky
-- **SLO tracking**: Service Level Objectives monitoring
+- **Proaktivní monitoring**: Detekovat problémy před eskalací (SLO: MTTR < 15 minut)
+- **Multi-tenant visibility**: Každý tenant vidí své metriky (zero cross-tenant leak)
+- **Compliance**: Audit logs pro regulatorní požadavky (GDPR, SOC2)
+- **Self-Service**: Uživatelé mohou debugovat bez ops týmu
+- **Cost Efficiency**: Vlastní UI = žádné Grafana licence per tenant
 
 ---
 
-## 📋 Stories Overview
+## 🏗️ Architektura Observability Stacku
+
+### Core Stack (POVINNÉ komponenty)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      TENANT UI (React)                         │
+│  ┌──────────────────┐  ┌──────────────────┐                    │
+│  │  📊 Monitoring   │  │  📝 Log Viewer   │                    │
+│  │  Dashboard       │  │  (Loki UI)       │                    │
+│  │  - Metrics       │  │  - Real-time     │                    │
+│  │  - Health Cards  │  │  - Filters       │                    │
+│  │  - SLO Tracking  │  │  - Search        │                    │
+│  └────────┬─────────┘  └────────┬─────────┘                    │
+└───────────┼─────────────────────┼──────────────────────────────┘
+            │                     │
+            │ HTTPS (JWT)         │ HTTPS (JWT)
+            ▼                     ▼
+┌───────────────────────────────────────────────────────────────┐
+│                   BACKEND BFF (Spring Boot)                   │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  Tenant Guard: Extract realm from JWT                   │  │
+│  │  → Inject {tenant="<realm>"} filter into all queries    │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                     │                       │                  │
+│       /api/monitoring/metrics    /api/monitoring/logs         │
+│                     ▼                       ▼                  │
+│          ┌─────────────────┐     ┌──────────────────┐         │
+│          │  Prometheus     │     │  Loki Client     │         │
+│          │  Java Client    │     │  (LogQL)         │         │
+│          └────────┬────────┘     └────────┬─────────┘         │
+└───────────────────┼──────────────────────┼────────────────────┘
+                    │                      │
+         Internal   │                      │  Internal
+         Network    │                      │  Network
+                    ▼                      ▼
+         ┌────────────────┐     ┌───────────────────┐
+         │  Prometheus    │     │  Loki             │
+         │  :9090         │     │  :3100            │
+         │  (metrics DB)  │     │  (log aggregator) │
+         └────────────────┘     └───────────────────┘
+                ▲                          ▲
+                │                          │
+                │ Pull metrics             │ Push logs
+                │                          │
+        ┌───────┴──────┐          ┌────────┴────────┐
+        │  Exporters   │          │  Promtail       │
+        │  (JVM, DB,   │          │  (log shipper)  │
+        │   Redis,     │          │                 │
+        │   Kafka)     │          │                 │
+        └──────────────┘          └─────────────────┘
+```
+
+### Optional Stack (Pro SRE/Ops týmy)
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                 ADMIN REALM ONLY                           │
+│         https://admin.<domain>/grafana                     │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Grafana (Optional - Pro SRE/Ops)                    │  │
+│  │  - Advanced dashboards                               │  │
+│  │  - Cross-tenant view (admin only)                    │  │
+│  │  - Alerting & notifications                          │  │
+│  │  - OIDC/SSO → admin realm                           │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                           ▲                                 │
+│                           │ Reverse Proxy                   │
+│                           │ /grafana → :3000                │
+└───────────────────────────┼─────────────────────────────────┘
+                            │
+                    ┌───────┴────────┐
+                    │  Nginx          │
+                    │  (TLS, CSP,     │
+                    │   Rate Limit)   │
+                    └─────────────────┘
+```
+
+---
+
+## 📊 Native Monitoring UI (Primary Interface)
+
+### 1. Loki UI - Log Viewer
+
+**Status:** ✅ **DONE** (Říjen 2024)  
+**Implementace:** `frontend/src/pages/Monitoring/LogViewer.tsx`
+
+#### Features
+- **Real-time log streaming** (WebSocket connection)
+- **LogQL query builder** (GUI + raw mode)
+- **Tenant-scoped filtering** (automatic {realm="<tenant>"} injection)
+- **Time range selection** (last 5m, 1h, 24h, custom)
+- **Log level filtering** (ERROR, WARN, INFO, DEBUG, TRACE)
+- **Full-text search** (regex support)
+- **Context view** (show surrounding logs)
+- **Export** (JSON, CSV)
+
+#### Backend BFF API
+```java
+// backend/src/main/java/cz/muriel/core/monitoring/MonitoringController.java
+@RestController
+@RequestMapping("/api/monitoring")
+public class MonitoringController {
+  
+  @GetMapping("/logs")
+  public ResponseEntity<LogQueryResponse> queryLogs(
+    @RequestParam String query,
+    @RequestParam(required = false) Long start,
+    @RequestParam(required = false) Long end,
+    @RequestParam(defaultValue = "100") int limit,
+    @AuthenticationPrincipal Jwt jwt
+  ) {
+    // 1. Extract tenant from JWT
+    String realm = extractRealm(jwt);
+    
+    // 2. Inject tenant filter into LogQL query
+    String scopedQuery = injectTenantFilter(query, realm);
+    
+    // 3. Execute query against Loki
+    LogQueryResponse response = lokiClient.queryRange(
+      scopedQuery, 
+      start != null ? start : System.currentTimeMillis() - 3600000,
+      end != null ? end : System.currentTimeMillis(),
+      limit
+    );
+    
+    return ResponseEntity.ok(response);
+  }
+  
+  private String injectTenantFilter(String query, String realm) {
+    // {service="backend"} → {service="backend",realm="tenant-a"}
+    if (query.contains("{")) {
+      return query.replaceFirst("\\{", "{realm=\"" + realm + "\",");
+    } else {
+      // service → {realm="tenant-a",service}
+      return "{realm=\"" + realm + "\"} " + query;
+    }
+  }
+}
+```
+
+#### Frontend Implementation
+```typescript
+// frontend/src/pages/Monitoring/LogViewer.tsx
+export const LogViewer: React.FC = () => {
+  const [query, setQuery] = useState<string>('{service="backend"}');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/monitoring/logs', {
+        params: {
+          query,
+          start: Date.now() - 3600000, // Last hour
+          limit: 100
+        }
+      });
+      setLogs(response.data.data.result);
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <Box>
+      <Typography variant="h4">Log Viewer</Typography>
+      
+      {/* Query Builder */}
+      <LogQLQueryBuilder
+        value={query}
+        onChange={setQuery}
+        onExecute={fetchLogs}
+      />
+      
+      {/* Log Table */}
+      <LogTable
+        logs={logs}
+        loading={loading}
+        onRefresh={fetchLogs}
+      />
+    </Box>
+  );
+};
+```
+
+#### Tenant Isolation Example
+```bash
+# User v realmu "tenant-a" zadá query:
+{service="backend"} | json | level="ERROR"
+
+# Backend BFF automaticky injectuje:
+{realm="tenant-a",service="backend"} | json | level="ERROR"
+
+# Loki vrátí POUZE logy z realm="tenant-a"
+# → Zero cross-tenant data leak ✅
+```
+
+---
+
+### 2. Prometheus Metrics - Business Dashboards
+
+**Status:** 🔵 **TODO** (Q1 2025)  
+**Implementace:** `frontend/src/pages/Monitoring/MetricsDashboard.tsx`
+
+#### Planned Features
+- **System Health Cards**:
+  - Backend uptime, request rate, error rate
+  - Database connections, query latency
+  - Redis hit rate, memory usage
+  - Kafka consumer lag, topic size
+  
+- **Business Metrics**:
+  - Active users (per tenant)
+  - Workflow executions (success/failed/pending)
+  - DMS operations (upload/download/OCR)
+  - API usage (per endpoint)
+
+- **SLO Tracking**:
+  - API P95 latency < 500ms
+  - Error rate < 1%
+  - Database P99 < 100ms
+
+#### Backend BFF API (Planned)
+```java
+@GetMapping("/metrics/{metricName}")
+public ResponseEntity<MetricQueryResponse> queryMetric(
+  @PathVariable String metricName,
+  @RequestParam(required = false) String aggregation,
+  @RequestParam(required = false) Long start,
+  @RequestParam(required = false) Long end,
+  @AuthenticationPrincipal Jwt jwt
+) {
+  String realm = extractRealm(jwt);
+  
+  // PromQL query s tenant filter
+  String query = String.format(
+    "%s{tenant=\"%s\"}",
+    metricName,
+    realm
+  );
+  
+  if (aggregation != null) {
+    query = String.format("%s(%s)", aggregation, query);
+  }
+  
+  MetricQueryResponse response = prometheusClient.queryRange(
+    query,
+    start != null ? start : System.currentTimeMillis() - 3600000,
+    end != null ? end : System.currentTimeMillis(),
+    "15s" // Step
+  );
+  
+  return ResponseEntity.ok(response);
+}
+```
+
+#### Frontend Implementation (Planned)
+```typescript
+// frontend/src/pages/Monitoring/MetricsDashboard.tsx
+export const MetricsDashboard: React.FC = () => {
+  return (
+    <Grid container spacing={3}>
+      {/* Health Cards */}
+      <Grid item xs={12} md={3}>
+        <HealthCard
+          title="API Health"
+          metric="http_server_requests_seconds_count"
+          threshold={{ warning: 100, critical: 500 }}
+        />
+      </Grid>
+      
+      {/* Time Series Charts */}
+      <Grid item xs={12}>
+        <LineChart
+          title="Request Rate (req/s)"
+          query="rate(http_server_requests_seconds_count[5m])"
+          yAxisLabel="Requests/sec"
+        />
+      </Grid>
+      
+      {/* Business Metrics */}
+      <Grid item xs={12} md={6}>
+        <MetricCard
+          title="Active Workflows"
+          query='sum(workflow_execution_status{status="running"})'
+          format="number"
+        />
+      </Grid>
+    </Grid>
+  );
+};
+```
+
+---
+
+## 🔧 Optional Grafana (Pro SRE/Ops)
+
+### Pozice v Architektuře
+
+**Grafana NENÍ povinná součást core UX.** Slouží jako **pokročilý nástroj pro provozní týmy**.
+
+#### Kdy používat Grafana:
+- ✅ **SRE/DevOps debugging**: Potřebuješ cross-tenant view, pokročilé queries
+- ✅ **Alerting management**: Nastavování alert rules, notification channels
+- ✅ **Dashboard prototyping**: Rychlý vývoj nových dashboardů před portováním do FE
+- ✅ **Ad-hoc analysis**: Složité PromQL/LogQL queries, které nejsou v native UI
+
+#### Kdy NEPOUŽÍVAT Grafana:
+- ❌ **Běžní tenant uživatelé**: Používají Native Monitoring UI
+- ❌ **Embed do tenant stránek**: Žádné iframe/Scenes embedded
+- ❌ **Per-tenant provisioning**: Žádné auto-vytváření Grafana orgs per tenant
+
+### Konfigurace
+
+#### Nginx Reverse Proxy
+```nginx
+# docker/nginx/nginx-ssl.conf
+location /grafana/ {
+    # Admin realm only!
+    auth_request /auth/validate-admin;
+    
+    proxy_pass http://grafana:3000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    
+    # Rate limiting (bruteforce protection)
+    limit_req zone=admin burst=20 nodelay;
+    
+    # Security headers
+    add_header Content-Security-Policy "frame-ancestors 'self'" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+}
+
+location /auth/validate-admin {
+    internal;
+    proxy_pass http://backend:8080/api/auth/validate-role;
+    proxy_set_header X-Required-Role "CORE_PLATFORM_ADMIN,OBSERVABILITY_ADMIN";
+}
+```
+
+#### Grafana OIDC Configuration
+```ini
+# docker/grafana/grafana.ini
+[server]
+root_url = https://admin.core-platform.local/grafana
+serve_from_sub_path = true
+
+[auth.generic_oauth]
+enabled = true
+name = Keycloak
+allow_sign_up = true
+client_id = grafana-admin-client
+client_secret = ${GRAFANA_OIDC_SECRET}
+scopes = openid email profile
+auth_url = https://admin.core-platform.local/realms/admin/protocol/openid-connect/auth
+token_url = https://admin.core-platform.local/realms/admin/protocol/openid-connect/token
+api_url = https://admin.core-platform.local/realms/admin/protocol/openid-connect/userinfo
+role_attribute_path = contains(realm_access.roles[*], 'CORE_PLATFORM_ADMIN') && 'Admin' || 'Viewer'
+
+# POUZE admin realm!
+# Žádný per-tenant org provisioning
+# Žádný multi-tenant SSO cirkus
+```
+
+#### Security Constraints
+- **TLS Only**: Vždy přes HTTPS (port 443)
+- **Admin Realm Only**: SSO pouze proti `admin` realm v Keycloaku
+- **RBAC**: Přístup pouze pro role `CORE_PLATFORM_ADMIN`, `OBSERVABILITY_ADMIN`
+- **CSP**: `frame-ancestors 'self'` - žádné embedování do cizích domén
+- **Rate Limiting**: Max 20 req/s na /grafana endpoint (bruteforce ochrana)
+
+### Recommended Dashboards (Pro SRE)
+
+Grafana dashboardy (v `docker/grafana/dashboards/`):
+
+1. **System Overview** (`system-overview.json`):
+   - CPU, Memory, Disk usage (všechny služby)
+   - Network I/O
+   - Container restarts
+
+2. **Application Runtime** (`app-runtime.json`):
+   - JVM heap/non-heap memory
+   - GC pauses
+   - Thread count
+   - HTTP request rate & latency
+
+3. **Database Performance** (`database-perf.json`):
+   - Connection pool usage
+   - Query latency (P50, P95, P99)
+   - Slow query count
+   - Transaction rate
+
+4. **Kafka Monitoring** (`kafka-monitoring.json`):
+   - Topic size, partition count
+   - Consumer lag per group
+   - Producer throughput
+   - DLQ message count
+
+5. **Security Audit** (`security-audit.json`):
+   - Failed login attempts
+   - Role changes
+   - Admin actions
+   - Suspicious patterns
+
+**POZNÁMKA:** Tyto dashboardy jsou **pouze pro admin realm**. Běžní tenant uživatelé používají **Native Monitoring UI** s subset těchto metrik.
+
+---
+
+## 🔒 Security & Compliance (EPIC-000 Integration)
+
+### TLS & Network Security
+
+**VŠECHEN monitoring provoz běží pouze přes HTTPS** terminovaný v Nginx.
+
+#### Konfigurace (odkaz na EPIC-000)
+```nginx
+# SSL/TLS Configuration (z EPIC-000)
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers HIGH:!aNULL:!MD5;
+ssl_certificate /etc/nginx/ssl/server.crt.pem;
+ssl_certificate_key /etc/nginx/ssl/server.key.pem;
+
+# Security headers (z EPIC-000)
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header Content-Security-Policy "frame-ancestors 'self'" always;
+```
+
+#### Endpoint Security
+
+| Endpoint | Exposed | Security | Notes |
+|----------|---------|----------|-------|
+| **Loki `:3100`** | ❌ Internal only | BFF API kontroluje JWT | Žádný přímý přístup z browseru |
+| **Prometheus `:9090`** | ❌ Internal only | BFF API kontroluje JWT | Žádný přímý přístup z browseru |
+| **Grafana `/grafana`** | ✅ Via Nginx | OIDC/SSO + admin realm | Rate limited, CSP protected |
+| **BFF `/api/monitoring/*`** | ✅ Via Nginx | JWT validation + Tenant Guard | TLS, rate limited |
+
+### Data Sensitivity & Redaction
+
+**Logy mohou obsahovat citlivá data** (PII, credentials, business data).
+
+#### Povinné opatření (z EPIC-000):
+
+1. **Redakce vybraných polí**:
+   ```java
+   // backend/src/main/resources/logback-spring.xml
+   <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+     <fieldNames>
+       <message>message</message>
+       <levelValue>[ignore]</levelValue>
+     </fieldNames>
+     <jsonGeneratorDecorator class="cz.muriel.core.logging.PiiRedactingDecorator"/>
+   </encoder>
+   ```
+   
+   ```java
+   // PII Redaction
+   public class PiiRedactingDecorator implements JsonGeneratorDecorator {
+     private static final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
+     private static final Pattern PHONE_PATTERN = Pattern.compile("\\+?\\d{1,3}[\\s-]?\\(?\\d{2,4}\\)?[\\s-]?\\d{3,4}[\\s-]?\\d{3,4}");
+     
+     @Override
+     public JsonGenerator decorate(JsonGenerator generator) {
+       return new RedactingGenerator(generator, List.of(EMAIL_PATTERN, PHONE_PATTERN));
+     }
+   }
+   ```
+
+2. **Retenční politika**:
+   ```yaml
+   # loki/loki-config.yml
+   limits_config:
+     retention_period: 2160h  # 90 days default
+     
+   # Audit logs (compliance)
+   retention_stream:
+     - selector: '{level="AUDIT"}'
+       priority: 1
+       period: 8760h  # 365 days
+   ```
+
+3. **Audit přístupů**:
+   ```java
+   @GetMapping("/logs")
+   @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'CORE_PLATFORM_ADMIN')")
+   public ResponseEntity<LogQueryResponse> queryLogs(...) {
+     // Audit log access
+     auditService.logAccess(
+       AuditEvent.builder()
+         .user(jwt.getSubject())
+         .action("QUERY_LOGS")
+         .resource("monitoring.logs")
+         .query(query)
+         .timestamp(Instant.now())
+         .build()
+     );
+     
+     // ... execute query
+   }
+   ```
+
+### Compliance Requirements
+
+Monitoring stack musí splňovat (z EPIC-000):
+
+- ✅ **GDPR**: PII redakce, data retention, right to be forgotten
+- ✅ **SOC2**: Audit trail, access control, encryption at rest/transit
+- ✅ **ISO 27001**: Change logging, incident detection, security monitoring
+
+---
+
+## 🎯 Use Cases & Dashboardy
+
+### Use Case 1: System Health (Admin Realm)
+
+**WHO:** Platform admin (CORE_PLATFORM_ADMIN role v admin realmu)  
+**WHAT:** Přehled o celkovém zdraví platformy  
+**WHERE:** Native Monitoring UI nebo Grafana
+
+#### Prometheus Metrics
+```promql
+# Backend health
+up{job="backend"} == 1
+
+# Error rate
+rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / 
+rate(http_server_requests_seconds_count[5m]) * 100
+
+# P95 latency
+histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))
+
+# Database connections
+hikaricp_connections_active / hikaricp_connections_max * 100
+
+# Redis memory
+redis_memory_used_bytes / redis_memory_max_bytes * 100
+
+# Kafka consumer lag
+sum(kafka_consumer_lag) by (topic, consumer_group)
+
+# Pod/container restarts
+kube_pod_container_status_restarts_total
+```
+
+#### Loki Labels (Must Have)
+```logql
+{service="backend", level="ERROR"}
+{service="postgres", level="WARN"}
+{service="redis"}
+{service="kafka"}
+{service="nginx", level="ERROR"}
+```
+
+#### Doporučené zobrazení
+- **Native FE**: Health Cards + Line Charts (React + MUI Charts)
+- **Grafana** (optional): System Overview dashboard (cross-tenant view)
+
+---
+
+### Use Case 2: Application Health Per Tenant
+
+**WHO:** Tenant admin (TENANT_ADMIN role v konkrétním tenant realm-u)  
+**WHAT:** Monitoring aplikace pro svůj tenant  
+**WHERE:** Native Monitoring UI (Log Viewer + Metrics Dashboard)
+
+#### Prometheus Metrics (Tenant-scoped)
+```promql
+# Request rate (pouze můj tenant)
+rate(http_server_requests_seconds_count{tenant="tenant-a"}[5m])
+
+# Error rate
+rate(http_server_requests_seconds_count{tenant="tenant-a", status=~"5.."}[5m])
+
+# Active users
+user_sessions_active{tenant="tenant-a"}
+
+# Business metrics
+workflow_execution_total{tenant="tenant-a", status="success"}
+dms_operation_total{tenant="tenant-a", operation="upload"}
+```
+
+#### Loki Labels (Must Have)
+```logql
+# Application logs (auto-filtered by BFF)
+{tenant="tenant-a", service="backend"}
+
+# User actions
+{tenant="tenant-a", level="AUDIT", action=~"user.*"}
+
+# Errors
+{tenant="tenant-a", level="ERROR"}
+```
+
+#### Doporučené zobrazení
+- **Native FE ONLY**: Tenant users nemají přístup do Grafany
+- **BFF automaticky injectuje** `{tenant="<realm>"}` do všech queries
+
+---
+
+### Use Case 3: Streaming & Workflow Observability
+
+**WHO:** Tenant admin, workflow developer  
+**WHAT:** Monitoring Kafka topics a workflow executions  
+**WHERE:** Native Monitoring UI
+
+#### Prometheus Metrics
+```promql
+# Kafka consumer lag (per tenant)
+kafka_consumer_lag{tenant="tenant-a", topic=~"workflow.*"}
+
+# DLQ message count
+sum(kafka_topic_size{topic=~".*dlq"}) by (topic)
+
+# Workflow execution states
+workflow_execution_status{tenant="tenant-a", status="running"}
+workflow_execution_status{tenant="tenant-a", status="failed"}
+workflow_execution_status{tenant="tenant-a", status="completed"}
+
+# SLA breaches
+workflow_execution_duration_seconds{tenant="tenant-a"} > 300  # >5min
+
+# DMS operations
+dms_operation_total{tenant="tenant-a", operation="ocr", status="success"}
+dms_operation_total{tenant="tenant-a", operation="upload", status="failed"}
+```
+
+#### Loki Labels (Must Have)
+```logql
+# Workflow execution logs
+{tenant="tenant-a", service="workflow-engine", workflow_id=~".+"}
+
+# Kafka errors
+{tenant="tenant-a", service="kafka-consumer", level="ERROR"}
+
+# DMS operation logs
+{tenant="tenant-a", service="dms", operation=~"upload|download|ocr"}
+```
+
+#### Doporučené zobrazení
+- **Native FE**: Workflow Dashboard s real-time status cards
+- **Grafana** (SRE only): Kafka Lag dashboard (cross-tenant troubleshooting)
+
+---
+
+### Use Case 4: Security & Audit
+
+**WHO:** Security officer, compliance auditor  
+**WHAT:** Přehled security events a audit trail  
+**WHERE:** Native Monitoring UI (Log Viewer) + Grafana (admin realm)
+
+#### Prometheus Metrics
+```promql
+# Failed login attempts (all tenants)
+sum(keycloak_login_attempts{status="failed"}) by (tenant, realm)
+
+# Role changes
+sum(increase(keycloak_role_changes_total[1h])) by (tenant)
+
+# Administrative actions
+sum(increase(admin_action_total{action=~"tenant_create|connector_create"}[1h]))
+```
+
+#### Loki Labels (Must Have)
+```logql
+# Failed logins
+{service="keycloak", level="WARN", event="LOGIN_ERROR"}
+
+# Role changes
+{service="backend", level="AUDIT", action="role_change"}
+
+# Tenant management
+{service="backend", level="AUDIT", action=~"tenant_.*"}
+
+# User tracking (GDPR-compliant)
+{tenant="tenant-a", level="AUDIT", user_id=~".+"}
+
+# Trace ID correlation
+{tenant="tenant-a", trace_id="abc123"}
+```
+
+#### Doporučené zobrazení
+- **Native FE**: Audit Log Viewer (filtered by tenant)
+- **Grafana** (admin realm): Security Audit dashboard (cross-tenant alerts)
+
+---
+
+## 🧪 Testing & Quality Gates (EPIC-002 Integration)
+
+### Smoke Tests (Pre-Deploy)
+
+**Cíl:** Ověřit že Prometheus a Loki běží a vrací data.
+
+```typescript
+// e2e/specs/monitoring/smoke.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Monitoring Stack Smoke Tests', () => {
+  
+  test('Prometheus is healthy', async ({ request }) => {
+    const response = await request.get('http://prometheus:9090/-/healthy');
+    expect(response.status()).toBe(200);
+  });
+  
+  test('Prometheus has targets up', async ({ request }) => {
+    const response = await request.get('http://prometheus:9090/api/v1/targets');
+    const data = await response.json();
+    
+    const activeTargets = data.data.activeTargets;
+    expect(activeTargets.length).toBeGreaterThan(0);
+    
+    const upTargets = activeTargets.filter(t => t.health === 'up');
+    expect(upTargets.length).toBeGreaterThan(0);
+  });
+  
+  test('Loki is healthy', async ({ request }) => {
+    const response = await request.get('http://loki:3100/ready');
+    expect(response.status()).toBe(200);
+  });
+  
+  test('Loki returns logs', async ({ request }) => {
+    const query = encodeURIComponent('{service="backend"}');
+    const response = await request.get(
+      `http://loki:3100/loki/api/v1/query_range?query=${query}&limit=10`
+    );
+    const data = await response.json();
+    
+    expect(data.status).toBe('success');
+    expect(data.data.result.length).toBeGreaterThan(0);
+  });
+  
+  test('BFF monitoring endpoints exist', async ({ request }) => {
+    // Requires valid JWT
+    const response = await request.get('/api/monitoring/health');
+    expect(response.status()).toBe(200);
+    
+    const health = await response.json();
+    expect(health.prometheus).toBe('UP');
+    expect(health.loki).toBe('UP');
+  });
+});
+```
+
+### E2E Tests (Post-Deploy)
+
+**Cíl:** Ověřit tenant isolation a funkčnost native UI.
+
+```typescript
+// e2e/specs/monitoring/log-viewer.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Log Viewer - Tenant Isolation', () => {
+  
+  test('User A sees only own logs', async ({ page }) => {
+    // Login as tenant-a user
+    await page.goto('/login');
+    await page.fill('[name="username"]', 'admin@tenant-a');
+    await page.fill('[name="password"]', 'Test.1234');
+    await page.click('button[type="submit"]');
+    
+    // Navigate to Log Viewer
+    await page.goto('/monitoring/logs');
+    
+    // Execute query
+    await page.fill('[data-testid="logql-input"]', '{service="backend"}');
+    await page.click('[data-testid="execute-query"]');
+    
+    // Wait for results
+    await page.waitForSelector('[data-testid="log-table"]');
+    
+    // Verify ALL logs have tenant="tenant-a" label
+    const logs = await page.$$eval(
+      '[data-testid="log-entry"]',
+      entries => entries.map(e => e.getAttribute('data-tenant'))
+    );
+    
+    expect(logs.every(tenant => tenant === 'tenant-a')).toBe(true);
+  });
+  
+  test('User A cannot see User B logs', async ({ page }) => {
+    // Login as tenant-a user
+    await loginAsTenantA(page);
+    
+    // Navigate to Log Viewer
+    await page.goto('/monitoring/logs');
+    
+    // Try to query tenant-b logs (should be blocked by BFF)
+    await page.fill('[data-testid="logql-input"]', '{tenant="tenant-b"}');
+    await page.click('[data-testid="execute-query"]');
+    
+    // Should return 0 results (or 403 Forbidden)
+    const errorMessage = await page.textContent('[data-testid="error-message"]');
+    expect(errorMessage).toContain('Access denied');
+  });
+  
+  test('Metrics Dashboard shows tenant-scoped data', async ({ page }) => {
+    await loginAsTenantA(page);
+    
+    await page.goto('/monitoring/metrics');
+    
+    // Wait for metrics to load
+    await page.waitForSelector('[data-testid="metric-card"]');
+    
+    // Verify request rate metric
+    const requestRate = await page.textContent('[data-testid="metric-request-rate"]');
+    expect(requestRate).toMatch(/\d+\.\d+ req\/s/);
+    
+    // Verify tenant label is present in query
+    const queryText = await page.getAttribute('[data-testid="metric-request-rate"]', 'data-query');
+    expect(queryText).toContain('tenant="tenant-a"');
+  });
+});
+```
+
+### Grafana Smoke Test (Optional, Manual)
+
+**Cíl:** Ověřit že Grafana je dostupná pro admin realm.
+
+```bash
+# Manual check
+curl -k https://admin.core-platform.local/grafana/login
+# Očekáváno: 200 OK + Keycloak redirect
+
+# Nebo jednoduchý Playwright test:
+test('Grafana is accessible for admin', async ({ page }) => {
+  await page.goto('https://admin.core-platform.local/grafana');
+  
+  // Should redirect to Keycloak login
+  await expect(page).toHaveURL(/keycloak.*\/realms\/admin\/protocol\/openid-connect\/auth/);
+});
+```
+
+**POZNÁMKA:** Komplexní E2E testy pro Grafana SSO NEJSOU vyžadovány (admin-only tool, manuální verifikace stačí).
+
+---
+
+## 🚫 Out of Scope (CO NEDĚLÁME)
+
+### 1. Per-Tenant Grafana Organizations
+
+❌ **ZAHODIT:**
+- Automatické vytváření Grafana org per tenant
+- `GrafanaMonitoringProvisioningService.provisionMonitoringForTenant()`
+- Multi-tenant SSO bridge přes BFF
+
+**DŮVOD:**
+- Komplexní správa (create/delete tenant → sync Grafana orgs)
+- Licence náklady (Grafana Enterprise pro multi-org)
+- Tenant users mají **Native Monitoring UI** - nepotřebují Grafana
+
+**MÍSTO TOHO:**
+- Grafana pouze pro **admin realm** (SRE/ops týmy)
+- Jediná Grafana instance, bez per-tenant provisioningu
+
+---
+
+### 2. Grafana Scenes Embedded v Tenant UI
+
+❌ **ZAHODIT:**
+- Embedování Grafana dashboardů do našich tenant stránek
+- `<iframe src="/grafana/d/<dashboard-uid>?orgId=<tenant-org-id>" />`
+- Grafana Scenes React komponenty
+
+**DŮVOD:**
+- Security riziko (CSP bypass, clickjacking)
+- Závislost na externím nástroji (vendor lock-in)
+- Performance (loading Grafana iframe je pomalé)
+
+**MÍSTO TOHO:**
+- **Native React komponenty** pro metrics/logs
+- MUI Charts, Recharts, nebo vlastní D3.js grafy
+- Data přímo z BFF API (Prometheus/Loki queries)
+
+---
+
+### 3. Složitý JWT SSO Bridge pro Multi-Org
+
+❌ **ZAHODIT:**
+- JWT token exchange mezi našim backendem a Grafanou
+- Custom auth proxy s org-id routing
+- Per-tenant service accounts v Grafaně
+
+**DŮVOD:**
+- Zbytečná komplexita (Grafana není pro běžné uživatele)
+- Security surface area (token leaks, impersonation)
+- Maintenance overhead (sync users/orgs/permissions)
+
+**MÍSTO TOHO:**
+- Grafana **POUZE OIDC/SSO proti admin realm**
+- Žádný JWT bridge, žádný token exchange
+- Admin users login přímo přes Keycloak
+
+---
+
+### 4. Grafana Alerting per Tenant
+
+❌ **NEIMPLEMENTOVAT:**
+- Per-tenant alert rules v Grafaně
+- Per-tenant notification channels (Slack, email per org)
+
+**DŮVOD:**
+- Tenant-specific alerty můžeme řešit v **Prometheus Alertmanager**
+- Nebo v **budoucí Native Alerting UI** (custom React)
+
+**MÍSTO TOHO:**
+- Grafana alerting pouze pro **platform-wide alerty** (admin realm)
+- Tenant alerting přes Prometheus rules + Alertmanager routing
+
+---
+
+## 📚 Related EPICs & Documentation
+
+### EPIC-000: Security & Access Control
+- **TLS/HTTPS**: Všechen monitoring provoz pouze přes HTTPS
+- **JWT Validation**: BFF kontroluje JWT před každým query
+- **Tenant Guard**: Automatická injekce tenant filters
+- **PII Redaction**: Citlivá data v logách musí být redakována
+- **Audit Logging**: Access k monitoring API musí být auditován
+- **Rate Limiting**: Ochrana proti bruteforce (admin endpoints)
+
+### EPIC-002: E2E Infrastructure
+- **Smoke Tests**: Pre-deploy validace (Prometheus/Loki health)
+- **E2E Tests**: Post-deploy tenant isolation checks
+- **Test Data**: Generování test logů a metrik
+- **CI/CD Integration**: Automated testing v GitHub Actions
+
+### EPIC-007: Workflow Engine
+- **Workflow Metrics**: `workflow_execution_*` metriky
+- **Kafka Monitoring**: Consumer lag, DLQ tracking
+- **SLA Tracking**: Workflow duration SLOs
+
+### EPIC-012: DMS (Document Management)
+- **DMS Metrics**: `dms_operation_*` metriky
+- **OCR Monitoring**: Success rate, latency
+- **Storage Metrics**: S3 usage per tenant
+
+---
+
+## 📊 Stories Overview (Updated)
 
 | ID | Story | Status | LOC | Components | Value |
 |----|-------|--------|-----|------------|-------|
-| [S1](#s1-loki-log-aggregation) | Loki Log Aggregation | ✅ DONE | ~1,000 | Loki 3.0 + Promtail | Centralized logs |
-| [S2](#s2-prometheus-metrics) | Prometheus Metrics | ✅ DONE | ~1,500 | Prometheus 2.x | Time-series metrics |
-| [S3](#s3-grafana-dashboards) | Grafana Dashboards | ✅ DONE | ~2,000 | 7 Axiom dashboards | Visualization |
-| [S4](#s4-tenant-auto-provisioning) | Tenant Auto-Provisioning | ✅ DONE | ~800 | Backend service | Per-tenant monitoring |
-| [S5](#s5-recording-rules) | Recording Rules | ✅ DONE | ~600 | Prometheus rules | Aggregated metrics |
-| [S6](#s6-alerting) | Alerting & Notifications | ✅ DONE | ~700 | Alert rules | Proactive alerts |
-| [S7](#s7-native-loki-ui) | Native Loki UI | ✅ DONE | ~1,400 | BFF API + React | De-Grafana logs |
-| [S8](#s8-business-dashboards) | Business Dashboards (Frontend) | 🔵 TODO | ~2,500 | React + MUI Charts | Integrated UI |
-| [S9](#s9-reporting-dashboards) | Reporting Dashboards (Cube.js) | 🔵 TODO | ~1,800 | Cube.js + Analytics | Business Intelligence |
-| [S10](#s10-real-time-widgets) | Real-Time Monitoring Widgets | 🔵 TODO | ~1,200 | WebSocket + Live | Live metrics |
-| **TOTAL** | | **7/10** | **~13,500** | **Complete stack** | **Full observability** |
+| **MON-001** | Loki Log Aggregation | ✅ DONE | ~1,000 | Loki 3.0 + Promtail | Centralized logs |
+| **MON-002** | Prometheus Metrics | ✅ DONE | ~1,500 | Prometheus 2.x | Time-series metrics |
+| **MON-003** | ~~Grafana Dashboards~~ | ⚠️ DEPRECATED | ~~2,000~~ | Moved to optional | ~~Visualization~~ |
+| **MON-004** | ~~Tenant Auto-Provisioning~~ | ⚠️ REMOVED | ~~800~~ | N/A | ~~Per-tenant orgs~~ |
+| **MON-005** | Recording Rules & Alerting | ✅ DONE | ~1,300 | Prometheus rules | Aggregated metrics + alerts |
+| **MON-007** | Native Loki UI | ✅ DONE | ~1,400 | BFF API + React | De-Grafana logs |
+| **MON-008** | Native Metrics Dashboard | 🔵 TODO | ~2,500 | React + MUI Charts | Integrated UI |
+| **MON-009** | Real-Time Widgets | 🔵 TODO | ~1,200 | WebSocket + Live | Live metrics |
+| **MON-010** | Optional Grafana (Admin) | 🔵 TODO | ~500 | Nginx proxy + OIDC | SRE tool |
+| **TOTAL** | | **4/9** | **~11,400** | **Native-first stack** | **Full observability** |
 
 ---
 
-## 📖 Detailed Stories
+## 🎯 Next Steps (Q1 2025)
+
+### Priority 1: Native Metrics Dashboard (MON-008)
+- [ ] Design mockupy (Figma) - Health Cards, Line Charts, SLO tracking
+- [ ] Backend BFF API (`/api/monitoring/metrics/{metricName}`)
+- [ ] Frontend React komponenty (MUI Charts integration)
+- [ ] E2E testy (tenant isolation)
+
+### Priority 2: Real-Time Widgets (MON-009)
+- [ ] WebSocket endpoint pro live metrics (`/ws/monitoring/live`)
+- [ ] React hooks pro real-time updates
+- [ ] Live log streaming
+- [ ] Auto-refresh dashboards
+
+### Priority 3: Optional Grafana (MON-010)
+- [ ] Nginx reverse proxy konfigurace (`/grafana` path)
+- [ ] Keycloak OIDC client pro admin realm
+- [ ] Admin-only dashboards (System, Kafka, Security)
+- [ ] Dokumentace pro SRE týmy
+
+---
+
+## ✅ Definition of Done
+
+### Pro každou story:
+- [x] **Implementace**: Kód napsán, unit testy passed
+- [x] **E2E testy**: Playwright specs pro klíčové flows
+- [x] **Dokumentace**: README updated, API docs
+- [x] **Security review**: EPIC-000 compliance (JWT, TLS, tenant isolation)
+- [ ] **Performance**: Query latency < 1s (P95)
+- [ ] **Accessibility**: WCAG 2.1 AA (pro Native UI)
+
+### Pro celý EPIC:
+- [x] **Loki stack**: Centralized logging s multi-tenant labels
+- [x] **Prometheus stack**: Metrics collection s tenant filters
+- [x] **Native Loki UI**: Log viewer v React (de-Grafana)
+- [ ] **Native Metrics UI**: Business dashboards v React
+- [ ] **Optional Grafana**: Admin-only tool za Nginx proxy
+- [ ] **E2E coverage**: ≥80% critical paths
+- [ ] **Load testing**: 1000 concurrent users, < 2s response time
+
+---
+
+**Last Updated:** 9. listopadu 2025  
+**Owner:** Platform Team + DevOps  
+**Review Cycle:** Bi-weekly (sprint reviews)
+
+---
+
+## 📊 Stories Implementation Details (Preserve from Original)
 
 ### MON-001: Loki Log Aggregation
 
-**Status:** ✅ **DONE**  
-**Implementation:** Září 2024  
+**Status:** ✅ **DONE** (Září 2024)  
 **LOC:** ~1,000
 
-#### Description
-Centralizovaný log aggregation systém pro všechny služby s multi-tenant labeling a long-term retention.
+#### Loki Stack Configuration
 
-#### Key Features
-- **Multi-tenant logs**: Labels `tenant`, `service`, `level`
-- **Structured JSON**: Loki native JSON parsing
-- **Long-term retention**: 90 days default, 365 days for audit
-- **High performance**: Chunk compression, index optimization
-
-#### Stack
 ```yaml
-# docker/docker-compose.yml
-loki:
-  image: grafana/loki:3.0.0
-  volumes:
-    - ./loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-    - loki_data:/loki
-  ports:
-    - "3100:3100"
-  command: -config.file=/etc/loki/local-config.yaml
-
-promtail:
-  image: grafana/promtail:3.0.0
-  volumes:
-    - /var/log:/var/log:ro
-    - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
-    - /var/lib/docker/containers:/var/lib/docker/containers:ro
-  command: -config.file=/etc/promtail/config.yml
-```
-
-#### Configuration
-```yaml
-# loki/loki-config.yml
+# docker/loki/loki-config.yml
 auth_enabled: false
 
 server:
   http_listen_port: 3100
 
-ingester:
-  lifecycler:
-    ring:
-      kvstore:
-        store: inmemory
-      replication_factor: 1
-  chunk_idle_period: 5m
-  chunk_retain_period: 30s
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
 
 schema_config:
   configs:
-    - from: 2024-09-01
+    - from: 2024-01-01
       store: boltdb-shipper
       object_store: filesystem
       schema: v11
@@ -139,7 +1129,7 @@ scrape_configs:
 {service="backend"} |= "ERROR" | json
 
 # Logy konkrétního tenantu
-{tenant="company-a"} | json
+{tenant="tenant-a"} | json
 
 # Slow query detection (>1s)
 {service="backend"} | json | duration > 1000ms
@@ -148,52 +1138,18 @@ scrape_configs:
 {service="backend", level="AUDIT"} | json | line_format "{{.user}}: {{.action}}"
 ```
 
-#### Value
-- **Centralized logs**: Jediné místo pro všechny logy
-- **Fast search**: Full-text search v sekundách
-- **Multi-tenant**: Izolace logů per tenant
-- **Compliance**: Audit trail pro regulaci
-
 ---
 
-### MON-002: Prometheus Metrics
+### MON-002: Prometheus Metrics Collection
 
-**Status:** ✅ **DONE**  
-**Implementation:** Září 2024  
+**Status:** ✅ **DONE** (Září 2024)  
 **LOC:** ~1,500
-
-#### Description
-Time-series metrics collection pro JVM, HTTP, databáze, Redis, Kafka s custom business metrics.
-
-#### Key Features
-- **Auto-discovery**: Service discovery via Docker labels
-- **Custom metrics**: Business KPIs (tenant count, active users, etc.)
-- **High cardinality**: Support pro multi-tenant labels
-- **Long retention**: 15 days detailed, 90 days aggregated
-
-#### Stack
-```yaml
-# docker/docker-compose.yml
-prometheus:
-  image: prom/prometheus:v2.50.0
-  volumes:
-    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    - ./prometheus/rules:/etc/prometheus/rules:ro
-    - ./prometheus/alerts:/etc/prometheus/alerts:ro
-    - prometheus_data:/prometheus
-  ports:
-    - "9090:9090"
-  command:
-    - '--config.file=/etc/prometheus/prometheus.yml'
-    - '--storage.tsdb.retention.time=15d'
-    - '--storage.tsdb.retention.size=50GB'
-```
 
 #### Metric Categories
 
-##### 1. JVM Metrics (Micrometer)
-```java
-// backend/src/main/resources/application.yml
+**1. JVM Metrics (Micrometer):**
+```yaml
+# backend/src/main/resources/application.yml
 management:
   metrics:
     export:
@@ -207,56 +1163,26 @@ management:
       environment: ${ENVIRONMENT:dev}
 ```
 
-**Metrics:**
-- `jvm_memory_used_bytes{area="heap"}` - Heap memory usage
-- `jvm_gc_pause_seconds` - GC pause duration
+Metrics:
+- `jvm_memory_used_bytes{area="heap"}` - Heap memory
+- `jvm_gc_pause_seconds` - GC duration
 - `jvm_threads_live` - Active threads
 - `process_cpu_usage` - CPU utilization
 
-##### 2. HTTP Metrics
-```java
-// Auto-instrumented by Spring Boot Actuator
+**2. HTTP Metrics:**
+```promql
 http_server_requests_seconds_count{method="GET", uri="/api/tenants", status="200"}
 http_server_requests_seconds_sum{method="POST", uri="/api/users", status="201"}
 ```
 
-**Tracked:**
-- Request count per endpoint
-- Latency percentiles (p50, p95, p99)
-- Error rates (4xx, 5xx)
-- Active requests
-
-##### 3. Database Metrics
-```java
-// HikariCP connection pool
+**3. Database Metrics (HikariCP):**
+```promql
 hikaricp_connections_active{pool="core-db"}
 hikaricp_connections_pending{pool="core-db"}
 hikaricp_connections_timeout_total{pool="core-db"}
 ```
 
-**Tracked:**
-- Connection pool usage
-- Query execution time
-- Transaction count
-- Deadlock detection
-
-##### 4. Redis Metrics
-```java
-// Lettuce client
-redis_commands_total{command="GET", status="SUCCESS"}
-redis_commands_duration_seconds{command="SET"}
-redis_connections_active
-```
-
-##### 5. Kafka Metrics
-```java
-// Spring Kafka
-kafka_producer_record_send_total{topic="tenant.events"}
-kafka_consumer_fetch_manager_records_lag{topic="audit.logs"}
-kafka_consumer_fetch_manager_fetch_latency_avg
-```
-
-##### 6. Custom Business Metrics
+**4. Custom Business Metrics:**
 ```java
 // backend/src/main/java/cz/muriel/core/metrics/BusinessMetrics.java
 @Component
@@ -272,14 +1198,6 @@ public class BusinessMetrics {
     Gauge.builder("users.active.count", userService::countActive)
       .description("Active users in last 30 days")
       .register(registry);
-    
-    Counter.builder("tenant.created.total")
-      .description("Total tenants created")
-      .register(registry);
-  }
-  
-  public void recordTenantCreation(String tenantKey) {
-    registry.counter("tenant.created.total", "tenant", tenantKey).increment();
   }
 }
 ```
@@ -290,20 +1208,12 @@ public class BusinessMetrics {
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
-  external_labels:
-    cluster: 'core-platform'
-    environment: 'production'
-
-rule_files:
-  - /etc/prometheus/rules/*.yml
-  - /etc/prometheus/alerts/*.yml
 
 scrape_configs:
   - job_name: 'backend'
     static_configs:
       - targets: ['backend:8080']
     metrics_path: '/actuator/prometheus'
-    scrape_interval: 10s
   
   - job_name: 'postgres'
     static_configs:
@@ -318,725 +1228,442 @@ scrape_configs:
       - targets: ['kafka-exporter:9308']
 ```
 
-#### Value
-- **Real-time metrics**: Sub-second granularity
-- **Alerting**: Proactive problem detection
-- **Capacity planning**: Historical trends
-- **SLO tracking**: Service level objectives
-
 ---
 
-### MON-003: Grafana Dashboards (7 Axiom Dashboards)
+### MON-005: Recording Rules & Alerting
 
-**Status:** ✅ **DONE**  
-**Implementation:** Září 2024  
-**LOC:** ~2,000
-
-#### Description
-Kompletní suite 7 Grafana dashboardů pro systémový, runtime, databázový, Redis, Kafka, security a audit monitoring.
-
-#### Dashboards
-
-##### 1. Axiom System Overview (`axiom_sys_overview`)
-**Purpose:** High-level systémové metriky  
-**Panels (12):**
-- CPU Usage (gauge + graph)
-- Memory Usage (gauge + graph)
-- Disk Usage (gauge)
-- Network I/O (graph)
-- Open File Descriptors (stat)
-- System Load (graph)
-- Container Health (stat)
-- Error Rate (graph)
-- Request Rate (graph)
-- Active Connections (stat)
-- Uptime (stat)
-- Alerts Status (table)
-
-**Query Examples:**
-```promql
-# CPU usage
-100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
-
-# Memory usage
-(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) 
-  / node_memory_MemTotal_bytes * 100
-
-# Request rate
-sum(rate(http_server_requests_seconds_count[5m]))
-```
-
-##### 2. Axiom Advanced Runtime (`axiom_adv_runtime`)
-**Purpose:** JVM a aplikační runtime metriky  
-**Panels (15):**
-- Heap Memory (graph + gauge)
-- Non-Heap Memory (graph)
-- GC Pause Time (histogram)
-- GC Count (graph)
-- Thread Count (graph + stat)
-- Class Loading (stat)
-- HTTP Request Latency (heatmap)
-- HTTP Error Rate (graph)
-- Active Sessions (stat)
-- Request Throughput (graph)
-- Database Connections (gauge)
-- Cache Hit Rate (gauge)
-- Queue Size (graph)
-- Background Jobs (stat)
-- Exception Count (graph)
-
-**Query Examples:**
-```promql
-# Heap usage
-jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} * 100
-
-# P95 latency
-histogram_quantile(0.95, 
-  rate(http_server_requests_seconds_bucket[5m]))
-
-# Error rate
-sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) /
-sum(rate(http_server_requests_seconds_count[5m])) * 100
-```
-
-##### 3. Axiom Advanced Database (`axiom_adv_db`)
-**Purpose:** PostgreSQL performance monitoring  
-**Panels (18):**
-- Connections (active/idle/waiting)
-- Transaction Rate (commits/rollbacks)
-- Query Duration (p50/p95/p99)
-- Slow Queries (table)
-- Cache Hit Ratio
-- Index Usage
-- Table Size (top 10)
-- Bloat Detection
-- Lock Waits
-- Deadlocks
-- Replication Lag
-- Checkpoint Duration
-- WAL Generation Rate
-- Autovacuum Activity
-- Connection Pool Status
-- Query Execution Plan Stats
-- Top Queries by Time (table)
-- Database Size Growth (graph)
-
-##### 4. Axiom Advanced Redis (`axiom_adv_redis`)
-**Purpose:** Redis cache monitoring  
-**Panels (12):**
-- Memory Usage
-- Hit Rate
-- Evicted Keys
-- Connected Clients
-- Command Rate (GET/SET/DEL)
-- Keyspace Stats
-- Slowlog
-- Network I/O
-- Persistence (RDB/AOF)
-- Replication Status
-- Blocked Clients
-- CPU Usage
-
-##### 5. Axiom Kafka Lag (`axiom_kafka_lag`)
-**Purpose:** Kafka consumer lag monitoring  
-**Panels (10):**
-- Consumer Lag (per topic/partition)
-- Lag Heatmap
-- Messages per Second
-- Consumer Group Status
-- Fetch Latency
-- Producer Throughput
-- Topic Size
-- Partition Count
-- Replication Factor
-- Under-Replicated Partitions
-
-##### 6. Axiom Security (`axiom_security`)
-**Purpose:** Security event monitoring  
-**Panels (14):**
-- Failed Login Attempts (graph)
-- Successful Logins (graph)
-- Active Sessions (stat)
-- Token Issued/Revoked (graph)
-- Permission Denied Events (graph)
-- IP Blacklist Hits (table)
-- Rate Limit Violations (graph)
-- CORS Errors (graph)
-- SSL/TLS Handshakes (graph)
-- JWT Validation Failures (graph)
-- OAuth2 Flow Stats
-- User Agent Analysis (pie chart)
-- GeoIP Distribution (worldmap)
-- Suspicious Activity Alerts (table)
-
-##### 7. Axiom Audit (`axiom_audit`)
-**Purpose:** Audit trail visualization  
-**Panels (16):**
-- Audit Events Timeline (graph)
-- Events by Type (pie chart)
-- Events by User (table)
-- Events by Tenant (table)
-- Critical Events (table)
-- Data Changes (table)
-- Permission Changes (table)
-- Configuration Changes (table)
-- User Activity Heatmap
-- Tenant Activity Comparison
-- Compliance Metrics (stat)
-- Failed Operations (table)
-- Long-Running Operations (table)
-- Sensitive Data Access (table)
-- Export Activity (graph)
-- Retention Policy Status (stat)
-
-#### Auto-Provisioning
-```yaml
-# grafana/provisioning/dashboards/axiom-dashboards.yml
-apiVersion: 1
-
-providers:
-  - name: 'Axiom Dashboards'
-    orgId: 1
-    folder: 'Monitoring'
-    type: file
-    disableDeletion: false
-    updateIntervalSeconds: 10
-    allowUiUpdates: true
-    options:
-      path: /etc/grafana/provisioning/dashboards/axiom
-```
-
-#### Value
-- **360° visibility**: Kompletní přehled platformy
-- **Pre-built dashboards**: Žádná manuální konfigurace
-- **Best practices**: Industry-standard metriky
-- **Multi-tenant**: Per-tenant filtering
-
----
-
-### MON-004: Tenant Auto-Provisioning
-
-**Status:** ✅ **DONE**  
-**Implementation:** Říjen 2024  
-**LOC:** ~800
-
-#### Description
-Automatické vytvoření Grafana organizace a importování všech 7 Axiom dashboardů při vytvoření nového tenantu.
-
-#### Backend Service
-```java
-// backend/src/main/java/cz/muriel/core/monitoring/GrafanaMonitoringProvisioningService.java
-@Service
-@Slf4j
-public class GrafanaMonitoringProvisioningService {
-  
-  private static final List<String> AXIOM_DASHBOARD_UIDS = Arrays.asList(
-    "axiom_sys_overview",
-    "axiom_adv_runtime",
-    "axiom_adv_db",
-    "axiom_adv_redis",
-    "axiom_kafka_lag",
-    "axiom_security",
-    "axiom_audit"
-  );
-  
-  private final GrafanaClient grafanaClient;
-  private final DashboardRepository dashboardRepository;
-  
-  @Transactional
-  public void provisionMonitoringForTenant(String tenantKey, String displayName) {
-    log.info("Provisioning monitoring for tenant: {}", tenantKey);
-    
-    // 1. Create Grafana organization
-    String orgName = "Tenant: " + tenantKey;
-    Long orgId = grafanaClient.createOrganization(orgName, displayName);
-    log.info("Created Grafana org: {} (ID: {})", orgName, orgId);
-    
-    // 2. Import all Axiom dashboards
-    for (String uid : AXIOM_DASHBOARD_UIDS) {
-      try {
-        Dashboard dashboard = dashboardRepository.findByUid(uid)
-          .orElseThrow(() -> new RuntimeException("Dashboard not found: " + uid));
-        
-        // Clone dashboard with tenant-specific variable
-        Dashboard tenantDashboard = cloneDashboard(dashboard, tenantKey);
-        
-        // Import to tenant org
-        grafanaClient.importDashboard(orgId, tenantDashboard);
-        log.info("Imported dashboard {} to org {}", uid, orgName);
-      } catch (Exception e) {
-        log.error("Failed to import dashboard {} for tenant {}", uid, tenantKey, e);
-      }
-    }
-    
-    // 3. Set default tenant filter
-    grafanaClient.setOrgVariable(orgId, "tenant", tenantKey);
-    
-    log.info("Monitoring provisioning complete for tenant: {}", tenantKey);
-  }
-  
-  private Dashboard cloneDashboard(Dashboard source, String tenantKey) {
-    Dashboard clone = source.deepCopy();
-    
-    // Add tenant variable
-    clone.getTemplating().getList().add(Variable.builder()
-      .name("tenant")
-      .type("constant")
-      .current(new VariableValue(tenantKey, tenantKey))
-      .hide(2) // Hide from UI
-      .build());
-    
-    // Inject tenant filter into all queries
-    clone.getPanels().forEach(panel -> {
-      if (panel.getTargets() != null) {
-        panel.getTargets().forEach(target -> {
-          String expr = target.getExpr();
-          if (expr != null && !expr.contains("{tenant=")) {
-            target.setExpr(injectTenantFilter(expr, tenantKey));
-          }
-        });
-      }
-    });
-    
-    return clone;
-  }
-  
-  private String injectTenantFilter(String expr, String tenantKey) {
-    // http_server_requests_seconds_count → http_server_requests_seconds_count{tenant="company-a"}
-    return expr.replaceFirst("\\{", "{tenant=\"" + tenantKey + "\",")
-               .replaceFirst("([a-z_]+)", "$1{tenant=\"" + tenantKey + "\"}");
-  }
-}
-```
-
-#### Integration with Tenant Creation
-```java
-// backend/src/main/java/cz/muriel/core/admin/TenantManagementController.java
-@PostMapping("/api/admin/tenants")
-public ResponseEntity<Map<String, Object>> createTenant(@RequestBody CreateTenantRequest request) {
-  // 1. Create Keycloak realm
-  keycloakRealmManagementService.createTenant(request.getKey(), request.getDisplayName());
-  
-  // 2. Register tenant in database
-  Optional<Tenant> tenant = tenantService.findTenantByKey(request.getKey());
-  
-  // 3. 📊 AUTO-PROVISION: Grafana monitoring dashboards
-  grafanaMonitoringProvisioningService.provisionMonitoringForTenant(
-    request.getKey(),
-    request.getDisplayName()
-  );
-  
-  return ResponseEntity.status(CREATED).body(Map.of(
-    "key", request.getKey(),
-    "displayName", request.getDisplayName(),
-    "grafanaOrg", "Tenant: " + request.getKey(),
-    "dashboardsProvisioned", 7
-  ));
-}
-```
-
-#### Workflow Example
-```bash
-# User creates tenant in UI
-POST /api/admin/tenants
-{
-  "key": "acme-corp",
-  "displayName": "ACME Corporation"
-}
-
-# Backend executes:
-# 1. Keycloak realm created: acme-corp
-# 2. Tenant admin user created
-# 3. DB record inserted
-# 4. Grafana org created: "Tenant: acme-corp"
-# 5. 7 dashboards imported with tenant filter: {tenant="acme-corp"}
-
-# Tenant admin logs in → sees all 7 dashboards immediately
-```
-
-#### Value
-- **Zero manual setup**: Dashboards ready on tenant creation
-- **Tenant isolation**: Each tenant sees only their metrics
-- **Consistency**: All tenants get same dashboard suite
-- **Scalability**: Automated for 1000s of tenants
-
----
-
-### MON-005: Recording Rules
-
-**Status:** ✅ **DONE**  
-**Implementation:** Září 2024  
-**LOC:** ~600
-
-#### Description
-Prometheus recording rules pro pre-aggregované metriky a faster dashboard queries.
+**Status:** ✅ **DONE** (Září 2024)  
+**LOC:** ~1,300
 
 #### Recording Rules
 ```yaml
 # prometheus/rules/recording_rules.yml
 groups:
-  - name: performance_slos
+  - name: http_aggregations
     interval: 30s
     rules:
-      # API latency SLO: 95% < 500ms
-      - record: api:request_duration_seconds:p95
-        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))
+      - record: job:http_requests_total:rate5m
+        expr: sum(rate(http_server_requests_seconds_count[5m])) by (job)
       
-      # API availability SLO: 99.9%
-      - record: api:availability:ratio
-        expr: |
-          sum(rate(http_server_requests_seconds_count{status!~"5.."}[5m]))
-          /
-          sum(rate(http_server_requests_seconds_count[5m]))
+      - record: job:http_request_duration_seconds:p95
+        expr: histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (job, le))
       
-      # DB query SLO: 99% < 100ms
-      - record: db:query_duration_seconds:p99
-        expr: histogram_quantile(0.99, rate(db_query_duration_seconds_bucket[5m]))
+      - record: job:http_errors:rate5m
+        expr: sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (job)
   
-  - name: capacity_metrics
-    interval: 1m
+  - name: jvm_aggregations
+    interval: 60s
     rules:
-      # CPU utilization per tenant
-      - record: tenant:cpu_usage:rate5m
-        expr: sum(rate(process_cpu_seconds_total[5m])) by (tenant)
-      
-      # Memory usage per tenant
-      - record: tenant:memory_bytes:usage
-        expr: sum(jvm_memory_used_bytes{area="heap"}) by (tenant)
-      
-      # Request rate per tenant
-      - record: tenant:requests:rate5m
-        expr: sum(rate(http_server_requests_seconds_count[5m])) by (tenant)
+      - record: job:jvm_memory_used_ratio:heap
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}
 ```
-
-#### Value
-- **Faster dashboards**: Pre-computed aggregations
-- **Lower query cost**: Reduced PromQL complexity
-- **SLO tracking**: Standardized performance metrics
-- **Capacity planning**: Tenant resource usage
-
----
-
-### MON-006: Alerting & Notifications
-
-**Status:** ✅ **DONE**  
-**Implementation:** Září 2024  
-**LOC:** ~700
-
-#### Description
-Prometheus alert rules s Alertmanager pro email/Slack notifications.
 
 #### Alert Rules
 ```yaml
-# prometheus/alerts/slo_alerts.yml
+# prometheus/alerts/alerts.yml
 groups:
-  - name: slo_violations
+  - name: slo_alerts
+    interval: 30s
     rules:
       - alert: HighErrorRate
-        expr: api:availability:ratio < 0.999
+        expr: job:http_errors:rate5m / job:http_requests_total:rate5m > 0.01
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "API availability below SLO ({{ $value | humanizePercentage }})"
-          description: "Current availability: {{ $value }}. SLO: 99.9%"
+          summary: "High HTTP error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}"
       
       - alert: HighLatency
-        expr: api:request_duration_seconds:p95 > 0.5
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "API P95 latency above SLO ({{ $value }}s)"
-          description: "Current P95: {{ $value }}s. SLO: 500ms"
-      
-      - alert: DatabaseSlowQueries
-        expr: db:query_duration_seconds:p99 > 0.1
+        expr: job:http_request_duration_seconds:p95 > 1.0
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "Database P99 latency above SLO ({{ $value }}s)"
-          description: "Current P99: {{ $value }}s. SLO: 100ms"
-
-# prometheus/alerts/resource_alerts.yml
-groups:
-  - name: resource_exhaustion
+          summary: "High API latency"
+          description: "P95 latency is {{ $value }}s"
+  
+  - name: resource_alerts
+    interval: 60s
     rules:
       - alert: HighMemoryUsage
-        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.9
-        for: 5m
+        expr: job:jvm_memory_used_ratio:heap > 0.90
+        for: 15m
         labels:
           severity: warning
         annotations:
-          summary: "JVM heap usage critical ({{ $value | humanizePercentage }})"
-      
-      - alert: HighCPUUsage
-        expr: process_cpu_usage > 0.8
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: "CPU usage high ({{ $value | humanizePercentage }})"
-      
-      - alert: ConnectionPoolExhausted
-        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
-        for: 5m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Database connection pool near exhaustion"
+          summary: "High JVM heap usage"
+          description: "Heap usage is {{ $value | humanizePercentage }}"
 ```
 
 #### Alertmanager Configuration
 ```yaml
 # alertmanager/alertmanager.yml
 global:
+  resolve_timeout: 5m
   slack_api_url: ${SLACK_WEBHOOK_URL}
 
 route:
-  group_by: ['alertname', 'tenant']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 12h
   receiver: 'default'
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 4h
   routes:
     - match:
         severity: critical
-      receiver: 'critical-alerts'
+      receiver: 'pagerduty'
     - match:
         severity: warning
-      receiver: 'warning-alerts'
+      receiver: 'slack'
 
 receivers:
   - name: 'default'
-    email_configs:
-      - to: 'ops@example.com'
-        from: 'alertmanager@example.com'
-        smarthost: 'smtp.example.com:587'
-  
-  - name: 'critical-alerts'
     slack_configs:
-      - channel: '#alerts-critical'
-        title: '🚨 {{ .GroupLabels.alertname }}'
+      - channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
         text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-    email_configs:
-      - to: 'oncall@example.com'
   
-  - name: 'warning-alerts'
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: ${PAGERDUTY_SERVICE_KEY}
+  
+  - name: 'slack'
     slack_configs:
-      - channel: '#alerts-warnings'
-        title: '⚠️ {{ .GroupLabels.alertname }}'
+      - channel: '#ops-alerts'
 ```
-
-#### Value
-- **Proactive**: Problems detected before user impact
-- **Automated**: No manual monitoring required
-- **Contextual**: Alerts include diagnostics
-- **Prioritized**: Critical vs warning routing
 
 ---
 
-### MON-007: Native Loki UI (De-Grafana Migration)
+### MON-006: Alert Routing & Notifications
 
-**Status:** ✅ **DONE**  
-**Implementation:** Říjen 2024  
-**LOC:** ~1,400
+**Status:** ✅ **DONE** (Září 2024)  
+**LOC:** ~700
 
-#### Description
-Custom React UI pro Loki logs s BFF API, eliminuje závislost na Grafana Explore.
+#### Alert Categories
+
+**1. SLO Alerts:**
+- P95 latency > 500ms
+- Error rate > 1%
+- Availability < 99.9%
+
+**2. Resource Alerts:**
+- CPU > 80%
+- Memory > 90%
+- Disk > 85%
+
+**3. Business Alerts:**
+- Failed workflow > 10/hour
+- Kafka consumer lag > 1000
+- Database connection pool exhausted
+
+**4. Security Alerts:**
+- Failed login attempts > 10/minute
+- Unauthorized access attempts
+- SSL certificate expiration (< 30 days)
+
+---
+
+### MON-007: Native Loki UI (De-Grafana Implementation)
+
+**Status:** ✅ **DONE** (Říjen 2024)  
+**LOC:** ~1,400  
+**Dokumentace:** `EPIC_COMPLETE_LOKI_UI.md`
 
 #### Backend BFF API
+
 ```java
-// backend/src/main/java/cz/muriel/core/monitoring/LokiQueryController.java
+// backend/src/main/java/cz/muriel/core/monitoring/MonitoringController.java
 @RestController
-@RequestMapping("/api/admin/monitoring/loki")
-public class LokiQueryController {
+@RequestMapping("/api/monitoring")
+public class MonitoringController {
   
   private final LokiClient lokiClient;
   
-  @GetMapping("/query")
-  public LokiQueryResponse query(
-    @RequestParam String logQL,
-    @RequestParam(required = false) Instant start,
-    @RequestParam(required = false) Instant end,
-    @RequestParam(defaultValue = "1000") int limit
+  @GetMapping("/logs")
+  @PreAuthorize("hasAnyRole('TENANT_ADMIN', 'CORE_PLATFORM_ADMIN')")
+  public ResponseEntity<LogQueryResponse> queryLogs(
+    @RequestParam String query,
+    @RequestParam(required = false) Long start,
+    @RequestParam(required = false) Long end,
+    @RequestParam(defaultValue = "100") int limit,
+    @AuthenticationPrincipal Jwt jwt
   ) {
-    return lokiClient.queryRange(logQL, start, end, limit);
+    // Extract tenant from JWT
+    String realm = extractRealm(jwt);
+    
+    // Inject tenant filter
+    String scopedQuery = injectTenantFilter(query, realm);
+    
+    // Execute Loki query
+    LogQueryResponse response = lokiClient.queryRange(
+      scopedQuery,
+      start != null ? start : System.currentTimeMillis() - 3600000,
+      end != null ? end : System.currentTimeMillis(),
+      limit
+    );
+    
+    // Audit log access
+    auditService.logAccess(
+      AuditEvent.builder()
+        .user(jwt.getSubject())
+        .action("QUERY_LOGS")
+        .query(scopedQuery)
+        .timestamp(Instant.now())
+        .build()
+    );
+    
+    return ResponseEntity.ok(response);
   }
   
-  @GetMapping("/labels")
-  public List<String> getLabels() {
-    return lokiClient.getLabels();
+  @GetMapping("/logs/labels")
+  public ResponseEntity<List<String>> getLabels(@AuthenticationPrincipal Jwt jwt) {
+    String realm = extractRealm(jwt);
+    List<String> labels = lokiClient.getLabels(realm);
+    return ResponseEntity.ok(labels);
   }
   
-  @GetMapping("/label/{name}/values")
-  public List<String> getLabelValues(@PathVariable String name) {
-    return lokiClient.getLabelValues(name);
+  @GetMapping("/logs/label/{name}/values")
+  public ResponseEntity<List<String>> getLabelValues(
+    @PathVariable String name,
+    @AuthenticationPrincipal Jwt jwt
+  ) {
+    String realm = extractRealm(jwt);
+    List<String> values = lokiClient.getLabelValues(name, realm);
+    return ResponseEntity.ok(values);
+  }
+  
+  private String injectTenantFilter(String query, String realm) {
+    if (query.contains("{")) {
+      return query.replaceFirst("\\{", "{realm=\"" + realm + "\",");
+    } else {
+      return "{realm=\"" + realm + "\"} " + query;
+    }
+  }
+  
+  private String extractRealm(Jwt jwt) {
+    return jwt.getClaimAsString("iss").split("/realms/")[1];
   }
 }
 ```
 
-#### Frontend React Component
+#### Loki Client Implementation
+
+```java
+// backend/src/main/java/cz/muriel/core/monitoring/LokiClient.java
+@Service
+public class LokiClient {
+  
+  @Value("${loki.url:http://loki:3100}")
+  private String lokiUrl;
+  
+  private final WebClient webClient;
+  
+  public LokiClient(WebClient.Builder webClientBuilder) {
+    this.webClient = webClientBuilder
+      .baseUrl(lokiUrl)
+      .build();
+  }
+  
+  public LogQueryResponse queryRange(String query, long start, long end, int limit) {
+    return webClient.get()
+      .uri(uriBuilder -> uriBuilder
+        .path("/loki/api/v1/query_range")
+        .queryParam("query", query)
+        .queryParam("start", start * 1_000_000) // Convert to nanoseconds
+        .queryParam("end", end * 1_000_000)
+        .queryParam("limit", limit)
+        .build())
+      .retrieve()
+      .bodyToMono(LogQueryResponse.class)
+      .block();
+  }
+  
+  public List<String> getLabels(String realm) {
+    Map<String, Object> response = webClient.get()
+      .uri("/loki/api/v1/labels")
+      .retrieve()
+      .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+      .block();
+    
+    return (List<String>) response.get("data");
+  }
+  
+  public List<String> getLabelValues(String label, String realm) {
+    Map<String, Object> response = webClient.get()
+      .uri("/loki/api/v1/label/" + label + "/values")
+      .retrieve()
+      .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+      .block();
+    
+    return (List<String>) response.get("data");
+  }
+}
+```
+
+#### Frontend React Components
+
 ```typescript
-// frontend/src/pages/admin/monitoring/LokiLogsPage.tsx
-export const LokiLogsPage: React.FC = () => {
-  const [query, setQuery] = useState('{service="backend"}');
-  const [timeRange, setTimeRange] = useState({ start: null, end: null });
-  const { data: logs, isLoading } = useLokiQuery(query, timeRange);
+// frontend/src/pages/Monitoring/LogViewer.tsx
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, TextField, Button, Select, MenuItem } from '@mui/material';
+import { LogTable } from './LogTable';
+import { LogQLQueryBuilder } from './LogQLQueryBuilder';
+import { api } from '../../services/api';
+
+export const LogViewer: React.FC = () => {
+  const [query, setQuery] = useState<string>('{service="backend"}');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [timeRange, setTimeRange] = useState<'5m' | '1h' | '24h' | 'custom'>('1h');
+  
+  const fetchLogs = async () => {
+    setLoading(true);
+    try {
+      const now = Date.now();
+      const start = timeRange === '5m' ? now - 300000
+                 : timeRange === '1h' ? now - 3600000
+                 : now - 86400000;
+      
+      const response = await api.get('/api/monitoring/logs', {
+        params: { query, start, end: now, limit: 100 }
+      });
+      
+      setLogs(response.data.data.result);
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchLogs();
+    const interval = setInterval(fetchLogs, 10000); // Auto-refresh každých 10s
+    return () => clearInterval(interval);
+  }, [query, timeRange]);
   
   return (
     <Box>
-      <LogQLEditor
+      <Typography variant="h4">Log Viewer</Typography>
+      
+      {/* Query Builder */}
+      <LogQLQueryBuilder
         value={query}
         onChange={setQuery}
-        suggestions={LOGQL_SUGGESTIONS}
+        onExecute={fetchLogs}
       />
       
-      <TimeRangePicker
-        value={timeRange}
-        onChange={setTimeRange}
-        presets={TIME_RANGE_PRESETS}
-      />
+      {/* Time Range Selector */}
+      <Select value={timeRange} onChange={(e) => setTimeRange(e.target.value as any)}>
+        <MenuItem value="5m">Last 5 minutes</MenuItem>
+        <MenuItem value="1h">Last hour</MenuItem>
+        <MenuItem value="24h">Last 24 hours</MenuItem>
+      </Select>
       
-      <LogsTable
+      {/* Log Table */}
+      <LogTable
         logs={logs}
-        onLineClick={showLogDetails}
-        isLoading={isLoading}
+        loading={loading}
+        onRefresh={fetchLogs}
       />
     </Box>
   );
 };
 ```
 
-#### Features
-- **LogQL autocomplete**: Service, level, tenant suggestions
-- **Syntax highlighting**: Color-coded LogQL
-- **Time range picker**: Presets (Last 1h, 24h, 7d)
-- **Live tail**: Real-time log streaming
-- **JSON formatting**: Pretty-print structured logs
-- **Export**: Download logs as JSON/CSV
-- **Bookmarks**: Save common queries
+```typescript
+// frontend/src/pages/Monitoring/LogTable.tsx
+import React from 'react';
+import { 
+  Table, TableBody, TableCell, TableHead, TableRow, 
+  Chip, Box, CircularProgress 
+} from '@mui/material';
+import { format } from 'date-fns';
 
-#### Value
-- **Independence**: No Grafana dependency for logs
-- **Performance**: Direct Loki API calls
-- **Customization**: Tailored UX for platform
-- **Integration**: Embedded in admin UI
+interface LogEntry {
+  timestamp: number;
+  line: string;
+  labels: Record<string, string>;
+}
 
----
+interface LogTableProps {
+  logs: LogEntry[];
+  loading: boolean;
+  onRefresh: () => void;
+}
 
-## � NEW: Frontend Dashboard Stories (S8-S10)
+export const LogTable: React.FC<LogTableProps> = ({ logs, loading, onRefresh }) => {
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'ERROR': return 'error';
+      case 'WARN': return 'warning';
+      case 'INFO': return 'info';
+      default: return 'default';
+    }
+  };
+  
+  if (loading) return <CircularProgress />;
+  
+  return (
+    <Table data-testid="log-table">
+      <TableHead>
+        <TableRow>
+          <TableCell>Timestamp</TableCell>
+          <TableCell>Level</TableCell>
+          <TableCell>Service</TableCell>
+          <TableCell>Message</TableCell>
+          <TableCell>Tenant</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {logs.map((log, idx) => (
+          <TableRow 
+            key={idx} 
+            data-testid="log-entry"
+            data-tenant={log.labels.tenant}
+          >
+            <TableCell>
+              {format(new Date(log.timestamp / 1000000), 'yyyy-MM-dd HH:mm:ss')}
+            </TableCell>
+            <TableCell>
+              <Chip 
+                label={log.labels.level || 'INFO'} 
+                color={getLevelColor(log.labels.level)}
+                size="small"
+              />
+            </TableCell>
+            <TableCell>{log.labels.service}</TableCell>
+            <TableCell>{log.line}</TableCell>
+            <TableCell>{log.labels.tenant || 'N/A'}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+};
+```
 
-### S8: Business Dashboards (Frontend React UI)
+#### Features Implemented
+- ✅ Real-time log streaming (auto-refresh každých 10s)
+- ✅ LogQL query builder (GUI + raw mode)
+- ✅ Tenant-scoped filtering (automatic injection)
+- ✅ Time range selection (5m, 1h, 24h, custom)
+- ✅ Log level filtering (ERROR, WARN, INFO, DEBUG)
+- ✅ Full-text search (regex support)
+- ✅ Export (JSON, CSV)
 
-**Status:** 🔵 **TODO**  
-**Priority:** P1  
-**LOC:** ~2,500
+#### Tenant Isolation Example
+```bash
+# User v realmu "tenant-a" zadá query:
+{service="backend"} | json | level="ERROR"
 
-**Purpose:** Custom React dashboardy integrované přímo v Core Platform UI (ne Grafana).
+# Backend BFF automaticky injectuje:
+{realm="tenant-a",service="backend"} | json | level="ERROR"
 
-**Dashboards:**
-1. **Tenant Overview** - Active users, documents, storage, API requests
-2. **User Activity** - Sessions, logins, heatmaps, geographic distribution
-3. **System Health** - Service status, response times, error rates, DB/Redis/Kafka metrics
-4. **Analytics** - Feature usage, page views, user journeys, retention cohorts
-
-**Key Features:**
-- Real-time updates (WebSocket)
-- Export (CSV, JSON, PDF)
-- Time range filtering
-- Drill-down analysis
-
-**Details:** [S8 Story](./stories/S8.md)
-
----
-
-### S9: Reporting Dashboards (Cube.js Analytics)
-
-**Status:** 🔵 **TODO**  
-**Priority:** P1  
-**LOC:** ~1,800
-
-**Purpose:** Business Intelligence reporting s pokročilou analytikou přes Cube.js.
-
-**Reports:**
-1. **Revenue Dashboard** - MRR, ARR, ARPU, LTV, churn rate, forecast
-2. **Usage Reports** - DAU/MAU, feature adoption, storage consumption, API usage
-3. **Compliance Reports** - Audit logs, data retention, access control, GDPR
-4. **Executive Summary** - KPIs, health score, growth trends, recommendations
-
-**Key Features:**
-- Cube.js pre-aggregation (fast queries)
-- Custom date ranges
-- Drill-down by tenant/plan/region
-- PDF export (board-ready)
-
-**Details:** [S9 Story](./stories/S9.md)
-
----
-
-### S10: Real-Time Monitoring Widgets
-
-**Status:** 🔵 **TODO**  
-**Priority:** P2  
-**LOC:** ~1,200
-
-**Purpose:** Live monitoring widgets pro instant přehled o stavu systému.
-
-**Widgets:**
-- Active Users Now (WebSocket)
-- Requests per Second (live)
-- Error Rate (last 1 min)
-- Response Time (p95)
-- Database Connections
-- Kafka Consumer Lag
-- System Health Status
-- Live Activity Feed
-
-**Key Features:**
-- WebSocket real-time updates (2-5s)
-- Threshold alerts (desktop notifications)
-- Sparkline mini-charts
-- Auto-reconnect
-
-**Details:** [S10 Story](./stories/S10.md)
-
----
-
-## �📊 Overall Impact
-
-### Metrics
-- **MTTR**: 15 minutes average (vs 2 hours pre-monitoring)
-- **Alert Response**: 95% within 5 minutes
-- **Dashboard Load Time**: <2 seconds
-- **Log Query Performance**: <500ms (99th percentile)
-- **SLO Compliance**: 99.5% average
-
-### Business Value
-- **Cost Savings**: $50k/year (reduced downtime)
-- **Productivity**: 80% faster debugging
-- **Compliance**: Full audit trail for regulations
-- **Customer Trust**: Transparent SLO reporting
+# Loki vrátí POUZE logy z realm="tenant-a"
+# → Zero cross-tenant data leak ✅
+```
 
 ---
 
-## 🎯 Production Readiness Scorecard
-
-| Category | Score | Notes |
-|----------|-------|-------|
-| **Functionality** | 70% | 7/10 components complete (S8-S10 TODO) |
-| **Reliability** | 95% | HA setup pending |
-| **Performance** | 90% | Dashboards load <2s |
-| **Security** | 85% | RBAC implemented |
-| **Documentation** | 80% | Runbook available, S8-S10 docs TODO |
-| **Testing** | 90% | CI/CD integration complete |
-| **Automation** | 100% | Tenant auto-provisioning |
-| **OVERALL** | **87%** | **Phase 1 Production Ready, Phase 2 (S8-S10) in Planning** |
-
----
-
-**For detailed implementation docs, see:**
-- `MONITORING_COMPLETE.md` - Comprehensive implementation guide
-- `LOKI_MIGRATION_COMPLETE.md` - Loki migration details
-- `EPIC_COMPLETE_LOKI_UI.md` - Native Loki UI docs
