@@ -1,23 +1,41 @@
-# EPIC-016: AI & Metamodel Collaboration
+# EPIC-016: AI & ML Platform Integration
 
-**Status:** ⏳ **PLANNED** (architektura + proof-of-concept)  
+**Status:** 🟡 **30% IN PROGRESS** (MCP server prototyp, Copilot integrace ✅)  
 **Priority:** 🔥 **HIGH** (strategic differentiator)  
-**Effort:** ~15 dní implementace  
-**Dependencies:** Metamodel Studio, RBAC, Audit Trail, MCP Server
+**Effort:** ~30 dní implementace (15d metamodel + 10d AI tools + 5d ML platform)  
+**Dependencies:** Metamodel Studio, RBAC, Audit Trail, MCP Server, MLflow
 
-> **Strategic Vision:** AI jako aktivní partner při návrhu, správě a používání metamodelu - ne jako náhrada architektů, ale jako inteligentní asistent s guardrails.
+> **Strategic Vision:** Kompletní AI/ML ekosystém - od intelligent metamodel designu přes developer productivity tools až po ML model serving a predictions.
+
+**Merged EPICs:**
+- ✅ EPIC-009: AI Integration & MCP Server (40% done - MCP prototyp, Copilot)
+- ✅ EPIC-010: ML Platform (0% done - model serving, training pipelines)
 
 ---
 
 ## 🎯 Vision
 
-Integrovat AI do lifecycle metamodelu tak, aby:
-- **Navrhovala** datové modely z textových zadání (draft, ne autopilot)
-- **Kontrolovala** kvalitu, bezpečnost a konzistenci změn
-- **Generovala** UI specifikace z metamodelu automaticky
-- **Našla** duplicity, nekonzistence a tech debt
-- **Chránila** PII a citlivá data podle metamodel anotací
-- **Odpovídala** na otázky o datovém modelu v přirozeném jazyce
+**Unified AI/ML Platform** integrující:
+
+### 1. AI-Powered Metamodel Management
+- AI navrhuje datové modely z textových zadání (draft, ne autopilot)
+- Kontroluje kvalitu, bezpečnost a konzistenci změn
+- Generuje UI specifikace z metamodelu automaticky
+- Najde duplicity, nekonzistence a tech debt
+- Chrání PII a citlivá data podle metamodel anotací
+- Odpovídá na otázky o datovém modelu v přirozeném jazyce
+
+### 2. Developer Productivity (AI Tools)
+- **MCP Server**: Context provider pro AI modely (Claude, GPT)
+- **GitHub Copilot**: Project-specific instructions (~500 LOC rules)
+- **Test Generation**: Auto-generate tests from acceptance criteria
+- **Code Review Bot**: AI-powered PR reviews
+
+### 3. ML Platform & Intelligent Features
+- **Model Serving**: TorchServe, TensorFlow Serving, MLflow registry
+- **Prediction APIs**: Real-time (<50ms latency) + batch processing
+- **Training Pipelines**: Automated training with Airflow + Optuna
+- **AI Features**: Workflow suggestions, anomaly detection, NLP search
 
 **Klíčový princip:** AI navrhuje, člověk schvaluje. Žádné autopilot změny.
 
@@ -55,15 +73,28 @@ Integrovat AI do lifecycle metamodelu tak, aby:
 
 ## 📋 Stories Overview
 
-| ID | Story | User Personas | Effort | Priority | Dependencies |
-|----|-------|---------------|--------|----------|--------------|
-| [AI-001](#ai-001-ai-metamodel-designer) | AI Metamodel Designer | Architect, Power User | 3d | 🔥 HIGH | Metamodel Studio, MCP |
-| [AI-002](#ai-002-ai-metamodel-reviewer) | AI Metamodel Reviewer | Architect, DPO | 2d | 🔥 HIGH | AI-001, Validator |
-| [AI-003](#ai-003-ai-ui-spec-generator) | AI UI Spec Generator | FE Developer, UX | 2d | 🟡 MEDIUM | Metamodel, UI Components |
-| [AI-004](#ai-004-ai-refactoring-assistant) | AI Refactoring Assistant | Architect, Tech Lead | 2d | 🟡 MEDIUM | AI-001, AI-002 |
-| [AI-005](#ai-005-ai-security-compliance) | AI Security & Compliance | DPO, Security Officer | 3d | 🔥 HIGH | Metamodel, RBAC |
-| [AI-006](#ai-006-ai-metamodel-navigator) | AI Metamodel Navigator | Developer, Business Analyst | 3d | 🟢 LOW | RAG, Metamodel Docs |
-| **TOTAL** | **6 stories** | **5 personas** | **15d** | **3 HIGH / 2 MED / 1 LOW** | **Metamodel + Security** |
+| Category | ID | Story | Status | LOC | Effort | Priority | Dependencies |
+|----------|----|----|--------|-----|--------|----------|--------------|
+| **Metamodel AI** | [AI-001](./stories/AI-001-ai-metamodel-designer/README.md) | AI Metamodel Designer | ⏳ PENDING | ~1,200 | 3d | 🔥 HIGH | Metamodel Studio, MCP |
+| **Metamodel AI** | [AI-002](./stories/AI-002-ai-metamodel-reviewer/README.md) | AI Metamodel Reviewer | ⏳ PENDING | ~800 | 2d | 🔥 HIGH | AI-001, Validator |
+| **Metamodel AI** | [AI-003](./stories/AI-003-ai-ui-spec-generator/README.md) | AI UI Spec Generator | ⏳ PENDING | ~900 | 2d | 🟡 MEDIUM | Metamodel, UI Components |
+| **Metamodel AI** | [AI-004](./stories/AI-004-ai-refactoring-assistant/README.md) | AI Refactoring Assistant | ⏳ PENDING | ~700 | 2d | 🟡 MEDIUM | AI-001, AI-002 |
+| **Metamodel AI** | [AI-005](./stories/AI-005-ai-security-compliance/README.md) | AI Security & Compliance | ⏳ PENDING | ~1,100 | 3d | 🔥 HIGH | Metamodel, RBAC |
+| **Metamodel AI** | [AI-006](./stories/AI-006-ai-metamodel-navigator/README.md) | AI Metamodel Navigator | ⏳ PENDING | ~1,000 | 3d | 🟢 LOW | RAG, Metamodel Docs |
+| **AI Tools** | [AI-007](./stories/AI-007-mcp-server/README.md) | MCP Server Implementation | 🟡 IN PROGRESS | ~1,200 | 2d | 🔥 HIGH | Node.js, MCP SDK |
+| **AI Tools** | [AI-008](./stories/AI-008-copilot-integration/README.md) | GitHub Copilot Integration | ✅ DONE | ~500 | - | 🔥 HIGH | Copilot Instructions |
+| **AI Tools** | [AI-009](./stories/AI-009-test-generation/README.md) | AI Test Generation | ⏳ PENDING | ~600 | 2d | 🟡 MEDIUM | MCP, Prompt Engineering |
+| **AI Tools** | [AI-010](./stories/AI-010-code-review-bot/README.md) | AI Code Review Bot | 🔮 PLANNED | ~800 | 3d | 🟢 LOW | GitHub Actions, LLM |
+| **ML Platform** | [ML-001](./stories/ML-001-model-serving/README.md) | ML Model Serving | ⏳ PENDING | ~800 | 2d | 🔥 HIGH | TorchServe, MLflow |
+| **ML Platform** | [ML-002](./stories/ML-002-prediction-api/README.md) | Prediction API Gateway | ⏳ PENDING | ~600 | 2d | 🔥 HIGH | REST, Caching |
+| **ML Platform** | [ML-003](./stories/ML-003-training-pipeline/README.md) | Training Pipeline | ⏳ PENDING | ~700 | 2d | 🟡 MEDIUM | Airflow, Optuna |
+| **ML Platform** | [ML-004](./stories/ML-004-ai-features/README.md) | AI-Powered Features | ⏳ PENDING | ~500 | 1d | 🟡 MEDIUM | ML-001, ML-002 |
+| **TOTAL** | | **14 stories** | **1 DONE / 1 IN PROGRESS / 12 PENDING** | **~11,500** | **30d** | **6 HIGH / 5 MED / 3 LOW** | **3 categories** |
+
+### Progress by Category
+- **Metamodel AI (6 stories):** 0% done, 15 days effort - Core intelligent assistant features
+- **AI Tools (4 stories):** 40% done (Copilot ✅, MCP 🟡), 7 days effort - Developer productivity
+- **ML Platform (4 stories):** 0% done, 7 days effort - Model serving & predictions
 
 ---
 
