@@ -196,6 +196,10 @@ Modul může obsahovat:
 
 ## 🔐 Licensing & Activation
 
+> **Kompletní dokumentace:** [MODULE_LICENSING.md](../../docs/MODULE_LICENSING.md)
+
+> **Registry Architecture:** [MODULE_REGISTRY.md](../../docs/MODULE_REGISTRY.md)
+
 ### Licensing Model
 
 | Module Type | License | Activation | Revenue Model |
@@ -549,6 +553,376 @@ public interface WorkflowRegistry {
 **Deployment:** Partner's own infrastructure (Helm chart)  
 **Extends:** CORE entities (`User`, `Group`) + adds `Portfolio`, `Program`  
 **Revenue:** Partner sells to their clients, CORE gets 20% revenue share
+
+---
+
+## 🏗️ Prototype Module: delivery-suite
+
+**Purpose:** První funkční modul demonstrující celý module system (manifest, licensing, multi-tenant isolation, FE/BE integration)
+
+### Overview
+
+| Property | Value |
+|----------|-------|
+| **Module ID** | `delivery-suite` |
+| **Name** | Delivery Suite |
+| **Type** | EXTENSION |
+| **License Required** | ✅ Yes |
+| **Description** | Generic agile work management - issue tracking, sprints, kanban boards (NOT Jira-branded) |
+
+**Why "Delivery Suite"?**
+- Generic name (ne "Jira clone" nebo "EPIC-010 Agile")
+- Fokus na "delivery" (dodání hodnoty), ne "agile" buzzword
+- Příklad modulu, ne produkční feature
+
+---
+
+### Entity: DeliveryItem
+
+**Purpose:** Generic work item/ticket/issue (agnostic naming)
+
+```java
+@Entity
+@Table(name = "delivery_items")
+@MultiTenant  // Automatic tenant_id column + filter
+public class DeliveryItem extends BaseEntity {
+  
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
+  
+  @Column(unique = true, nullable = false)
+  private String key;  // Auto-generated: DLV-1, DLV-2, ...
+  
+  @Column(nullable = false)
+  private String title;
+  
+  @Column(columnDefinition = "TEXT")
+  private String description;
+  
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private DeliveryStatus status;  // NEW, IN_PROGRESS, DONE
+  
+  @Column
+  private String assignee;  // User ID nebo email
+  
+  @Enumerated(EnumType.STRING)
+  private Priority priority;  // LOW, MEDIUM, HIGH, CRITICAL
+  
+  @Column
+  private LocalDate dueDate;
+  
+  @Column(columnDefinition = "TEXT[]")
+  private String[] tags;
+  
+  // Multi-tenant isolation
+  @Column(name = "tenant_id", nullable = false, updatable = false)
+  private String tenantId;  // From JWT context
+  
+  // Audit fields
+  private Instant createdAt;
+  private Instant updatedAt;
+  private String createdBy;
+  private String updatedBy;
+}
+```
+
+---
+
+### Workflow Definition
+
+**Workflow ID:** `delivery_lifecycle`
+
+**States:**
+```
+NEW → IN_PROGRESS → DONE
+```
+
+**Transitions:**
+- `NEW → IN_PROGRESS`: "start_work" (permission: `MODULE_DELIVERY_ACCESS`)
+- `IN_PROGRESS → DONE`: "complete" (permission: `MODULE_DELIVERY_ACCESS`)
+- `IN_PROGRESS → NEW`: "reopen" (permission: `MODULE_DELIVERY_ADMIN`)
+
+**Integration:** Používá existující EPIC-006 Workflow Engine, žádná nová infrastruktura
+
+---
+
+### Frontend Views
+
+**Route:** `/app/delivery` (visible only if licensed)
+
+#### 1. Table View
+
+**Columns:**
+- Key (DLV-1, DLV-2, ...)
+- Title
+- Status (badge: NEW 🔵 | IN_PROGRESS 🟡 | DONE 🟢)
+- Assignee (avatar + name)
+- Priority (badge: LOW | MEDIUM | HIGH | CRITICAL)
+- Due Date (with overdue warning)
+
+**Features:**
+- Filtering: by assignee, status, text search
+- Sorting: by any column
+- Actions: Create, Edit, Delete, Bulk Status Update
+
+---
+
+#### 2. Kanban Board
+
+**Layout:**
+```
+┌─────────────────┬─────────────────┬─────────────────┐
+│      NEW        │   IN PROGRESS   │      DONE       │
+├─────────────────┼─────────────────┼─────────────────┤
+│ ┌─────────────┐ │ ┌─────────────┐ │ ┌─────────────┐ │
+│ │ DLV-1       │ │ │ DLV-3       │ │ │ DLV-5       │ │
+│ │ Fix bug...  │ │ │ Add feature │ │ │ Completed   │ │
+│ │ @john       │ │ │ @mary       │ │ │ @alice      │ │
+│ │ 🔴 HIGH     │ │ │ 🟡 MEDIUM   │ │ │ ✅ Done     │ │
+│ └─────────────┘ │ └─────────────┘ │ └─────────────┘ │
+│ ┌─────────────┐ │ ┌─────────────┐ │                 │
+│ │ DLV-2       │ │ │ DLV-4       │ │                 │
+│ │ New task    │ │ │ Testing...  │ │                 │
+│ └─────────────┘ │ └─────────────┘ │                 │
+└─────────────────┴─────────────────┴─────────────────┘
+```
+
+**Features:**
+- Drag-and-drop between columns (triggers workflow transition)
+- Card shows: title, assignee, priority badge, due date
+- Filtering: by assignee, tags, priority
+- Swimlanes (future): by assignee, priority, sprint
+
+---
+
+#### 3. Detail View
+
+**Sections:**
+- **Header:** Key (DLV-123), Status badge, Priority, Due Date
+- **Content:** Editable title, description (Markdown editor)
+- **Metadata:** Assignee dropdown, Tags input, Created/Updated timestamps
+- **Workflow:** State diagram (visual current state + available transitions)
+- **Comments:** Thread with @mentions (optional DMS integration)
+- **Audit Log:** Table (who changed what field, when)
+
+**Actions:**
+- Save changes
+- Workflow transitions (buttons: "Start Work", "Complete", "Reopen")
+- Delete item (confirmation modal)
+
+---
+
+### Module Manifest
+
+**File:** `modules/delivery-suite/module.yaml`
+
+```yaml
+module_id: delivery-suite
+name: Delivery Suite
+description: Agile work management - generic issue tracking, sprints, kanban boards
+type: EXTENSION
+version: 1.0.0
+license_required: true
+
+entrypoints:
+  fe:
+    route: /app/delivery
+    permission: MODULE_DELIVERY_ACCESS
+    menuLabel: Delivery Board
+    icon: kanban
+    weight: 100
+  api:
+    basePath: /api/modules/delivery
+  wf:
+    definitions:
+      - delivery_lifecycle
+
+requires:
+  core: ">=1.0.0"
+  workflow-engine: ">=2.1.0"
+
+provides:
+  entities:
+    - DeliveryItem
+  permissions:
+    - MODULE_DELIVERY_ACCESS
+    - MODULE_DELIVERY_ADMIN
+```
+
+---
+
+### License Enforcement
+
+**Scenario 1: Without Valid License**
+
+**Behavior:**
+- ❌ Frontend route `/app/delivery` hidden (not in menu, 404 if accessed directly)
+- ❌ API calls to `/api/modules/delivery/*` return `403 Forbidden`
+  ```json
+  {
+    "status": 403,
+    "error": "Forbidden",
+    "message": "Module 'delivery-suite' requires a license. Contact sales.",
+    "error_code": "FEATURE_DISABLED"
+  }
+  ```
+- ℹ️ Admin UI (`/admin/modules`) shows:
+  - Module card with 🔵 "License Required" badge
+  - Button: "Upload License" → opens modal for JWT upload
+
+---
+
+**Scenario 2: With Valid License**
+
+**Behavior:**
+- ✅ Menu item "Delivery Board" visible (icon: kanban)
+- ✅ Route `/app/delivery` accessible
+- ✅ API calls allowed
+- ✅ Admin UI shows:
+  - Module card with 🟢 "Active" badge
+  - License info: "Valid until 2025-12-31" (green text)
+  - Button: "Manage Module" → opens config editor
+
+---
+
+**Scenario 3: With Trial License**
+
+**Behavior:**
+- ✅ Module accessible (fully functional)
+- ⚠️ Warning banner at top of `/app/delivery` page:
+  ```
+  ┌───────────────────────────────────────────────────┐
+  │ ⚠️ Trial License - Expires in 15 days            │
+  │ Upgrade to full license: [Contact Sales]         │
+  └───────────────────────────────────────────────────┘
+  ```
+- ℹ️ Admin UI shows:
+  - Module card with 🟡 "Trial" badge
+  - Trial countdown: "Trial ends 2025-02-01 (15 days left)"
+  - Button: "Upgrade License" → sales contact form
+
+---
+
+**Scenario 4: License Expired**
+
+**Behavior:**
+- ❌ Frontend route redirects to `/app/home` with notification:
+  ```
+  License for Delivery Suite expired. Contact sales to renew.
+  ```
+- ❌ API returns `403 Forbidden`:
+  ```json
+  {
+    "status": 403,
+    "error": "Forbidden",
+    "message": "Module 'delivery-suite' license expired. Contact sales to renew.",
+    "error_code": "LICENSE_EXPIRED"
+  }
+  ```
+- ℹ️ Admin UI shows:
+  - Module card with 🔴 "Expired" badge
+  - Message: "License expired on 2024-12-31"
+  - Button: "Renew License" → upload new JWT
+
+---
+
+### Multi-Tenant Isolation
+
+**Database Level:**
+```sql
+-- Tenant A creates item
+INSERT INTO delivery_items (tenant_id, key, title, status)
+VALUES ('acme-corp', 'DLV-1', 'Fix bug', 'NEW');
+
+-- Tenant B queries
+SELECT * FROM delivery_items WHERE tenant_id = 'tenant-b';
+-- Result: 0 rows (Tenant A's data not visible)
+```
+
+**Application Level:**
+```java
+@GetMapping("/items")
+public List<DeliveryItem> getItems(@TenantId String tenantId) {
+  // tenantId ALWAYS from JWT, NEVER from request parameter
+  // Repository auto-filters by tenantId (Hibernate @Filter)
+  return deliveryRepo.findAll();  // Only current tenant's items
+}
+```
+
+**E2E Test Verification:**
+```typescript
+test('Tenant A cannot see Tenant B delivery items', async ({ page, context }) => {
+  // Create item as Tenant A
+  await loginAsTenant(page, 'acme-corp');
+  await createDeliveryItem(page, 'Secret item for Tenant A');
+  
+  // Switch to Tenant B
+  const page2 = await context.newPage();
+  await loginAsTenant(page2, 'tenant-b');
+  await activateModule(page2, 'delivery-suite');  // Give license
+  
+  // Navigate to delivery board
+  await page2.goto('/app/delivery');
+  
+  // Verify Tenant A's item NOT visible
+  await expect(page2.locator('text=Secret item for Tenant A')).not.toBeVisible();
+  
+  // API verification
+  const items = await page2.request.get('/api/modules/delivery/items');
+  const json = await items.json();
+  expect(json.every(item => item.tenant_id === 'tenant-b')).toBe(true);
+});
+```
+
+---
+
+### Implementation Effort
+
+| Component | LOC Estimate | Time Estimate | Priority |
+|-----------|--------------|---------------|----------|
+| **Backend** |
+| Entity (DeliveryItem) | 150 | 2h | 🔥 HIGH |
+| Repository + Service | 200 | 3h | 🔥 HIGH |
+| REST Controller | 250 | 4h | 🔥 HIGH |
+| Workflow definition | 100 | 2h | 🟡 MEDIUM |
+| **Frontend** |
+| Table view | 300 | 6h | 🔥 HIGH |
+| Kanban board | 400 | 8h | 🟡 MEDIUM |
+| Detail view | 250 | 5h | 🟡 MEDIUM |
+| License enforcement UI | 150 | 3h | 🔥 HIGH |
+| **Module System Integration** |
+| Module manifest | 50 | 1h | 🔥 HIGH |
+| License guard integration | 100 | 2h | 🔥 HIGH |
+| **Testing** |
+| Unit tests | 200 | 4h | 🟡 MEDIUM |
+| Integration tests | 150 | 3h | 🟡 MEDIUM |
+| E2E tests | 200 | 4h | 🔥 HIGH |
+| **TOTAL** | **~2,500 LOC** | **~47h** | **6-8 days** |
+
+---
+
+### Success Criteria
+
+**Functional:**
+- ✅ Modul se načte ze YAML manifestu při startu
+- ✅ Bez licence: menu hidden, API returns 403
+- ✅ S licencí: menu visible, CRUD funguje
+- ✅ Trial license: funguje + warning banner
+- ✅ Expired license: přístup zablokován
+- ✅ Multi-tenant: Tenant A nevidí data Tenant B
+
+**Technical:**
+- ✅ Zero hardcoded module logic v core (vše přes registry)
+- ✅ Workflow engine integration (delivery_lifecycle workflow)
+- ✅ RBAC integration (MODULE_DELIVERY_ACCESS permission)
+- ✅ Audit log (všechny změny DeliveryItem logged)
+
+**Testing:**
+- ✅ 100% code coverage (unit tests)
+- ✅ Integration tests (license scenarios)
+- ✅ E2E tests (tenant isolation, licensing)
 
 ---
 
