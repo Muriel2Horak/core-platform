@@ -92,7 +92,7 @@
 			<dependency>
 				<groupId>org.checkerframework</groupId>
 				<artifactId>checker-qual</artifactId>
-				<version>3.49.3</version>
+				<version>3.52.0</version>
 			</dependency>
 
 			<!-- Force ASM to 9.7.1 (latest from Spring/OAuth2) -->
