@@ -29,17 +29,19 @@
 
 ---
 
-## 📦 Scope
+## 📦 Scope (core-platform + isp-migration-tool)
 
 ### In Scope ✅
 - DevTask template + DoR/DoD guidelines s AI-ELIGIBLE flagem.  
-- AGENTS.md + engineering standards (coding, testing, logging, DB changes, security).  
+- AGENTS.md + engineering standards (coding, logging, testing, DB changes, errors).  
 - Sdílený setup Codex/Copilot + CI integrace s bot účty.  
 - Automovaný flow DevTask → branch → AI implementace → PR → AI review → human review.  
-- Integrace na backlog systém (Git-based, Jira/YouTrack/GitHub Issues dle projektu).  
+- **MVP backlog integrace:** Jira Cloud (core-platform), reused pro isp-migration-tool po pilotu.  
 - Sandbox prostředí (repo fork, oddělené secrets, test DB, mock services).  
 - Security & governance policy, audit log stream, KPI dashboard.  
 - Multi-agent coordination a noise-control filtry.
+
+**Dual rollout:** core-platform slouží jako pilot (Phases 0–3). Jakmile KPI splní cíle, stejné šablony/orchestrátor/CI konfigurace se aplikují na `isp-migration-tool` (minimálně AGENTS.md, DevTask template, bot setup a orchestrátor napojený na jejich Jira projekt).
 
 ### Out of Scope ❌
 - Full autopilot merge do mainu (human approval je mandatory).  
@@ -81,21 +83,37 @@ Backlog (Git/Jira) → AI Orchestrator → Sandbox Repo/Branch → Codex/Copilot
    ↓                        ↓                            ↓
  DevTask metadata    Test DB / mock services      PR (lint+tests+coverage)
    ↓                        ↓                            ↓
- KPI collector  ←  Audit log & artifacts ←  AI review (structured) ← Human review/merge
+KPI collector  ←  Audit log & artifacts ←  AI review (structured) ← Human review/merge
 ```
+
+### Orchestrátor (Phase 2 MVP)
+- Implementace: jednoduchá služba (cronovaný Python skript, nebo n8n flow, případně GitHub Action na schedule).  
+- Kroky:  
+  1. Dotaz na Jira → najdi DevTasky `status=Ready` + `AI-ELIGIBLE = Yes`.  
+  2. Ověř, že nejsou In Progress (claim field empty).  
+  3. Označ DevTask jako „Claimed by <agent>“ (status change + field).  
+  4. Spusť workflow (AIDE-004) → vytvoř branch, update audit log.  
+- Orchestrátor loguje každou akci do `logs/ai/` a může být spuštěn ručně (CLI) pro urgentní úkoly.
 
 ---
 
 ## 📅 Phases & Milestones
 
-| Phase | Focus | Stories |
-|-------|-------|---------|
-| **Phase 0 – Foundations** | Template, standards, bot setup | AIDE-001 → AIDE-003 |
-| **Phase 1 – Implementation Loop** | AI DevTask → PR, AI review, governance | AIDE-004 → AIDE-007 |
-| **Phase 2 – Orchestration** | Backlog intake, override/escalace, sandbox, multi-agent | AIDE-008 → AIDE-012 |
-| **Phase 3 – Quality & Insights** | KPIs, noise control, rollout | AIDE-010 + AIDE-013 |
+| Phase | Focus | Stories | Poznámky |
+|-------|-------|---------|----------|
+| **Phase 0 – Scope & Decisions** | Zafixovat backlog/CI/repo scope | AIDE-000 (1 pager) + AIDE-001 → AIDE-003 | Jira + GitHub Actions + core-platform/isp scope |
+| **Phase 1 – Governance Foundations (MVP)** | Šablony, standardy, security, human override | AIDE-001, AIDE-002, AIDE-006, AIDE-009 | AI ještě nic nenasazuje |
+| **Phase 2 – Orchestrátor & Integrace** | Task intake, claim, audit log | AIDE-008, AIDE-012, AIDE-007 | Jednoduchý orchestrátor (cron/n8n/python) |
+| **Phase 3 – AI Implementation Loop (Pilot)** | DevTask → PR, AI review, sandbox, KPI | AIDE-004, AIDE-005, AIDE-011, AIDE-013, AIDE-010 | GitHub Actions CI, telemetry |
+| **Phase 4 – Hardening & Scale** | Threat model, enterprise orchestrátor, multi-agent specializace | follow-up (tbd) | Rollout do obou projektů + advanced features |
 
-Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `isp-migration-tool`.
+Target pilot: core-platform sprint (2 týdny). Po vyhodnocení KPI se pattern replikuje do `isp-migration-tool`.
+
+### Phase 0 – Scope & Assumptions (AIDE-000)
+- Backlog systém = **Jira Cloud** (core-platform board).  
+- CI/CD stack = **GitHub Actions** + branch policies, sdílené i pro isp-migration-tool.  
+- AI agenti pracují výhradně na GitHub feature branches s test DB/mocks.  
+- Výstup = 1-stránkový dokument „AI Delivery – Scope & Assumptions“ popisující systémy, owners orchestrátoru, security review sloty a očekávání pilotu.
 
 ---
 
@@ -127,10 +145,10 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** AI agent věděl přesně, co implementovat.
 
 **Acceptance Criteria**
-- Šablona DevTasku obsahuje sekce: Kontext (EPIC/US), Scope, Constraints, DoD, odkazy na reference a nový flag `AI-ELIGIBLE: Yes/No`.  
-- DevTask s `AI-ELIGIBLE: Yes` musí mít vyplněný kontext, DoD a odkazy na testy/logy; jinak validátor zakáže automatické vyzvednutí.  
+- Šablona DevTasku obsahuje sekce: Kontext (EPIC/US), Scope, Constraints, Dependencies, DoD, odkazy na reference a flag `AI-ELIGIBLE: Yes/No`.  
+- DevTask s `AI-ELIGIBLE: Yes` musí mít vyplněný kontext, DoD, testovací odkazy a sandbox požadavky; jinak validátor zakáže automatické vyzvednutí.  
 - DoR checklist doplněn o AI readiness (flag, odkazy, test strategy).  
-- Template publikována v `CONTRIBUTING.md` a `BACKLOG_GUIDE.md`, sdíleno v obou projektech.
+- Template publikována v `CONTRIBUTING.md` a `BACKLOG_GUIDE.md`, sdíleno v obou projektech (core-platform + isp-migration-tool).
 
 ### AIDE-002: AGENTS.md & Engineering Standards
 **Jako** AI Agent Owner  
@@ -138,10 +156,10 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** Codex/Copilot psali kód/testy/logy konzistentně a bezpečně.
 
 **Acceptance Criteria**
-- `AGENTS.md` obsahuje: architekturu, code style, test strategy (JUnit/PyTest/Playwright), logging conventions, pravidla pro DB změny.  
-- Zahrnuta sekce **Security & Sensitive Data**: jak maskovat secrets, jak popisovat config bez leaků, zákaz commitování credentials.  
-- Odkaz na dokument v tomto EPICu + cross-link do EPIC-020 (quality gates).  
-- Validováno linterem (např. markdown lint) a kontrolováno v CI.
+- `AGENTS.md` obsahuje: architekturu, code style, logging conventions, jak psát testy (JUnit/PyTest/Playwright), jak zachytávat chyby a fallback scénáře, pravidla pro DB změny.  
+- Sekce **Security & Sensitive Data** popisuje práci se secrets, prompt hygiene (neposílat citlivá data), konfigurace sandboxu a chyby.  
+- Odkaz na tento EPIC + EPIC-020 (quality gates) + instrukce pro core-platform i isp-migration-tool.  
+- Validováno CI (markdown lint) a distribuováno v obou repozitářích.
 
 ### AIDE-003: Codex/Copilot Setup & Bot Accounts
 **Jako** vývojář  
@@ -149,8 +167,8 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** běžely konzistentně a bezpečně.
 
 **Acceptance Criteria**
-- Definované bot účty (GitHub, CI, backlog) → AI nikdy necommituje pod osobním účtem.  
-- Bot účty nemají právo pushnout do `main` / `prod`; pouze PR z feature branch/fork.  
+- Definované bot účty (GitHub, Jira, CI) → AI nikdy necommituje pod osobním účtem.  
+- Bot účty nemají právo pushnout do `main` / `prod`; pouze PR z feature branch/fork, CI token má jen status/report scope.  
 - Přístup k repu omezen na nutné scope (read repo, PR create, status update).  
 - Konfigurace sdílena (např. `.vscode/settings.json`, `config.toml`, CLI scripts) a popsána v repo docs.
 
@@ -164,6 +182,7 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 - AI PR vždy obsahuje odkaz na DevTask/US, popis řešení, seznam změněných souborů a přidané testy.  
 - Každý PR musí projít lint + unit testy + minimální code coverage pro novou logiku.  
 - Pokud lint/test spadne, agent provede max 2 auto-fix pokusy; při dalším failu přidá komentář a označí DevTask jako „Needs human“.  
+- Sandbox = feature branch + test DB/mock služby; CI = GitHub Actions pipeline (lint/test).  
 - Žádný auto-merge; PR čeká na lidské schválení.
 
 ### AIDE-005: AI Code Review & Quality Gate
@@ -187,7 +206,7 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 - Dokument „AI Security & Governance Policy“ popisuje bot identity, role (GitHub, CI, backlog), secret management a proces rotace tokenů.  
 - Bot tokeny mají omezený scope, expiraci a jsou uložené v trezoru (Vault, 1Password).  
 - AI agenty nemají přístup k produkčním secrets/DB.  
-- Policy odkazuje na EPIC-020 (quality gates) a je vyžadována v security checklistu při onboarding AI do projektu.
+- Policy odkazuje na EPIC-020 (quality gates), obsahuje prompt hygiene pravidla (maskování secrets) a je vyžadována v security checklistu při onboarding AI do projektu.
 
 ### AIDE-007: Audit & Logging of AI Actions
 **Jako** Owner/Lead  
@@ -195,10 +214,10 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** bylo jasné, kdo/co/na základě čeho změnil.
 
 **Acceptance Criteria**
+- MVP logging: JSON lines (`logs/ai/ai-delivery-log.jsonl`) s možností forwardu do Loki/ELK + Git history.  
 - Logujeme: který agent vzal DevTask (čas, ID), shrnutí promptů (sanitized), generované diffy, výsledky testů, odkazy na PR.  
-- Logy dostupné v projektu (repo `logs/ai/`, Loki stack, případně S3).  
 - Možnost dohledat historii pro konkrétní DevTask/PR (CLI/API).  
-- Retence logů min. 90 dní, chráněné proti editaci.  
+- Retence logů min. 90 dní; export do central log stacku.  
 - Napojení na KPI sběr (AIDE-010).
 
 ### AIDE-008: Task Intake & Backlog Integration
@@ -207,11 +226,11 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** byl řízený tok práce a nedocházelo k duplikacím.
 
 **Acceptance Criteria**
-- Integrace (API/connector) na backlog nástroj (Git-based stories, Jira/YouTrack/GitHub Issues – definováno per projekt).  
+- MVP integrace na **Jira Cloud** (REST API / Webhook) – definovaný board, label `AI-ELIGIBLE`.  
 - AI vybírá pouze DevTasky se statusem Ready a flagem `AI-ELIGIBLE`.  
-- Po claimu se DevTask označí (In Progress, assigned agent) → žádný double-claim.  
+- Po claimu se DevTask označí (custom pole `AI-CLAIMED BY`, status In Progress) → žádný double-claim.  
 - Po vytvoření PR se status updatne (In Review), po merge (Done).  
-- Pokud DevTask není k dispozici, agent čeká (no busy loop).  
+- Pokud DevTask není k dispozici, orchestrátor čeká (cron/n8n/python běží 1×/30 min a lze ho ručně spustit).
 
 ### AIDE-009: Human Override & Escalation
 **Jako** Tech Lead  
@@ -220,7 +239,7 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 
 **Acceptance Criteria**
 - Definovaná kritéria STOP: chybějící specifikace, závislost bez přístupu, test fail > N pokusů, bezpečnostní riziko.  
-- V případě STOP AI vytvoří komentář / doplňující DevTask se soupisem otázek/logů.  
+- V případě STOP AI vytvoří Jira sub-task `AI-NEEDS-INPUT` + komentář v DevTasku se soupisem otázek/logů.  
 - Notifikace pro vlastníka DevTasku (Slack/Email/GitHub).  
 - Human rozhodne o dalším postupu (upravit zadání, převzít ručně, odložit).  
 - Eskalace logována (navazuje na AIDE-007).
@@ -232,7 +251,7 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 
 **Acceptance Criteria**
 - Sledované metriky: lead time (pre vs post), počet revizí PR od AI, bug rate AI PR, počet eskalací na člověka, odhad ušetřeného času.  
-- Dashboard (Grafana / Metabase) čte data z audit logů + backlogu.  
+- Dashboard (Grafana / Metabase) čte data z audit logů + Jira/GitHub (issue timestamps, PR events).  
 - KPI dostupné pro obě projekty, filtr podle repo nebo sprintu.  
 - Report po pilotu (PDF/markdown) s interpretací dat a doporučení pro rollout.
 
@@ -242,7 +261,7 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** neovlivnila produkci.
 
 **Acceptance Criteria**
-- AI pracuje na fork/feature branch, používá test databáze nebo mock services.  
+- AI pracuje na fork/feature branch, používá test databáze nebo mock services (GitHub Actions + docker compose).  
 - Script/infra (Makefile, Terraform, n8n) pro rychlé vytvoření sandboxu, reuse existujících nástrojů core-platform.  
 - Žádné odkazy na prod endpointy v AI kontextu; secrets = fake / scoped na test.  
 - Sandbox cleanup automatizovaný (po merge/abort).  
@@ -254,11 +273,11 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 **aby** nevznikaly konflikty a race conditions.
 
 **Acceptance Criteria**
-- Mechanismus claim (API flag, lock soubor, Git branch naming) → když agent začne práci, označí DevTask.  
+- Mechanismus claim přes Jira (custom field + status) + audit log + branch naming → když agent začne práci, označí DevTask.  
 - Pokud je DevTask „claimed“, další agent ho nebere; po timeoutu se claim uvolní.  
 - Evidence claimů v audit logu + backlog tool (assigned agent).  
 - Konflikty řeší orchestrátor nebo člověk (manual override).  
-- Ošetřený use-case: agent spadne → claim se po T minutách uvolní.
+- Ošetřený use-case: agent spadne → claim se po T minutách uvolní (cron unclaim).
 
 ### AIDE-013: Noise Control & Quality Filters
 **Jako** Reviewer  
@@ -293,5 +312,4 @@ Target pilot: core-platform sprint (2 týdny). Rollout: po ověření KPI i do `
 
 ---
 
-**Next Steps:** Prioritizovat Phase 0 stories (AIDE-001 → AIDE-003) v následujícím sprintu, připravit security review pro AIDE-006/011, a definovat pilot backlog.
-
+**Next Steps:** Dodělat AIDE-000 (Scope & Assumptions), následně spustit Phase 1 stories (AIDE-001, AIDE-002, AIDE-006, AIDE-009), připravit security review pro AIDE-006/011 a připravit pilotní Jira backlog.

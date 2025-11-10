@@ -88,7 +88,7 @@
 2. n8n worker skrze oficiální Core-connector node vyzvedne task, zpracuje jej ve vlastním flow a pošle výsledek zpět přes Core API.
 3. Workflow engine naváže na odpověď přes `onSuccess`/`onError` větve a případné kompenzační kroky.
 
-**Požadavky:** idempotence řízená `correlationId`, centrální timeout + retry politika, audit log (kdo/kdy/jaký flow), a nulový přímý zápis n8n do Core DB (vše přes Core API).
+**Požadavky:** idempotence řízená `correlationId`, centrální timeout + retry politika, audit log (kdo/kdy/jaký flow), schopnost dohledat průběh v Loki/W-OPS přes stejné `correlationId`, a nulový přímý zápis n8n do Core DB (vše přes Core API).
 
 **Subtotal:** 1/8 specs ready, ~6,200 LOC planned
 
@@ -129,6 +129,16 @@ Jedna instance n8n obsluhuje celý Core cluster; SSO a provisioning (včetně pe
 
 ---
 
+### 🛡️ Phase W-OPS: Workflow Operations Console - TODO
+
+| ID | Story | Status | LOC | Priority | Dependencies |
+|----|-------|--------|-----|----------|--------------|
+| W-OPS | Workflow Operations Console | ⏳ TODO | 1,800 | 🔴 HIGH | W5, W6, W7, WF12-19, W12, WF19 |
+
+**Notes:** W-OPS přináší interní Camunda-style konzoli a je první volbou pro monitoring i řízení workflow. Grafana zůstává volitelným doplňkem pro admin tenant, ale nikdy nenahrazuje Workflow Operations Console ani business UX.
+
+---
+
 ### 📊 Total Progress
 
 | Phase | Stories | Status | LOC | Tests |
@@ -136,7 +146,8 @@ Jedna instance n8n obsluhuje celý Core cluster; SSO a provisioning (včetně pe
 | **Phase 1 (W1-W12)** | 12/12 | ✅ DONE | ~18,000 | 119 |
 | **Phase 2 (WF12-WF19)** | 1/8 | 🔨 IN PROGRESS | ~6,200 | TBD |
 | **Phase 3 (N8N1-N8N10)** | 0/10 | ⏳ TODO | ~4,400 | TBD |
-| **TOTAL** | **13/30** | **43%** | **~28,600** | **119+** |
+| **Phase W-OPS (Console)** | 0/1 | ⏳ TODO | ~1,800 | TBD |
+| **TOTAL** | **13/31** | **42%** | **~30,400** | **119+** |
 
 ---
 
@@ -1171,7 +1182,7 @@ public class WorkflowTestingController {
 **LOC:** ~1,500
 
 #### Description
-Primární monitoring workflow engine běží na Prometheus metrikách (durace instancí, počty, chybovost) a Loki streamech (`WF_EVENTS`, `WF_ACTIONS`, `EXTERNAL_TASK_CALLS`). Runtime UX (stav workflow, timeline, SLA forecast) zobrazujeme přímo v našem FE, embedovat Grafana Scenes již neplánujeme; WF19 řeší jen volitelný admin-only dashboard postavený nad stejnými metrikami.
+Primární monitoring workflow engine běží na Prometheus metrikách (durace instancí, počty, chybovost) a Loki streamech (`WF_EVENTS`, `WF_ACTIONS`, `EXTERNAL_TASK_CALLS`). Tato data živí Workflow Operations Console (W-OPS) jako hlavní nástroj pro dohled; runtime UX (stav workflow, timeline, SLA forecast) zobrazujeme přímo v našem FE a embedovat Grafana Scenes již neplánujeme. WF19 řeší jen volitelný admin-only dashboard postavený nad stejnými metrikami. Pokud je Grafana nasazena, může zobrazovat agregované metriky (Prometheus), ale není náhradou za Workflow Operations Console.
 
 #### Key Features
 
@@ -1543,7 +1554,7 @@ record WorkflowStep(
 **Dependencies:** W12 (metrics), Grafana
 
 #### Description
-Volitelný Grafana dashboard dostupný pouze pro admin tenant (SSO přes Keycloak). Čerpá metriky a logy z W12, nesdílí se do FE ani se neembeduje pomocí Grafana Scenes; slouží jen pro operátory a SRE tým.
+Volitelný Grafana dashboard dostupný pouze pro admin tenant (SSO přes Keycloak). Čerpá metriky a logy z W12, nesdílí se do FE ani se neembeduje pomocí Grafana Scenes; slouží jen pro operátory a SRE tým. Pokud je Grafana nasazena, může zobrazovat agregované metriky (Prometheus), ale není náhradou za Workflow Operations Console.
 
 #### Access & Security
 - Keycloak SSO → `admin` realm, role `workflow-observability`.
@@ -1682,6 +1693,54 @@ public class N8nBffController {
 
 ---
 
+## 🛡️ Workflow Operations Console (W-OPS)
+
+**Status:** ⏳ **TODO**  
+**Estimate:** 1,800 LOC  
+**Priority:** 🔴 HIGH  
+**Dependencies:** W5 runtime tables (`workflow_instances`, `workflow_events`, `workflow_step_executions`, `workflow_timers`), WF12-17 executors, W12 metrics, WF19 (optional Grafana), Loki BFF, Keycloak multi-tenant auth.
+
+### Functional Scope
+
+#### Instance List
+- Implicitní filtr na tenant/realm dle JWT; volitelné filtry: `workflowType`, stav, SLA breach flag, businessKey, časové okno (absolute / relative) a EXTERNAL_TASK status.
+- Fulltext search (instanceId, entityId, correlationId) + stránkování.
+- Export aktuálního výběru do CSV/JSON (audit-safe, pouze tenant data).
+
+#### Instance Detail
+- React Flow vizualizace aktuální instance (z workflow definice + historie), zvýrazňuje aktivní stav i dokončené/failed kroky.
+- Timeline kroků s informacemi kdo/kdy/co + klient (FE, API, n8n) a SLA zbývající čas / breach indikace.
+- Odkaz na související metamodelovou entitu (detail entity) a deep-link do Loki logů s předvyplněným `correlationId` a `tenant`.
+
+#### Heatmapy & Analytika
+- Kombinuje Micrometer/Prometheus metriky (doby ve stavech, počty přechodů, error rate) s event logy (`workflow_events`).
+- Vykresluje heatmapu na workflow diagram: barvy uzlů = počet instancí / průměrná doba / SLA breach %, hrany = frekvence přechodů.
+- Časové filtry 24h / 7d / 30d + možnost overlay pro businessKey.
+
+#### Operace & Řízení
+- Role `CORE_ADMIN_WORKFLOW` a `TENANT_WORKFLOW_ADMIN` mohou: retry konkrétní step, cancel instance, re-run EXTERNAL_TASK (nový poll), manuálně provést force transition pokud to definice dovoluje.
+- Každá operace se loguje do Loki (`WF_ACTIONS`) s tenant, user, instanceId, krokem a parametry; UI jen volá REST API, logika a validace běží v backendu.
+
+#### Chyby & DLQ
+- Dedicated přehled failed kroků (executor type, topic, error message, retry count, poslední výskyt) s možností Retry / Ignore / Reopen.
+- Přímý link na Loki logy (používá correlationId + stepId) a na entitu workflow instance.
+
+### Data Sources & Telemetrie
+- Runtime data z `workflow_instances`, `workflow_events`, `workflow_step_executions`, `workflow_timers` (rozšíření W5/WF17) poskytuje backend API.
+- Metriky využívají Micrometer → Prometheus; backend přepočítává SLA statusy a heatmap agregace (FE dostane hotová data).
+- Logy dotazuje pouze backend přes Loki BFF; FE nikdy nevolá Loki přímo.
+- Všechny API automaticky filtrují podle tenant/realm claimu; cross-tenant odpovědi jsou blokované.
+
+### Integrace s n8n / EXTERNAL_TASK
+- EXTERNAL_TASK executor (WF15) zůstává jediným rozhraním pro n8n integrace; W-OPS zobrazuje stav těchto kroků (pending / in-progress / failed / timeout).
+- Každý external task musí mít `correlationId` + `externalWorkerId`, aby bylo možné dohledat běh v Loki a v n8n logu.
+- n8n nikdy neprovádí přímý zápis do Core DB; všechny změny procházejí Core API a jsou viditelné ve workflow_events.
+
+### Security, FE/BE Stack
+- FE používá stávající workflow/metamodel stack (React, MUI, React Query, React Flow) s generickými komponentami, které lze později využít i v dalších modulech.
+- Backend řeší kompletní logiku: filtry, SLA výpočty, allowed operations, enforcement RBAC + audit logy.
+- Tenant = Keycloak realm = subdoména zůstává povinný model; W-OPS respektuje i subdoménové routování a SSO session.
+
 ## 📊 Overall Impact
 
 ### Metrics
@@ -1751,3 +1810,29 @@ public class N8nBffController {
   - Všechny operace respektují realm/subdoménu z JWT, cross-tenant přístup je blokovaný.
 - **Observabilita**
   - Prometheus metriky + Loki logy poskytují audit trail pro interní kroky i EXTERNAL_TASK integrace.
+
+## 🧪 Testing Requirements
+
+- **Unit tests**
+  - Výpočet allowed actions (RBAC + definice) pro Workflow Operations Console.
+  - SLA výpočty, zbývající čas, breach flagy a heatmap agregace nad metrikami/eventy.
+  - Serializace/export (CSV/JSON) a korektní tvorba Loki query (correlationId + tenant).
+- **Integration tests**
+  - Změna stavu → záznam ve `workflow_events` → data dostupná přes W-OPS API & timeline.
+  - EXTERNAL_TASK lifecycle (pending → claimed → complete/fail) promítne status do W-OPS a do audit logu.
+  - Backend filtrování podle tenant/realm; jiný tenant nedostane žádná data (HTTP 403/empty set).
+- **E2E scénáře**
+  - Vytvoření instance → vizuální zobrazení v W-OPS včetně grafu a timeline.
+  - Simulace SLA breach → indikace v dashboardu + heatmap.
+  - Retry/force action → ověření zápisu ve workflow DB + Loki audit logu.
+  - Multi-tenant UI: přepnutí na jiný realm neumožní čtení cizích instancí ani logů.
+
+## ⚙️ Technical Guidelines
+
+- **Frontend**
+  - Reuse existující metamodel/workflow FE stack (React, MUI, React Query, React Flow) a tvoř generické komponenty (instance list, heatmap overlay, operations panel) pro budoucí moduly.
+  - Žádná business logika ani filtr/SLA výpočty na FE; UI jen zobrazuje data a spouští akce přes REST API.
+- **Backend**
+  - Veškerá logika (filtering, allowed operations, SLA, heatmap aggregace) běží v servisách chráněných RBAC, včetně audit logů do Loki (`WF_ACTIONS`, `WF_EVENTS`).
+  - Loki API je dostupné pouze přes náš BFF; FE nemá přímý přístup.
+  - Audit log je povinný pro každou změnu stavu/operaci (user, tenant, instanceId, action, payload hash).
