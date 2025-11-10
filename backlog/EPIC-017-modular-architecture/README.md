@@ -1,10 +1,35 @@
-# EPIC-017: Modular Architecture & Licensing
+# EPIC-017: Modular Architecture & Custom Products
 
-**Status:** 🔮 **PLANNED** (0% done, architektonický design)  
-**Effort:** ~45 dní (modulární systém + licensing + admin UI + framework API)  
-**Priority:** 🔥 **CRITICAL** (strategický foundation pro komerční moduly)  
-**Business Value:** €500,000+/rok (komerční moduly + vendor licensing)  
-**Timeline:** Q1 2026 (po RBAC, Metamodel, Workflow)
+**Status:** 🔮 **PLANNED** (0% – architektonický design, dependency na EPIC-005/006/011)  
+**Effort:** ~45 dní (registry, licensing, admin UI, reference modul)  
+**Priority:** 🔥 **CRITICAL** (komerční moduly, partner ekosystém)  
+**Business Value:** €500k+/rok (placené moduly, partner řešení)  
+**Timeline:** Q1 2026 (po stabilizaci RBAC, Metamodel Studia, Workflow Ops)
+
+---
+
+## 🔗 Integrace s ostatními EPICy
+
+| EPIC | Vazba |
+|------|-------|
+| **EPIC-000 – Security Platform Hardening** | License signing keys, audit logování aktivace modulů, policy enforcement, secret management pro vendor connectors |
+| **EPIC-002 – E2E Testing Infrastructure** | Každý modul musí dodat min. jeden E2E scénář (happy path + licensing gate) napojený do Playwright pipeline |
+| **EPIC-003 – Monitoring & Observability** | Modul-level metriky (requests, errors, latency), Loki label `moduleId`, dashboardy pro usage/licensing expirace |
+| **EPIC-005 – Metamodel Generator & Studio** | Moduly jsou bundly metamodel + UI specifikací; aktivace = publikace overlaye; Studio slouží k tvorbě modulů |
+| **EPIC-006 – Workflow Engine** | Moduly registrují workflow definice + W-OPS integraci (state graph, audit, timers) |
+| **EPIC-011 – n8n Workflow Automation** | Moduly mohou dodávat n8n flow šablony; runtime komunikuje přes Core connector a respektuje tenant licence |
+| **EPIC-020 – Secure SDLC Quality Gates** | Modul repo i manifest prochází stejnými DoD (lint, tests, code review, dependency scanning) |
+
+---
+
+## 🛡️ RBAC & Security napříč moduly
+
+- Moduly nesmí zavádět ad-hoc auth – používají Core RBAC + tenant isolation (Keycloak realm roles + attribute-based rules z EPIC-010).  
+- Manifest definuje nové role/scopes (`MODULE_X_ADMIN`, `MODULE_X_USER`, `MODULE_X_VIEWER`), které se registrují v Core RBAC engine.  
+- Tenant admin mapuje moduly na role (kdo modul vidí/používá).  
+- Všechny přístupy k modulům se auditují (EPIC-000) – aktivace, licence, API usage.  
+- Module UI/FE používá Core authorization hooks; backend policies generované z Metamodel Studio (EPIC-005) + modul role metadata.  
+- Integrace s Security EPIC: license signing keys, secret storage, threat model pro partner moduly.
 
 ---
 
@@ -31,6 +56,29 @@ Core Platform je monolitický systém. Každé nové rozšíření (projektové 
 - ✅ Partner vendor může stavět nad CORE jako dependency (bez forku)
 - ✅ Tenant admin vidí jen povolené moduly (RBAC + licensing)
 - ✅ Moduly nepřepisují core (namespacy, manifest validace)
+
+---
+
+## 🧾 Definice & Terminologie
+
+### Core Platform
+- **Identity & Tenanti:** Keycloak multi-realm (tenant = subdoména = realm) s RBAC/ABAC guardrails (EPIC-000, EPIC-010).  
+- **Metamodel & Workflow:** EPIC-005 (Metamodel Studio) + EPIC-006 (Workflow Engine) + EPIC-006 W-OPS dashboard.  
+- **Streaming & Integrace:** Kafka/AsyncAPI event bus, EXTERNAL_TASK konektor na n8n (EPIC-011), Core APIs.  
+- **Observabilita:** Loki, Prometheus, Grafana (EPIC-003).  
+- **Security Baseline:** audit, secrets, policy enforcement (EPIC-000).  
+- **n8n Integration Bridge:** oficiální konektor + BFF (EPIC-011).  
+- Core poskytuje framework a SDK, nikdy se neforkuje kvůli modu.
+
+### Modul
+- Distribuovaný balíček obsahující kombinaci: metamodel spec (entities, tenant scopes), workflow definice, role/scopes, UI views, connectors, n8n flow šablony, testy.  
+- Modul se aktivuje konfigurací/licencí; žádné změny v core codebase.  
+- Typy: **Core bundled**, **Premium/licencované**, **Partner**, **Custom (customer-specific)**.
+
+### Custom Produkt
+- Předpřipravená sada modulů + branding pro konkrétní doménu (např. “Agile Management Suite / Project Hub”).  
+- Využívá modulární architekturu: modul bundles + per-tenant aktivace + workflow + streaming.  
+- Deploy stále běží na Core runtime (sdílí identity, observabilitu, security).
 
 ---
 
@@ -88,6 +136,37 @@ Core Platform je monolitický systém. Každé nové rozšíření (projektové 
     ✅ FREE               🔐 REQUIRES        🔐 REQUIRES
                             LICENSE            LICENSE
 ```
+
+---
+
+## 📦 Module Registry & Activation
+
+### Central Module Registry (Core Service)
+- Eviduje všechny dostupné moduly (`moduleId`, název, vendor, verze, typ **FREE/PAID/CUSTOM**, kompatibilita).  
+- Ukládá metadata: požadované migrace, metamodel bundles, workflow/n8n definice, UI balíčky, test status.  
+- API:
+  ```http
+  GET  /api/admin/modules            # katalog
+  POST /api/admin/modules/register   # upload manifestu + bundle
+  POST /api/admin/modules/{id}/sync  # re-load metamodel/workflow/UI
+  ```
+
+### Loader Lifecycle
+1. **Discover** (manifest + bundle)  
+2. **Validate** (signatura, dependencies, metamodel schema, migrations dry-run)  
+3. **Register** (uložení v registry, publikace do Module Catalog)  
+4. **Activate** (per-tenant)  
+   - Načte metamodel overlay (EPIC-005 API)  
+   - Registruje workflow definition (EPIC-006 API)  
+   - Zpřístupní UI routes/menu pouze pokud modul aktivní  
+   - Nainstaluje n8n flow šablony, pokud existují (EPIC-011 connector)  
+5. **Deactivate/Uninstall** (zablokuje UI/API, zachová data, případně rollback migrací)
+
+### Tenant Module Assignment
+- Každý tenant má v admin konzoli seznam dostupných modulů + stav (enabled/disabled/licence expired).  
+- Aktivace = zápis do `tenant_modules` (moduleId, version, licenseKey, status).  
+- Integrace s licensing (viz níže) → bez platné licence se modul neaktivuje.  
+- Deaktivace z UI/CLI = loader odregistruje UI routes, workflow triggers, a loguje akci (audit).
 
 ---
 
@@ -200,18 +279,52 @@ Modul může obsahovat:
 
 > **Registry Architecture:** [MODULE_REGISTRY.md](../../docs/MODULE_REGISTRY.md)
 
-### Licensing Model
+## 🔐 Licensing Model
 
 | Module Type | License | Activation | Revenue Model |
 |-------------|---------|------------|---------------|
-| **Core** (RBAC, Metamodel, Workflow) | MIT | Always enabled | Free |
-| **Free Modules** (Task Mgmt, Audit) | MIT | Enabled by default | Free |
-| **Premium Modules** (CRM, Helpdesk) | Proprietary | Requires license | €X/tenant/month |
-| **Partner Modules** (third-party vendor) | Vendor license | Vendor-issued JWT | Revenue share |
+| **Core features** | MIT | Always enabled | Free |
+| **Internal free modules** (Task Mgmt, Audit) | MIT | Enabled by default, lze vypnout | Free |
+| **Premium modules** (CRM, Helpdesk, Agile Hub+) | Proprietary | Vyžaduje platnou licenci | €X/tenant/month |
+| **Partner modules** | Vendor-specific | Vendor-issued JWT, validované Core | Revenue share |
+| **Customer-specific** | Custom (SOW) | Hard-bound na tenant | Project-based fee |
 
-### License Structure (JWT)
+### License Token (Signed JWT)
 
-**Generated by:** Vendor (CORE Team nebo třetí strana)
+- **Format:** JWT (RS256/HMAC), claimy: `moduleId`, `tenantId`, `validFrom`, `validTo`, `limits` (uživatelé, instancí, feature flags).  
+- **Storage:** Admin nahraje token přes API/Console; encrypted v `module_licenses`.  
+- **Verification (backend only):**
+  1. Ověř signaturu proti trust store (EPIC-000).  
+  2. Ověř tenantId vs. aktuální realm.  
+  3. Ověř platnost (`iat`, `exp`, limity).  
+  4. Logni výsledek (audit trail).
+
+```json
+{
+  "iss": "core-platform.com",
+  "sub": "module:helpdesk",
+  "aud": "tenant:customer-a",
+  "iat": 1704067200,
+  "exp": 1735689600,
+  "claims": {
+    "moduleId": "helpdesk",
+    "tenantId": "customer-a",
+    "maxUsers": 100,
+    "features": ["sla", "automations", "reports"],
+    "validFrom": "2024-01-01",
+    "validTo": "2025-01-01"
+  },
+  "signature": "<RSA-SHA256 signature>"
+}
+```
+
+### Enforcement
+- Modul se neaktivuje bez validní licence (backend blokuje load).  
+- UI zobrazuje stavy: `Active`, `License Expiring`, `Expired / Locked`.  
+- API vrací `403 ModuleNotLicensed` + audit log, pokud uživatel volá modul bez licence.  
+- Licence změny (upload, revoke) se zapisují do audit trailu a exportují do Security analytics (EPIC-000).  
+- Pro user-limit enforcement se modul integruje s usage telemetry (počet aktivních userů / instancí).  
+- Žádné ověřování pouze na FE; FE vždy rely na backend state.
 
 ```json
 {
@@ -315,6 +428,30 @@ If any check fails:
 
 ---
 
+## 🔧 Custom Modules (Internal, Partner, Customer)
+
+### Typy Modulů
+1. **Internal modules** – vyvíjené CORE týmem (Project Hub, Helpdesk).  
+2. **Partner modules** – certifikovaní vendori, publikují balíčky přes Module Registry.  
+3. **Customer-specific** – moduly vzniklé pro konkrétní projekt (např. velký enterprise tenant).
+
+### Požadavky na modul
+- **Manifest** + balíček (`metamodel bundle`, `workflow defs`, `UI spec`, `n8n flows` volitelně, `connectors`).  
+- **Metamodel YAML/JSON** – validovaný EPIC-005 nástroji, včetně `tenant_scope` a streaming sekce.  
+- **Workflow definitions** – kompatibilní s EPIC-006; modul může přidat nové executory pouze přes definované rozhraní.  
+- **UI registrace** – route, menu, RBAC tagy; modul nemůže ignorovat Core RBAC.  
+- **Tests:** min. API + E2E happy path (napojení na EPIC-002).  
+- **Migration bundle** – musí používat metamodel migration engine, nikoliv ruční SQL.  
+- **N8n flows (optional)** – export JSON šablon + binding na Core connector.
+
+### Governance
+- Registrace probíhá přes Module Registry API nebo Global Admin UI; modul dostane semver verzi a audit ID.  
+- Každý release = nový balík + migrace + test evidence.  
+- Rollback = registry provede `uninstall + reinstall` s předchozí verzí (data zachována).  
+- Modul nemůže měnit Core DB schema mimo metamodel pipelines; registry blokuje neautorizované změny.
+
+---
+
 ## 🏗️ CORE as Framework (Embedding)
 
 ### Distribution Model
@@ -390,6 +527,25 @@ public interface WorkflowRegistry {
 - **Patch** (x.x.3): Bug fixes
 
 **Changelog:** Every release notes breaking changes, deprecations.
+
+---
+
+## 📚 Reference Modul: Agile Management / Project Hub
+
+### Scope
+- **Entities:** `Project`, `Epic`, `Story`, `Task`, `Sprint`, `Board`, `Comment`, `Attachment`, `ActivityLog`.  
+- **Relations:** Project↔Epic↔Story↔Task chain, Task↔Sprint, Board↔Swimlane, ActivityLog ↔ (Project, Task).  
+- **Workflow:** default `To Do → In Progress → In Review → Done`, per-tenant overrides přes Metamodel Studio (EPIC-005) a Workflow Engine (EPIC-006).  
+- **UI:** Kanban board (drag & drop), Sprint planning view, Project dashboard, Notifications panel.  
+- **Integrace:** Out-of-box n8n flows pro sync s Jira/Trello/Git (přes EPIC-011 connector), streaming eventy `project.*`, `task.*`.  
+- **Security:** Role `AGILE_ADMIN`, `AGILE_PM`, `AGILE_USER`; modul respektuje Core RBAC + tenant isolation.
+
+### Cíle Reference Modulu
+- Ověřit Module Registry + loader (manifest, migrations, streaming, UI).  
+- Ověřit licensing enforcement (Community vs Premium features).  
+- Dokázat metamodel-driven UI + workflow binding + streaming telemetry.  
+- Integrovat s W-OPS (workflow analytics) a Monitoring stack (module-level metrics).  
+- Zajistit E2E test (EPIC-002) – “Create sprint → move tasks → complete sprint → verify event stream”.
 
 ---
 
@@ -926,13 +1082,32 @@ test('Tenant A cannot see Tenant B delivery items', async ({ page, context }) =>
 
 ---
 
+## 🎯 Deliverables
+
+### v1 (Launch)
+1. **Module Registry (BE + UI)** – registrace manifestů, dependency graph, health status.  
+2. **Tenant module assignment + licensing enforcement** – admin workflows, audit log, API guard.  
+3. **Module SDK & conventions** – referenční repo, manifest schema, CI templates.  
+4. **Reference modul “Agile Management Lite / Project Hub”** – aktivovaný tenant, end-to-end demo.  
+5. **E2E scénář** – automat test ověřující aktivaci/licenci a základní CRUD/kanban flow.
+
+### v2 (Scale & Marketplace)
+1. **Module Marketplace UI** – katalog modulů, filtry (free/premium/partner), detail view.  
+2. **Remote registry / vendor onboarding** – možnost připojit externí vendor registry (API/SCM).  
+3. **Usage telemetry** – per-modul statistiky (aktivní uživatelé, eventy, latence) s opt-in nastavením.  
+4. **Advanced orchestration** – rolling upgrade modulu, canary rollout, multi-region sync.  
+5. **Partner automation** – self-service onboarding (lint/security scans), revenue reporting, license distribution.
+
+---
+
 ## 📚 References
 
-- **Metamodel Engine:** EPIC-002 (entity definitions)
-- **Workflow Engine:** EPIC-003 (process automation)
-- **RBAC:** EPIC-001 (role-based access control)
-- **UI-Spec Engine:** EPIC-004 (dynamic UI rendering)
-- **DMS:** EPIC-008 (document storage for module assets)
+- **Security Baseline:** EPIC-000  
+- **Metamodel Studio & tooling:** EPIC-005  
+- **Workflow Engine & W-OPS:** EPIC-006  
+- **n8n Integration & connectors:** EPIC-011  
+- **Secure SDLC Quality Gates:** EPIC-020  
+- **Documentation & SDK drafts:** `docs/MODULE_REGISTRY.md`, `docs/MODULE_LICENSING.md`, `docs/modules/PRODUCT_TEMPLATES.md`
 
 ---
 
