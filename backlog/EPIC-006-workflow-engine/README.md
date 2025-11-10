@@ -12,11 +12,16 @@
 
 ## 🎯 Vision
 
+- Interní workflow engine je primární orchestrátor pro všechny Core procesy (entity lifecycle, approvaly, SLA, integrace do metamodelu).
+- n8n funguje jako rozšiřující integrační a automation vrstva, nikdy nenahrazuje interní engine.
+- Komunikace mezi vrstvami probíhá přes EXTERNAL_TASK executor (Core → n8n → Core), nikdy přímým zápisem n8n do databáze.
+
 **2-vrstvá workflow orchestrace:**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  LAYER 1: INTERNAL ENGINE (metamodel-driven)                │
+│  → LAYER 1 = pravda o stavu a pravidlech                    │
 │  - Core state machine (states, transitions, guards)         │
 │  - Typed executors: APPROVAL, REST_SYNC, KAFKA_COMMAND      │
 │  - Sequential step orchestration                            │
@@ -26,6 +31,7 @@
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  LAYER 2: EXTERNAL n8n (visual orchestration)               │
+│  → LAYER 2 = integrace, enrichment, AI, ETL, notifikace     │
 │  - Integrace: Jira, Confluence, Trello, M365, Google        │
 │  - AI/ML pipelines, ETL jobs                                │
 │  - 400+ built-in nodes (no custom connectors needed!)       │
@@ -58,7 +64,7 @@
 | W9 | Versioning | ✅ DONE | ~1,800 | 8 | Schema evolution |
 | W10 | Studio UI | ⚠️ UI ONLY | ~2,200 | 11 | **Backend mock, no storage** |
 | W11 | Testing/Simulation | ✅ DONE | ~900 | - | Dry-run mode |
-| W12 | Monitoring | ⚠️ METRICS ONLY | ~1,500 | - | **Dashboards CHYBÍ** |
+| W12 | Monitoring | ⚠️ METRICS ONLY | ~1,500 | - | **Primární: Prometheus + Loki, runtime UX v FE** |
 
 **Subtotal:** 12/12 stories, ~18,000 LOC, 119 tests
 
@@ -75,7 +81,14 @@
 | WF16 | TIMER/DELAY Executor | ⏳ TODO | 400 | 🟡 MEDIUM | W5, W8 |
 | WF17 | Workflow Instance Runtime | ⏳ TODO | 1,500 | 🔴 HIGH | WF12-16 |
 | WF18 | Workflow Steps Schema | ⏳ TODO | 600 | 🔴 HIGH | META, W10 |
-| WF19 | Grafana Dashboards | ⏳ TODO | 300 | 🟡 MEDIUM | W12, Grafana |
+| WF19 | Admin Grafana Dashboards | ⏳ TODO | 300 | 🟡 MEDIUM | W12, Grafana |
+
+**WF15 / EXTERNAL_TASK handshake (Phase 2 priority):**
+1. Core vytvoří `pending external task` (instance reference + payload + `correlationId`) a čeká na výsledek.
+2. n8n worker skrze oficiální Core-connector node vyzvedne task, zpracuje jej ve vlastním flow a pošle výsledek zpět přes Core API.
+3. Workflow engine naváže na odpověď přes `onSuccess`/`onError` větve a případné kompenzační kroky.
+
+**Požadavky:** idempotence řízená `correlationId`, centrální timeout + retry politika, audit log (kdo/kdy/jaký flow), a nulový přímý zápis n8n do Core DB (vše přes Core API).
 
 **Subtotal:** 1/8 specs ready, ~6,200 LOC planned
 
@@ -98,15 +111,21 @@
 | **N8N9** | **Tenant Isolation & Audit** | ⏳ TODO | 400 | 🔴 HIGH | N8N8 |
 | **N8N10** | **Core API Connector Node** | ⏳ TODO | 300 | 🟡 MEDIUM | N8N1-3 |
 
+Jedna instance n8n obsluhuje celý Core cluster; SSO a provisioning (včetně per-tenant účtů `tenant-xxx`) zajišťuje EPIC-011 a probíhá výhradně přes Core FE. Tenant admini přistupují do n8n přes SSO, Core admini mají globální n8n účet, veřejná URL bez SSO není dostupná. EXTERNAL_TASK executor komunikuje pouze s těmito oficiálně provázanými účty a jejich eventy jsou auditované.
+
 **Subtotal:** 0/10 implemented, ~4,400 LOC planned (base ~2,600 + multi-tenant ~1,800)
 
 **Multi-Tenant Features:**
-- Per-tenant n8n accounts (1 account per tenant: `tenant-{subdomain}`)
-- Access URLs: `https://{tenant}.${DOMAIN}/n8n` (per tenant), `https://admin.${DOMAIN}/n8n` (admin)
-- Auto-provisioning via n8nProvisioningService (backend BFF)
-- Nginx audit headers: X-Core-Tenant, X-Core-User, X-Core-N8N-Account
-- Tenant isolation: workflows owned by tenant account, validated by backend
-- Custom Core Connector node: auto-injects X-Core-Tenant header
+- Tenant model = Keycloak realm = subdoména (`{tenant}.${DOMAIN}`) pro Core i n8n routing (náš finální model).
+- Workflow definice jsou buď shared (`system`), nebo per-tenant (uložené s `tenantId/realm` metadaty).
+- Všechna runtime API (graph/state/history/forecast) čtou tenant/realm z JWT, filtrují definice i instance a blokují cross-tenant přístup.
+- Všechny workflow eventy logujeme do Loki s `tenant`, `realm`, `user` a `correlationId` (audit trail pro interní i EXTERNAL_TASK kroky).
+- Per-tenant n8n účty (`tenant-xxx`) + globální n8n admin vznikají přes n8nProvisioningService; konektor auto-injectuje `X-Core-Tenant` a další auditní hlavičky.
+- Přístup k n8n designeru jde přes Core FE (SSO), ne veřejnou URL; požadavky n8n→Core používají jen oficiálně svázané účty.
+
+### Workflow Studio vs n8n Studio
+- **Workflow Designer / Studio (EPIC-006 + EPIC-005):** definuje interní workflow nad metamodelovými entitami, deployment přes approve/publish, plná integrace s RBAC, auditingem a Core UI.
+- **n8n Studio:** integrační nástroj pro tenant adminy / vybrané uživatele; využívá EXTERNAL_TASK + Core API konektor, staví automace jen nad exponovaným a omezeným Core API, nikdy nepřistupuje přímo k DB.
 
 ---
 
@@ -1152,9 +1171,14 @@ public class WorkflowTestingController {
 **LOC:** ~1,500
 
 #### Description
-Grafana dashboards, Prometheus alerts, a monitoring API pro workflow observability.
+Primární monitoring workflow engine běží na Prometheus metrikách (durace instancí, počty, chybovost) a Loki streamech (`WF_EVENTS`, `WF_ACTIONS`, `EXTERNAL_TASK_CALLS`). Runtime UX (stav workflow, timeline, SLA forecast) zobrazujeme přímo v našem FE, embedovat Grafana Scenes již neplánujeme; WF19 řeší jen volitelný admin-only dashboard postavený nad stejnými metrikami.
 
 #### Key Features
+
+##### Primary Telemetry
+- Prometheus: `workflow_instance_duration_seconds`, `workflow_instances_total{status}`, `workflow_executor_errors_total{executor}`, `workflow_external_task_pending`.
+- Prometheus: `workflow_sla_breaches_total`, `workflow_transition_latency_seconds`, `workflow_external_task_retry_total`.
+- Loki: streamy `WF_EVENTS`, `WF_ACTIONS`, `EXTERNAL_TASK_CALLS` s tenant + user + correlationId pro audit trace.
 
 ##### Monitoring API
 ```java
@@ -1183,18 +1207,6 @@ public class WorkflowMonitoringController {
   }
 }
 ```
-
-##### Grafana Dashboard Panels
-1. **Instance Count**: Total, Running, Completed (gauge)
-2. **Throughput**: Instances/hour (graph)
-3. **Average Duration**: Per workflow type (bar chart)
-4. **SLA Compliance**: % meeting SLA (pie chart)
-5. **State Distribution**: Instances per state (heat map)
-6. **Error Rate**: Errors/hour (graph)
-7. **Bottlenecks**: States with longest avg duration (table)
-8. **Top Workflows**: Most used workflows (table)
-9. **Recent Events**: Live event stream (logs)
-10. **Active Timers**: Pending timers count (stat)
 
 ##### Prometheus Alerts
 ```yaml
@@ -1228,6 +1240,7 @@ groups:
 ```
 
 ##### Frontend Dashboard Component
+Tento FE komponent vizualizuje stav workflow přímo v Core FE (žádné embedované Grafana Scenes).
 ```typescript
 // WorkflowMonitoring.tsx
 export const WorkflowMonitoring: React.FC = () => {
@@ -1413,6 +1426,18 @@ Core Workflow → ExternalTaskExecutor → BFF API → n8n → Jira
               Timeout checker ← ← ← ← ← ← /complete endpoint
 ```
 
+#### End-to-End Flow
+1. Core engine uloží `pending external task` s kontextem instance, payloadem a `correlationId` (+ očekávaným timeoutem).
+2. n8n flow přes Core-connector node periodicky polluje `/external-tasks`, claimne task a provede potřebné kroky (např. Jira integrace).
+3. Výsledek se vrací přes Core API (`/external-tasks/{id}/complete|/fail`) spolu s `correlationId`, aby engine věděl, kterou instanci odblokovat.
+4. Runtime pokračuje přes `onSuccess`/`onError` větve, případně aktivuje retry/compensation logiku WF17.
+
+#### Requirements
+- **Idempotence:** `correlationId` + `taskId` blokují duplicitní dokončení (n8n může provést retry).
+- **Timeout + Retry:** centrální politika (WF15 + WF17) hlídá SLA, zvyšuje retry counter a může přepnout na fallback.
+- **Audit Log:** každý claim/complete jde do Loki (`WF_EVENTS`, `EXTERNAL_TASK_CALLS`) s tenant + user + flow ID.
+- **Isolation:** n8n nikdy nepíše do Core DB; používá pouze Core API konektor a service account navázaný na tenant.
+
 ---
 
 ### WF16: TIMER/DELAY Executor
@@ -1510,7 +1535,7 @@ record WorkflowStep(
 
 ---
 
-### WF19: Workflow Grafana Dashboards
+### WF19: Admin Grafana Dashboards
 
 **Status:** ⏳ **TODO**  
 **Estimate:** 1 day, 300 LOC  
@@ -1518,7 +1543,12 @@ record WorkflowStep(
 **Dependencies:** W12 (metrics), Grafana
 
 #### Description
-Grafana dashboards pro internal workflow engine monitoring.
+Volitelný Grafana dashboard dostupný pouze pro admin tenant (SSO přes Keycloak). Čerpá metriky a logy z W12, nesdílí se do FE ani se neembeduje pomocí Grafana Scenes; slouží jen pro operátory a SRE tým.
+
+#### Access & Security
+- Keycloak SSO → `admin` realm, role `workflow-observability`.
+- n8n/Core admini mají read-only přístup, žádná veřejná URL.
+- Dashboard se zobrazuje jen v Grafaně (SSO), runtime UX (stav/timeline) zůstává v Core FE.
 
 #### Panels
 - Active workflow instances (by status)
@@ -1702,3 +1732,22 @@ public class N8nBffController {
 - [`WORKFLOW_UNIFIED_ARCHITECTURE.md`](../WORKFLOW_UNIFIED_ARCHITECTURE.md) - Complete 2-layer design
 - `WORKFLOW_EPIC_W5_W12_COMPLETE.md` - Phase 1 implementation summary
 - `docs/workflow/W5_RUNTIME_GUIDE.md` - Runtime API guide
+
+## ✅ Definition of Done (EPIC-006)
+
+- **Interní engine**
+  - Definuje, verzuje a spouští workflow nad metamodelovými entitami.
+  - Poskytuje REST API pro graph/state/history/forecast dotazy.
+- **UX**
+  - Uživatel v detailu entity vidí:
+    - aktuální stav,
+    - možné akce včetně „why not“ důvodů,
+    - historii kroků,
+    - očekávané další kroky / SLA a forecast.
+- **Executors**
+  - APPROVAL, REST_SYNC, KAFKA_COMMAND a TIMER běží end-to-end.
+  - EXTERNAL_TASK executor je integrován s n8n podle EPIC-011 (oficiální konektor, audit, idempotence).
+- **Multi-tenancy**
+  - Všechny operace respektují realm/subdoménu z JWT, cross-tenant přístup je blokovaný.
+- **Observabilita**
+  - Prometheus metriky + Loki logy poskytují audit trail pro interní kroky i EXTERNAL_TASK integrace.
