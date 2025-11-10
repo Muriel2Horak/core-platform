@@ -31,6 +31,101 @@ Vytvořit **low-code platformu pro generování, správu a dokumentaci entity mo
 
 ---
 
+## 👥 Studio Users & Role Model
+
+- **Platform / Admin tenant (globální realm):** definuje sdílené core modely, systémové entity, povoluje cross-tenant moduly a schvaluje AI návrhy. Má plný přístup k platform + tenant definicím kvůli governance.
+- **Tenant admin (realm = subdoména):** může rozšiřovat model pro svůj tenant – přidávat vlastní entity, pole a relace, zapínat DMS/workflow/streaming per entita a nastavovat access matrix. Guardrails: vidí pouze svůj model + read-only platformovou část, akce jsou limitované rolemi `TENANT_METAMODEL_ADMIN` a auditované.
+- **Controlled core extensions:** vybrané core entities mají označení „tenant-extendable“. Tenant admin může přes návrhový proces přidat vlastní pole/relace bez rozbití globálního modelu – vše se drží v overlay vrstvě s jasným diffem k platform originálu.
+- **Studio není pouze centrální nástroj:** per-tenant capabilities jsou součástí EPICu. Studio vždy vyhodnocuje realm z Keycloak SSO a auto-injektuje `tenant_id` do všech zápisů, takže tenant admin nikdy nemodifikuje cizí data. Approved overrides se verzují odděleně (platform vs tenant spaces).
+- **Sandbox + proposal režim:** každý tenant-specific zásah (nová entita, rozšíření povoleného core modelu) jde nejdřív do sandboxu + proposal fronty; publikace probíhá až po schválení guardrails (DoR/DoD + validation). Bez toho by multi-tenant use-cases nebyly možné.
+
+---
+
+## 🧱 Metamodel Studio – Funkční rozsah (MVP)
+
+- **Správa entit a polí:** create/update/delete entit, správa polí (typy, nullable, default, enumy), relací (1:N, N:M, hierarchie), indexů (fulltext, uniq, composite). Validace probíhá v reálném čase a změny se propisují do YAML + DB migrací (viz META-001..003).
+- **Deklarativní validace:** konfigurujeme pravidla jako `length`, `pattern`, `required`, cross-field constraints nebo business rules (stavové guardy) bez psaní kódu – vše jako config, který se aplikuje při generování backendu i FE formulářů.
+- **DMS integrace (EPIC-008 hook):** u každé entity lze zapnout dokumentové přílohy, definovat typy dokumentů, maximální velikost a mandatory flag. Studio při publikaci doplní UI spec o „Documents“ sekce + backend storage binding.
+- **Workflow integrace (EPIC-006 hook):** entita může být navázána na workflow definici, definujeme business key a mapování kontextu. Studio zapisuje binding do metamodelu a Workflow Engine (WF17) čte přímo z těchto dat.
+- **Streaming (povinné, ne optional):** každá entita může emitovat CRUD eventy. Studio nastaví Kafka topic, event payload mapping (včetně maskování), correlationId a version metadata. Generátor přidá idempotentní publish hooky a AsyncAPI kontrakt.
+
+### Streaming as Mandatory Behavior
+- Každý metamodel objekt má definici streamingu: název topicu (`events.{entity}`), partition key (typicky `entityId`), seznam event typů (`created`, `updated`, `deleted`, `stateChanged`), schema version, idempotence tokeny a ordering rules.  
+- Generátor z metamodelu vytváří AsyncAPI kontrakty + publikační kód v runtime (Spring events → Kafka) a validuje, že runtime event odpovídá kontraktu.  
+- DoD: žádný publish „pokud se rozhodneme“ – streaming metadata jsou povinnou částí definice entity a kontrolují se ve validátoru.
+
+### Contracts & Documentation Auto-Generation
+- Z každé entity/metadat generujeme:  
+  - **OpenAPI** pro CRUD + search endpoints (včetně RBAC pravidel, validation constraints, příkladů).  
+  - **AsyncAPI** pro eventové topic (CRUD + state events) – využívají n8n konektory, externí integrace a QA simulace.  
+  - **Markdown/HTML** dokumentaci pro adminy/integrátory (entity popisy, access matrix, workflow/DMS/streaming bindingy) + export do MCP tools.  
+- Artefakty jsou versionované, dostupné přes Metamodel API (`/api/metamodel/entities`, `/contracts/openapi`, `/contracts/asyncapi`) a tvoří jediný zdroj pravdy – žádné shadow configy mimo metamodel.
+- **Access control matrix:** per entita i per field definujeme, kdo vidí/edituje/maže, kdo může spouštět workflow přechody – kombinací rolí z Keycloaku a attribute-based pravidel (claim, group). Studio vynucuje konzistenci mezi metadaty a generovanými policy třídami.
+
+### Security Matrix Editor (Row & Column Level)
+- GUI editor pro každou entitu/field/stav definuje: `CAN_READ`, `CAN_WRITE`, `CAN_DELETE`, `CAN_TRANSITION` s podporou RBAC rolí, Keycloak claims, tenant scopes a podmínek (např. `owner == currentUser`, `team == user.team`, `status in [DRAFT]`).  
+- Konfigurace generuje policies pro backend (Spring Security, ACL, CEL) i FE guardy; žádné „shadow“ YAML mimo metamodel.  
+- Výsledné matice jsou součástí diffu, verzují se a exportují s kontrakty (viz Contracts & Docs).  
+- Row-level filtry se automaticky promítnou do generovaných repository/service vrstev a do streaming payloadů (maskování PII).
+- **ER / Model vizualizace:** ER canvas (META-004) zobrazuje platformové vs tenant-specific entity, relace (včetně DMS/WF/streaming hrany) a umožňuje highlight konkrétní tenant. Z plátna lze otevřít detail entity se všemi výše popsanými atributy.
+
+### ER / Graph View (Definition of Done)
+- Vizualizace musí zobrazovat entity, jejich typ (platform / tenant / modul), relace s direction + kardinalitou.
+- Klik na entitu otevře její detail (tabulka, pole, validace, workflow/DMS/streaming binding, security matrix).
+- Filtry: per modul/domain, tenant overlay, změněné entity (draft vs published), typ relace (workflow, DMS, reference).
+- View je součást DoD EPICu – bez něj se Metamodel Studio nepovažuje za hotové.
+
+---
+
+## 🤖 AI Assistant pro Metamodel (META-005)
+
+- Embedded chat/side panel zná aktuální metamodel (platform + tenant scope) a reaguje na dotazy typu „rozšiř Requirements o time tracking napojený na Tasks“.
+- AI navrhne nové entity/pole/relace, zobrazí diff (YAML + ER náhled) a vysvětlí dopady (UI, API, workflow, streaming, DMS). Součástí je navržená access matrix, bindingy i testy.
+- Součástí návrhu jsou i generované migrace, validační pravidla, streaming/contract metadata a dokumentace – vše jako součást proposal balíčku.
+- Návrhy putují do **proposal fronty** (4-eye principle). Admin/tenant admin změny schvaluje nebo vrací s komentářem. Bez schválení se nic nepřenese do produkčního metamodelu.
+- Po schválení Studio auto-generuje DB migrace, aktualizuje kontrakty, dokumentaci i event schémata. Každý proposal má verzování + audit.
+- AI integrace stojí na MCP toolingu: `metamodel-validate`, `metamodel-diff`, `generate-api-spec`, `suggest-migrations`, takže Copilot i externí asistenti mají standardizované rozhraní.
+
+---
+
+## 🔗 Metamodel API & Contracts
+
+- **Public (secured) API vrstvy:**
+  - `GET /api/metamodel/entities` – kompletní definice (platform + tenant overlay).
+  - `GET /api/metamodel/ui-spec` – UI kontrakty pro auto-generované formuláře/tab views.
+  - `GET /api/metamodel/workflows/{entity}` – binding na workflow engine včetně business key.
+  - `GET/POST /api/metamodel/proposals` – čtení a zakládání návrhů (AI, n8n, MCP).
+- **Generované kontrakty:**
+  - OpenAPI pro CRUD/aggregate endpoints (per entity) + modulární BFF.
+  - AsyncAPI pro streaming/event topics (CRUD, state changes, SLA).
+  - Dokumentace pro integrace (Markdown, ER exports) a n8n connector metadata – přímo využívá EPIC-011.
+- API je multi-tenant safe (JWT realm filter), sledované v audit logu a verzované, takže n8n/workflow/test automation může bezpečně číst kontrakty a návrhy.
+
+---
+
+## 📡 Streaming & Serializace
+
+- Všechny změny dat entit (CRUD) produkují Kafka eventy s **garantovanou sekvencí per `entityId`** (partition key) a idempotentními offsety.
+- Schéma eventů je vázané na metamodel verzi; generátor publikuje schema registry entry (Avro/JSON Schema) s `schemaVersion` = git SHA návrhu.
+- Payload obsahuje `version`, `correlationId`, `tenantId`, `entityType`, diff i plný snapshot (konfigurovatelné). Consumer strana má instrukce pro deduplikaci podle `eventId`.
+- Streaming není volitelný modul; Studio defaultně povoluje publish pro všechny tenant-aware entity a umožňuje pouze jemné nastavení obsahu/retence.
+
+---
+
+## 🌐 Multi-Tenant Model (neměnný základ)
+
+- Tenant = Keycloak realm = subdoména (`{tenant}.core-platform.{tld}`). Žádné sdílené realmy ani ruční přepínání; SSO určuje kontext Studia.
+- Metamodel se skládá ze **shared/platform** části (spravuje admin realm) a **tenant overrides** (spravuje daný tenant). Každá část má vlastní verzi a audit trail, ale publikace generuje sjednocený artefakt.
+- Studio UI respektuje realms: admin realm vidí vše (platform + tenant overlay), tenant admin vidí jen platform read-only + své entity k editaci. Exporty (YAML, OpenAPI, AsyncAPI) jsou implicitně scoped na aktuální realm.
+
+## ⚙️ Technical Guidelines
+
+- **Frontend:** používá existující metamodel/workflow stack (React, MUI, React Flow, React Query). Komponenty pro ER view, security matrix i DMS/Workflow binding jsou generické a reusabilní v dalších modulech.
+- **Backend:** validace, SLA, security matrix enforcement i streaming metadata se počítají server-side. Žádné přímé napojení AI nebo FE na DB – vše přes metamodel služby.
+- **No shadow config:** bezpečnost, streaming, workflow hooky, API kontrakty, documentation exporty i AI proposals jsou definovány v metamodelu (YAML/JSON + registry). Pokud něco není v metamodelu, nesmí to vzniknout v runtime – to kontroluje validátor a CI.
+
+---
+
 ## 📊 Progress Overview
 
 **Overall Completion:** � **60% (Phase 1-3 DONE, Phase 4-6 PLANNED)**
@@ -2425,6 +2520,11 @@ WHERE table_name = 'products';
 ---
 
 ## 🧪 Testing
+
+**EPIC-level požadavky:**
+- **Unit:** validace metamodel schémat, RBAC pravidel (access matrix), generování kontraktů a streaming payloadů.
+- **Integration:** změna metamodelu → nasazení → CRUD nad generovanou entitou funguje + emituje validní eventy.
+- **E2E:** admin vytvoří entitu ve Studiu, FE ji zobrazí v generické UI, data se uloží do DB i do streamu, multi-tenant izolace zůstává nedotčena.
 
 **Strategie testování pokrývá všechny fáze (Generator → Visual Studio → AI Copilot → Contracts → Governance).**
 
