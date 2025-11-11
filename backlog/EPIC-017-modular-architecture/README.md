@@ -62,23 +62,23 @@ Core Platform je monolitický systém. Každé nové rozšíření (projektové 
 ## 🧾 Definice & Terminologie
 
 ### Core Platform
-- **Identity & Tenanti:** Keycloak multi-realm (tenant = subdoména = realm) s RBAC/ABAC guardrails (EPIC-000, EPIC-010).  
-- **Metamodel & Workflow:** EPIC-005 (Metamodel Studio) + EPIC-006 (Workflow Engine) + EPIC-006 W-OPS dashboard.  
-- **Streaming & Integrace:** Kafka/AsyncAPI event bus, EXTERNAL_TASK konektor na n8n (EPIC-011), Core APIs.  
-- **Observabilita:** Loki, Prometheus, Grafana (EPIC-003).  
-- **Security Baseline:** audit, secrets, policy enforcement (EPIC-000).  
-- **n8n Integration Bridge:** oficiální konektor + BFF (EPIC-011).  
-- Core poskytuje framework a SDK, nikdy se neforkuje kvůli modu.
+- **Identity + Tenanti:** Keycloak realm-per-tenant, shared IdP, konzistentní RBAC/ABAC guardrails (EPIC-000, EPIC-010).  
+- **Metamodel + Workflow Engine:** EPIC-005 (Metamodel Studio) generuje entity/UI bundly, EPIC-006 zajišťuje workflow runtime, audit, timers, streaming presence.  
+- **Integration & Streaming Layer:** Kafka/AsyncAPI event bus, Core REST/BFF, oficiální n8n bridge pro orchestraci (EPIC-011).  
+- **Observability Stack:** Loki, Prometheus, Grafana dashboards s modul-id labely (EPIC-003).  
+- **Security Baseline:** secrets, policy enforcement, compliance/lint gates (EPIC-000 + EPIC-020).  
+- **Admin & SDK:** Core runtime + SDK + Admin Console; Core codebase se nikdy neforkuje, vše se dělá přes moduly.
 
 ### Modul
-- Distribuovaný balíček obsahující kombinaci: metamodel spec (entities, tenant scopes), workflow definice, role/scopes, UI views, connectors, n8n flow šablony, testy.  
-- Modul se aktivuje konfigurací/licencí; žádné změny v core codebase.  
-- Typy: **Core bundled**, **Premium/licencované**, **Partner**, **Custom (customer-specific)**.
+- **Balík:** metamodel spec, workflow definice, role/scopes, UI views, integrace, n8n flows, test evidence.  
+- **Isolace od Core:** žádný fork; modul se pouze registruje přes manifest a loader zaregistruje entity/workflow/UI.  
+- **Aktivace:** jen konfigurací + licencí; code-level změny probíhají přes SDK hooky.  
+- **Typy:** Core bundled (OSS), oficiální placené, partner, customer-specific; všechny sdílí stejný lifecycle.
 
 ### Custom Produkt
-- Předpřipravená sada modulů + branding pro konkrétní doménu (např. “Agile Management Suite / Project Hub”).  
-- Využívá modulární architekturu: modul bundles + per-tenant aktivace + workflow + streaming.  
-- Deploy stále běží na Core runtime (sdílí identity, observabilitu, security).
+- **Sada modulů** kurátorovaná pro konkrétní doménu (např. "Agile Management Suite / Project Hub").  
+- **Branding/Config:** může mít vlastní branding, licencování a výchozí konfiguraci, ale běží na Core infrastruktuře.  
+- **Per-tenant řízení:** aktivuje se přes Module Registry, využívá licenční enforcement a sdílí metamodel/workflow/n8n integrace Core.
 
 ---
 
@@ -275,11 +275,9 @@ Modul může obsahovat:
 
 ## 🔐 Licensing & Activation
 
-> **Kompletní dokumentace:** [MODULE_LICENSING.md](../../docs/MODULE_LICENSING.md)
+> **Detailní dizajn:** [MODULE_LICENSING.md](../../docs/MODULE_LICENSING.md) & [MODULE_REGISTRY.md](../../docs/MODULE_REGISTRY.md)
 
-> **Registry Architecture:** [MODULE_REGISTRY.md](../../docs/MODULE_REGISTRY.md)
-
-## 🔐 Licensing Model
+### Licensing Model Overview
 
 | Module Type | License | Activation | Revenue Model |
 |-------------|---------|------------|---------------|
@@ -289,15 +287,11 @@ Modul může obsahovat:
 | **Partner modules** | Vendor-specific | Vendor-issued JWT, validované Core | Revenue share |
 | **Customer-specific** | Custom (SOW) | Hard-bound na tenant | Project-based fee |
 
-### License Token (Signed JWT)
+### License Key Format
 
-- **Format:** JWT (RS256/HMAC), claimy: `moduleId`, `tenantId`, `validFrom`, `validTo`, `limits` (uživatelé, instancí, feature flags).  
-- **Storage:** Admin nahraje token přes API/Console; encrypted v `module_licenses`.  
-- **Verification (backend only):**
-  1. Ověř signaturu proti trust store (EPIC-000).  
-  2. Ověř tenantId vs. aktuální realm.  
-  3. Ověř platnost (`iat`, `exp`, limity).  
-  4. Logni výsledek (audit trail).
+- **Signed token:** JWT/HMAC nebo RS256, obsahuje `moduleId`, `tenantId`, platnost (`validFrom`, `validTo`), limity (`maxUsers`, `maxInstances`, opt-in feature flags).  
+- **Transport:** JSON upload skrz Admin Console nebo API (`POST /admin/license`).  
+- **Persistence:** Uložený šifrovaně v `module_licenses`, nikdy na FE.
 
 ```json
 {
@@ -317,6 +311,15 @@ Modul může obsahovat:
   "signature": "<RSA-SHA256 signature>"
 }
 ```
+
+### Verification & Enforcement
+
+1. **Backend verification only:** signatura proti trust-store (EPIC-000), tenant scope match, expirace, licence limity.  
+2. **Activation gate:** loader modul nespustí, dokud `licenseState === valid`.  
+3. **UI feedback:** menu/cards zobrazují `Active`, `Expiring`, `Expired`; bez licence se zobrazí "Module locked/expired" call-to-action.  
+4. **Audit:** každé ověření a pokus o aktivaci logovaný do audit logu (EPIC-000) + Loki label `moduleId`.  
+5. **Runtime enforcement:** API vrací `403 ModuleNotLicensed`, workflow triggers se neinicializují, FE route vrací 404.  
+6. **Never FE-only validation:** FE čte jen stav z backendu, žádné lokální decode licencí.
 
 ### Enforcement
 - Modul se neaktivuje bez validní licence (backend blokuje load).  
@@ -326,26 +329,7 @@ Modul může obsahovat:
 - Pro user-limit enforcement se modul integruje s usage telemetry (počet aktivních userů / instancí).  
 - Žádné ověřování pouze na FE; FE vždy rely na backend state.
 
-```json
-{
-  "iss": "core-platform.com",
-  "sub": "module:helpdesk",
-  "aud": "tenant:customer-a",
-  "iat": 1704067200,
-  "exp": 1735689600,
-  "claims": {
-    "moduleId": "helpdesk",
-    "tenantId": "customer-a",
-    "maxUsers": 100,
-    "features": ["sla", "automations", "reports"],
-    "validFrom": "2024-01-01",
-    "validTo": "2025-01-01"
-  },
-  "signature": "<RSA-SHA256 signature>"
-}
-```
-
-**Validation Flow:**
+**API Validation Flow**
 
 ```
 User → API Request (/api/modules/helpdesk/tickets)
@@ -430,25 +414,25 @@ If any check fails:
 
 ## 🔧 Custom Modules (Internal, Partner, Customer)
 
-### Typy Modulů
-1. **Internal modules** – vyvíjené CORE týmem (Project Hub, Helpdesk).  
-2. **Partner modules** – certifikovaní vendori, publikují balíčky přes Module Registry.  
-3. **Customer-specific** – moduly vzniklé pro konkrétní projekt (např. velký enterprise tenant).
+### Podporované zdroje
+1. **Internal modules** – první-party balíčky udržované Core týmem (Project Hub, Helpdesk).  
+2. **Partner modules** – certifikovaní vendori s přístupem do Module Registry, validovaní přes governance pipeline.  
+3. **Customer-specific moduly** – projektové rozšíření pro velkého klienta, stále publikované jako modul, ne jako fork.
 
-### Požadavky na modul
-- **Manifest** + balíček (`metamodel bundle`, `workflow defs`, `UI spec`, `n8n flows` volitelně, `connectors`).  
-- **Metamodel YAML/JSON** – validovaný EPIC-005 nástroji, včetně `tenant_scope` a streaming sekce.  
-- **Workflow definitions** – kompatibilní s EPIC-006; modul může přidat nové executory pouze přes definované rozhraní.  
-- **UI registrace** – route, menu, RBAC tagy; modul nemůže ignorovat Core RBAC.  
-- **Tests:** min. API + E2E happy path (napojení na EPIC-002).  
-- **Migration bundle** – musí používat metamodel migration engine, nikoliv ruční SQL.  
-- **N8n flows (optional)** – export JSON šablon + binding na Core connector.
+### Povinné součásti modulu
+- **Manifest + bundle:** metamodel YAML/JSON, workflow definice, role a scopes, UI metadata, integrace (+ n8n flows pokud jsou).  
+- **Metamodel & migrace:** vše jde přes EPIC-005 pipelines; žádné ad-hoc SQL.  
+- **Workflow & automations:** definice kompatibilní s EPIC-006; vlastní executory pouze přes oficiální rozhraní.  
+- **UI registrace:** route, menu, RBAC tagy; modul nesmí obcházet Core RBAC/tenant isolation.  
+- **Integrations:** reference na schválené konektory; secrets uložené v Core vaultu.  
+- **Minimum testů:** API test + E2E "happy path" scénář registrující modul a ověřující základní flow (EPIC-002).  
+- **Docs & metadata:** release notes, DoD evidence, n8n flow export, compliance checklist (EPIC-020).
 
 ### Governance
-- Registrace probíhá přes Module Registry API nebo Global Admin UI; modul dostane semver verzi a audit ID.  
-- Každý release = nový balík + migrace + test evidence.  
-- Rollback = registry provede `uninstall + reinstall` s předchozí verzí (data zachována).  
-- Modul nemůže měnit Core DB schema mimo metamodel pipelines; registry blokuje neautorizované změny.
+- Registrace přes API/Admin UI → modul získá semver verzi, vendor ID, audit identifikátor.  
+- Každý release prochází automatickým lintem, security scanem a DoD bránou (lint/tests/licensing).  
+- Rollback = registry automaticky reinstaluje předchozí verzi a aplikuje reverse migrace.  
+- Modul nesmí měnit core DB schema mimo metamodel pipelines; registry odmítne neschválené změny a loguje incident.
 
 ---
 
@@ -545,7 +529,7 @@ public interface WorkflowRegistry {
 - Ověřit licensing enforcement (Community vs Premium features).  
 - Dokázat metamodel-driven UI + workflow binding + streaming telemetry.  
 - Integrovat s W-OPS (workflow analytics) a Monitoring stack (module-level metrics).  
-- Zajistit E2E test (EPIC-002) – “Create sprint → move tasks → complete sprint → verify event stream”.
+- Zajistit E2E test (EPIC-002) – "Create sprint → move tasks → complete sprint → verify event stream".
 
 ---
 
@@ -712,373 +696,104 @@ public interface WorkflowRegistry {
 
 ---
 
-## 🏗️ Prototype Module: delivery-suite
+## 🧪 Reference Module: Generic Agile Management / Project Hub
 
-**Purpose:** První funkční modul demonstrující celý module system (manifest, licensing, multi-tenant isolation, FE/BE integration)
+**Účel:** první "proof" modul, na kterém validujeme modulární architekturu end-to-end (manifest → registry → licensing → metamodel-driven UI → workflow → streaming/logging → E2E pipeline).
 
-### Overview
+**Výsledek:** demonstruje, že Core zvládne komerční modul bez forku, s licencováním a multi-tenant izolací.
 
-| Property | Value |
-|----------|-------|
-| **Module ID** | `delivery-suite` |
-| **Name** | Delivery Suite |
-| **Type** | EXTENSION |
-| **License Required** | ✅ Yes |
-| **Description** | Generic agile work management - issue tracking, sprints, kanban boards (NOT Jira-branded) |
+### Scope & Entities
 
-**Why "Delivery Suite"?**
-- Generic name (ne "Jira clone" nebo "EPIC-010 Agile")
-- Fokus na "delivery" (dodání hodnoty), ne "agile" buzzword
-- Příklad modulu, ne produkční feature
+| Entity | Popis |
+|--------|-------|
+| `Project` | Top-level container (OKR/initiative) |
+| `Epic` | Cross-sprint objective, child of Project |
+| `Story` | Uživatelský příběh, child of Epic |
+| `Task` | Atomická práce s owners/watchers |
+| `Sprint` | Timebox pro plánování, navázaný na Board |
+| `Board` | Konfigurace kanbanu, filtry, swimlanes |
+| `Comment` | Diskuze s @mentions a notifikacemi |
+| `Attachment` | Files z DMS / externích úložišť |
+| `ActivityLog` | Streaming audit (status changes, assignments) |
 
----
+### Workflow & Automation
+- Default workflow: **ToDo → In Progress → In Review → Done**, per-tenant možnost přidat extra stavy přes manifest overlay.
+- Workflow engine (EPIC-006) obstarává guardrails (permissions, SLA timers, webhooks).
+- Streaming: každá změna `ActivityLog` posílá event do Kafka (moduleId label) + n8n trigger pro synchronizace.
 
-### Entity: DeliveryItem
+### Feature Set
+- Kanban board s drag & drop (per Board swimlanes).
+- Sprint board + basic burndown, velocity.
+- Watchers, mentions, email/Slack notifikace.
+- Inline komentáře + attachments (DMS integration).
+- n8n templaty pro sync s Jira/Trello/Git (bidirectional).
+- License state banner + link na Admin Console.
 
-**Purpose:** Generic work item/ticket/issue (agnostic naming)
+### Architecture Hooks
+- **Metamodel:** entity definitions + UI view specs generované ve Studio (EPIC-005) → loader publikuje do Core.
+- **Workflow:** `project_hub_flow.yaml` registrovaný přes Workflow API (EPIC-006).
+- **n8n:** `project-hub-sync.json` template volající Core connector.
+- **Monitoring:** Prometheus counter `module_project_hub_requests_total{tenantId,...}` + Loki label `moduleId=project-hub`.
+- **Security:** modul definuje role `PROJECT_HUB_ADMIN`, `PROJECT_HUB_USER`, `PROJECT_HUB_VIEWER`, mapované na tenant role; žádný vlastní auth.
+- **Licensing:** modul je placený, bez licence se nezobrazí menu a API končí 403.
 
-```java
-@Entity
-@Table(name = "delivery_items")
-@MultiTenant  // Automatic tenant_id column + filter
-public class DeliveryItem extends BaseEntity {
-  
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private UUID id;
-  
-  @Column(unique = true, nullable = false)
-  private String key;  // Auto-generated: DLV-1, DLV-2, ...
-  
-  @Column(nullable = false)
-  private String title;
-  
-  @Column(columnDefinition = "TEXT")
-  private String description;
-  
-  @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
-  private DeliveryStatus status;  // NEW, IN_PROGRESS, DONE
-  
-  @Column
-  private String assignee;  // User ID nebo email
-  
-  @Enumerated(EnumType.STRING)
-  private Priority priority;  // LOW, MEDIUM, HIGH, CRITICAL
-  
-  @Column
-  private LocalDate dueDate;
-  
-  @Column(columnDefinition = "TEXT[]")
-  private String[] tags;
-  
-  // Multi-tenant isolation
-  @Column(name = "tenant_id", nullable = false, updatable = false)
-  private String tenantId;  // From JWT context
-  
-  // Audit fields
-  private Instant createdAt;
-  private Instant updatedAt;
-  private String createdBy;
-  private String updatedBy;
-}
-```
+### Manifest Snapshot
 
----
-
-### Workflow Definition
-
-**Workflow ID:** `delivery_lifecycle`
-
-**States:**
-```
-NEW → IN_PROGRESS → DONE
-```
-
-**Transitions:**
-- `NEW → IN_PROGRESS`: "start_work" (permission: `MODULE_DELIVERY_ACCESS`)
-- `IN_PROGRESS → DONE`: "complete" (permission: `MODULE_DELIVERY_ACCESS`)
-- `IN_PROGRESS → NEW`: "reopen" (permission: `MODULE_DELIVERY_ADMIN`)
-
-**Integration:** Používá existující EPIC-006 Workflow Engine, žádná nová infrastruktura
-
----
-
-### Frontend Views
-
-**Route:** `/app/delivery` (visible only if licensed)
-
-#### 1. Table View
-
-**Columns:**
-- Key (DLV-1, DLV-2, ...)
-- Title
-- Status (badge: NEW 🔵 | IN_PROGRESS 🟡 | DONE 🟢)
-- Assignee (avatar + name)
-- Priority (badge: LOW | MEDIUM | HIGH | CRITICAL)
-- Due Date (with overdue warning)
-
-**Features:**
-- Filtering: by assignee, status, text search
-- Sorting: by any column
-- Actions: Create, Edit, Delete, Bulk Status Update
-
----
-
-#### 2. Kanban Board
-
-**Layout:**
-```
-┌─────────────────┬─────────────────┬─────────────────┐
-│      NEW        │   IN PROGRESS   │      DONE       │
-├─────────────────┼─────────────────┼─────────────────┤
-│ ┌─────────────┐ │ ┌─────────────┐ │ ┌─────────────┐ │
-│ │ DLV-1       │ │ │ DLV-3       │ │ │ DLV-5       │ │
-│ │ Fix bug...  │ │ │ Add feature │ │ │ Completed   │ │
-│ │ @john       │ │ │ @mary       │ │ │ @alice      │ │
-│ │ 🔴 HIGH     │ │ │ 🟡 MEDIUM   │ │ │ ✅ Done     │ │
-│ └─────────────┘ │ └─────────────┘ │ └─────────────┘ │
-│ ┌─────────────┐ │ ┌─────────────┐ │                 │
-│ │ DLV-2       │ │ │ DLV-4       │ │                 │
-│ │ New task    │ │ │ Testing...  │ │                 │
-│ └─────────────┘ │ └─────────────┘ │                 │
-└─────────────────┴─────────────────┴─────────────────┘
-```
-
-**Features:**
-- Drag-and-drop between columns (triggers workflow transition)
-- Card shows: title, assignee, priority badge, due date
-- Filtering: by assignee, tags, priority
-- Swimlanes (future): by assignee, priority, sprint
-
----
-
-#### 3. Detail View
-
-**Sections:**
-- **Header:** Key (DLV-123), Status badge, Priority, Due Date
-- **Content:** Editable title, description (Markdown editor)
-- **Metadata:** Assignee dropdown, Tags input, Created/Updated timestamps
-- **Workflow:** State diagram (visual current state + available transitions)
-- **Comments:** Thread with @mentions (optional DMS integration)
-- **Audit Log:** Table (who changed what field, when)
-
-**Actions:**
-- Save changes
-- Workflow transitions (buttons: "Start Work", "Complete", "Reopen")
-- Delete item (confirmation modal)
-
----
-
-### Module Manifest
-
-**File:** `modules/delivery-suite/module.yaml`
+**File:** `modules/project-hub/module.yaml`
 
 ```yaml
-module_id: delivery-suite
-name: Delivery Suite
-description: Agile work management - generic issue tracking, sprints, kanban boards
-type: EXTENSION
+module_id: agile-project-hub
+name: Generic Agile Management / Project Hub
+type: PREMIUM
 version: 1.0.0
 license_required: true
 
 entrypoints:
   fe:
-    route: /app/delivery
-    permission: MODULE_DELIVERY_ACCESS
-    menuLabel: Delivery Board
+    route: /app/project-hub
+    menuLabel: Project Hub
     icon: kanban
-    weight: 100
+    permission: PROJECT_HUB_USER
   api:
-    basePath: /api/modules/delivery
-  wf:
-    definitions:
-      - delivery_lifecycle
+    basePath: /api/modules/project-hub
+  workflows:
+    - file: workflows/project_hub_flow.yaml
 
-requires:
-  core: ">=1.0.0"
-  workflow-engine: ">=2.1.0"
+metamodel:
+  bundles:
+    - file: metamodel/project.yml
+    - file: metamodel/task.yml
+  ui:
+    - file: ui/project-board.json
+    - file: ui/task-detail.json
 
-provides:
-  entities:
-    - DeliveryItem
-  permissions:
-    - MODULE_DELIVERY_ACCESS
-    - MODULE_DELIVERY_ADMIN
+n8n:
+  templates:
+    - file: n8n/jira-sync.json
+    - file: n8n/git-webhook.json
+
+roles:
+  - PROJECT_HUB_ADMIN
+  - PROJECT_HUB_USER
+  - PROJECT_HUB_VIEWER
+
+tests:
+  e2e: e2e/project-hub-license.spec.ts
 ```
 
----
+### License Scenarios & Activation
+- Trial licence (30 dní) → UI banner + telemetry event.
+- Paid licence → modul se aktivuje přes Admin Console, loader registruje entity/workflow/UI + n8n templates.
+- Expired licence → modul přejde do `locked` stavu, UI cards ukáží CTA "Renew license", API vrací 403.
+- Audit log: kdo modul aktivoval/deaktivoval, kdo nahrál licenci.
 
-### License Enforcement
-
-**Scenario 1: Without Valid License**
-
-**Behavior:**
-- ❌ Frontend route `/app/delivery` hidden (not in menu, 404 if accessed directly)
-- ❌ API calls to `/api/modules/delivery/*` return `403 Forbidden`
-  ```json
-  {
-    "status": 403,
-    "error": "Forbidden",
-    "message": "Module 'delivery-suite' requires a license. Contact sales.",
-    "error_code": "FEATURE_DISABLED"
-  }
-  ```
-- ℹ️ Admin UI (`/admin/modules`) shows:
-  - Module card with 🔵 "License Required" badge
-  - Button: "Upload License" → opens modal for JWT upload
-
----
-
-**Scenario 2: With Valid License**
-
-**Behavior:**
-- ✅ Menu item "Delivery Board" visible (icon: kanban)
-- ✅ Route `/app/delivery` accessible
-- ✅ API calls allowed
-- ✅ Admin UI shows:
-  - Module card with 🟢 "Active" badge
-  - License info: "Valid until 2025-12-31" (green text)
-  - Button: "Manage Module" → opens config editor
-
----
-
-**Scenario 3: With Trial License**
-
-**Behavior:**
-- ✅ Module accessible (fully functional)
-- ⚠️ Warning banner at top of `/app/delivery` page:
-  ```
-  ┌───────────────────────────────────────────────────┐
-  │ ⚠️ Trial License - Expires in 15 days            │
-  │ Upgrade to full license: [Contact Sales]         │
-  └───────────────────────────────────────────────────┘
-  ```
-- ℹ️ Admin UI shows:
-  - Module card with 🟡 "Trial" badge
-  - Trial countdown: "Trial ends 2025-02-01 (15 days left)"
-  - Button: "Upgrade License" → sales contact form
-
----
-
-**Scenario 4: License Expired**
-
-**Behavior:**
-- ❌ Frontend route redirects to `/app/home` with notification:
-  ```
-  License for Delivery Suite expired. Contact sales to renew.
-  ```
-- ❌ API returns `403 Forbidden`:
-  ```json
-  {
-    "status": 403,
-    "error": "Forbidden",
-    "message": "Module 'delivery-suite' license expired. Contact sales to renew.",
-    "error_code": "LICENSE_EXPIRED"
-  }
-  ```
-- ℹ️ Admin UI shows:
-  - Module card with 🔴 "Expired" badge
-  - Message: "License expired on 2024-12-31"
-  - Button: "Renew License" → upload new JWT
-
----
-
-### Multi-Tenant Isolation
-
-**Database Level:**
-```sql
--- Tenant A creates item
-INSERT INTO delivery_items (tenant_id, key, title, status)
-VALUES ('acme-corp', 'DLV-1', 'Fix bug', 'NEW');
-
--- Tenant B queries
-SELECT * FROM delivery_items WHERE tenant_id = 'tenant-b';
--- Result: 0 rows (Tenant A's data not visible)
-```
-
-**Application Level:**
-```java
-@GetMapping("/items")
-public List<DeliveryItem> getItems(@TenantId String tenantId) {
-  // tenantId ALWAYS from JWT, NEVER from request parameter
-  // Repository auto-filters by tenantId (Hibernate @Filter)
-  return deliveryRepo.findAll();  // Only current tenant's items
-}
-```
-
-**E2E Test Verification:**
-```typescript
-test('Tenant A cannot see Tenant B delivery items', async ({ page, context }) => {
-  // Create item as Tenant A
-  await loginAsTenant(page, 'acme-corp');
-  await createDeliveryItem(page, 'Secret item for Tenant A');
-  
-  // Switch to Tenant B
-  const page2 = await context.newPage();
-  await loginAsTenant(page2, 'tenant-b');
-  await activateModule(page2, 'delivery-suite');  // Give license
-  
-  // Navigate to delivery board
-  await page2.goto('/app/delivery');
-  
-  // Verify Tenant A's item NOT visible
-  await expect(page2.locator('text=Secret item for Tenant A')).not.toBeVisible();
-  
-  // API verification
-  const items = await page2.request.get('/api/modules/delivery/items');
-  const json = await items.json();
-  expect(json.every(item => item.tenant_id === 'tenant-b')).toBe(true);
-});
-```
-
----
-
-### Implementation Effort
-
-| Component | LOC Estimate | Time Estimate | Priority |
-|-----------|--------------|---------------|----------|
-| **Backend** |
-| Entity (DeliveryItem) | 150 | 2h | 🔥 HIGH |
-| Repository + Service | 200 | 3h | 🔥 HIGH |
-| REST Controller | 250 | 4h | 🔥 HIGH |
-| Workflow definition | 100 | 2h | 🟡 MEDIUM |
-| **Frontend** |
-| Table view | 300 | 6h | 🔥 HIGH |
-| Kanban board | 400 | 8h | 🟡 MEDIUM |
-| Detail view | 250 | 5h | 🟡 MEDIUM |
-| License enforcement UI | 150 | 3h | 🔥 HIGH |
-| **Module System Integration** |
-| Module manifest | 50 | 1h | 🔥 HIGH |
-| License guard integration | 100 | 2h | 🔥 HIGH |
-| **Testing** |
-| Unit tests | 200 | 4h | 🟡 MEDIUM |
-| Integration tests | 150 | 3h | 🟡 MEDIUM |
-| E2E tests | 200 | 4h | 🔥 HIGH |
-| **TOTAL** | **~2,500 LOC** | **~47h** | **6-8 days** |
-
----
-
-### Success Criteria
-
-**Functional:**
-- ✅ Modul se načte ze YAML manifestu při startu
-- ✅ Bez licence: menu hidden, API returns 403
-- ✅ S licencí: menu visible, CRUD funguje
-- ✅ Trial license: funguje + warning banner
-- ✅ Expired license: přístup zablokován
-- ✅ Multi-tenant: Tenant A nevidí data Tenant B
-
-**Technical:**
-- ✅ Zero hardcoded module logic v core (vše přes registry)
-- ✅ Workflow engine integration (delivery_lifecycle workflow)
-- ✅ RBAC integration (MODULE_DELIVERY_ACCESS permission)
-- ✅ Audit log (všechny změny DeliveryItem logged)
-
-**Testing:**
-- ✅ 100% code coverage (unit tests)
-- ✅ Integration tests (license scenarios)
-- ✅ E2E tests (tenant isolation, licensing)
+### Testing & DoD
+- **API & Workflow tests:** verify CRUD, workflow transitions, streaming events.
+- **E2E scénář:** `project-hub-license.spec.ts` – aktivace modulu, ověření, že Tenant A/B jsou izolovaní, licensing gating funguje.
+- **Performance smoke:** Kanban drag-drop + sprint planning se logují do Grafany (latency < 200ms p95).
+- **Security:** RBAC perms mapované v Keycloak, audit entries v Loki.
+- **Documentation:** manifest schema, admin guide, integration cookbook for n8n/Trello/Jira.
+- **Goal validation:** architektura modulu, licensing enforcement, metamodel-driven UI, workflow streaming a logování, E2E pipeline – vše musí být prokázáno v CI reportu.
 
 ---
 
@@ -1088,7 +803,7 @@ test('Tenant A cannot see Tenant B delivery items', async ({ page, context }) =>
 1. **Module Registry (BE + UI)** – registrace manifestů, dependency graph, health status.  
 2. **Tenant module assignment + licensing enforcement** – admin workflows, audit log, API guard.  
 3. **Module SDK & conventions** – referenční repo, manifest schema, CI templates.  
-4. **Reference modul “Agile Management Lite / Project Hub”** – aktivovaný tenant, end-to-end demo.  
+4. **Reference modul "Agile Management Lite / Project Hub"** – aktivovaný tenant, end-to-end demo.  
 5. **E2E scénář** – automat test ověřující aktivaci/licenci a základní CRUD/kanban flow.
 
 ### v2 (Scale & Marketplace)
@@ -1097,6 +812,17 @@ test('Tenant A cannot see Tenant B delivery items', async ({ page, context }) =>
 3. **Usage telemetry** – per-modul statistiky (aktivní uživatelé, eventy, latence) s opt-in nastavením.  
 4. **Advanced orchestration** – rolling upgrade modulu, canary rollout, multi-region sync.  
 5. **Partner automation** – self-service onboarding (lint/security scans), revenue reporting, license distribution.
+
+---
+
+## ✅ Definition of Done
+
+- **Module Registry + Loader** běží v Core, umí registrovat/aktivovat/deaktivovat modul a loguje každou akci do audit trailu.  
+- **Licensing enforcement** blokuje modul bez platné licence (API 403, UI banner), expirace se propisuje do Admin Console a monitoringu.  
+- **Tenant assignment UI** umožňuje per-tenant zapnout/vypnout modul, nahrát licenci a přiřadit role (`PROJECT_HUB_*`).  
+- **Reference Modul Project Hub** je nasaditelný, používá manifest+workflow+n8n bundly, poskytuje kanban/sprint experience a metriky.  
+- **Automatizované testy** (unit + API + E2E) běží v CI, zahrnují licensing, multi-tenant izolaci a n8n sync smoke.  
+- **Docs & SDK** obsahují manifest schema, vývojářský postup, DoD checklist a odkaz na související EPICy.
 
 ---
 
