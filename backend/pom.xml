@@ -45,7 +45,7 @@
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-compress</artifactId>
-				<version>1.24.0</version>
+				<version>1.26.0</version>
 			</dependency>
 
 			<!-- Force apache-mime4j to 0.8.11 (conflicts: Keycloak/Resteasy vs Tika) -->
