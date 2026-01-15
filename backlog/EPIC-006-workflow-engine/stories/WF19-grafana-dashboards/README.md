@@ -7,9 +7,11 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: "1 day"
+estimate: "8 hours"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - docker/grafana
+    - monitoring
   test_paths: []
   docs_paths:
     - backlog/EPIC-006-workflow-engine/stories/WF19-grafana-dashboards/README.md
@@ -36,6 +38,32 @@ Vytvořit **Grafana dashboardy** pro workflow monitoring:
 - Bottleneck analysis (slowest steps, timeout rate)
 - Executor performance (per executor type)
 - Alert rules (Prometheus)
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Dashboardy**
+   - Workflow Overview + Step Execution + SLA + Executor Performance jsou dostupne.
+
+2. **Metrics coverage**
+   - Pouzite metriky odpovidaji existujicimu Prometheus setupu.
+
+3. **Alerty**
+   - Alerty pro error rate, SLA breach, timeouty jsou definovane.
+
+4. **Dokumentace**
+   - README popisuje kde dashboardy najit a jak je importovat.
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Dashboard JSON (overview/steps/SLA/executors) | 4h | W12 |
+| 2 | Alert rules + datasources | 2h | T1 |
+| 3 | Verify metrics + docs | 2h | T1 |
 
 ---
 

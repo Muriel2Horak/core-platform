@@ -7,10 +7,13 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: "2 days"
+estimate: "16 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+    - backend/src/main/java/cz/muriel/core/kafka
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
   docs_paths:
     - backlog/EPIC-006-workflow-engine/stories/WF14-kafka-command-executor/README.md
     - backlog/EPIC-006-workflow-engine/README.md
@@ -64,6 +67,33 @@ steps:
         exportId: "$.exportId"
         downloadUrl: "$.downloadUrl"
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Command/Reply**
+   - Command je publikovan do `commandTopic` s correlation ID.
+   - Reply je matchovan podle correlation ID a ukladan.
+
+2. **Schema validation**
+   - Avro/JSON schema validace probehne pred publikaci.
+
+3. **Timeout + DLQ**
+   - Po timeoutu se task presune do DLQ a workflow je oznacen jako error.
+
+4. **Observability**
+   - Metrics pro publish/reply/timeout jsou dostupne.
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Kafka producer + schema validation | 6h | W7 |
+| 2 | Reply listener + correlation storage | 6h | T1 |
+| 3 | Timeout/DLQ + metrics + testy | 4h | T2 |
 
 ---
 

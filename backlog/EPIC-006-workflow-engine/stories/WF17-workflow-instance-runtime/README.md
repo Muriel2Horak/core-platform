@@ -7,10 +7,12 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "48 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
   docs_paths:
     - backlog/EPIC-006-workflow-engine/stories/WF17-workflow-instance-runtime/README.md
     - backlog/EPIC-006-workflow-engine/README.md
@@ -54,6 +56,41 @@ WorkflowStepOrchestrator
   ├─ applyRetryPolicy(step, attemptNumber)
   └─ updateStepExecution(stepExecutionId, status, output)
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Instance lifecycle**
+   - Instance je vytvorena z workflow verze a ulozena do DB.
+   - Statusy RUNNING/COMPLETED/FAILED jsou konzistentni.
+
+2. **Step orchestrace**
+   - Step executory jsou volane sekvencne podle definice.
+   - Output stepu se merge do contextu.
+
+3. **Error handling**
+   - Retry policy per step funguje.
+   - Po vycerpani retry se spusti compensation (pokud definovano).
+
+4. **Parallel + conditional**
+   - Parallel steps maji join point.
+   - Condition skipuje steps dle expression.
+
+5. **Observability**
+   - Každé spusteni stepu je logovano a metricky pokryto.
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Instance lifecycle + persistence model | 14h | W5 |
+| 2 | Step loop + context merge + template resolver | 14h | T1 |
+| 3 | Retry/error/compensation engine | 10h | T2 |
+| 4 | Parallel/conditional execution | 6h | T2 |
+| 5 | Testy + docs | 4h | T2, T3, T4 |
 
 ---
 

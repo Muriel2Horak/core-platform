@@ -7,10 +7,12 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: "2 days"
+estimate: "16 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
   docs_paths:
     - backlog/EPIC-006-workflow-engine/stories/WF16-timer-delay-executor/README.md
     - backlog/EPIC-006-workflow-engine/README.md
@@ -66,6 +68,34 @@ steps:
         recipients: ["manager@company.com"]
         message: "Approval pending for ticket ${workflow.context.ticketId}"
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Delay + schedule**
+   - Relativni delay a absolutni timestamp funguje.
+   - Cron schedule spousti akci ve spravny cas (UTC default).
+
+2. **Reminders**
+   - Reminder se odesle podle configu (email/slack/webhook).
+
+3. **Persistence**
+   - Timer zaznamy jsou ulozeny v `workflow_timers`.
+
+4. **Integration**
+   - Executor pouziva WorkflowTimerService a neobchazi W8.
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Timer executor + schedule parsing | 6h | W7, W8 |
+| 2 | Reminder delivery + templates | 4h | T1 |
+| 3 | API + metrics + testy | 4h | T1, T2 |
+| 4 | Docs + examples | 2h | T1 |
 
 ---
 
