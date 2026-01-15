@@ -50,7 +50,7 @@ Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`*
 | EPIC-004: Reporting | `REP` | `REP1-cube-js-data-modeling` |
 | EPIC-005: Metamodel | `META` | `META1-schema-diff-detection` |
 | EPIC-006: Workflow | `WF` | `WF1-json-workflow-model` |
-| EPIC-007: Platform Hardening | `PH` | `PH1-naming-standards-linting` |
+| EPIC-018: Platform Hardening | `PH` | `PH1-naming-standards-linting` |
 | EPIC-007: Infrastructure Deployment | `INF` | `INF-001-template-generator` |
 | EPIC-008: DMS | `DMS` | `DMS1-file-upload-download-service` |
 | EPIC-010: Agile Work Management | `AWM` | `AWM1-work-item-model` |
@@ -79,8 +79,8 @@ Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`*
 make backlog-new
 
 # Nebo ručně
-cp backlog/templates/story.md backlog/EPIC-007-platform-hardening/stories/PH11-new-feature/README.md
-vim backlog/EPIC-007-platform-hardening/stories/PH11-new-feature/README.md
+cp backlog/templates/story.md backlog/EPIC-018-platform-hardening/stories/PH11-new-feature/README.md
+vim backlog/EPIC-018-platform-hardening/stories/PH11-new-feature/README.md
 ```
 
 ### 2. Naplň story s Copilot pomocí

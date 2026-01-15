@@ -420,7 +420,7 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 ## 🔗 Related EPICs
 
 - **EPIC-003**: Monitoring & Observability (Loki integration)
-- **EPIC-007**: Platform Hardening (security baseline)
+- **EPIC-018**: Platform Hardening (security baseline)
 - **EPIC-011**: n8n Workflow Automation (secrets from Vault in future)
 
 ---

@@ -1,6 +1,6 @@
 ---
 id: S8
-epic: EPIC-007-platform-hardening
+epic: EPIC-018-platform-hardening
 title: "Platform Security Audit (Phase S8)"
 priority: P1
 status: done
@@ -12,13 +12,13 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-007-platform-hardening/stories/PH8-platform-security-audit/README.md
-    - backlog/EPIC-007-platform-hardening/README.md
+    - backlog/EPIC-018-platform-hardening/stories/PH8-platform-security-audit/README.md
+    - backlog/EPIC-018-platform-hardening/README.md
 ---
 
 # S8: Platform Security Audit (Phase S8)
 
-**EPIC:** [EPIC-007: Platform Hardening](../README.md)  
+**EPIC:** [EPIC-018: Platform Hardening](../README.md)  
 **Status:** ✅ **DONE**  
 **Implementováno:** Říjen 2024 (Phase S8)  
 **LOC:** ~1,200 řádků  

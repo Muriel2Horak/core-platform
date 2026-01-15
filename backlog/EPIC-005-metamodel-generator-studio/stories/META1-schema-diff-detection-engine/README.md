@@ -527,7 +527,7 @@ Skipped 7 risky changes (manual review required)
 
 - **Depends On:** None (foundational story)
 - **Blocks:** [META-002 (Hot Reload API)](META-002.md), [META-003 (UNIQUE Constraints)](META-003.md)
-- **Related:** EPIC-007 S10 (Metamodel Studio UI - uses this diff engine)
+- **Related:** EPIC-018 S10 (Metamodel Studio UI - uses this diff engine)
 
 ---
 

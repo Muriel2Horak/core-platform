@@ -1,4 +1,4 @@
-# EPIC-007: Platform Hardening (S1-S10)
+# EPIC-018: Platform Hardening (S1-S10)
 
 **Status:** 🟢 **100% COMPLETE**  
 **Implementováno:** Říjen 2024  

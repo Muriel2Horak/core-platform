@@ -19,7 +19,7 @@ Last updated: 2026-01-15
 | EPIC-005 Metamodel Generator Studio | Phase 1-3 implemented, Phase 4+ planned | Metamodel generator and studio | EPIC-005-metamodel-generator-studio/README.md |
 | EPIC-006 Workflow Engine | 70% COMPLETE | Phase 1 done, Phase 2 in progress | EPIC-006-workflow-engine/README.md |
 | EPIC-007 Infrastructure Deployment | IN PROGRESS | Deployment/runtime foundation | EPIC-007-infrastructure-deployment/README.md |
-| EPIC-007 Platform Hardening | 100% COMPLETE | Security + runtime hardening | EPIC-007-platform-hardening/README.md |
+| EPIC-018 Platform Hardening | 100% COMPLETE | Security + runtime hardening | EPIC-018-platform-hardening/README.md |
 | EPIC-008 Document Management System | 20% COMPLETE | MinIO backend + upload API in prod | EPIC-008-document-management-system/README.md |
 | EPIC-010 Agile Work Management | PLANNED | First reference business module | EPIC-010-agile-work-management/README.md |
 | EPIC-011 n8n Workflow Automation | 0% IMPLEMENTED | n8n external orchestration layer | EPIC-011-n8n-workflow-automation/README.md |
@@ -33,7 +33,7 @@ Last updated: 2026-01-15
 | EPIC-021 AI Assisted Delivery Engine | PLANNED | AI delivery engine | EPIC-021-ai-assisted-delivery-engine/README.md |
 
 Notes:
-- EPIC-007 and EPIC-016 are duplicated identifiers for different scopes. Both are kept for now; renumbering is tracked as backlog cleanup work.
+- EPIC-016 is duplicated for different scopes. Both are kept for now; renumbering is tracked as backlog cleanup work.
 - EPIC-004 (analytics infrastructure) and EPIC-013 (reporting module) overlap by domain but cover different layers.
 - EPIC-009 appears in legacy dashboards but has no directory; scope is currently covered by EPIC-016-ai-metamodel-collaboration.
 
@@ -359,7 +359,7 @@ public class Product extends TenantAwareEntity {
 
 ---
 
-### 🔒 EPIC-007: Platform Hardening (S1-S10)
+### 🔒 EPIC-018: Platform Hardening (S1-S10)
 **Status:** 🟢 DONE  
 **Implementováno:** Září-Říjen 2025  
 **Dokumentace:**
@@ -536,7 +536,7 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
 - EPIC-000: Vynucuje security architekturu (Keycloak, RBAC)
 - EPIC-002: Orchestruje E2E testy (PR smoke vs. nightly full)
 - EPIC-003: Loguje findings do Loki
-- EPIC-007: Lintuje Docker/Nginx/K8s configs
+- EPIC-018: Lintuje Docker/Nginx/K8s configs
 - EPIC-012: Vynucuje Vault usage (no plaintext secrets)
 - EPIC-017: Validuje moduly (quality gates platí i pro moduly)
 
@@ -556,7 +556,7 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
 | EPIC-004: Reporting | 🟢 DONE | ~10 | ~6,000 | 100% |
 | EPIC-005: Metamodel | 🟢 DONE | Phase 1-3 | ~15,000 | 100% |
 | EPIC-006: Workflow | 🟢 DONE | W1-W12 | ~18,000 | 100% |
-| EPIC-007: Platform | 🟢 DONE | S1-S10 | ~10,000 | 100% |
+| EPIC-018: Platform | 🟢 DONE | S1-S10 | ~10,000 | 100% |
 | EPIC-008: DMS | 🔶 PARTIAL | ~5 | ~3,000 | 80% |
 | EPIC-009: AI/MCP | 🔶 IN PROGRESS | TBD | TBD | 40% |
 | EPIC-020: Secure SDLC | 🔴 NOT STARTED | 8 | ~2,600 | 0% |

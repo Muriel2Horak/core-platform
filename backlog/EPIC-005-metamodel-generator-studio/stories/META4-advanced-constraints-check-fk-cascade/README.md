@@ -254,7 +254,7 @@ void shouldCascadeDeleteTenant() {
 
 - **Depends On:** [META-003 (UNIQUE Constraints)](META-003.md)
 - **Blocks:** [META-005 (Visual Studio)](META-005.md)
-- **Future:** EPIC-007 S8 (Audit constraints for compliance)
+- **Future:** EPIC-018 S8 (Audit constraints for compliance)
 
 ---
 

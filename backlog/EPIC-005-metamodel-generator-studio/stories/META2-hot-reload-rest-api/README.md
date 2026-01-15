@@ -335,7 +335,7 @@ $ curl -X POST http://localhost:8080/api/admin/metamodel/reload
 
 - **Depends On:** [META-001 (Schema Diff)](META-001.md)
 - **Enables:** [META-003 (UNIQUE Constraints)](META-003.md)
-- **Used By:** EPIC-007 S10 (Metamodel Studio UI)
+- **Used By:** EPIC-018 S10 (Metamodel Studio UI)
 
 ---
 

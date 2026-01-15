@@ -327,7 +327,7 @@ describe('MetamodelStudio', () => {
 - **Depends On:** 
   - [META-001 (Schema Diff)](META-001.md) - YAML parser
   - [META-002 (Hot Reload)](META-002.md) - Apply changes API
-- **Enables:** EPIC-007 S10 (Metamodel Studio full feature)
+- **Enables:** EPIC-018 S10 (Metamodel Studio full feature)
 - **Inspired By:** Strapi Content-Type Builder, Hasura Console
 
 ---

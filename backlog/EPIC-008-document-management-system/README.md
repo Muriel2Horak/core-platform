@@ -487,7 +487,7 @@ documents (
 ## 🔗 Dependencies
 
 ### Upstream Dependencies
-- **EPIC-007:** Platform Hardening (multi-tenancy, security)
+- **EPIC-018:** Platform Hardening (multi-tenancy, security)
 - **EPIC-003:** Monitoring (metrics, alerts)
 - **.env configuration:** MinIO/S3 credentials
 

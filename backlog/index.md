@@ -17,7 +17,7 @@ Last updated: 2026-01-15
 | EPIC-005 Metamodel Generator Studio | Phase 1-3 implemented, Phase 4+ planned | Metamodel generator and studio | EPIC-005-metamodel-generator-studio/README.md |
 | EPIC-006 Workflow Engine | 70% COMPLETE | Phase 1 done, Phase 2 in progress | EPIC-006-workflow-engine/README.md |
 | EPIC-007 Infrastructure Deployment | IN PROGRESS | Deployment/runtime foundation | EPIC-007-infrastructure-deployment/README.md |
-| EPIC-007 Platform Hardening | 100% COMPLETE | Security + runtime hardening | EPIC-007-platform-hardening/README.md |
+| EPIC-018 Platform Hardening | 100% COMPLETE | Security + runtime hardening | EPIC-018-platform-hardening/README.md |
 | EPIC-008 Document Management System | 20% COMPLETE | MinIO backend + upload API in prod | EPIC-008-document-management-system/README.md |
 | EPIC-010 Agile Work Management | PLANNED | First reference business module | EPIC-010-agile-work-management/README.md |
 | EPIC-011 n8n Workflow Automation | 0% IMPLEMENTED | n8n external orchestration layer | EPIC-011-n8n-workflow-automation/README.md |
@@ -32,7 +32,7 @@ Last updated: 2026-01-15
 
 ## Cleanup Notes
 
-- EPIC-007 and EPIC-016 are duplicated identifiers for different scopes. Both are kept for now; renumbering is tracked as backlog cleanup work.
+- EPIC-016 is duplicated for different scopes. Both are kept for now; renumbering is tracked as backlog cleanup work.
 - EPIC-004 (analytics infrastructure) and EPIC-013 (reporting module) overlap by domain but cover different layers. Treat them as separate epics.
 - EPIC-009 appears in legacy dashboards but has no directory; scope is currently covered by EPIC-016-ai-metamodel-collaboration.
 
