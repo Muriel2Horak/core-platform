@@ -7,7 +7,7 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "24 hours"
 path_mapping:
   code_paths: []
   test_paths: []
@@ -57,6 +57,17 @@ Jako **platform developer**, chci **validovat YAML metamodel před aplikací**, 
 - **GIVEN** relationship `User.tenant → NonExistentEntity`
 - **WHEN** validuji
 - **THEN** ERROR: "Target entity 'NonExistentEntity' does not exist"
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Definovat validation rules + error model (severity, codes) | 6h | META-001 |
+| 2 | Implementovat validator + integrace do reload/apply | 8h | T1, META-002 |
+| 3 | Business rules (unique/nullable, naming, circular) | 6h | T1 |
+| 4 | Testy + dokumentace pravidel | 4h | T2, T3 |
 
 ---
 

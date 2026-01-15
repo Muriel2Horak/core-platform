@@ -70,6 +70,21 @@ externalSource:
   webhookUrl: "https://n8n.company.com/webhook/orders"
 ```
 
+### AC4: Error Handling & Caching
+- **GIVEN** external API failure
+- **THEN** system vrati standardizovanou chybu + optional cache fallback
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Storage routing schema + field mappings | 20h | META-001 |
+| 2 | REST/OAuth2 connector + response transform | 30h | T1 |
+| 3 | n8n connector (webhook/proxy) | 15h | T1 |
+| 4 | Error handling + caching + testy | 15h | T2, T3 |
+
 ---
 
 **Story Owner:** Backend Team  

@@ -88,6 +88,17 @@ fields:
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Log entity schema + validation (storageType=log) | 15h | META-001 |
+| 2 | Loki query builder + mapping to fields | 35h | T1 |
+| 3 | UI log viewer + filters + export | 20h | T2, META-009 |
+| 4 | Testy + docs (query limits, tenancy) | 10h | T2, T3 |
+
+---
+
 ## 🏗️ Implementation
 
 ```java

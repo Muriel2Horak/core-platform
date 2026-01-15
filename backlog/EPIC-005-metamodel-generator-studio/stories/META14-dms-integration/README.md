@@ -78,6 +78,17 @@ attachments:
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Attachments schema + validation + storage config | 15h | META-001 |
+| 2 | Backend API + storage providers (MinIO/external) | 35h | T1 |
+| 3 | UI Document tab + permissions | 20h | T2, EPIC-014 |
+| 4 | Testy + docs (upload/download/versioning) | 10h | T2, T3 |
+
+---
+
 ## 🏗️ Implementation
 
 ```java

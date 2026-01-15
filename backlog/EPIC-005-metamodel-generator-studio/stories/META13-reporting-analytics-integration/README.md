@@ -116,6 +116,17 @@ filters: [
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Reporting metadata schema + parser | 10h | META-001 |
+| 2 | Cube.js schema generator + pre-aggregations | 30h | T1 |
+| 3 | RLS/RBAC integrace + data source mapping | 20h | T2, META-016 |
+| 4 | Testy + docs + integrace s EPIC-004/013 | 20h | T2, T3 |
+
+---
+
 **Story Owner:** Backend Team  
 **Priority:** P2  
 **Effort:** 2 týdny

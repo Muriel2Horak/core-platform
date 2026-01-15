@@ -7,7 +7,7 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "40 hours"
 path_mapping:
   code_paths: []
   test_paths: []
@@ -69,6 +69,17 @@ Jako **low-code user**, chci **visual editor pro tvorbu entit**, abych **mohl de
   - Left: Visual designer
   - Right: Generated YAML (live preview)
 - **AND** tlačítko "Apply Changes" → volá META-002 reload API
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Canvas + entity cards (drag/drop, selection, layout) | 15h | EPIC-014 S4, S9 |
+| 2 | Entity/field/relationship editor UI + validation | 12h | T1 |
+| 3 | YAML preview + apply changes (META-002 API) | 8h | T1, T2, META-002 |
+| 4 | UI tests + basic a11y pass | 5h | T1, T2, T3 |
 
 ---
 

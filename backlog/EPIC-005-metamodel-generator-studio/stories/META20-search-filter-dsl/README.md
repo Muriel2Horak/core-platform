@@ -70,6 +70,22 @@ Response:
 }
 ```
 
+### AC4: Filter UI Components
+- **GIVEN** metamodel pole `filterable/searchable`
+- **THEN** UI umi vygenerovat filter builder + ulozit query preset
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | DSL grammar + parser (AND/OR, nesting) | 25h | META-001 |
+| 2 | Query builder + full-text search integration | 25h | T1 |
+| 3 | Facet aggregation + response schema | 15h | T2 |
+| 4 | UI filter builder + presets | 10h | T1, META-009 |
+| 5 | Testy + docs (examples) | 5h | T1, T2, T3 |
+
 ---
 
 **Story Owner:** Backend Team  

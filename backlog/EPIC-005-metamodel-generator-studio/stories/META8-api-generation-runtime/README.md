@@ -158,6 +158,18 @@ Jako **platform developer**, chci **automaticky generovat REST API endpoints z Y
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | CRUD runtime router + metamodel endpoint registry | 40h | META-006 |
+| 2 | Filter/search DSL parser + query builder | 30h | T1, META-020 |
+| 3 | Pagination/sorting + export endpoints + response schema | 25h | T1 |
+| 4 | Validation + tenant/field-level enforcement | 15h | META-007, META-016 |
+| 5 | Testy (API + security + export) + docs | 10h | T1, T2, T3, T4 |
+
+---
+
 ## 🏗️ Implementation Design
 
 ### Architecture Overview

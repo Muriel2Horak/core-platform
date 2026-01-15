@@ -104,6 +104,18 @@ guards:
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit metamodel workflow schema + parser | 20h | META-001 |
+| 2 | Runtime state machine + guard evaluator + step executors | 60h | T1 |
+| 3 | API pro transitions + audit/history | 35h | T2 |
+| 4 | UI workflow komponenty (badge, actions, timeline) | 25h | T3, EPIC-014 |
+| 5 | Testy (happy path + guard fail + retry) | 20h | T2, T3 |
+
+---
+
 ## 🏗️ Implementation
 
 ```java

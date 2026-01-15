@@ -104,6 +104,17 @@ fields:
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit metamodel schema o visibility/pii/exportable/roles | 20h | META-001 |
+| 2 | Backend enforcement (field filter, masking, export rules) + audit log | 50h | T1 |
+| 3 | Integrace do API/UI + workflow actions | 30h | T2, META-008 |
+| 4 | Testy + security review | 20h | T2, T3 |
+
+---
+
 ## 🏗️ Implementation
 
 ```java

@@ -50,6 +50,31 @@ tenant_fields:
         type: string
 ```
 
+### AC2: Tenant Overlay Isolation
+- **GIVEN** tenant-specific field pro `acme-corp`
+- **WHEN** tenant `example-inc` cte schema
+- **THEN** field `custom_sku` neni dostupny
+
+### AC3: Publish Unified Artifact
+- **GIVEN** platform model + tenant overlay
+- **WHEN** publikuji metamodel
+- **THEN** runtime pouziva `platform + tenant overlay` pro aktualni realm
+
+### AC4: Guardrails & Validation
+- **GIVEN** tenant overlay zasahuje do `tenant_scope: GLOBAL`
+- **THEN** validace vrati error a vyzaduje admin approval
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit schema o tenant overlays + parser | 12h | META-001 |
+| 2 | Overlay merge + storage strategy (shared/dedicated) | 12h | T1 |
+| 3 | Governance/approval flow + migration generator | 10h | T1 |
+| 4 | Testy + docs (tenant scope) | 6h | T2, T3 |
+
 ---
 
 **Story Owner:** Backend Team  

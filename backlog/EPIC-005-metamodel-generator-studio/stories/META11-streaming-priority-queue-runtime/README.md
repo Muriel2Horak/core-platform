@@ -167,6 +167,18 @@ Jako **platform developer**, chci **runtime implementaci streaming & priority qu
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Outbox + priority queue storage + scheduler | 45h | META-001 |
+| 2 | Kafka producer + payload modes + topic naming | 40h | T1, META-010 |
+| 3 | CDC diff + versioning + optimistic lock hooky | 35h | T1 |
+| 4 | DLQ/retry + presence integration | 25h | T2, EPIC-003 |
+| 5 | Integration testy + docs (event schema) | 15h | T1, T2, T3, T4 |
+
+---
+
 ## 🏗️ Implementation Design
 
 ### Architecture Overview

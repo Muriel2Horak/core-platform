@@ -142,6 +142,18 @@ Jako **platform developer**, chci **automaticky generovat React UI komponenty z 
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | UI spec schema + loader (metamodel -> UI config) | 45h | META-008 |
+| 2 | Generic list/detail/form renderer | 50h | T1, EPIC-014 S3, S9 |
+| 3 | Inline edit + bulk edit + saved views | 35h | T2 |
+| 4 | Field renderers + relationship navigation | 20h | T2 |
+| 5 | Testy + docs (UI spec examples) | 10h | T1, T2, T3, T4 |
+
+---
+
 ## 🏗️ Implementation Design
 
 ### Architecture Overview

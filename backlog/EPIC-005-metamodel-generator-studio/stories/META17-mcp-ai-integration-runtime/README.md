@@ -80,6 +80,17 @@ ai:
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | AI tool schema + policy (PII, scope, limits) | 20h | META-016 |
+| 2 | MCP tool generator + handlers s maskingem | 50h | T1 |
+| 3 | Rate limiting + audit log + permissions | 25h | T2 |
+| 4 | Testy + docs + sample prompts | 25h | T2, T3 |
+
+---
+
 ## 🏗️ Implementation
 
 ```java

@@ -7,7 +7,7 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "32 hours"
 path_mapping:
   code_paths: []
   test_paths: []
@@ -69,6 +69,17 @@ Jako **platform developer**, chci **auto-generovat Java kód z YAML metamodelu**
 - **GIVEN** existující ručně upravená entity
 - **WHEN** re-generuji
 - **THEN** zachová custom metody (via `// CUSTOM CODE START/END` blocks)
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Template engine + entity/repository/controller templates | 12h | META-001 |
+| 2 | Generator pipeline + custom code preservation | 10h | T1 |
+| 3 | Integrace s metamodel registry + CLI runner | 6h | T1 |
+| 4 | Testy generace + docs (examples) | 4h | T2, T3 |
 
 ---
 

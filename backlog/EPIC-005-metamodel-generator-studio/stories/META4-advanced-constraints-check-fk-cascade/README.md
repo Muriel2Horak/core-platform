@@ -7,7 +7,7 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "16 hours"
 path_mapping:
   code_paths: []
   test_paths: []
@@ -84,6 +84,16 @@ Jako **platform developer**, chci **podporu pro pokročilé DB constraints (CHEC
   ADD CONSTRAINT ck_users_status 
   CHECK (status IN ('ACTIVE', 'INACTIVE', 'PENDING'))
   ```
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit YAML schema + parser o `check`, `constraints`, `onDelete/onUpdate`, `enum` | 4h | META-001 |
+| 2 | Implementovat DDL generator pro CHECK + FK CASCADE/RESTRICT | 6h | T1 |
+| 3 | Integrace do migraci + testy (positive/negative cases) | 6h | T2, META-002 |
 
 ---
 

@@ -70,6 +70,17 @@ Jako **platform developer**, chci **konzistentní naming conventions napříč c
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Definovat naming rules + config (DB/Kafka/REST/FE) | 8h | META-007 |
+| 2 | Validator pro metamodel load + error reporting | 12h | T1 |
+| 3 | Auto-generatory nazvu (table/topic/path/route) | 12h | T1 |
+| 4 | Testy + docs + migration guide pro stavajici entity | 8h | T2, T3 |
+
+---
+
 ## 🏗️ Implementation
 
 ```java
