@@ -34,6 +34,26 @@
    - Kontroly běží na každém PR, nightly, release
    - Výsledky logované do Loki pro audit trail
 
+## ✅ EPIC-000 Compliance Ownership
+
+EPIC-020 je **jediné místo**, kde se vynucuje compliance s EPIC-000.  
+EPIC-000 definuje **co** musí platit, EPIC-020 definuje **jak to kontrolujeme**.
+
+### EPIC-000 Compliance Matrix (preview)
+
+| EPIC-000 baseline | Kontrola v EPIC-020 | Evidence |
+|---|---|---|
+| Identita & SSO | JWT issuer/audience validation testy, kontrola realm-per-tenant konfigurace | CI report + test log |
+| TLS / HTTPS | IaC lint pro ingress/nginx, zákaz externího HTTP | Lint report |
+| Secrety & konfigurace | Secret scanning + kontrola “Vault-only” policy | Scan report |
+| Tenant isolation | E2E/integrační testy cross-tenant access (musí fail) | Test report |
+| RBAC | Testy role enforcement pro admin endpointy | Test report |
+| Logging & audit | Kontrola strukturovaných logů + audit event presence | Log/CI report |
+| CI/CD & dependency security | SAST/SCA/Container scan gates | Scan report |
+| Perimetr & integrace | IaC lint + kontrola proxy-only přístupu k integracím | Lint report |
+
+> Detailní implementační stories pro tyto kontroly budou součástí EPIC-020.
+
 ---
 
 ## 🏛️ Scope & Boundaries
@@ -279,7 +299,7 @@
 
 ## 📋 Stories
 
-### SECQ1: Statická Analýza & Quality Gate (SonarQube/CodeQL) (~800 LOC, 3 days)
+### US-020-002: Statická Analýza & Quality Gate (SonarQube/CodeQL) (~800 LOC, 3 days)
 
 **Goal**: Deploy SonarQube Community Edition a nastavit quality gates pro Java + TypeScript
 
@@ -353,11 +373,11 @@
 - ✅ Coverage reports viditelné v SonarQube UI
 - ✅ GitHub Actions failne na quality gate failure
 
-**Effort:** ~3 days | **Details:** [stories/SECQ1.md](./stories/SECQ1.md)
+**Effort:** ~3 days | **Details:** [stories/US-020-002-sast-code-quality/README.md](./stories/US-020-002-sast-code-quality/README.md)
 
 ---
 
-### SECQ2: Dependency & Container Scanning (OWASP DC, Trivy) (~600 LOC, 2 days)
+### US-020-003: Dependency & Container Scanning (OWASP DC, Trivy) (~600 LOC, 2 days)
 
 **Goal**: Skenovat Maven dependencies a Docker images proti CVE databázím
 
@@ -452,11 +472,11 @@
 - ✅ Findings viditelné v GitHub Security tab
 - ✅ Všechny CVEs logovány do Loki
 
-**Effort:** ~2 days | **Details:** [stories/SECQ2.md](./stories/SECQ2.md)
+**Effort:** ~2 days | **Details:** [stories/US-020-003-dependency-container-scanning/README.md](./stories/US-020-003-dependency-container-scanning/README.md)
 
 ---
 
-### SECQ3: Secret Scanning & Policies (GitLeaks/TruffleHog) (~400 LOC, 1.5 days)
+### US-020-004: Secret Scanning & Policies (GitLeaks/TruffleHog) (~400 LOC, 1.5 days)
 
 **Goal**: Detekovat a blokovat plaintext secrets v repozitáři
 
@@ -547,11 +567,11 @@
 - ✅ Nightly scan detekuje všechny secrets v repo
 - ✅ Secret remediation runbook dokumentován
 
-**Effort:** ~1.5 days | **Details:** [stories/SECQ3.md](./stories/SECQ3.md)
+**Effort:** ~1.5 days | **Details:** [stories/US-020-004-secret-scanning-vault-only/README.md](./stories/US-020-004-secret-scanning-vault-only/README.md)
 
 ---
 
-### SECQ4: DAST Smoke Test (OWASP ZAP Headless) (~500 LOC, 2 days)
+### US-020-006: DAST Smoke Test (OWASP ZAP Headless) (~500 LOC, 2 days)
 
 **Goal**: Nightly DAST scan proti běžícímu lokálnímu prostředí
 
@@ -645,11 +665,11 @@
 - ✅ Slack notifikace na HIGH alerts
 - ✅ Žádné destruktivní operace (read-only spider)
 
-**Effort:** ~2 days | **Details:** [stories/SECQ4.md](./stories/SECQ4.md)
+**Effort:** ~2 days | **Details:** [stories/US-020-006-dast-security-scan/README.md](./stories/US-020-006-dast-security-scan/README.md)
 
 ---
 
-### SECQ5: IaC/Docker/Nginx Linting & Misconfig Detection (~400 LOC, 1.5 days)
+### US-020-005: IaC/Docker/Nginx Linting & Misconfig Detection (~400 LOC, 1.5 days)
 
 **Goal**: Lint všech config souborů pro security misconfigurations
 
@@ -750,11 +770,11 @@
 - ✅ Pre-commit hooks blokují commit s lint errors
 - ✅ PR failne na lint failures
 
-**Effort:** ~1.5 days | **Details:** [stories/SECQ5.md](./stories/SECQ5.md)
+**Effort:** ~1.5 days | **Details:** [stories/US-020-005-iac-config-linting/README.md](./stories/US-020-005-iac-config-linting/README.md)
 
 ---
 
-### SECQ6: CI Orchestrator - Quality Gate Pipeline (~600 LOC, 2 days)
+### US-020-001: CI Orchestrator - Quality Gate Pipeline (~600 LOC, 2 days)
 
 **Goal**: Definovat a implementovat orchestraci všech quality checks
 
@@ -961,11 +981,11 @@
 - ✅ Grafana dashboard zobrazuje quality trends
 - ✅ Makefile targets umožňují lokální spuštění
 
-**Effort:** ~2 days | **Details:** [stories/SECQ6.md](./stories/SECQ6.md)
+**Effort:** ~2 days | **Details:** [stories/US-020-001-ci-quality-gates-orchestration/README.md](./stories/US-020-001-ci-quality-gates-orchestration/README.md)
 
 ---
 
-### SECQ7: AI-Generated Code Guardrails (~300 LOC, 1 day)
+### US-020-009: AI-Generated Code Guardrails (~300 LOC, 1 day)
 
 **Goal**: Dokumentovat a vynucovat bezpečné použití AI-generovaného kódu
 
@@ -1100,11 +1120,11 @@
 - ✅ CODEOWNERS vynucuje security review
 - ✅ Developer training materials dostupné
 
-**Effort:** ~1 day | **Details:** [stories/SECQ7.md](./stories/SECQ7.md)
+**Effort:** ~1 day | **Details:** [stories/US-020-009-ai-code-guardrails/README.md](./stories/US-020-009-ai-code-guardrails/README.md)
 
 ---
 
-### SECQ8: Documentation & Onboarding (~400 LOC, 1.5 days)
+### US-020-010: Documentation & Onboarding (~400 LOC, 1.5 days)
 
 **Goal**: Dokumentovat celý security pipeline a onboarding pro nové devs
 
@@ -1252,7 +1272,7 @@
 - ✅ Loki audit queries dokumentovány
 - ✅ FAQ odpovídá na common questions
 
-**Effort:** ~1.5 days | **Details:** [stories/SECQ8.md](./stories/SECQ8.md)
+**Effort:** ~1.5 days | **Details:** [stories/US-020-010-security-docs-onboarding/README.md](./stories/US-020-010-security-docs-onboarding/README.md)
 
 ---
 
@@ -1260,7 +1280,7 @@
 
 ### Phase 1: Foundation (Week 1, ~8 days effort)
 
-**Stories:** SECQ1, SECQ2, SECQ3
+**Stories:** US-020-002, US-020-003, US-020-004
 
 **Deliverables:**
 - ✅ SonarQube deployed + quality gates
@@ -1271,7 +1291,7 @@
 
 ### Phase 2: Advanced Scanning (Week 2, ~4 days effort)
 
-**Stories:** SECQ4, SECQ5
+**Stories:** US-020-006, US-020-005
 
 **Deliverables:**
 - ✅ OWASP ZAP DAST nightly scans
@@ -1281,7 +1301,7 @@
 
 ### Phase 3: Orchestration (Week 3, ~3.5 days effort)
 
-**Stories:** SECQ6, SECQ7
+**Stories:** US-020-001, US-020-009
 
 **Deliverables:**
 - ✅ CI orchestrator (PR/nightly/release workflows)
@@ -1291,7 +1311,7 @@
 
 ### Phase 4: Documentation (Week 4, ~1.5 days effort)
 
-**Stories:** SECQ8
+**Stories:** US-020-010
 
 **Deliverables:**
 - ✅ Security pipeline docs
@@ -1489,5 +1509,5 @@ Pro security findings nebo questions:
 ---
 
 **Status:** 🔴 0% IMPLEMENTED  
-**Next:** SECQ1 (SonarQube setup)  
+**Next:** US-020-002 (SonarQube setup)  
 **Owner:** DevOps + Security Team

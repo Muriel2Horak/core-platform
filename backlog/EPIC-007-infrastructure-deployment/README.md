@@ -32,6 +32,7 @@
 **EPIC-007 řeší POUZE infrastrukturu:**
 - ✅ Docker Compose deployment (n8n service + PostgreSQL database)
 - ✅ Nginx reverse proxy config (SSL termination, per-tenant routing)
+- ✅ Edge ochrana: WAF (ModSecurity + OWASP CRS), rate limiting, CrowdSec bans
 - ✅ Keycloak OIDC clients (admin realm + tenant realms)
 - ✅ Observability integration (Loki logs, Prometheus metrics, Nginx audit headers)
 - ✅ Environment variables (DB credentials, SSL paths, URLs)

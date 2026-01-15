@@ -12,6 +12,13 @@
 
 **EPIC-000 je jediný závazný "Security Master Contract" pro celou core-platform.** Definuje bezpečnostní principy, výstupy a kontrolní mechanismy, které VŠECHNY ostatní EPICy musí dodržovat. Nejde o implementační EPIC – konkrétní řešení jsou v navazujících EPICech. Tohle je **rámec a baseline**, proti kterému se všechno měří.
 
+## ✅ Implementace & Compliance (vedeno v EPIC-020)
+
+EPIC-000 je **referenční** dokument. Praktické vynucení (quality gates, bezpečnostní skeny, compliance evidence) je součástí **EPIC-020: Secure SDLC & Quality Gates**.
+
+- EPIC-020 obsahuje kontroly a auditovatelné evidence k bodům níže (SAST/SCA/secret scan/IaC lint/DAST/testy izolace tenantů a RBAC).
+- EPIC-000 zůstává **jediný zdroj pravdy** pro bezpečnostní principy a baseline.
+
 ### Účel EPIC-000
 
 EPIC-000 je **zastřešující bezpečnostní epic pro celou platformu Virelio/Core Platform.**
@@ -241,7 +248,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 - ✅ **VŠE v souladu s centrálním security modelem** (Keycloak auth, tenant guard, audit logging)
 
 **Tento dokument NEŘEŠÍ:**
-- Konkrétní vendor volby (Vault vs. AWS Secrets Manager, konkrétní WAF)
+- Konkrétní cloud vendor volby (Vault vs. AWS Secrets Manager, externí WAF), ale definuje lokální edge ochranu
 - UI/UX design detaily (barvy, layouty, user journeys)
 - Detailní implementační plány (ty jsou v jednotlivých story README)
 
@@ -951,6 +958,9 @@ public class TenantGuard implements Filter {
 - ✅ Login endpoint: max 5 failed attempts → account lockout 15 min
 - ✅ Nginx rate limiting: 10 req/min na `/auth/login`
 - ✅ API rate limiting: 100 req/min per user token
+- ✅ Lokální WAF (ModSecurity + OWASP CRS) na edge proxy
+- ✅ Dynamické blokování (CrowdSec) pro brute-force a abuse patterny
+- ✅ Volumetrický DDoS je mitigován pouze na úrovni ISP/upstream (runbook pro eskalaci)
 
 #### CIS Benchmarks & Zero Trust
 
@@ -967,7 +977,7 @@ public class TenantGuard implements Filter {
 
 #### Implementace (odkazy na EPICy)
 - **EPIC-002:** Security negative tests (injection, XSS, CSRF attempts)
-- **EPIC-007:** CIS Docker benchmarks v Dockerfile
+- **EPIC-007:** CIS Docker benchmarks + edge WAF/rate limiting (ModSecurity + CrowdSec)
 - **EPIC-008:** DMS antivirus scan, file type validation
 
 #### Outcomes
@@ -977,6 +987,8 @@ public class TenantGuard implements Filter {
 - [ ] CSRF tokens v forms
 - [ ] DMS: antivirus scan active, content-type validation
 - [ ] Rate limiting na login endpoint (max 5 attempts)
+- [ ] Lokální WAF (ModSecurity + CRS) aktivní na edge proxy
+- [ ] CrowdSec blokuje brute-force/abuse patterny
 - [ ] CIS Docker benchmark compliance (non-root users, minimal images)
 - [ ] E2E test: injection attempt → 400 Bad Request, XSS attempt → escaped output
 
