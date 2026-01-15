@@ -30,6 +30,14 @@ public class DashboardShare {
 
 ---
 
+## ✅ Acceptance Criteria
+
+- [ ] Dashboard lze sdilet s uzivatelem/rolí a nastavit prava (view/edit).
+- [ ] Sdileni ma expiraci a moznost zruseni.
+- [ ] Sdileni je auditovano (kdo/co/kdy).
+
+---
+
 ## ✅ DELIVERABLES
 
 - [ ] Share system

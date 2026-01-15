@@ -1,6 +1,7 @@
 # EPIC-014: UX/UI & Design System
 
 **Status:** 🟡 **20% COMPLETE** (2/10 stories done: MUI Theme, Component Library)  
+**Definice:** ✅ **100%** (S3-S10 zadani rozpracovano)  
 **Priority:** P0 (Foundation)  
 **LOC:** ~6,200 řádků (~1,200 done + ~5,000 TODO)  
 **Dependencies:** Material-UI 5.x, React 18.x

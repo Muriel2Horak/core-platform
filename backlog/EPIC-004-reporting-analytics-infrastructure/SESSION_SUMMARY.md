@@ -90,7 +90,7 @@
 - ❌ **Before:** Žádné task breakdowns, žádné effort estimates
 - ✅ **Now:** Detailní stories s gaps, dependencies, critical decisions
 
-**Effort:** ~124h total (18h S8 + 50h S9 + 30h S10 + 26h S11)
+**Effort:** ~139h total (22h S8 + 53h S9 + 34h S10 + 30h S11)
 
 ---
 
@@ -107,26 +107,26 @@
    - Prioritization matrix (Tier 1-4)
    - Action plan s timelines
 
-2. **S8-frontend-backend-integration.md**
+2. **REP8-frontend-backend-integration-improvement/README.md**
    - 3 tasky (T1-T3) s detailním breakdown
    - Code examples (TypeScript + Java)
    - Acceptance criteria
    - Dependencies na EPIC-014
 
-3. **S9-advanced-analytics.md**
+3. **REP9-advanced-analytics-features/README.md**
    - 3 features (Predictive, Anomaly, NLP)
    - Architecture diagrams
    - Gap identification (ML model selection, NLP accuracy, etc.)
    - Critical decisions needed checklist
    - 17 tasks high-level breakdown
 
-4. **S10-collaboration.md**
+4. **REP10-collaboration-features/README.md**
    - 3 features (Sharing, Comments, Versioning)
    - Security considerations
    - UI design gaps
    - 3 tasky breakdown
 
-5. **S11-advanced-visualization.md**
+5. **REP11-advanced-visualization/README.md**
    - Custom chart types seznam
    - Geographic maps requirements
    - Animation support spec
@@ -238,14 +238,14 @@ Production Readiness: 60% 🟡
 
 ### For Development Team
 - [ ] Read S8-S11 stories
-- [ ] Estimate S8 tasks more precisely (currently ~18h)
+- [ ] Estimate S8 tasks more precisely (currently ~22h)
 - [ ] Wait for EPIC-014 delivery
 - [ ] Plan S8 implementation (Sprint 2-3)
 
 ### For Stakeholders
 - [ ] Understand 60% → 100% roadmap
 - [ ] Accept EPIC-014 dependency (unavoidable)
-- [ ] Budget for S8-S11 implementation (~124h)
+- [ ] Budget for S8-S11 implementation (~139h)
 - [ ] Set realistic expectations (Q2 2025 for full feature set)
 
 ---
@@ -255,10 +255,10 @@ Production Readiness: 60% 🟡
 ```bash
 # New files (5)
 backlog/EPIC-004-reporting-analytics-infrastructure/CRITICAL_GAPS_ANALYSIS.md         (2,524 lines)
-backlog/EPIC-004-reporting-analytics-infrastructure/stories/S8-frontend-backend-integration.md
-backlog/EPIC-004-reporting-analytics-infrastructure/stories/S9-advanced-analytics.md
-backlog/EPIC-004-reporting-analytics-infrastructure/stories/S10-collaboration.md
-backlog/EPIC-004-reporting-analytics-infrastructure/stories/S11-advanced-visualization.md
+backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP8-frontend-backend-integration-improvement/README.md
+backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP9-advanced-analytics-features/README.md
+backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP10-collaboration-features/README.md
+backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP11-advanced-visualization/README.md
 
 # Modified files (1)
 backlog/EPIC-004-reporting-analytics-infrastructure/README.md  (+221 -26 lines)
@@ -274,7 +274,7 @@ backlog/EPIC-004-reporting-analytics-infrastructure/README.md  (+221 -26 lines)
 - [x] Kvantifikovat dependencies (EPIC-014) ✅
 - [x] Definovat missing features jako stories (S8-S11) ✅
 - [x] Vytvořit prioritizační matrix ✅
-- [x] Odhadnout effort (~124h) ✅
+- [x] Odhadnout effort (~139h) ✅
 - [x] Update EPIC-004 README ✅
 - [x] Commit all analysis ✅
 

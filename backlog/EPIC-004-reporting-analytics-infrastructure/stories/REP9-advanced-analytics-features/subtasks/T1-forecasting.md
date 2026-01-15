@@ -1,7 +1,7 @@
 # T1: ML Forecasting
 
 **Story:** [S9: Advanced Analytics](README.md)  
-**Effort:** 25 hours  
+**Effort:** 20 hours  
 **Priority:** P2  
 **Dependencies:** None
 
@@ -25,6 +25,14 @@ def forecast_metric(data):
     future = model.make_future_dataframe(periods=30)
     return model.predict(future)
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+- [ ] Forecast endpoint vraci predikci + confidence interval.
+- [ ] Model je trenovan z tenant-specific historickych dat.
+- [ ] UI zobrazuje predikci jako dashed line + interval band.
 
 ---
 

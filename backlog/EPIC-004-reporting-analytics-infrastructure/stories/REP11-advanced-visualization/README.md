@@ -9,8 +9,11 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: "30 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - frontend/src/components/Reporting
+    - frontend/src/components/common
+  test_paths:
+    - frontend/src/test
   docs_paths:
     - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP11-advanced-visualization/README.md
     - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
@@ -18,9 +21,9 @@ path_mapping:
 
 # S11: Advanced Visualization
 
-**Status:** 📋 **PLANNED** (Phase 10 - Post-MVP)  
+**Status:** 📋 **PLANNED** (Phase 11 - Post-MVP)  
 **Priority:** P3 (Competitive Differentiation)  
-**Effort:** TBD (~20-30 hodin estimate)  
+**Effort:** ~30 hodin (4 tasky)  
 **Dependencies:** Chart library research (D3.js? Nivo? Custom?)
 
 ---
@@ -41,6 +44,41 @@ path_mapping:
    "As a business analyst, I want to animate revenue chart over time (playback 2020-2024), so I can present trends to executives."
 
 ---
+
+## 📋 Story Description
+
+Jako **analytik/product owner** potrebuji **pokrocile vizualizace (charty, mapy, animace)**, abych **mohl prezentovat komplexni data srozumitelne**.
+
+## ✅ Acceptance Criteria
+
+1. **Advanced chart types**
+   - Dostupne jsou min. 3 nove chart typy (napr. Sankey, Treemap, Heatmap).
+   - Charty podporuji tooltip + interaktivni highlight.
+
+2. **Geographic maps**
+   - Choropleth mapa vizualizuje data podle zeme/regionu.
+   - Mapy maji zoom + tooltip s hodnotami.
+
+3. **Animation support**
+   - Casova animace ma play/pause + scrubber.
+   - Animace respektuji `prefers-reduced-motion`.
+
+4. **Performance**
+   - Render pokrocilych grafu do 2s pro standardni dataset.
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Advanced Charts](subtasks/T1-advanced-charts.md) | 15h | Library evaluation |
+| 2 | [T2: Geographic Maps](subtasks/T2-geographic-maps.md) | 7h | T1 |
+| 3 | [T3: Animation Support](subtasks/T3-animation-support.md) | 5h | T1 |
+| 4 | [T4: Testing](subtasks/T4-testing.md) | 3h | T1, T2, T3 |
+
+## 🔗 Závislosti
+
+- EPIC-014 (Data Tables, Loading States, Error States)
+- Chart/map library evaluation
 
 ## 📋 Feature Breakdown (HIGH-LEVEL)
 
@@ -130,26 +168,31 @@ path_mapping:
 
 ## 🛠️ Proposed Task Breakdown
 
-### T1: Custom Chart Library Integration (~8h)
+### T1: Advanced Charts (~15h)
 
 - T1.1: Evaluate chart libraries (D3.js vs. Nivo vs. Recharts extensions)
 - T1.2: Implement Sankey diagram
 - T1.3: Implement Treemap
 - T1.4: Implement Heatmap
 
-### T2: Geographic Maps (~10h)
+### T2: Geographic Maps (~7h)
 
 - T2.1: Select map provider (Mapbox vs. Leaflet)
 - T2.2: Geocoding integration
 - T2.3: Choropleth map component
 - T2.4: Interactive tooltips + zoom
 
-### T3: Animation Engine (~8h)
+### T3: Animation Support (~5h)
 
 - T3.1: Animation library integration
 - T3.2: Playback controls UI
 - T3.3: Data pre-fetching optimization
-- T3.4: Export to video (optional)
+- T3.4: Prefer-reduced-motion fallback
+
+### T4: Testing (~3h)
+- T4.1: Chart rendering tests
+- T4.2: Map interaction tests
+- T4.3: Animation controls tests
 
 ---
 

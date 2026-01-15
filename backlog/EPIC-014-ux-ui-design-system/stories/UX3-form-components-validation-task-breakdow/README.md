@@ -7,10 +7,13 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "10 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - frontend/src/shared/ui
+    - frontend/src/shared/theme
+  test_paths:
+    - frontend/src/test
   docs_paths:
     - backlog/EPIC-014-ux-ui-design-system/stories/UX3-form-components-validation-task-breakdow/README.md
     - backlog/EPIC-014-ux-ui-design-system/README.md
@@ -18,16 +21,46 @@ path_mapping:
 
 # S3: Form Components & Validation - Task Breakdown
 
-**Story:** Form Components & Validation UX  
-**LOC:** ~800 | **Effort:** ~10h | **Priority:** P1
+**EPIC:** [EPIC-014: UX/UI & Design System](../README.md)  
+**Status:** 🔵 TODO  
+**Priority:** P1  
+**Effort:** ~10h | **LOC:** ~800
 
-## Tasks Overview
+## 📋 Story Description
 
-| Task | Description | LOC | Effort |
-|------|-------------|-----|--------|
-| T1 | Form Component Library | ~300 | 4h |
-| T2 | Validation System Integration | ~200 | 2h |
-| T3 | Form State Management | ~200 | 2h |
-| T4 | Accessibility Implementation | ~100 | 2h |
+Jako **produktovy/UX tym** potrebuji **standardizovane formularove komponenty s validaci**, abych **mohl rychle stavet konzistentni formulare napric aplikaci**.
 
-**Total:** ~800 LOC, ~10h
+## ✅ Acceptance Criteria
+
+1. **Knihovna komponent**
+   - Existuje jednotna sada `FormTextField`, `FormSelect`, `FormCheckbox`, `FormDatePicker`, `FormFileUpload`.
+   - Vsechny komponenty pouzivaji theme/tokens (spacing, barvy, typography).
+
+2. **Validace a chyby**
+   - Podporovane jsou `required`, `min/max`, `pattern` a custom validator.
+   - Error state je konzistentni (helper text + vizualni error).
+
+3. **Form state management**
+   - Komponenty podporuji default values, reset, disabled/loading state.
+   - Submit vraci jednotny error objekt pro UI.
+
+4. **A11y**
+   - Vsechny inputy maji label a spravne `aria-describedby` na chybu.
+   - Tab order a focus state jsou konzistentni napric komponentami.
+
+5. **Pouzitelnost v UI**
+   - Komponenty jsou pouzitelne v demo/Storybooku s realnymi priklady.
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Form Component Library](subtasks/T1-form-components.md) | 4h | EPIC-014 S1, S2 |
+| 2 | [T2: Validation System Integration](subtasks/T2-validation-system.md) | 2h | T1 |
+| 3 | [T3: Form State Management](subtasks/T3-form-state-management.md) | 2h | T1 |
+| 4 | [T4: Accessibility Implementation](subtasks/T4-accessibility.md) | 2h | T1, T2, T3 |
+
+## 🔗 Závislosti
+
+- EPIC-014 S1 (MUI Theme Foundation)
+- EPIC-014 S2 (Design Tokens System)
