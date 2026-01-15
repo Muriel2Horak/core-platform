@@ -4,6 +4,8 @@
 
 ---
 
+**Definice:** ✅ **100%** (S-P0..S-P4 specifikováno s AC)
+
 ## 🎯 Epic Goal
 
 Integrate HashiCorp Vault into core-platform as **production-like staging** secrets management, replacing plain-text `.env` files with secure KV storage, automated PKI certificate issuance for NGINX, comprehensive audit logging to Loki, and CI/CD OIDC authentication.
@@ -66,6 +68,28 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 | **Spring Cloud Vault** | Backend KV v2 integration | - | - | Spring Boot 3.x |
 | **Promtail** | Scrape Vault audit logs | - | - | Grafana Promtail |
 | **Loki** | Centralized audit storage | 3100 | Filesystem | Grafana Loki |
+
+---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Vault skeleton | S-P0 | Vault není nasazen a unsealed |
+| PKI pro edge | S-P1 | Nginx nemá Vault certy a auto-renew |
+| Secrets migrace | S-P2 | .env secrets stále mimo Vault KV |
+| Hardening + rotation | S-P3 | Chybí rotace, metriky a audit validace |
+| CI/CD + DR | S-P4 | Chybí OIDC login, backup/restore, alerty |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [S-P0: Vault Skeleton](./stories/VLTS-P0-s-p0-vault-skeleton-staging-prod-like/README.md) | Vault HA Raft + audit + init/unseal + Make targets | Běžící Vault + audit v Loki |
+| [S-P1: PKI for Edge TLS](./stories/VLTS-P1-s-p1-pki-for-edge-tls-nginx-certs-via-va/README.md) | PKI root/int + Vault Agent templating + Nginx reload | Vault certy na edge |
+| S-P2: Secrets Migration | KV v2 + policy + approle + Spring Cloud Vault | Služby bez .env secrets |
+| S-P3: Hardening + Rotation | Rotace + fail-fast + metriky + audit | Ověřená rotace a audit |
+| S-P4: CI/CD + DR | OIDC auth + snapshot/restore + alerty | CI přístup + DR readiness |
 
 ## 🎯 Success Metrics
 
