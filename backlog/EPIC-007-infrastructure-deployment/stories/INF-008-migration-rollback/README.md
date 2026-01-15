@@ -86,6 +86,12 @@ make db-rollback VERSION=2  # Roll back to V2
    - Test: V migration → U rollback → V re-apply
    - Data integrity check
 
+## Implementační tasky
+
+- [TASK-008-01: Undo migrations policy](subtasks/TASK-008-01-undo-migrations-policy.md)
+- [TASK-008-02: Rollback script + Make target](subtasks/TASK-008-02-rollback-script-make.md)
+- [TASK-008-03: Rollback tests + CI gate](subtasks/TASK-008-03-rollback-tests-ci.md)
+
 ### Implementation
 
 **File:** `backend/src/main/resources/db/migration/core/U2__add_workflows.sql`

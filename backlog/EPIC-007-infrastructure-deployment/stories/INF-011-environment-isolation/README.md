@@ -92,6 +92,12 @@ docker/.env.production           # Production overrides
    - Check: Environment-specific .env file exists
    - Fail-fast if invalid
 
+## Implementační tasky
+
+- [TASK-011-01: Environment override files](subtasks/TASK-011-01-env-files.md)
+- [TASK-011-02: Makefile wiring + validation](subtasks/TASK-011-02-makefile-validation.md)
+- [TASK-011-03: Docs + usage guide](subtasks/TASK-011-03-docs-usage.md)
+
 ### Implementation
 
 **File:** `docker/.env.development`

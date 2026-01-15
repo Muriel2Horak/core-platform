@@ -81,6 +81,12 @@ bash docker/ssl/generate-ssl.sh
    - Log: Old cert expiry
    - Log: New cert expiry
 
+## Implementační tasky
+
+- [TASK-004-01: Expiry check + rotation script](subtasks/TASK-004-01-expiry-check-rotation-script.md)
+- [TASK-004-02: Zero-downtime reload + audit log](subtasks/TASK-004-02-zero-downtime-reload-logging.md)
+- [TASK-004-03: Cron schedule + notifications](subtasks/TASK-004-03-cron-notify.md)
+
 ### Implementation
 
 **File:** `scripts/ssl/check-and-rotate.sh`

@@ -85,6 +85,12 @@ Procedures:
    - Test: Restore from backups
    - Measure: RTO/RPO compliance
 
+## Implementační tasky
+
+- [TASK-017-01: DR plan + runbooks](subtasks/TASK-017-01-dr-plan-runbooks.md)
+- [TASK-017-02: Failover automation](subtasks/TASK-017-02-failover-automation.md)
+- [TASK-017-03: DR drills + metrics](subtasks/TASK-017-03-dr-drills-metrics.md)
+
 ### Implementation
 
 **File:** `docs/disaster-recovery/DR_PLAN.md`

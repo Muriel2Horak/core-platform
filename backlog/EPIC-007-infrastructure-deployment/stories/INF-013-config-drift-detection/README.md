@@ -85,6 +85,12 @@ make config-drift-check
    make config-sync  # Regenerate ALL configs from templates
    ```
 
+## Implementační tasky
+
+- [TASK-013-01: Drift detection script](subtasks/TASK-013-01-drift-script.md)
+- [TASK-013-02: CI schedule + PR gate](subtasks/TASK-013-02-ci-schedule.md)
+- [TASK-013-03: Config sync + docs](subtasks/TASK-013-03-config-sync-docs.md)
+
 ### Implementation
 
 **File:** `scripts/config/detect-drift.sh`

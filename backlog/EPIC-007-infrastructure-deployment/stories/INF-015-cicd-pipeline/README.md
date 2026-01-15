@@ -78,6 +78,12 @@ PR → Unit Tests → Integration Tests → Deploy to Staging
    make rollback ENV=staging VERSION=v1.2.3
    ```
 
+## Implementační tasky
+
+- [TASK-015-01: CI tests + gates](subtasks/TASK-015-01-ci-tests-gates.md)
+- [TASK-015-02: Staging deploy + smoke tests](subtasks/TASK-015-02-staging-deploy-smoke.md)
+- [TASK-015-03: Production deploy + rollback](subtasks/TASK-015-03-prod-deploy-rollback.md)
+
 ### Implementation
 
 **File:** `.github/workflows/deploy.yml`

@@ -90,6 +90,12 @@ ${VARIABLE:-default}     # Optional with fallback
    - Template syntax guide: `docs/templates.md`
    - Migration guide pro existing templates
 
+## Implementační tasky
+
+- [TASK-002-01: Template inventory + conversion](subtasks/TASK-002-01-template-inventory-conversion.md)
+- [TASK-002-02: Template validation script](subtasks/TASK-002-02-template-validation-script.md)
+- [TASK-002-03: Template docs + migration guide](subtasks/TASK-002-03-template-docs-migration.md)
+
 ### Implementation
 
 **File:** `scripts/templates/validate-syntax.sh`

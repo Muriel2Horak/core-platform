@@ -82,6 +82,12 @@ make db-schema-update     # Update Git from running DB
    - Auto-generate Flyway migration from schema diff
    - Review + edit before applying
 
+## Implementační tasky
+
+- [TASK-006-01: Schema dump scripts + targets](subtasks/TASK-006-01-schema-dump-scripts.md)
+- [TASK-006-02: Drift detection + CI check](subtasks/TASK-006-02-drift-detection-ci.md)
+- [TASK-006-03: Migration generation from schema diff](subtasks/TASK-006-03-migration-generation.md)
+
 ### Implementation
 
 **File:** `scripts/db/dump-schema.sh`

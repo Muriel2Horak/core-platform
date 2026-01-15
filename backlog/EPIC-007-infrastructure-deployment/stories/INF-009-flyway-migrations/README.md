@@ -92,6 +92,12 @@ backend/src/main/resources/db/migration/
    - Post-deploy: Verify schema state
    - Rollback: Execute U scripts
 
+## Implementační tasky
+
+- [TASK-009-01: Flyway configs + directories](subtasks/TASK-009-01-flyway-configs.md)
+- [TASK-009-02: Migration orchestration scripts](subtasks/TASK-009-02-migrate-orchestrator.md)
+- [TASK-009-03: CI validation + pre-deploy checks](subtasks/TASK-009-03-ci-validation.md)
+
 ### Implementation
 
 **File:** `backend/src/main/resources/application.yml`

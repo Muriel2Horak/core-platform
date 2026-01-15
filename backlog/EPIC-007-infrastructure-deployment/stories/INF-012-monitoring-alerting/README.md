@@ -94,6 +94,12 @@ alerts:
    - Email (critical)
    - PagerDuty (P1 incidents)
 
+## Implementační tasky
+
+- [TASK-012-01: Prometheus + exporters](subtasks/TASK-012-01-prometheus-exporters.md)
+- [TASK-012-02: Alertmanager + rules](subtasks/TASK-012-02-alertmanager-rules.md)
+- [TASK-012-03: Notifications + dashboards](subtasks/TASK-012-03-notifications-dashboards.md)
+
 ### Implementation
 
 **File:** `docker-compose.yml` (Prometheus service)

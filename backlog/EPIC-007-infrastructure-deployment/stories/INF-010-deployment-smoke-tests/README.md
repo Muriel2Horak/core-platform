@@ -88,6 +88,12 @@ make deploy ENV=production
    - Notification to Slack/email
    - Preserve logs for debugging
 
+## Implementační tasky
+
+- [TASK-010-01: Smoke test script](subtasks/TASK-010-01-smoke-test-script.md)
+- [TASK-010-02: Deploy hook + rollback trigger](subtasks/TASK-010-02-deploy-hook-rollback.md)
+- [TASK-010-03: Notifications + logs](subtasks/TASK-010-03-notifications-logs.md)
+
 ### Implementation
 
 **File:** `scripts/deploy/smoke-tests.sh`

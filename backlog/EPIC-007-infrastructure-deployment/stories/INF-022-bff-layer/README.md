@@ -97,6 +97,12 @@ Backend (unchanged REST APIs)
    - Redis caching for hot queries
    - Parallel backend calls
 
+## Implementační tasky
+
+- [TASK-022-01: BFF service scaffold + compose](subtasks/TASK-022-01-bff-service-compose.md)
+- [TASK-022-02: GraphQL schema + resolvers](subtasks/TASK-022-02-graphql-schema-resolvers.md)
+- [TASK-022-03: Auth + tenant context + caching](subtasks/TASK-022-03-auth-tenant-caching.md)
+
 ### Implementation
 
 **File:** `docker-compose.yml` (BFF service)

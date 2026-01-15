@@ -86,6 +86,12 @@ make db-restore TIMESTAMP="2025-11-08T14:30:00Z"
    - Integrity check (pg_restore --list)
    - Alert if backup fails
 
+## Implementační tasky
+
+- [TASK-016-01: Backup schedule + storage](subtasks/TASK-016-01-backup-schedule-storage.md)
+- [TASK-016-02: Restore + PITR](subtasks/TASK-016-02-restore-pitr.md)
+- [TASK-016-03: Backup verification + alerts](subtasks/TASK-016-03-backup-verification-alerts.md)
+
 ### Implementation
 
 **File:** `scripts/backup/pg-backup.sh`

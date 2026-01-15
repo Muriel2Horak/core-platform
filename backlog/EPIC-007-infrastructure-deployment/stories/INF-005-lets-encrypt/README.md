@@ -88,6 +88,12 @@ traefik:
    - Alert: Cert expires <30 days
    - Grafana dashboard
 
+## Implementační tasky
+
+- [TASK-005-01: Traefik + ACME service](subtasks/TASK-005-01-traefik-acme-service.md)
+- [TASK-005-02: Certificate storage + renewal](subtasks/TASK-005-02-cert-storage-renewal.md)
+- [TASK-005-03: Monitoring + expiry alerts](subtasks/TASK-005-03-monitoring-expiry-alerts.md)
+
 ### Implementation
 
 **File:** `docker-compose.yml` (Traefik service)
