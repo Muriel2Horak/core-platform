@@ -94,6 +94,13 @@ services:
    - Loki log aggregation
    - Alerting (workflow failures)
 
+## Implementační tasky
+
+- [TASK-019-01: n8n service + database init](subtasks/TASK-019-01-n8n-service-db.md)
+- [TASK-019-02: SSO + routing (Keycloak + Nginx)](subtasks/TASK-019-02-sso-routing.md)
+- [TASK-019-03: Multi-tenant mode + user management](subtasks/TASK-019-03-multi-tenant-mode.md)
+- [TASK-019-04: Monitoring + logging integration](subtasks/TASK-019-04-monitoring-logging.md)
+
 ### Implementation
 
 **File:** `docker/docker-compose.yml` (N8N service)

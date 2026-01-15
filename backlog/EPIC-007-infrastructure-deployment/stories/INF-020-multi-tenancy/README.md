@@ -123,6 +123,13 @@ Frontend
    - Loki: Tenant label filtering
    - Prometheus: Tenant label on metrics
 
+## Implementační tasky
+
+- [T1: Implement Nginx Subdomain Routing](subtasks/T1-nginx-subdomain-routing.md)
+- [T2: Frontend Tenant Branding](subtasks/T2-frontend-tenant-branding.md)
+- [T3: Backend Tenant Context + Guard](subtasks/T3-backend-tenant-context.md)
+- [T4: Monitoring Isolation (Grafana/Loki)](subtasks/T4-monitoring-isolation.md)
+
 ### Implementation
 
 **File:** `docker/nginx/nginx-ssl.conf.template` (Wildcard routing)

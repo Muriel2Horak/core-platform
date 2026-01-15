@@ -112,6 +112,13 @@ User: grafana_app   → Database: grafana   (RW only grafana)
 
 ---
 
+## Implementační tasky
+
+- [T1: Create Separate PostgreSQL Users per Service](subtasks/T1-create-separate-postgres-users.md)
+- [T2: Implement Row-Level Security Policies](subtasks/T2-implement-row-level-security.md)
+
+---
+
 ## 🏗️ IMPLEMENTATION DETAILS
 
 ### 4-Phase Migration Plan

@@ -97,6 +97,15 @@ make generate-configs  # Generuje VŠE z templates
 
 ---
 
+## Implementační tasky
+
+- [TASK-001-01: Generator skripty + Makefile target](subtasks/TASK-001-01-generator-scripts.md)
+- [TASK-001-02: Validace env promennych pro templates](subtasks/TASK-001-02-env-validation-templates.md)
+- [TASK-001-03: Pre-commit kontrola (lefthook)](subtasks/TASK-001-03-lefthook-precommit.md)
+- [TASK-001-04: CI template-check workflow](subtasks/TASK-001-04-ci-template-check.md)
+
+---
+
 ## 🏗️ IMPLEMENTATION DETAILS
 
 ### File Structure

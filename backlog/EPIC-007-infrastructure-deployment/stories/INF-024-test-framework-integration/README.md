@@ -103,6 +103,13 @@ Developer Workflow (Fail Fast!)
    - Playwright pre-deploy smoke (critical paths)
    - Playwright post-deploy full (all features)
 
+## Implementační tasky
+
+- [T1: Pre-commit Hooks](subtasks/T1-pre-commit-hooks.md)
+- [T2: Testcontainers Integration](subtasks/T2-testcontainers-integration.md)
+- [T3: Coverage Thresholds](subtasks/T3-coverage-thresholds.md)
+- [T4: E2E Framework](subtasks/T4-e2e-framework.md)
+
 ### Implementation
 
 **File:** `.husky/pre-commit` (Git hook)

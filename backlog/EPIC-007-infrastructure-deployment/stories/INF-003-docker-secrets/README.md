@@ -132,6 +132,15 @@ services:
 
 ---
 
+## Implementační tasky
+
+- [TASK-003-01: Secrets struktura + .gitignore](subtasks/TASK-003-01-secrets-structure.md)
+- [TASK-003-02: Compose + sluzby (secrets + fallback)](subtasks/TASK-003-02-compose-service-wiring.md)
+- [TASK-003-03: Generate/rotate/validate skripty](subtasks/TASK-003-03-secrets-scripts.md)
+- [TASK-003-04: Migration guide + CI guard](subtasks/TASK-003-04-migration-ci-guard.md)
+
+---
+
 ## 🏗️ IMPLEMENTATION DETAILS
 
 ### File Structure

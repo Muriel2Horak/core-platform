@@ -97,6 +97,12 @@ HashiCorp Vault
    - Certificate issuance automation
    - Auto-renewal 30 days before expiry
 
+## Implementační tasky
+
+- [T1: Deploy Vault Container](subtasks/T1-deploy-vault-container.md)
+- [T2: Dynamic Database Credentials](subtasks/T2-dynamic-database-credentials.md)
+- [T3: PKI Secrets Engine](subtasks/T3-pki-secrets-engine.md)
+
 ### Implementation
 
 **File:** `docker-compose.yml` (Vault service)

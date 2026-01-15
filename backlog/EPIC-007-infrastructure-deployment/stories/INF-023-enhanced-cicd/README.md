@@ -115,6 +115,14 @@ GitHub Actions (Multi-Stage Pipeline)
    - Production: Manual approval + tag trigger
    - Rollback: One-click previous version
 
+## Implementační tasky
+
+- [T1: Multi-Stage Pipeline](subtasks/T1-multi-stage-pipeline.md)
+- [T2: Artifact Caching](subtasks/T2-artifact-caching.md)
+- [T3: Quality Gates](subtasks/T3-quality-gates.md)
+- [T4: Deployment Automation](subtasks/T4-deployment-automation.md)
+- [T5: Rollback Workflow](subtasks/T5-rollback-workflow.md)
+
 ### Implementation
 
 **File:** `.github/workflows/ci.yml` (Main pipeline)
