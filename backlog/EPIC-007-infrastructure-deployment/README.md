@@ -1,6 +1,7 @@
 # EPIC-007: Infrastructure & Deployment
 
 **Status:** 🔵 **IN PROGRESS**  
+**Definice:** ✅ **100%** (INF-001..INF-025 specifikovano s AC + tasky)  
 **Priority:** P0 (CRITICAL - Foundation)  
 **Effort:** ~40 hodin (core scope)  
 **Owner:** DevOps + Platform Team
@@ -151,7 +152,7 @@ make clean && make up
 - ✅ `.env.example` existuje s bezpečnými placeholdery
 - ✅ Všechny důležité hodnoty (DB host, jména DB, hesla, doména, Keycloak klienti, n8n config) řízeny přes env proměnné
 
-> 📖 **Security best practices**: Detailní bezpečnostní pravidla (secrets rotation, least privilege, audit requirements) viz [EPIC-000 Security Platform Hardening](../EPIC-000-security-hardening/README.md).
+> 📖 **Security best practices**: Detailní bezpečnostní pravidla (secrets rotation, least privilege, audit requirements) viz [EPIC-000 Security Platform Hardening](../EPIC-000-security-platform-hardening/README.md).
 
 **Konfigurační hodnoty v `.env.example`:**
 - `DOMAIN` - doména systému
@@ -181,6 +182,29 @@ bash scripts/smoke-test-env.sh
   6. Prometheus: `http://prometheus:9090/-/ready` → 200 (internal)
   7. Realm initialized: Keycloak client `admin-client`, `n8n-client` existují
 - ✅ Smoke test je součástí README s příklady
+
+---
+
+## 🔍 Gap Analysis (Current vs DoD)
+
+| Area | Requirement | Story | Gap / Risk |
+| --- | --- | --- | --- |
+| Templates & env | Centralized template generation + env validation | INF-001, INF-002 | Generator/validation nejsou implementovany → konfiguracni drift |
+| Secrets | Vault-only secrets + docker secrets cleanup | INF-003, INF-021 | Secrets stale v `.env`, bez rotace |
+| SSL & domains | ACME/rotation automation | INF-004, INF-005 | Expiry risk bez auto-renewal |
+| Multi-tenancy | Realm/subdomain routing + isolation | INF-020, INF-011 | Neni end-to-end vynuceno |
+| n8n infra | Shared n8n + SSO + audit headers | INF-019 | Blokuje EPIC-011 |
+| Observability | Alerting baseline + dashboards | INF-012 | Neni definovana alerting politika |
+| CI/CD | Pipeline + enhanced gates | INF-015, INF-023 | Release proces neni standardizovan |
+| Backup/DR | Backup + restore + DR plan | INF-016, INF-017 | RPO/RTO nedefinovane |
+| Smoke test | Automated env validation | INF-010 | Bez smoke testu nelze rychle verifikovat |
+| Edge security | WAF/DDoS protection | INF-025 | Zvysene riziko na edge |
+
+**Secondary gaps:**
+- Config drift detection (INF-013)
+- Build doctor diagnostics (INF-014)
+- Flyway migrations + rollback (INF-009, INF-008)
+- Separate DB users + least privilege (INF-007)
 
 ---
 
@@ -546,9 +570,9 @@ Následující **NEPATŘÍ** do EPIC-007 a budou řešeny jinými EPICy:
 - Performance testing
 
 ### Feature moduly → vlastní EPICy
-- Metamodel Studio → EPIC-004
-- Workflow Designer → EPIC-005
-- DMS (Document Management) → EPIC-006
+- Metamodel Studio → EPIC-005
+- Workflow Designer → EPIC-006
+- DMS (Document Management) → EPIC-008
 - AI/MCP integrace → EPIC-016
 
 ### Pokročilé security pro produkci
