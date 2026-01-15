@@ -7,7 +7,7 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "6 hours"
 path_mapping:
   code_paths: []
   test_paths: []
@@ -16,27 +16,47 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-# S9: Test Tagging System - Implementation Tasks
+# S9: Test Tagging System (Implementation)
 
-**Story:** [S9: Test ID Tagging System](../S9.md)  
+**Story:** Test ID Tagging System  
 **Status:** 🔵 TODO  
-**Progress:** 0/4 tasks completed
+**Effort:** ~6h
 
 ---
 
-## 📋 Task Overview
+## 📋 Story Description
 
-| Task | Description | LOC | Effort | Status |
-|------|-------------|-----|--------|--------|
-| [T1](./T1-tagging-convention.md) | Tagging Convention (@CORE-XXX) | ~50 | 1h | 🔵 TODO |
-| [T2](./T2-playwright-tags.md) | Playwright Tag Support | ~100 | 2h | 🔵 TODO |
-| [T3](./T3-junit-annotation.md) | JUnit @UserStory Annotation | ~150 | 2h | 🔵 TODO |
-| [T4](./T4-pre-commit-hook.md) | Pre-commit Tag Validation | ~100 | 1h | 🔵 TODO |
-| **TOTAL** | | **~400** | **~6h** | **0/4** |
+Jako **developer/QA**, chci **jednotne tagovani testu**, abych **mohl mapovat testy na user stories a sledovat coverage**.
 
 ---
 
-## 🎯 Implementation Order
+## 🎯 Acceptance Criteria
+
+1. **Tag format**
+   - Jednotny format `@CORE-XXX` pro vsechny typy testu
+
+2. **Framework support**
+   - Playwright podporuje filter `--grep @CORE-XXX`
+   - JUnit ma `@UserStory("CORE-XXX")`
+
+3. **Validation**
+   - Pre-commit hook hlida, ze testy maji story tag
+   - Report ukazuje chybejici tagy
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Tagging Convention (@CORE-XXX)](subtasks/T1-tagging-convention.md) | 1h | none |
+| 2 | [T2: Playwright Tag Support](subtasks/T2-playwright-tags.md) | 2h | T1 |
+| 3 | [T3: JUnit @UserStory Annotation](subtasks/T3-junit-annotation.md) | 2h | T1 |
+| 4 | [T4: Pre-commit Tag Validation](subtasks/T4-pre-commit-hook.md) | 1h | T2, T3 |
+
+---
+
+## 🔄 Implementation Order
 
 ### Phase 1: Convention & Documentation (T1)
 - Define tagging format (@CORE-XXX)
@@ -91,4 +111,4 @@ path_mapping:
 
 ---
 
-**Back to:** [S9 Story](../S9.md) | [EPIC-002](../../README.md)
+**Back to EPIC:** [EPIC-002](../../README.md)

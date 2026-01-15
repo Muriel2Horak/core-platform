@@ -16,25 +16,46 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-# S8 Implementation Tasks
+# S8: Test Registry & Tracking (Implementation)
 
 **Story:** Test Registry & Tracking  
-**Status:** 🔵 TODO (0/5 tasks)  
+**Status:** 🔵 TODO  
 **Total Effort:** ~8 hours
 
 ---
 
-## 📋 Task Checklist
+## 📋 Story Description
 
-| Task | Description | Status | Effort | LOC |
-|------|-------------|--------|--------|-----|
-| [T1](./T1-database-schema.md) | Database Schema Migration | 🔵 TODO | 1h | ~50 |
-| [T2](./T2-backend-model-repository.md) | Backend Model & Repository | 🔵 TODO | 2h | ~150 |
-| [T3](./T3-rest-api-controller.md) | REST API Controller | 🔵 TODO | 2h | ~200 |
-| [T4](./T4-playwright-reporter.md) | Playwright Reporter | 🔵 TODO | 2h | ~150 |
-| [T5](./T5-junit-listener.md) | JUnit Listener | 🔵 TODO | 1h | ~50 |
+Jako **QA/DevOps**, chci **centralni test registry**, abych **mohl mapovat testy na user stories a pocitat coverage per story**.
 
-**Total:** ~600 LOC
+---
+
+## 🎯 Acceptance Criteria
+
+1. **Registry data model**
+   - `test_registry` tabulka s vazbou na `user_story_id`
+   - Indexy pro story/test_type/status
+
+2. **API a integrace**
+   - REST endpointy pro coverage a per-story listing
+   - Playwright reporter zapisuje E2E testy
+   - JUnit listener zapisuje unit/integration testy
+
+3. **Traceability**
+   - Tagy `@CORE-XXX`/`@UserStory("CORE-XXX")` se propisuji do registry
+   - Coverage endpoint vraci % pokryti podle storii
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Database Schema Migration](subtasks/T1-database-schema.md) | 1h | none |
+| 2 | [T2: Backend Model & Repository](subtasks/T2-backend-model-repository.md) | 2h | T1 |
+| 3 | [T3: REST API Controller](subtasks/T3-rest-api-controller.md) | 2h | T2 |
+| 4 | [T4: Playwright Reporter](subtasks/T4-playwright-reporter.md) | 2h | T1 |
+| 5 | [T5: JUnit Listener](subtasks/T5-junit-listener.md) | 1h | T1 |
 
 ---
 
@@ -136,4 +157,4 @@ curl http://localhost:8080/api/test-registry/coverage
 
 ---
 
-**Back to Story:** [S8.md](../S8.md)
+**Back to EPIC:** [EPIC-002](../../README.md)

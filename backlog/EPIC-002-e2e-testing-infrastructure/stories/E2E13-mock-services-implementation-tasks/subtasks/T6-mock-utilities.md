@@ -1,4 +1,17 @@
 # T6: Mock Utilities
 **Effort:** ~2h | **LOC:** ~100
-## Objective: MockDataBuilder, stub helpers
-## Implementation: See [S13 Story](../S13.md#t6)
+
+## Goal
+Pridat helpery pro praci s mocky.
+
+## Tasks
+- [ ] Vytvorit MockDataBuilder pro fixtures.
+- [ ] Pridat helpery pro registraci stubu.
+- [ ] Zajistit cleanup mezi testy.
+
+## Output
+- Reusable utility layer pro mocky.
+
+## Acceptance Criteria
+- [ ] Helpery zkracuji boilerplate v testech.
+- [ ] Mocky jsou resetovane mezi testy.

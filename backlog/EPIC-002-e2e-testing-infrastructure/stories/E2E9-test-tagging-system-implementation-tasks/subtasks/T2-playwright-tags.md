@@ -1,9 +1,17 @@
 # T2: Playwright Tag Support
 
-**Story:** [S9](../S9.md) | **Task:** T2/4 | **Effort:** ~2h | **LOC:** ~100
+**Story:** Test Tagging System | **Task:** T2/4 | **Effort:** ~2h | **LOC:** ~100
 
-## Objective
+## Goal
 Implementovat tag support v Playwright testech (@CORE-XXX extraction).
+
+## Tasks
+- [ ] Pridat tag extractor pro @CORE-XXX z test titles/tags.
+- [ ] Nakonfigurovat Playwright `--grep` pro tag filtering.
+- [ ] Otagovat minimalni sadu smoke testu.
+
+## Output
+- Tagy funkcni v Playwright a pripraveny pro CI filter.
 
 ## Implementation
 - `e2e/helpers/tag-extractor.ts` - extract @CORE-XXX from test title/tags

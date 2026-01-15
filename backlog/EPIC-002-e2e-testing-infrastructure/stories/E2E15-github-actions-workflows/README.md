@@ -42,6 +42,16 @@ Kompletní dokumentace všech GitHub Actions workflows, jejich účelu, kdy se s
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Inventura workflow souboru a jejich stavu | 1h | none |
+| 2 | Detailni popis triggeru/jobu + dependencies | 2h | Task 1 |
+| 3 | Navod na enable/disable + troubleshooting | 1h | Task 2 |
+
+---
+
 ## 📁 Workflow Files Inventory
 
 **Lokace:** `.github/workflows-disabled/` (vypnuté během vývoje)

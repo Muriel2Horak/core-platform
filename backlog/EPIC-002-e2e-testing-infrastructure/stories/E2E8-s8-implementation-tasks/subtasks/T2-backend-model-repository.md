@@ -1,6 +1,6 @@
 # T2: Backend Model & Repository
 
-**Story:** [S8: Test Registry & Tracking](../S8.md)  
+**Story:** Test Registry & Tracking  
 **Status:** 🔵 TODO  
 **Effort:** ~2 hodiny  
 **LOC:** ~150 řádků
@@ -401,4 +401,4 @@ class TestRegistryServiceTest {
 
 ---
 
-**Back to:** [S8 Tasks](./README.md) | [S8 Story](../S8.md)
+**Back to:** [S8 Tasks](../README.md) | [EPIC-002](../../../README.md)

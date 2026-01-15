@@ -261,6 +261,14 @@ export async function cleanupSecurityTestData() {
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Security scenare (SECURITY-1..5) | 5h | E2E1, E2E2 |
+| 2 | Negative scenare (NEGATIVE-1..2) | 2h | Task 1 |
+| 3 | Dokumentace security testu | 1h | Task 1 |
+
 ## 📂 Implementace
 
 ### File Structure

@@ -1,9 +1,17 @@
 # T3: JUnit @UserStory Annotation
 
-**Story:** [S9](../S9.md) | **Task:** T3/4 | **Effort:** ~2h | **LOC:** ~150
+**Story:** Test Tagging System | **Task:** T3/4 | **Effort:** ~2h | **LOC:** ~150
 
-## Objective
-Vytvořit @UserStory annotation pro JUnit testy.
+## Goal
+Vytvorit @UserStory anotaci pro JUnit testy.
+
+## Tasks
+- [ ] Implementovat @UserStory annotation.
+- [ ] Zajistit extractor pro story ID.
+- [ ] Pridat priklady v existujicich testech.
+
+## Output
+- JUnit testy maji standardni story tag.
 
 ## Implementation
 - `@UserStory("CORE-XXX")` annotation

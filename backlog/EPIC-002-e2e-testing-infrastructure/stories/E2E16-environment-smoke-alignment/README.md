@@ -226,6 +226,14 @@ test-smoke: ## Run smoke E2E tests (5-7 min)
 
 ---
 
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Dokumentace prostredi (core-platform.local) | 2h | none |
+| 2 | Smoke test scenare (SMOKE-1..4) | 2h | E2E1, E2E2 |
+| 3 | Health check script + npm/make targets | 2h | Task 2 |
+
 ## 📂 Implementace
 
 ### File Structure
