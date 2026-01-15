@@ -7,7 +7,7 @@ status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
-estimate: ""
+estimate: "3 days"
 path_mapping:
   code_paths: []
   test_paths: []
@@ -16,17 +16,57 @@ path_mapping:
     - backlog/EPIC-003-monitoring-observability/README.md
 ---
 
-# S8: Business Dashboards - Implementation Tasks
+# S8: Business Dashboards (Native Monitoring UI)
 
-**Story:** Business Dashboards (Frontend React UI)  
-**Progress:** 0/5 | **Effort:** ~20h | **LOC:** ~2,500
+**EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
+**Status:** 🔴 TODO  
+**Effort:** ~20h | **LOC:** ~2,500  
+**Owner:** Frontend + Backend
 
-| Task | Description | LOC | Effort |
-|------|-------------|-----|--------|
-| T1 | Dashboard Layout & Navigation | ~400 | 4h |
-| T2 | Metric Cards & Charts Library | ~800 | 6h |
-| T3 | Backend API Endpoints | ~600 | 4h |
-| T4 | Real-Time Updates (WebSocket) | ~200 | 3h |
-| T5 | Data Export (CSV/JSON/PDF) | ~200 | 3h |
+---
 
-**Full Details:** [S8 Story](../S8.md)
+## 📋 Story Description
+
+Jako **tenant admin / ops**, chci **nativni business dashboardy v monitoringu**, abych **mel okamzity prehled o provozu, vykonu a uzivatelske aktivite bez nutnosti Grafana**.
+
+---
+
+## 🎯 Acceptance Criteria
+
+1. **Dashboardy a navigace**
+   - `Overview`, `User Activity`, `System Health`, `Analytics` dostupne z jednoho menu
+   - Breadcrumbs a route state funguje
+   - Responzivni layout (desktop + tablet)
+
+2. **Tenant scoping**
+   - Tenant vidi pouze vlastni data (realm + tenant_id scope)
+   - Admin realm muze prepinat tenant kontext (read-only)
+
+3. **Data freshness**
+   - Default refresh 30s, manual refresh dostupny
+   - P95 load cas hlavniho dashboardu < 2s
+
+4. **Export**
+   - Export vybranych grafu do CSV/JSON/PDF
+   - Export respektuje tenant scope
+
+---
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Dashboard Layout & Navigation](subtasks/T1-dashboard-layout-navigation.md) | 4h | none |
+| 2 | [T2: Metric Cards & Charts Library](subtasks/T2-metric-cards-charts-library.md) | 6h | T1 |
+| 3 | [T3: Backend API Endpoints](subtasks/T3-backend-api-endpoints.md) | 4h | MON1, MON5, MON6 |
+| 4 | [T4: Real-Time Updates (WebSocket)](subtasks/T4-realtime-updates-websocket.md) | 3h | T3 |
+| 5 | [T5: Data Export (CSV/JSON/PDF)](subtasks/T5-data-export.md) | 3h | T2, T3 |
+
+---
+
+## 🔗 Závislosti
+
+- **MON1:** Prometheus metriky (backend)  
+- **MON5:** Centralized logging (Loki)  
+- **MON6:** Health checks / readiness  
+- **MON10:** Real-time widgets (navazuje na websocket infrastrukturu)

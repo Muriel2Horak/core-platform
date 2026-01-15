@@ -1,8 +1,8 @@
 # T1: Cube.js Schema Definition
 **Effort:** ~6h | **LOC:** ~600
 
-## Objective
-Definovat Cube.js data models pro analytics
+## Goal
+Definovat Cube.js data modely pro analytics.
 
 ## Files
 - `cube/schema/Revenue.js`
@@ -11,11 +11,17 @@ Definovat Cube.js data models pro analytics
 - `cube/schema/Tenants.js`
 - `cube/schema/Users.js`
 
+## Tasks
+- [ ] Navrhnout dimenze a measures pro revenue/usage/compliance.
+- [ ] Pridat pre-aggregations a materialized view strategy.
+- [ ] Nastavit tenant scoping v Cube.js query layer.
+- [ ] Overit performance v Cube.js playground.
+
+## Output
+- Validni Cube.js schema s tenant izolaci a pre-aggregations.
+
 ## Acceptance Criteria
 - Cube.js playground funguje
 - Všechny measures validní
 - Query performance < 1s
 - Pre-aggregations configured
-
-## Implementation
-See [S9 Story](../S9.md#t1-cubejs-schema-definition)
