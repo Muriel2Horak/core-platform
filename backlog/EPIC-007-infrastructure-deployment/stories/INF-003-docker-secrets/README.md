@@ -134,10 +134,12 @@ services:
 
 ## Implementační tasky
 
-- [TASK-003-01: Secrets struktura + .gitignore](subtasks/TASK-003-01-secrets-structure.md)
-- [TASK-003-02: Compose + sluzby (secrets + fallback)](subtasks/TASK-003-02-compose-service-wiring.md)
-- [TASK-003-03: Generate/rotate/validate skripty](subtasks/TASK-003-03-secrets-scripts.md)
-- [TASK-003-04: Migration guide + CI guard](subtasks/TASK-003-04-migration-ci-guard.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-003-01: Secrets struktura + .gitignore](subtasks/TASK-003-01-secrets-structure.md) | 8h | none |
+| 2 | [TASK-003-02: Compose + sluzby (secrets + fallback)](subtasks/TASK-003-02-compose-service-wiring.md) | 6h | TASK-003-01 |
+| 3 | [TASK-003-03: Generate/rotate/validate skripty](subtasks/TASK-003-03-secrets-scripts.md) | 6h | TASK-003-01, TASK-003-02 |
+| 4 | [TASK-003-04: Migration guide + CI guard](subtasks/TASK-003-04-migration-ci-guard.md) | 4h | TASK-003-02, TASK-003-03 |
 
 ---
 

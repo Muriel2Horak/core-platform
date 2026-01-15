@@ -96,10 +96,12 @@ services:
 
 ## Implementační tasky
 
-- [TASK-019-01: n8n service + database init](subtasks/TASK-019-01-n8n-service-db.md)
-- [TASK-019-02: SSO + routing (Keycloak + Nginx)](subtasks/TASK-019-02-sso-routing.md)
-- [TASK-019-03: Multi-tenant mode + user management](subtasks/TASK-019-03-multi-tenant-mode.md)
-- [TASK-019-04: Monitoring + logging integration](subtasks/TASK-019-04-monitoring-logging.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-019-01: n8n service + database init](subtasks/TASK-019-01-n8n-service-db.md) | 8h | INF-003, INF-007 |
+| 2 | [TASK-019-02: SSO + routing (Keycloak + Nginx)](subtasks/TASK-019-02-sso-routing.md) | 6h | TASK-019-01 |
+| 3 | [TASK-019-03: Multi-tenant mode + user management](subtasks/TASK-019-03-multi-tenant-mode.md) | 6h | TASK-019-02, INF-020 |
+| 4 | [TASK-019-04: Monitoring + logging integration](subtasks/TASK-019-04-monitoring-logging.md) | 4h | TASK-019-01, INF-012 |
 
 ### Implementation
 

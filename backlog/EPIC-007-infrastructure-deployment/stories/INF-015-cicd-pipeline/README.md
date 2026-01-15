@@ -80,9 +80,11 @@ PR → Unit Tests → Integration Tests → Deploy to Staging
 
 ## Implementační tasky
 
-- [TASK-015-01: CI tests + gates](subtasks/TASK-015-01-ci-tests-gates.md)
-- [TASK-015-02: Staging deploy + smoke tests](subtasks/TASK-015-02-staging-deploy-smoke.md)
-- [TASK-015-03: Production deploy + rollback](subtasks/TASK-015-03-prod-deploy-rollback.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-015-01: CI tests + gates](subtasks/TASK-015-01-ci-tests-gates.md) | 8h | none |
+| 2 | [TASK-015-02: Staging deploy + smoke tests](subtasks/TASK-015-02-staging-deploy-smoke.md) | 8h | TASK-015-01 |
+| 3 | [TASK-015-03: Production deploy + rollback](subtasks/TASK-015-03-prod-deploy-rollback.md) | 8h | TASK-015-02 |
 
 ### Implementation
 

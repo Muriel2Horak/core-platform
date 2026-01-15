@@ -88,9 +88,11 @@ make db-rollback VERSION=2  # Roll back to V2
 
 ## Implementační tasky
 
-- [TASK-008-01: Undo migrations policy](subtasks/TASK-008-01-undo-migrations-policy.md)
-- [TASK-008-02: Rollback script + Make target](subtasks/TASK-008-02-rollback-script-make.md)
-- [TASK-008-03: Rollback tests + CI gate](subtasks/TASK-008-03-rollback-tests-ci.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-008-01: Undo migrations policy](subtasks/TASK-008-01-undo-migrations-policy.md) | 6h | none |
+| 2 | [TASK-008-02: Rollback script + Make target](subtasks/TASK-008-02-rollback-script-make.md) | 6h | TASK-008-01 |
+| 3 | [TASK-008-03: Rollback tests + CI gate](subtasks/TASK-008-03-rollback-tests-ci.md) | 4h | TASK-008-02 |
 
 ### Implementation
 

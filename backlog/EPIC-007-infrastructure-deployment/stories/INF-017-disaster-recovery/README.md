@@ -87,9 +87,11 @@ Procedures:
 
 ## Implementační tasky
 
-- [TASK-017-01: DR plan + runbooks](subtasks/TASK-017-01-dr-plan-runbooks.md)
-- [TASK-017-02: Failover automation](subtasks/TASK-017-02-failover-automation.md)
-- [TASK-017-03: DR drills + metrics](subtasks/TASK-017-03-dr-drills-metrics.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-017-01: DR plan + runbooks](subtasks/TASK-017-01-dr-plan-runbooks.md) | 6h | none |
+| 2 | [TASK-017-02: Failover automation](subtasks/TASK-017-02-failover-automation.md) | 6h | TASK-017-01 |
+| 3 | [TASK-017-03: DR drills + metrics](subtasks/TASK-017-03-dr-drills-metrics.md) | 4h | TASK-017-01, TASK-017-02 |
 
 ### Implementation
 

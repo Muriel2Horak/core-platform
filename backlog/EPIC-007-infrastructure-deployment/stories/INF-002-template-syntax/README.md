@@ -92,9 +92,11 @@ ${VARIABLE:-default}     # Optional with fallback
 
 ## Implementační tasky
 
-- [TASK-002-01: Template inventory + conversion](subtasks/TASK-002-01-template-inventory-conversion.md)
-- [TASK-002-02: Template validation script](subtasks/TASK-002-02-template-validation-script.md)
-- [TASK-002-03: Template docs + migration guide](subtasks/TASK-002-03-template-docs-migration.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-002-01: Template inventory + conversion](subtasks/TASK-002-01-template-inventory-conversion.md) | 10h | none |
+| 2 | [TASK-002-02: Template validation script](subtasks/TASK-002-02-template-validation-script.md) | 8h | TASK-002-01 |
+| 3 | [TASK-002-03: Template docs + migration guide](subtasks/TASK-002-03-template-docs-migration.md) | 6h | TASK-002-01, TASK-002-02 |
 
 ### Implementation
 

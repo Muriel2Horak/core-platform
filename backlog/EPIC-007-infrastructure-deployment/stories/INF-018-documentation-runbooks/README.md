@@ -96,9 +96,11 @@ docs/
 
 ## Implementační tasky
 
-- [TASK-018-01: Docs structure + index](subtasks/TASK-018-01-docs-structure.md)
-- [TASK-018-02: Deployment runbooks + troubleshooting](subtasks/TASK-018-02-runbooks-troubleshooting.md)
-- [TASK-018-03: Architecture + onboarding docs](subtasks/TASK-018-03-architecture-onboarding.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-018-01: Docs structure + index](subtasks/TASK-018-01-docs-structure.md) | 6h | none |
+| 2 | [TASK-018-02: Deployment runbooks + troubleshooting](subtasks/TASK-018-02-runbooks-troubleshooting.md) | 6h | TASK-018-01 |
+| 3 | [TASK-018-03: Architecture + onboarding docs](subtasks/TASK-018-03-architecture-onboarding.md) | 4h | TASK-018-01 |
 
 ### Implementation
 

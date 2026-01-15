@@ -88,9 +88,11 @@ make db-restore TIMESTAMP="2025-11-08T14:30:00Z"
 
 ## Implementační tasky
 
-- [TASK-016-01: Backup schedule + storage](subtasks/TASK-016-01-backup-schedule-storage.md)
-- [TASK-016-02: Restore + PITR](subtasks/TASK-016-02-restore-pitr.md)
-- [TASK-016-03: Backup verification + alerts](subtasks/TASK-016-03-backup-verification-alerts.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-016-01: Backup schedule + storage](subtasks/TASK-016-01-backup-schedule-storage.md) | 8h | none |
+| 2 | [TASK-016-02: Restore + PITR](subtasks/TASK-016-02-restore-pitr.md) | 8h | TASK-016-01 |
+| 3 | [TASK-016-03: Backup verification + alerts](subtasks/TASK-016-03-backup-verification-alerts.md) | 8h | TASK-016-01, TASK-016-02 |
 
 ### Implementation
 

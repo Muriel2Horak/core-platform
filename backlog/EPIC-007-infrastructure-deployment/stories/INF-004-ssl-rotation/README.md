@@ -83,9 +83,11 @@ bash docker/ssl/generate-ssl.sh
 
 ## Implementační tasky
 
-- [TASK-004-01: Expiry check + rotation script](subtasks/TASK-004-01-expiry-check-rotation-script.md)
-- [TASK-004-02: Zero-downtime reload + audit log](subtasks/TASK-004-02-zero-downtime-reload-logging.md)
-- [TASK-004-03: Cron schedule + notifications](subtasks/TASK-004-03-cron-notify.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-004-01: Expiry check + rotation script](subtasks/TASK-004-01-expiry-check-rotation-script.md) | 6h | none |
+| 2 | [TASK-004-02: Zero-downtime reload + audit log](subtasks/TASK-004-02-zero-downtime-reload-logging.md) | 6h | TASK-004-01 |
+| 3 | [TASK-004-03: Cron schedule + notifications](subtasks/TASK-004-03-cron-notify.md) | 4h | TASK-004-01, TASK-004-02 |
 
 ### Implementation
 

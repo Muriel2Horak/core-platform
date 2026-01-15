@@ -94,9 +94,11 @@ backend/src/main/resources/db/migration/
 
 ## Implementační tasky
 
-- [TASK-009-01: Flyway configs + directories](subtasks/TASK-009-01-flyway-configs.md)
-- [TASK-009-02: Migration orchestration scripts](subtasks/TASK-009-02-migrate-orchestrator.md)
-- [TASK-009-03: CI validation + pre-deploy checks](subtasks/TASK-009-03-ci-validation.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-009-01: Flyway configs + directories](subtasks/TASK-009-01-flyway-configs.md) | 8h | none |
+| 2 | [TASK-009-02: Migration orchestration scripts](subtasks/TASK-009-02-migrate-orchestrator.md) | 8h | TASK-009-01 |
+| 3 | [TASK-009-03: CI validation + pre-deploy checks](subtasks/TASK-009-03-ci-validation.md) | 8h | TASK-009-02 |
 
 ### Implementation
 

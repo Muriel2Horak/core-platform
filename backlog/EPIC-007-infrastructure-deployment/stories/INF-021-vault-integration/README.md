@@ -99,9 +99,11 @@ HashiCorp Vault
 
 ## Implementační tasky
 
-- [T1: Deploy Vault Container](subtasks/T1-deploy-vault-container.md)
-- [T2: Dynamic Database Credentials](subtasks/T2-dynamic-database-credentials.md)
-- [T3: PKI Secrets Engine](subtasks/T3-pki-secrets-engine.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Deploy Vault Container](subtasks/T1-deploy-vault-container.md) | 8h | none |
+| 2 | [T2: Dynamic Database Credentials](subtasks/T2-dynamic-database-credentials.md) | 10h | T1 |
+| 3 | [T3: PKI Secrets Engine](subtasks/T3-pki-secrets-engine.md) | 6h | T1 |
 
 ### Implementation
 

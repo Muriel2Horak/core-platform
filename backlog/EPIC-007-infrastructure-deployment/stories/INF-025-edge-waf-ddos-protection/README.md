@@ -90,7 +90,9 @@ path_mapping:
 
 ## Implementační tasky
 
-- [TASK-025-01: ModSecurity + OWASP CRS integrace](subtasks/TASK-025-01-modsecurity-crs.md)
-- [TASK-025-02: Rate limiting + connection limiting](subtasks/TASK-025-02-rate-limit-conn-limit.md)
-- [TASK-025-03: CrowdSec integrace a bouncer](subtasks/TASK-025-03-crowdsec-bouncer.md)
-- [TASK-025-04: Testy, observabilita, runbook](subtasks/TASK-025-04-tests-observability-runbook.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-025-01: ModSecurity + OWASP CRS integrace](subtasks/TASK-025-01-modsecurity-crs.md) | 10h | none |
+| 2 | [TASK-025-02: Rate limiting + connection limiting](subtasks/TASK-025-02-rate-limit-conn-limit.md) | 6h | TASK-025-01 |
+| 3 | [TASK-025-03: CrowdSec integrace a bouncer](subtasks/TASK-025-03-crowdsec-bouncer.md) | 8h | TASK-025-01 |
+| 4 | [TASK-025-04: Testy, observabilita, runbook](subtasks/TASK-025-04-tests-observability-runbook.md) | 8h | TASK-025-01, TASK-025-02, TASK-025-03 |

@@ -94,9 +94,11 @@ docker/.env.production           # Production overrides
 
 ## Implementační tasky
 
-- [TASK-011-01: Environment override files](subtasks/TASK-011-01-env-files.md)
-- [TASK-011-02: Makefile wiring + validation](subtasks/TASK-011-02-makefile-validation.md)
-- [TASK-011-03: Docs + usage guide](subtasks/TASK-011-03-docs-usage.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-011-01: Environment override files](subtasks/TASK-011-01-env-files.md) | 6h | none |
+| 2 | [TASK-011-02: Makefile wiring + validation](subtasks/TASK-011-02-makefile-validation.md) | 6h | TASK-011-01 |
+| 3 | [TASK-011-03: Docs + usage guide](subtasks/TASK-011-03-docs-usage.md) | 4h | TASK-011-01, TASK-011-02 |
 
 ### Implementation
 

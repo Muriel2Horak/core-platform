@@ -90,9 +90,11 @@ make deploy ENV=production
 
 ## Implementační tasky
 
-- [TASK-010-01: Smoke test script](subtasks/TASK-010-01-smoke-test-script.md)
-- [TASK-010-02: Deploy hook + rollback trigger](subtasks/TASK-010-02-deploy-hook-rollback.md)
-- [TASK-010-03: Notifications + logs](subtasks/TASK-010-03-notifications-logs.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-010-01: Smoke test script](subtasks/TASK-010-01-smoke-test-script.md) | 6h | none |
+| 2 | [TASK-010-02: Deploy hook + rollback trigger](subtasks/TASK-010-02-deploy-hook-rollback.md) | 6h | TASK-010-01 |
+| 3 | [TASK-010-03: Notifications + logs](subtasks/TASK-010-03-notifications-logs.md) | 4h | TASK-010-01, TASK-010-02 |
 
 ### Implementation
 

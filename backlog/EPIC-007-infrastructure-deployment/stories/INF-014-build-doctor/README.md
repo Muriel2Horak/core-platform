@@ -100,10 +100,12 @@ make build
 
 ## Implementační tasky
 
-- [TASK-014-01: Build Doctor core checks](subtasks/TASK-014-01-build-doctor-core.md)
-- [TASK-014-02: Makefile integration + skip flag](subtasks/TASK-014-02-makefile-integration.md)
-- [TASK-014-03: Template sync check](subtasks/TASK-014-03-template-sync-check.md)
-- [TASK-014-04: Docs + usage guide](subtasks/TASK-014-04-docs-usage.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-014-01: Build Doctor core checks](subtasks/TASK-014-01-build-doctor-core.md) | 6h | none |
+| 2 | [TASK-014-02: Makefile integration + skip flag](subtasks/TASK-014-02-makefile-integration.md) | 4h | TASK-014-01 |
+| 3 | [TASK-014-03: Template sync check](subtasks/TASK-014-03-template-sync-check.md) | 4h | TASK-014-01 |
+| 4 | [TASK-014-04: Docs + usage guide](subtasks/TASK-014-04-docs-usage.md) | 2h | TASK-014-01, TASK-014-02, TASK-014-03 |
 
 ---
 

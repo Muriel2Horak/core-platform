@@ -90,9 +90,11 @@ traefik:
 
 ## Implementační tasky
 
-- [TASK-005-01: Traefik + ACME service](subtasks/TASK-005-01-traefik-acme-service.md)
-- [TASK-005-02: Certificate storage + renewal](subtasks/TASK-005-02-cert-storage-renewal.md)
-- [TASK-005-03: Monitoring + expiry alerts](subtasks/TASK-005-03-monitoring-expiry-alerts.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-005-01: Traefik + ACME service](subtasks/TASK-005-01-traefik-acme-service.md) | 6h | none |
+| 2 | [TASK-005-02: Certificate storage + renewal](subtasks/TASK-005-02-cert-storage-renewal.md) | 6h | TASK-005-01 |
+| 3 | [TASK-005-03: Monitoring + expiry alerts](subtasks/TASK-005-03-monitoring-expiry-alerts.md) | 4h | TASK-005-02 |
 
 ### Implementation
 

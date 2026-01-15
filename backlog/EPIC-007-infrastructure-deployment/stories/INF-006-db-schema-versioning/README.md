@@ -84,9 +84,11 @@ make db-schema-update     # Update Git from running DB
 
 ## Implementační tasky
 
-- [TASK-006-01: Schema dump scripts + targets](subtasks/TASK-006-01-schema-dump-scripts.md)
-- [TASK-006-02: Drift detection + CI check](subtasks/TASK-006-02-drift-detection-ci.md)
-- [TASK-006-03: Migration generation from schema diff](subtasks/TASK-006-03-migration-generation.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-006-01: Schema dump scripts + targets](subtasks/TASK-006-01-schema-dump-scripts.md) | 6h | none |
+| 2 | [TASK-006-02: Drift detection + CI check](subtasks/TASK-006-02-drift-detection-ci.md) | 6h | TASK-006-01 |
+| 3 | [TASK-006-03: Migration generation from schema diff](subtasks/TASK-006-03-migration-generation.md) | 4h | TASK-006-02 |
 
 ### Implementation
 

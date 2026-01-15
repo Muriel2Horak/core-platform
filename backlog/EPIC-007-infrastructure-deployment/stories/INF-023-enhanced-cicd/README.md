@@ -117,11 +117,13 @@ GitHub Actions (Multi-Stage Pipeline)
 
 ## Implementační tasky
 
-- [T1: Multi-Stage Pipeline](subtasks/T1-multi-stage-pipeline.md)
-- [T2: Artifact Caching](subtasks/T2-artifact-caching.md)
-- [T3: Quality Gates](subtasks/T3-quality-gates.md)
-- [T4: Deployment Automation](subtasks/T4-deployment-automation.md)
-- [T5: Rollback Workflow](subtasks/T5-rollback-workflow.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Multi-Stage Pipeline](subtasks/T1-multi-stage-pipeline.md) | 6h | none |
+| 2 | [T2: Artifact Caching](subtasks/T2-artifact-caching.md) | 4h | T1 |
+| 3 | [T3: Quality Gates](subtasks/T3-quality-gates.md) | 6h | T2 |
+| 4 | [T4: Deployment Automation](subtasks/T4-deployment-automation.md) | 10h | T3 |
+| 5 | [T5: Rollback Workflow](subtasks/T5-rollback-workflow.md) | 6h | T4 |
 
 ### Implementation
 

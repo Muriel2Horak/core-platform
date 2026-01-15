@@ -105,10 +105,12 @@ Developer Workflow (Fail Fast!)
 
 ## Implementační tasky
 
-- [T1: Pre-commit Hooks](subtasks/T1-pre-commit-hooks.md)
-- [T2: Testcontainers Integration](subtasks/T2-testcontainers-integration.md)
-- [T3: Coverage Thresholds](subtasks/T3-coverage-thresholds.md)
-- [T4: E2E Framework](subtasks/T4-e2e-framework.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Pre-commit Hooks](subtasks/T1-pre-commit-hooks.md) | 4h | none |
+| 2 | [T2: Testcontainers Integration](subtasks/T2-testcontainers-integration.md) | 8h | T1 |
+| 3 | [T3: Coverage Thresholds](subtasks/T3-coverage-thresholds.md) | 4h | T2 |
+| 4 | [T4: E2E Framework](subtasks/T4-e2e-framework.md) | 8h | T2 |
 
 ### Implementation
 

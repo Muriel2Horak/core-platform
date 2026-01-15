@@ -87,9 +87,11 @@ make config-drift-check
 
 ## Implementační tasky
 
-- [TASK-013-01: Drift detection script](subtasks/TASK-013-01-drift-script.md)
-- [TASK-013-02: CI schedule + PR gate](subtasks/TASK-013-02-ci-schedule.md)
-- [TASK-013-03: Config sync + docs](subtasks/TASK-013-03-config-sync-docs.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-013-01: Drift detection script](subtasks/TASK-013-01-drift-script.md) | 6h | none |
+| 2 | [TASK-013-02: CI schedule + PR gate](subtasks/TASK-013-02-ci-schedule.md) | 6h | TASK-013-01 |
+| 3 | [TASK-013-03: Config sync + docs](subtasks/TASK-013-03-config-sync-docs.md) | 4h | TASK-013-01 |
 
 ### Implementation
 

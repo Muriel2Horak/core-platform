@@ -96,9 +96,11 @@ alerts:
 
 ## Implementační tasky
 
-- [TASK-012-01: Prometheus + exporters](subtasks/TASK-012-01-prometheus-exporters.md)
-- [TASK-012-02: Alertmanager + rules](subtasks/TASK-012-02-alertmanager-rules.md)
-- [TASK-012-03: Notifications + dashboards](subtasks/TASK-012-03-notifications-dashboards.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-012-01: Prometheus + exporters](subtasks/TASK-012-01-prometheus-exporters.md) | 10h | none |
+| 2 | [TASK-012-02: Alertmanager + rules](subtasks/TASK-012-02-alertmanager-rules.md) | 8h | TASK-012-01 |
+| 3 | [TASK-012-03: Notifications + dashboards](subtasks/TASK-012-03-notifications-dashboards.md) | 6h | TASK-012-02 |
 
 ### Implementation
 

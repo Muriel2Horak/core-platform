@@ -114,8 +114,10 @@ User: grafana_app   → Database: grafana   (RW only grafana)
 
 ## Implementační tasky
 
-- [T1: Create Separate PostgreSQL Users per Service](subtasks/T1-create-separate-postgres-users.md)
-- [T2: Implement Row-Level Security Policies](subtasks/T2-implement-row-level-security.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Create Separate PostgreSQL Users per Service](subtasks/T1-create-separate-postgres-users.md) | 8h | none |
+| 2 | [T2: Implement Row-Level Security Policies](subtasks/T2-implement-row-level-security.md) | 8h | T1 |
 
 ---
 

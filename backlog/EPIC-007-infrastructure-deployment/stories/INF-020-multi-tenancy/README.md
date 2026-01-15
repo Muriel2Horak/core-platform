@@ -125,10 +125,12 @@ Frontend
 
 ## Implementační tasky
 
-- [T1: Implement Nginx Subdomain Routing](subtasks/T1-nginx-subdomain-routing.md)
-- [T2: Frontend Tenant Branding](subtasks/T2-frontend-tenant-branding.md)
-- [T3: Backend Tenant Context + Guard](subtasks/T3-backend-tenant-context.md)
-- [T4: Monitoring Isolation (Grafana/Loki)](subtasks/T4-monitoring-isolation.md)
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Implement Nginx Subdomain Routing](subtasks/T1-nginx-subdomain-routing.md) | 6h | none |
+| 2 | [T3: Backend Tenant Context + Guard](subtasks/T3-backend-tenant-context.md) | 10h | T1 |
+| 3 | [T2: Frontend Tenant Branding](subtasks/T2-frontend-tenant-branding.md) | 8h | T1, T3 |
+| 4 | [T4: Monitoring Isolation (Grafana/Loki)](subtasks/T4-monitoring-isolation.md) | 8h | T1, T3 |
 
 ### Implementation
 
