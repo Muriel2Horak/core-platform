@@ -4,6 +4,7 @@
 > 📖 **Infrastructure prerequisite:** This EPIC builds on n8n infrastructure deployed in [EPIC-007 Infrastructure & Deployment](../EPIC-007-infrastructure-deployment/README.md).
 
 **Status:** 🔴 **0% IMPLEMENTED** (Week 4-5)  
+**Definice:** ✅ **100%** (N8N1..N8N13 specifikovano s AC)  
 **Dependencies:** 
 - **EPIC-007** (n8n platform deployment: Docker, Nginx, Keycloak SSO, PostgreSQL, Loki/Prometheus) ← **REQUIRED**
 - EPIC-006 (optional: WF15 EXTERNAL_TASK executor for n8n → Camunda integration)
@@ -435,6 +436,44 @@ const coreConnector = {
 | **Core Connector** | Custom n8n node (tenant-scoped API calls) | - | TypeScript, n8n SDK | ⏳ TODO (N8N10) |
 
 ---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Platform deployment | N8N1 | n8n není nasazené → nelze spustit workflow |
+| SSO integrace | N8N2 | Bez Keycloak SSO není bezpečný přístup |
+| Reverse proxy | N8N3 | Chybí routing + audit headers |
+| Templates | N8N4 | Chybí referenční workflow šablony |
+| Monitoring | N8N5 | Chybí metriky a alerting |
+| BFF integrace | N8N6 | Bez proxy nelze vynutit governance |
+| Provisioning | N8N7 | Chybí auto-provisioning účtů |
+| Multi-tenant routing | N8N8 | Chybí per-tenant přístup přes realm |
+| Isolation & audit | N8N9 | Bez audit trailu hrozí compliance risk |
+| Core Connector node | N8N10 | Chybí tenant-scoped API calls z n8n |
+| Workflow registry | N8N11 | Chybí registry sync a metadata governance |
+| Webhook security | N8N12 | Chybí HMAC/secret validation |
+| Workflow governance | N8N13 | Chybí role-based policy enforcement |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [N8N1: Platform Deployment](./stories/N8N1-n8n-platform-deployment/README.md) | Docker service + DB + env config | Běžící n8n služba |
+| [N8N2: Keycloak SSO Integration](./stories/N8N2-keycloak-sso-integration/README.md) | Keycloak klient + role + SSO flow | SSO přístup do n8n |
+| [N8N3: Nginx Reverse Proxy](./stories/N8N3-nginx-reverse-proxy-configuration/README.md) | Routing + audit headers | Bezpečný proxy přístup |
+| [N8N4: Workflow Templates](./stories/N8N4-workflow-templates-documentation/README.md) | Referenční workflow šablony | Starter templates |
+| [N8N5: Monitoring & Alerting](./stories/N8N5-monitoring-alerting-integration/README.md) | Metriky + alerty + dashboardy | Observabilita n8n |
+| [N8N6: Backend BFF](./stories/N8N6-backend-n8n-integration-bff-pattern/README.md) | Proxy + governance + monitoring API | BFF integrace |
+| [N8N7: Provisioning Service](./stories/N8N7-n8n-provisioning-service/README.md) | Auto-create účty + idempotence | Tenant účty v n8n |
+| [N8N8: Multi-tenant SSO Routing](./stories/N8N8-multi-tenant-sso-routing/README.md) | Per-tenant routing + SSO mapování | Tenant přístup přes realm |
+| [N8N9: Tenant Isolation & Audit](./stories/N8N9-tenant-isolation-audit/README.md) | Audit trail + isolation testy | Compliance & izolace |
+| [N8N10: Core Connector Node](./stories/N8N10-core-connector-node/README.md) | Custom n8n node pro Core API | Tenant-scoped API calls |
+| [N8N11: Workflow Registry](./stories/N8N11-workflow-registry-governance/README.md) | Registry sync + metadata | Governance registry |
+| [N8N12: Webhook Security](./stories/N8N12-webhook-security/README.md) | HMAC/secret validation | Bezpečné webhooks |
+| [N8N13: Workflow Governance](./stories/N8N13-workflow-governance/README.md) | RBAC policies + enforcement | Governance pravidla |
+
+Poznámka: Detailní zadání a acceptance criteria jsou v jednotlivých story README.
 
 ## 🎯 Success Metrics
 
