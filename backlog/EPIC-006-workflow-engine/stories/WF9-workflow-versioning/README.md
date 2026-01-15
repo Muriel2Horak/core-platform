@@ -1,3 +1,21 @@
+---
+id: WORK-009
+epic: EPIC-006-workflow-engine
+title: "Workflow Versioning (Phase W11)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF9-workflow-versioning/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-009: Workflow Versioning (Phase W11)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  

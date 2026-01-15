@@ -1,3 +1,21 @@
+---
+id: S15
+epic: EPIC-016-advanced-data-ux-framework
+title: "Task Breakdown & Hierarchical Decomposition"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "35 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX15-task-breakdown-hierarchical-decompositio/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S15: Task Breakdown & Hierarchical Decomposition
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

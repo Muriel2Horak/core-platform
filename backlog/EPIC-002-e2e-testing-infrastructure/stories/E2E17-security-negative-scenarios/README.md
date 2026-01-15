@@ -1,3 +1,21 @@
+---
+id: E2E17
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Security & Negative E2E Scenarios"
+priority: P0
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "8 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E17-security-negative-scenarios/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # E2E17: Security & Negative E2E Scenarios
 
 **Status:** 🔵 **TODO**  

@@ -1,3 +1,21 @@
+---
+id: LIC-001
+epic: EPIC-017-modular-architecture
+title: "License JWT Validation"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/LIC-001-license-jwt-validation/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # LIC-001: License JWT Validation
 
 **Status:** ⏳ **PENDING**  

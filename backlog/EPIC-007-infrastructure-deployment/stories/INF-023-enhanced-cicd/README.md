@@ -1,3 +1,21 @@
+---
+id: INF-023
+epic: EPIC-007-infrastructure-deployment
+title: "Enhanced CI/CD Pipeline"
+priority: P0
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "4 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-023-enhanced-cicd/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-023: Enhanced CI/CD Pipeline
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

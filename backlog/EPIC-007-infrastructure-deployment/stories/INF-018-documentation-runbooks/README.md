@@ -1,3 +1,21 @@
+---
+id: INF-018
+epic: EPIC-007-infrastructure-deployment
+title: "Infrastructure Documentation & Runbooks"
+priority: P2
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-018-documentation-runbooks/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-018: Infrastructure Documentation & Runbooks
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

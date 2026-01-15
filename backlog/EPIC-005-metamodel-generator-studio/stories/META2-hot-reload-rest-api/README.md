@@ -1,3 +1,21 @@
+---
+id: META-002
+epic: EPIC-005-metamodel-generator-studio
+title: "Hot Reload REST API"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META2-hot-reload-rest-api/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-002: Hot Reload REST API
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

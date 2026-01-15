@@ -1,3 +1,21 @@
+---
+id: S6
+epic: EPIC-003-monitoring-observability
+title: "Health Checks & Readiness Probes (Phase S6)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-003-monitoring-observability/stories/MON6-health-checks-readiness-probes/README.md
+    - backlog/EPIC-003-monitoring-observability/README.md
+---
+
 # S6: Health Checks & Readiness Probes (Phase S6)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  

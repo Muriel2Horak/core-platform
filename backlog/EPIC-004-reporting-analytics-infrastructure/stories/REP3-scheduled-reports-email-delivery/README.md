@@ -1,3 +1,21 @@
+---
+id: S3
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Scheduled Reports & Email Delivery (Phase R3)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP3-scheduled-reports-email-delivery/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S3: Scheduled Reports & Email Delivery (Phase R3)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  

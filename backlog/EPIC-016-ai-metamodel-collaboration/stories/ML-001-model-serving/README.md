@@ -1,3 +1,21 @@
+---
+id: S1
+epic: EPIC-016-ai-metamodel-collaboration
+title: "ML Model Serving Infrastructure"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-001-model-serving/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # S1: ML Model Serving Infrastructure
 
 > **Model Deployment:** TorchServe/TF Serving s MLflow registry, A/B testing, GPU management

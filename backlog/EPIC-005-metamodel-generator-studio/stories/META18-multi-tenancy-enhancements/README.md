@@ -1,3 +1,21 @@
+---
+id: META-018
+epic: EPIC-005-metamodel-generator-studio
+title: "Multi-Tenancy Enhancements"
+priority: P3
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "40 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META18-multi-tenancy-enhancements/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-018: Multi-Tenancy Enhancements
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

@@ -1,3 +1,21 @@
+---
+id: S8
+epic: EPIC-014-ux-ui-design-system
+title: "Error States & Feedback - Task Breakdown"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-014-ux-ui-design-system/stories/UX8-error-states-feedback-task-breakdown/README.md
+    - backlog/EPIC-014-ux-ui-design-system/README.md
+---
+
 # S8: Error States & Feedback - Task Breakdown
 
 **Story:** Error States & User Feedback System  

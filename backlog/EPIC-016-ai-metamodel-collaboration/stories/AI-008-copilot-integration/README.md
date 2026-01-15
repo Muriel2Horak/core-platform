@@ -1,3 +1,21 @@
+---
+id: AI-008
+epic: EPIC-016-ai-metamodel-collaboration
+title: "GitHub Copilot Integration"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-008-copilot-integration/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # AI-008: GitHub Copilot Integration
 
 **Status:** ✅ **DONE** (Production, ~500 LOC project rules)  

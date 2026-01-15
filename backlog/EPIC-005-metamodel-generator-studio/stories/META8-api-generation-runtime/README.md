@@ -1,3 +1,21 @@
+---
+id: META-008
+epic: EPIC-005-metamodel-generator-studio
+title: "API Generation Runtime"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "120 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META8-api-generation-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-008: API Generation Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

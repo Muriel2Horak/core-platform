@@ -1,3 +1,21 @@
+---
+id: DMS-002
+epic: EPIC-008-document-management-system
+title: "Document Links (M:N Entity Vazby)"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-002-document-links/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-002: Document Links (M:N Entity Vazby)
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  

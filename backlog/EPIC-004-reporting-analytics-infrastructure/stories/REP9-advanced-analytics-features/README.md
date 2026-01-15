@@ -1,3 +1,21 @@
+---
+id: S9
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Advanced Analytics Features"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "60 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP9-advanced-analytics-features/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S9: Advanced Analytics Features
 
 **Status:** 📋 **PLANNED** (Phase 8 - Post-MVP)  

@@ -1,3 +1,21 @@
+---
+id: S2
+epic: EPIC-008-document-management-system
+title: "Storage Backend Abstraction"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS2-storage-backend-abstraction/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # S2: Storage Backend Abstraction
 
 > **Multi-Cloud Support:** Abstraction layer pro S3, MinIO, local filesystem s pre-signed URLs a CDN integration

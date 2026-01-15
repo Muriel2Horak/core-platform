@@ -1,3 +1,21 @@
+---
+id: INF-002
+epic: EPIC-017-modular-architecture
+title: "Module Audit Log"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/INF-002-module-audit-log/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # INF-002: Module Audit Log
 
 **Status:** ⏳ **PENDING**  

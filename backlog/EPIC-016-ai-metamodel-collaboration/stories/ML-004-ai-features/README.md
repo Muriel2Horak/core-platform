@@ -1,3 +1,21 @@
+---
+id: S4
+epic: EPIC-016-ai-metamodel-collaboration
+title: "AI-Powered Platform Features"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-004-ai-features/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # S4: AI-Powered Platform Features
 
 > **Intelligent Features:** Workflow suggestions, anomaly detection, predictive alerts, NLP search

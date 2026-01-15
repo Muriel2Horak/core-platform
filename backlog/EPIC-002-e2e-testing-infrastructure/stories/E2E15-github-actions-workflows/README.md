@@ -1,3 +1,21 @@
+---
+id: E2E15
+epic: EPIC-002-e2e-testing-infrastructure
+title: "GitHub Actions CI/CD Workflows Documentation"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "4 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E15-github-actions-workflows/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # E2E15: GitHub Actions CI/CD Workflows Documentation
 
 **Status:** 📝 **DOCUMENTATION**  

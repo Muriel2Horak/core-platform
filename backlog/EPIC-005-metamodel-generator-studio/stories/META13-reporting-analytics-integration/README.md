@@ -1,3 +1,21 @@
+---
+id: META-013
+epic: EPIC-005-metamodel-generator-studio
+title: "Reporting & Analytics Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "80 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META13-reporting-analytics-integration/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-013: Reporting & Analytics Integration
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

@@ -1,3 +1,21 @@
+---
+id: E2E16
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Environment & Smoke Alignment"
+priority: P0
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "6 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E16-environment-smoke-alignment/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # E2E16: Environment & Smoke Alignment
 
 **Status:** 🔵 **TODO**  

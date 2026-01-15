@@ -1,3 +1,21 @@
+---
+id: S7
+epic: EPIC-016-advanced-data-ux-framework
+title: "Extended Widget Types"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "150 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX7-extended-widget-types/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S7: Extended Widget Types
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

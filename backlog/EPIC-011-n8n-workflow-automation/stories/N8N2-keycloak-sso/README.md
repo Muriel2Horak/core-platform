@@ -1,3 +1,27 @@
+---
+id: N8
+epic: EPIC-011-n8n-workflow-automation
+title: "Deprecated"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-011-n8n-workflow-automation/stories/N8N2-keycloak-sso/README.md
+    - backlog/EPIC-011-n8n-workflow-automation/README.md
+---
+
+# Deprecated
+
+This story is duplicated. Use `../N8N2-keycloak-sso-integration/README.md`.
+
+---
+
 # N8N2: Keycloak SSO Integration - OAuth2/OIDC Authentication
 
 **Typ:** TASK  
@@ -14,7 +38,7 @@
 
 Integr ovat **Keycloak SSO** pro n8n authentication via OAuth2/OIDC:
 - Keycloak client `n8n-client`
-- Client roles: `n8n-users`, `n8n-admins`
+- Client roles: `WF_READER`, `WF_EDITOR`, `WF_ADMIN`
 - JWT token configuration
 - Auto-redirect to Keycloak login
 
@@ -28,7 +52,7 @@ Integr ovat **Keycloak SSO** pro n8n authentication via OAuth2/OIDC:
    - Client ID: `n8n-client`
    - Protocol: `openid-connect`
    - Redirect URIs: `https://admin.${DOMAIN}/n8n/*`
-   - Client roles: `n8n-users`, `n8n-admins`
+   - Client roles: `WF_READER`, `WF_EDITOR`, `WF_ADMIN`
 
 2. **n8n Configuration**
    - OAuth2 provider: Keycloak
@@ -100,7 +124,7 @@ Integr ovat **Keycloak SSO** pro n8n authentication via OAuth2/OIDC:
             "userinfo.token.claim": "true",
             "id.token.claim": "true",
             "access.token.claim": "true",
-            "claim.name": "n8n_roles",
+            "claim.name": "roles",
             "jsonType.label": "String"
           }
         }
@@ -111,12 +135,16 @@ Integr ovat **Keycloak SSO** pro n8n authentication via OAuth2/OIDC:
     "client": {
       "n8n-client": [
         {
-          "name": "n8n-users",
-          "description": "n8n regular users"
+          "name": "WF_READER",
+          "description": "n8n read-only access"
         },
         {
-          "name": "n8n-admins",
-          "description": "n8n administrators (full access)"
+          "name": "WF_EDITOR",
+          "description": "n8n edit/run access"
+        },
+        {
+          "name": "WF_ADMIN",
+          "description": "n8n admin/governance access"
         }
       ]
     }
@@ -147,7 +175,7 @@ services:
       - N8N_OAUTH2_SCOPE=openid email profile
       - N8N_OAUTH2_USER_ID_CLAIM=email
       - N8N_OAUTH2_USER_NAME_CLAIM=email
-      - N8N_OAUTH2_ROLE_CLAIM=n8n_roles
+      - N8N_OAUTH2_ROLE_CLAIM=roles
       
       # SSL/TLS (allow self-signed certs for dev)
       - NODE_TLS_REJECT_UNAUTHORIZED=0  # ⚠️ Remove in prod!
@@ -206,7 +234,7 @@ curl -k -X POST \
     }]
   }'
 
-# Assign n8n-admins role
+# Assign WF_ADMIN role
 USER_ID=$(curl -k -s -G \
   "${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/users" \
   --data-urlencode "email=n8n-admin@core-platform.local" \
@@ -218,7 +246,7 @@ curl -k -X POST \
   -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '[{
-    "name": "n8n-admins"
+    "name": "WF_ADMIN"
   }]'
 
 echo "✅ n8n-admin user created: n8n-admin@core-platform.local / n8n123"
@@ -264,7 +292,7 @@ class N8nKeycloakSSOTest {
 
 1. **Keycloak:**
    - [ ] Client `n8n-client` created
-   - [ ] Roles `n8n-users`, `n8n-admins` configured
+   - [ ] Roles `WF_READER`, `WF_EDITOR`, `WF_ADMIN` configured
    - [ ] Redirect URIs correct
 
 2. **n8n:**

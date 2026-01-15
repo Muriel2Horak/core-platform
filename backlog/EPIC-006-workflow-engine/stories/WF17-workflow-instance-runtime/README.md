@@ -1,3 +1,21 @@
+---
+id: WF17
+epic: EPIC-006-workflow-engine
+title: "Workflow Instance Runtime - Step-by-Step Orchestration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF17-workflow-instance-runtime/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF17: Workflow Instance Runtime - Step-by-Step Orchestration
 
 **Typ:** TASK  

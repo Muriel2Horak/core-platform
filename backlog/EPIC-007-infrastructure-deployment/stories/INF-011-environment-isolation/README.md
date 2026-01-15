@@ -1,3 +1,21 @@
+---
+id: INF-011
+epic: EPIC-007-infrastructure-deployment
+title: "Multi-Environment Configuration Isolation"
+priority: P1
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-011-environment-isolation/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-011: Multi-Environment Configuration Isolation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

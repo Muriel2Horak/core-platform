@@ -1,3 +1,21 @@
+---
+id: FWK-001
+epic: EPIC-017-modular-architecture
+title: "Maven Artifacts Distribution"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "4 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/FWK-001-maven-artifacts/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # FWK-001: Maven Artifacts Distribution
 
 **Status:** ⏳ **PENDING**  

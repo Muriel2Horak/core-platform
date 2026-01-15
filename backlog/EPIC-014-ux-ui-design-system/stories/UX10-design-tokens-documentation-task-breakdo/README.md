@@ -1,3 +1,21 @@
+---
+id: S10
+epic: EPIC-014-ux-ui-design-system
+title: "Design Tokens & Documentation - Task Breakdown"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-014-ux-ui-design-system/stories/UX10-design-tokens-documentation-task-breakdo/README.md
+    - backlog/EPIC-014-ux-ui-design-system/README.md
+---
+
 # S10: Design Tokens & Documentation - Task Breakdown
 
 **Story:** Design Tokens & Style Guide Documentation  

@@ -1,3 +1,21 @@
+---
+id: META-006
+epic: EPIC-005-metamodel-generator-studio
+title: "Code Generation (JPA Entities, Repositories, Controllers)"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META6-code-generation-jpa-entities-repositorie/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-006: Code Generation (JPA Entities, Repositories, Controllers)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

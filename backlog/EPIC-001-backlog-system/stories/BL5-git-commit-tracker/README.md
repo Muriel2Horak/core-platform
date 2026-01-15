@@ -12,7 +12,7 @@ path_mapping:
   code_paths:
     - scripts/backlog/git_tracker.sh
   test_paths:
-    - scripts/backlog/test_git_tracker.sh  # TODO: Add unit tests
+    - scripts/backlog/test_integration.py  # TODO: Add unit tests
   docs_paths:
     - backlog/README.md
     - docs/development/backlog-workflow.md
@@ -256,7 +256,7 @@ Testy které budou vytvořeny:
 
 ```yaml
 test_paths:
-  - scripts/backlog/tests/test_git_tracker.sh  # Bash integration tests (manual)
+  - scripts/backlog/test_integration.py  # Integration tests (manual)
   - e2e/specs/backlog/git-tracker.spec.ts  # E2E (optional, deferred to CORE-006)
 ```
 

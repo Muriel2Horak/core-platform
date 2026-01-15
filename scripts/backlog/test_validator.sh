@@ -90,7 +90,7 @@ OUTPUT EXAMPLE (text):
   CORE-005: Git Commit Tracker
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   AC1: Track commits per story
-    Unit Test: scripts/backlog/test_git_tracker.sh ✅ EXISTS
+    Unit Test: scripts/backlog/test_integration.py ✅ EXISTS
     Coverage: 33% (1/3 test types) ⚠️
   
   AC2: Generate commit report

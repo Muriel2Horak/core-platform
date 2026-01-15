@@ -1,3 +1,21 @@
+---
+id: META-004
+epic: EPIC-005-metamodel-generator-studio
+title: "Advanced Constraints (CHECK, FK Cascade)"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META4-advanced-constraints-check-fk-cascade/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-004: Advanced Constraints (CHECK, FK Cascade)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

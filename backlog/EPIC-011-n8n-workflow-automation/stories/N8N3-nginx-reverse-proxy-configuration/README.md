@@ -1,3 +1,23 @@
+---
+id: N8N3
+epic: EPIC-011-n8n-workflow-automation
+title: "Nginx Reverse Proxy Configuration"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "0.5 day"
+path_mapping:
+  code_paths:
+    - docker/nginx/nginx-ssl.conf.template
+    - docker/nginx/nginx.dev.conf
+    - docker/docker-compose.yml
+  test_paths: []
+  docs_paths:
+    - docs/keycloak-ssl-setup.md
+---
+
 # S3: Nginx Reverse Proxy Configuration
 
 > **Routing:** Configure Nginx to proxy `/n8n/*` to OAuth2 Proxy with SSL termination
@@ -14,7 +34,9 @@
 **WHEN** accessing `https://admin.core-platform.local/n8n`  
 **THEN** traffic routes to OAuth2 Proxy → n8n  
 **AND** webhooks at `/n8n/webhook/*` bypass authentication  
-**AND** SSL termination works correctly
+**AND** SSL termination works correctly  
+**AND** static assets under `/n8nstatic/*` and `/n8nassets/*` load under the subpath  
+**AND** `/n8n/rest/logout` is proxied without auth
 
 ## 🏗️ Implementation
 
@@ -47,6 +69,31 @@ location /n8n/ {
     # Buffer settings
     proxy_buffering off;
     proxy_request_buffering off;
+}
+
+# n8n logout endpoint (no auth, for SLO)
+location = /n8n/rest/logout {
+    proxy_pass http://n8n-proxy:3000/rest/logout;
+}
+
+# Fix base-path.js for subpath hosting
+location = /n8nstatic/base-path.js {
+    return 200 "window.BASE_PATH = '/n8n/';\n";
+}
+
+# n8n static assets (served directly from n8n)
+location ^~ /n8nstatic/ {
+    rewrite ^/n8nstatic/(.*)$ /static/$1 break;
+    proxy_pass http://n8n:5678;
+}
+
+location ^~ /n8nassets/ {
+    rewrite ^/n8nassets/(.*)$ /assets/$1 break;
+    proxy_pass http://n8n:5678;
+}
+
+location = /n8nfavicon.ico {
+    proxy_pass http://n8n:5678/favicon.ico;
 }
 
 # n8n Webhooks (public access - no auth)

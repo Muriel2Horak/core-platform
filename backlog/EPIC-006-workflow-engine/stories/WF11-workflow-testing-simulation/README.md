@@ -1,3 +1,21 @@
+---
+id: WORK-011
+epic: EPIC-006-workflow-engine
+title: "Workflow Testing & Simulation (Phase W13)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF11-workflow-testing-simulation/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-011: Workflow Testing & Simulation (Phase W13)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  

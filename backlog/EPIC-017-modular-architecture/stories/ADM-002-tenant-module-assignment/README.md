@@ -1,3 +1,21 @@
+---
+id: ADM-002
+epic: EPIC-017-modular-architecture
+title: "Tenant Module Assignment"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-002-tenant-module-assignment/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-002: Tenant Module Assignment
 
 **Status:** ⏳ **PENDING**  

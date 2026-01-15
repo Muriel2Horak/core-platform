@@ -1,3 +1,21 @@
+---
+id: S-P1
+epic: EPIC-012-vault-integration
+title: "PKI for Edge TLS (NGINX Certs via Vault)"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-012-vault-integration/stories/VLTS-P1-s-p1-pki-for-edge-tls-nginx-certs-via-va/README.md
+    - backlog/EPIC-012-vault-integration/README.md
+---
+
 # S-P1: PKI for Edge TLS (NGINX Certs via Vault)
 
 > **Dynamic Certificates:** Vault PKI engine issues *.core-platform.local certs, Vault Agent templates for NGINX, auto-renewal

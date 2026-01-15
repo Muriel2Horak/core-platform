@@ -1,3 +1,21 @@
+---
+id: S6
+epic: EPIC-007-platform-hardening
+title: "Cube.js Schema Generation from Metamodel (Phase S6)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-platform-hardening/stories/PH6-cube-js-schema-generation-from-metamodel/README.md
+    - backlog/EPIC-007-platform-hardening/README.md
+---
+
 # S6: Cube.js Schema Generation from Metamodel (Phase S6)
 
 **EPIC:** [EPIC-007: Platform Hardening](../README.md)  

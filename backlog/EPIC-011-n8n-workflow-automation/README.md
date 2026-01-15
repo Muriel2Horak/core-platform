@@ -8,9 +8,31 @@
 - **EPIC-007** (n8n platform deployment: Docker, Nginx, Keycloak SSO, PostgreSQL, Loki/Prometheus) ← **REQUIRED**
 - EPIC-006 (optional: WF15 EXTERNAL_TASK executor for n8n → Camunda integration)
 
-**LOC:** ~4,400 (base ~2,600 + multi-tenant ~1,800)  
-**Stories:** 10 (N8N1-N8N10: deployment, SSO, proxy, templates, monitoring, testing, provisioning, routing, isolation, connector)  
+**LOC:** ~5,900 (base ~2,600 + multi-tenant ~1,800 + governance/security ~1,500)  
+**Stories:** 13 (N8N1-N8N13: deployment, SSO, proxy, templates, monitoring, BFF, provisioning, routing, isolation, connector, registry sync, workflow governance, webhook security)  
 **Roadmap:** Week 4-5 of core platform rollout
+
+**Backend implementation:** Java/Spring Boot (default). No Python refactor planned.
+
+---
+
+## Canonical Story Directories
+
+- N8N1: `stories/N8N1-n8n-platform-deployment/README.md`
+- N8N2: `stories/N8N2-keycloak-sso-integration/README.md`
+- N8N3: `stories/N8N3-nginx-reverse-proxy-configuration/README.md`
+- N8N4: `stories/N8N4-workflow-templates-documentation/README.md`
+- N8N5: `stories/N8N5-monitoring-alerting-integration/README.md`
+- N8N6: `stories/N8N6-backend-n8n-integration-bff-pattern/README.md`
+- N8N7: `stories/N8N7-n8n-provisioning-service/README.md`
+- N8N8: `stories/N8N8-multi-tenant-sso-routing/README.md`
+- N8N9: `stories/N8N9-tenant-isolation-audit/README.md`
+- N8N10: `stories/N8N10-core-connector-node/README.md`
+- N8N11: `stories/N8N11-workflow-registry-governance/README.md`
+- N8N12: `stories/N8N12-webhook-security/README.md`
+- N8N13: `stories/N8N13-workflow-governance/README.md`
+
+Deprecated duplicates are marked in their README files and kept for reference.
 
 ---
 
@@ -33,7 +55,8 @@
   - `X-Core-Tenant: acme` (z JWT realm claim)
   - `X-Core-User: designer@acme.com` (z JWT sub)
   - `X-Core-N8N-Account: tenant-acme` (derived)
-- **Multi-realm SSO**: Keycloak client `n8n-admin-client` (admin realm) + role `CORE_N8N_DESIGNER` (tenant realms)
+- **Multi-realm SSO**: Keycloak client `n8n-admin-client` (admin realm) + WF_* roles in tenant/admin realms
+- **Governance roles**: WF_ADMIN/WF_EDITOR/WF_READER for n8n access checks (see N8N13)
 
 ❌ **What EPIC-007 does NOT provide (business logic in EPIC-011):**
 - Backend BFF proxy implementation (`N8nProxyController`)
@@ -51,7 +74,7 @@
    ↓ (if not authenticated)
 3. Keycloak: Redirect to login (realm 'acme'), user logs in
    ↓
-4. Keycloak: Issues JWT (claims: realm=acme, sub=designer@acme.com, role=CORE_N8N_DESIGNER)
+4. Keycloak: Issues JWT (claims: realm=acme, sub=designer@acme.com, roles include WF_EDITOR)
    ↓
 5. Nginx: Extracts JWT claims, injects headers:
    - X-Core-Tenant: acme
@@ -98,7 +121,7 @@
    - **Always behind Keycloak SSO** (per-tenant + admin realm)
    - **Always behind Nginx reverse proxy** (SSL termination, rate limiting, audit headers)
    - **Observed via Loki/Prometheus** (logs + metrics + audit trail)
-   - RBAC: `CORE_N8N_DESIGNER` (per-tenant), `CORE_PLATFORM_ADMIN` (admin realm)
+   - RBAC: `WF_READER/WF_EDITOR/WF_ADMIN`
 
 3. **Multi-Tenant Architecture**
    - **1x n8n instance** (shared infrastructure)
@@ -144,7 +167,7 @@ Configure **n8n Community Edition** jako mandatory **multi-tenant integration hu
 
 **Access:**
 - **Admin realm**: `https://admin.${DOMAIN}/n8n` (Core Platform admins)
-- **Tenant realms**: `https://{tenant}.${DOMAIN}/n8n` (tenant designers with `CORE_N8N_DESIGNER` role)
+- **Tenant realms**: `https://{tenant}.${DOMAIN}/n8n` (tenant users with `WF_READER/WF_EDITOR/WF_ADMIN` roles)
 
 **Integration:** n8n může volat Core Platform API, poslouchat Core eventy, orchestrovat AI/MCP calls. Každý workflow má tenant context (X-Core-Tenant header).
 
@@ -167,7 +190,7 @@ Configure **n8n Community Edition** jako mandatory **multi-tenant integration hu
 │  ┌────────────────────────────────────────────────────────────────┐ │
 │  │ KEYCLOAK SSO (Multi-Realm)                                      │ │
 │  │  Realms: admin, acme, beta, ...                                │ │
-│  │  Role: CORE_N8N_DESIGNER (per tenant)                          │ │
+│  │  Role: WF_EDITOR (per tenant)                                   │ │
 │  │  JWT contains: realm (=tenant), user, roles                    │ │
 │  └────────────────────────────────────────────────────────────────┘ │
 │                               │                                       │
@@ -317,8 +340,8 @@ const coreConnector = {
 
 1. **Authentication & Authorization**
    - SSO přes Keycloak (multi-realm support)
-   - **Admin realm**: `CORE_PLATFORM_ADMIN` role → full n8n access
-   - **Tenant realms**: `CORE_N8N_DESIGNER` role → per-tenant n8n account access
+   - **Admin realm**: `WF_ADMIN` role → full n8n access
+   - **Tenant realms**: `WF_READER/WF_EDITOR/WF_ADMIN` roles → per-tenant n8n account access
    - **Auto-provisioning**: n8nProvisioningService (backend BFF)
      - First access → creates n8n account `tenant-{realm}@n8n.local`
      - Subsequent accesses → reuse existing account
@@ -402,10 +425,13 @@ const coreConnector = {
 |-----------|---------|------|------------|--------|
 | **n8n** | Multi-tenant workflow automation engine | 5678 | Node.js, PostgreSQL | ⏳ TODO (N8N1) |
 | **Nginx** | Reverse proxy, per-tenant routing, audit headers | 443 | Nginx 1.25+ | ⏳ TODO (N8N3, N8N8) |
-| **Backend BFF** | n8n provisioning, proxy, tenant validation | 8080 | Spring Boot, WebClient | ⏳ TODO (N8N6, N8N7, N8N8) |
+| **Backend BFF** | n8n provisioning, proxy, tenant validation | 8080 | Spring Boot, WebClient | ⏳ TODO (N8N6, N8N7, N8N8, N8N11, N8N13) |
 | **Keycloak** | Multi-realm SSO identity provider | 8443 | Java, PostgreSQL | ✅ EXISTS |
 | **Templates** | Pre-built n8n workflows | - | JSON exports | ⏳ TODO (N8N4) |
 | **Monitoring** | Grafana dashboards + Loki audit | 3000 | Grafana, Loki | ⏳ TODO (N8N5, N8N9) |
+| **Workflow Registry** | Metadata sync from n8n | 8080 | Spring Boot, Postgres | ⏳ TODO (N8N11) |
+| **Workflow Governance** | Role-based access and audit | 8080 | Spring Boot, Keycloak | ⏳ TODO (N8N13) |
+| **Webhook Security** | HMAC verification + secrets | 8080 | Spring Boot | ⏳ TODO (N8N12) |
 | **Core Connector** | Custom n8n node (tenant-scoped API calls) | - | TypeScript, n8n SDK | ⏳ TODO (N8N10) |
 
 ---
@@ -462,7 +488,7 @@ n8n:
 - ✅ PostgreSQL stores workflow definitions + execution history
 - ✅ Webhooks functional for external integrations
 
-**Effort**: ~4 hours | **Details**: [stories/N8N1.md](./stories/N8N1.md)
+**Effort**: ~4 hours | **Details**: [stories/N8N1-n8n-platform-deployment/README.md](./stories/N8N1-n8n-platform-deployment/README.md)
 
 ---
 
@@ -473,7 +499,7 @@ n8n:
 **Deliverables**:
 - Keycloak client: `n8n-client`
 - Redirect URIs: `https://admin.core-platform.local/n8n/*`, `https://{tenant}.${DOMAIN}/n8n/*`
-- Client roles: `CORE_N8N_DESIGNER` (tenant realms), `CORE_PLATFORM_ADMIN` (admin realm)
+- Realm roles: `WF_READER`, `WF_EDITOR`, `WF_ADMIN`
 - User group mapping (realm-specific roles)
 - JWT token configuration (realm claim, sub, email)
 - **Provisioning mechanismus design:**
@@ -488,7 +514,7 @@ n8n:
 - ✅ Multi-realm support: admin realm + tenant realms
 - ✅ Provisioning strategy documented (REST API / credentials management)
 
-**Effort**: ~1 day | **Details**: [stories/N8N2.md](./stories/N8N2.md)
+**Effort**: ~1 day | **Details**: [stories/N8N2-keycloak-sso-integration/README.md](./stories/N8N2-keycloak-sso-integration/README.md)
 
 ---
 
@@ -515,7 +541,7 @@ location /n8n/ {
 - ✅ Keycloak SSO enforcement
 - ✅ WebSocket connections work (editor UX)
 
-**Effort**: ~0.5 day | **Details**: [stories/N8N3.md](./stories/N8N3.md)
+**Effort**: ~0.5 day | **Details**: [stories/N8N3-nginx-reverse-proxy-configuration/README.md](./stories/N8N3-nginx-reverse-proxy-configuration/README.md)
 
 ---
 
@@ -604,7 +630,7 @@ done
 - ✅ Documentation complete
 - ✅ End-to-end test: Core event → n8n workflow → external system → Core API callback
 
-**Effort**: ~2 days | **Details**: [stories/N8N4.md](./stories/N8N4.md)
+**Effort**: ~2 days | **Details**: [stories/N8N4-workflow-templates-documentation/README.md](./stories/N8N4-workflow-templates-documentation/README.md)
 
 ---
 
@@ -645,7 +671,7 @@ done
 - ✅ Grafana dashboard displays real-time n8n metrics
 - ✅ Alerts triggered on thresholds
 
-**Effort**: ~1 day | **Details**: [stories/N8N5.md](./stories/N8N5.md)
+**Effort**: ~1 day | **Details**: [stories/N8N5-monitoring-alerting-integration/README.md](./stories/N8N5-monitoring-alerting-integration/README.md)
 
 ---
 
@@ -722,7 +748,7 @@ done
   ```java
   @Test
   void onlyAdminCanAccessN8nUI() {
-    // User without CORE_PLATFORM_ADMIN role
+    // User without WF_EDITOR/WF_ADMIN role
     String regularUserToken = keycloak.getToken("user@acme.com", "password");
     
     // Try to access n8n UI
@@ -791,7 +817,7 @@ test('n8n UI requires Keycloak login', async ({ page }) => {
 - ✅ Functional tests pass (end-to-end workflow execution)
 - ✅ Playwright E2E tests pass (SSO login flow)
 
-**Effort**: ~2 days | **Details**: [stories/N8N6.md](./stories/N8N6.md)
+**Effort**: ~2 days | **Details**: [stories/N8N6-backend-n8n-integration-bff-pattern/README.md](./stories/N8N6-backend-n8n-integration-bff-pattern/README.md)
 
 ---
 
@@ -806,7 +832,7 @@ test('n8n UI requires Keycloak login', async ({ page }) => {
 **Explicitní provisioning flow (krok za krokem):**
 
 ```java
-// 1. User přistupuje s CORE_N8N_DESIGNER rolí
+// 1. User přistupuje s WF_READER/WF_EDITOR/WF_ADMIN rolí
 GET https://acme.${DOMAIN}/n8n
   → Nginx routes to: http://backend:8080/bff/n8n/proxy
 
@@ -879,7 +905,7 @@ public ResponseEntity<String> proxyToN8n(
 - ✅ Account creation logged to Loki with audit trail
 - ✅ Test: 100 tenants created → 100 n8n accounts
 
-**Effort**: ~2 days | **Details**: [stories/N8N7.md](./stories/N8N7.md)
+**Effort**: ~2 days | **Details**: [stories/N8N7-n8n-provisioning-service/README.md](./stories/N8N7-n8n-provisioning-service/README.md)
 
 ---
 
@@ -972,7 +998,7 @@ public class N8nProxyController {
 
 **3. Keycloak Realm Mapping:**
 - Each tenant subdomain = Keycloak realm (`acme.${DOMAIN}` = realm `acme`)
-- Role `CORE_N8N_DESIGNER` required for n8n access
+- Role `WF_READER/WF_EDITOR/WF_ADMIN` required for n8n access
 - JWT contains `realm` claim (used for tenant identification)
 
 **Acceptance Criteria**:
@@ -983,7 +1009,7 @@ public class N8nProxyController {
 - ✅ BFF validates tenant matches JWT realm
 - ✅ Session impersonation works (n8n shows correct account)
 
-**Effort**: ~2 days | **Details**: [stories/N8N8.md](./stories/N8N8.md)
+**Effort**: ~2 days | **Details**: [stories/N8N8-multi-tenant-sso-routing/README.md](./stories/N8N8-multi-tenant-sso-routing/README.md)
 
 ---
 
@@ -1093,7 +1119,7 @@ public ResponseEntity<TenantDTO> createTenant(
 - ✅ Loki audit trail shows who (user) did what (action) in which tenant
 - ✅ Test: 100 workflows executed → 100 audit log entries with correct tenant
 
-**Effort**: ~1.5 days | **Details**: [stories/N8N9.md](./stories/N8N9.md)
+**Effort**: ~1.5 days | **Details**: [stories/N8N9-tenant-isolation-audit/README.md](./stories/N8N9-tenant-isolation-audit/README.md)
 
 ---
 
@@ -1383,7 +1409,66 @@ docker restart core-n8n
 - ✅ Test: Workflow in tenant 'acme' calls Core API → backend receives X-Core-Tenant: acme
 - ✅ Documentation: How to use Core Connector node (screenshots, examples)
 
-**Effort**: ~1 day | **Details**: [stories/N8N10.md](./stories/N8N10.md)
+**Effort**: ~1 day | **Details**: [stories/N8N10-core-connector-node/README.md](./stories/N8N10-core-connector-node/README.md)
+
+---
+
+### N8N11: Workflow Registry Sync (~500 LOC, 1.5 days)
+
+**Goal**: Sync n8n workflow metadata into Core for visibility and audit.
+
+**Deliverables**:
+- Workflow registry tables (metadata, categories, tags)
+- API endpoints for listing and manual sync
+- Service account integration (Keycloak client credentials) for sync
+- Metrics for sync success/failure + last sync age
+
+**Acceptance Criteria**:
+- ✅ Registry sync populates workflows from n8n
+- ✅ List endpoint returns consistent metadata (id, name, category, active)
+- ✅ Sync can be triggered manually and scheduled
+- ✅ Service account token is used for sync calls
+
+**Effort**: ~1.5 days | **Details**: [stories/N8N11-workflow-registry-governance/README.md](./stories/N8N11-workflow-registry-governance/README.md)
+
+---
+
+### N8N13: Workflow Governance and RBAC (~500 LOC, 2 days)
+
+**Goal**: Enforce role-based governance for workflow access across tenants.
+
+**Deliverables**:
+- Keycloak role model (WF_ADMIN, WF_EDITOR, WF_READER, WF_PROXY_SERVICE)
+- Governance checks for view/edit/run decisions
+- Proxy/BFF enforcement using role headers
+- Audit log for governance decisions
+- Cache for short-lived access decisions
+
+**Acceptance Criteria**:
+- ✅ Roles are mapped from Keycloak JWT claims
+- ✅ Governance checks return allow/deny + reason
+- ✅ Proxy/BFF blocks unauthorized workflow actions
+- ✅ Audit entries include workflow_id, category, roles, decision
+
+**Effort**: ~2 days | **Details**: [stories/N8N13-workflow-governance/README.md](./stories/N8N13-workflow-governance/README.md)
+
+---
+
+### N8N12: Webhook Security and Signature Verification (~350 LOC, 1.5 days)
+
+**Goal**: Secure public n8n webhooks with HMAC signature validation.
+
+**Deliverables**:
+- Signature verification utility (sha256=... header)
+- Per-hook secret mapping with Vault-backed config
+- Reference workflow template for signature verification
+
+**Acceptance Criteria**:
+- ✅ Missing/invalid signature returns 401
+- ✅ Per-hook secrets supported (env/json file)
+- ✅ Audit logs include trace IDs for webhook calls
+
+**Effort**: ~1.5 days | **Details**: [stories/N8N12-webhook-security/README.md](./stories/N8N12-webhook-security/README.md)
 
 ---
 
@@ -1494,7 +1579,7 @@ WF17: Orchestrator continues to next step
 
 ---
 
-### S4: Workflow Templates & Documentation (~300 LOC)
+### N8N4: Workflow Templates & Documentation (~300 LOC)
 
 **Goal**: Provide starter workflow templates and user documentation
 
@@ -1509,11 +1594,11 @@ WF17: Orchestrator continues to next step
 - ✅ User guide published (Markdown in docs/)
 - ✅ Best practices documented
 
-**Effort**: ~2 hours | **Details**: [S4.md](./stories/S4.md)
+**Effort**: ~2 hours | **Details**: [stories/N8N4-workflow-templates-documentation/README.md](./stories/N8N4-workflow-templates-documentation/README.md)
 
 ---
 
-### S5: Monitoring & Alerting Integration (~300 LOC)
+### N8N5: Monitoring & Alerting Integration (~300 LOC)
 
 **Goal**: Integrate n8n metrics with Grafana monitoring
 
@@ -1528,13 +1613,13 @@ WF17: Orchestrator continues to next step
 - ✅ Dashboard shows workflow execution stats
 - ✅ Alerts trigger on failure threshold
 
-**Effort**: ~4 hours | **Details**: [S5.md](./stories/S5.md)
+**Effort**: ~4 hours | **Details**: [stories/N8N5-monitoring-alerting-integration/README.md](./stories/N8N5-monitoring-alerting-integration/README.md)
 
 ---
 
 ---
 
-### S6: Backend n8n Integration (BFF Pattern) (~1,200 LOC)
+### N8N6: Backend n8n Integration (BFF Pattern) (~1,200 LOC)
 
 **Goal**: Enable workflow monitoring in React frontend via backend BFF API
 
@@ -1559,7 +1644,7 @@ WF17: Orchestrator continues to next step
 - ✅ Auto-refresh every 5 seconds
 - ✅ Cache hit rate >80%
 
-**Effort**: ~23 hours | **Details**: [S6.md](./stories/S6.md)
+**Effort**: ~23 hours | **Details**: [stories/N8N6-backend-n8n-integration-bff-pattern/README.md](./stories/N8N6-backend-n8n-integration-bff-pattern/README.md)
 
 ---
 
@@ -1567,43 +1652,51 @@ WF17: Orchestrator continues to next step
 
 - **SSO**: Keycloak OIDC integration (existing identity provider)
 - **JWT Authentication**: All backend API calls require valid JWT token
-- **Role-Based Access**: n8n-users (read-only), n8n-admins (full access)
+- **Role-Based Access**: WF_READER (read-only), WF_EDITOR (edit/run), WF_ADMIN (governance)
 - **Credential Sanitization**: BFF strips sensitive data from n8n API responses
 - **Audit Logging**: All admin actions logged (activate/deactivate workflows)
 - **Network Isolation**: n8n internal-only, accessible via Nginx proxy or BFF API
-- **Webhook Security**: Public webhooks for integrations (no auth required)
+- **Webhook Security**: HMAC signature verification for public webhooks (N8N12)
 
 ## 🚀 Implementation Plan (Multi-Tenant)
 
 ### Phase 1: Foundation (Week 4)
 
-- ✅ N8N1: Deploy n8n + PostgreSQL (1 day)
-- ✅ N8N2: Configure Keycloak SSO client (1 day)
-- ✅ N8N3: Nginx reverse proxy setup (0.5 day)
+- [ ] N8N1: Deploy n8n + PostgreSQL (1 day)
+- [ ] N8N2: Configure Keycloak SSO client (1 day)
+- [ ] N8N3: Nginx reverse proxy setup (0.5 day)
 
 **DoD**: n8n accessible via SSO at https://admin.core-platform.local/n8n
 
 ### Phase 2: Multi-Tenant Infrastructure (Week 4-5)
 
-- ✅ N8N7: n8n Provisioning Service (2 days)
-- ✅ N8N8: Multi-Tenant SSO & Routing (2 days)
-- ✅ N8N9: Tenant Isolation & Audit Headers (1.5 days)
+- [ ] N8N7: n8n Provisioning Service (2 days)
+- [ ] N8N8: Multi-Tenant SSO & Routing (2 days)
+- [ ] N8N9: Tenant Isolation & Audit Headers (1.5 days)
 
 **DoD**: Per-tenant n8n access functional (`https://acme.${DOMAIN}/n8n`), auto-provisioning works, audit trail in Loki
 
 ### Phase 3: Workflows & Monitoring (Week 5)
 
-- ✅ N8N4: Workflow templates + documentation (2 days)
-- ✅ N8N5: Grafana monitoring integration (1 day)
-- ✅ N8N10: Core API Connector Node (1 day)
+- [ ] N8N4: Workflow templates + documentation (2 days)
+- [ ] N8N5: Grafana monitoring integration (1 day)
+- [ ] N8N10: Core API Connector Node (1 day)
 
 **DoD**: Starter templates available, metrics in Grafana, Core Connector node operational
 
 ### Phase 4: Testing & Quality (Week 5)
 
-- ✅ N8N6: Testing & Quality Gates (2 days)
+- [ ] N8N6: Testing & Quality Gates (2 days)
 
 **DoD**: Security tests pass, tenant isolation validated, E2E tests pass
+
+### Phase 5: Governance & Webhook Security (Week 5)
+
+- [ ] N8N11: Workflow Registry Sync (1.5 days)
+- [ ] N8N13: Workflow Governance and RBAC (2 days)
+- [ ] N8N12: Webhook Security and Signature Verification (1.5 days)
+
+**DoD**: Registry sync + governance enforced and signed webhooks validated
 
 ## 📚 Documentation
 
@@ -1612,6 +1705,8 @@ WF17: Orchestrator continues to next step
 - **N8N_USER_GUIDE.md**: End-user workflow creation guide (tenant designers)
 - **N8N_API_DOCUMENTATION.md**: Backend BFF API reference (provisioning, proxy)
 - **N8N_CORE_CONNECTOR_GUIDE.md**: Custom Core Connector node usage
+- **N8N_WORKFLOW_REGISTRY.md**: Registry sync and governance rules
+- **N8N_WEBHOOK_SECURITY.md**: Signature verification and secrets management
 
 ## 🎓 Dependencies
 
@@ -1623,7 +1718,7 @@ WF17: Orchestrator continues to next step
 
 ## 🏁 Definition of Done
 
-- [ ] All 10 stories implemented with acceptance criteria met (N8N1-N8N10)
+- [ ] All 13 stories implemented with acceptance criteria met (N8N1-N8N13)
 - [ ] n8n running in Docker Compose with PostgreSQL backend
 - [ ] n8n user management ENABLED (`N8N_USER_MANAGEMENT_DISABLED=false`)
 - [ ] 100% UI access requires Keycloak SSO login (per tenant)
@@ -1631,7 +1726,7 @@ WF17: Orchestrator continues to next step
   - [ ] Admin realm: `https://admin.${DOMAIN}/n8n`
   - [ ] Tenant realms: `https://{tenant}.${DOMAIN}/n8n`
 - [ ] Auto-provisioning: First access creates n8n account (`tenant-{realm}@n8n.local`)
-- [ ] Keycloak role `CORE_N8N_DESIGNER` configured per tenant
+- [ ] Keycloak roles `WF_READER/WF_EDITOR/WF_ADMIN` configured per tenant
 - [ ] Nginx proxy routes per-tenant + injects audit headers (X-Core-Tenant, X-Core-User, X-Core-N8N-Account)
 - [ ] Backend BFF validates tenant matches JWT realm (403 if mismatch)
 - [ ] Tenant isolation validated:
@@ -1640,6 +1735,9 @@ WF17: Orchestrator continues to next step
 - [ ] Audit trail in Loki:
   - [ ] Nginx access logs with X-Core-* headers
   - [ ] n8n workflow executions with tenant context
+- [ ] Workflow registry sync available (N8N11)
+- [ ] Workflow governance enforced with Keycloak roles (N8N13)
+- [ ] Webhook signature verification enabled for /api/v1/webhooks/n8n/* (N8N12)
 - [ ] Core Connector node operational:
   - [ ] Custom node available in n8n UI
   - [ ] Auto-injects X-Core-Tenant header
@@ -1657,10 +1755,8 @@ WF17: Orchestrator continues to next step
 **Epic Owner**: Platform Team  
 **Priority**: High (mandatory core component)  
 **Target**: Q1 2026  
-**Estimated Effort**: ~13 days (10 stories: N8N1-N8N10)  
-**LOC:** ~4,400 (base ~2,600 + multi-tenant ~1,800)  
+**Estimated Effort**: ~21 days (13 stories: N8N1-N8N13)  
+**LOC:** ~5,900 (base ~2,600 + multi-tenant ~1,800 + governance/security ~1,500)  
 **Status**: 📝 Documentation complete, multi-tenant architecture redesigned, awaiting implementation
-**Estimated Effort**: ~40 hours (~1 week, 1 engineer)  
-**Status**: 📝 Documentation complete, awaiting implementation
 
 **Last Updated**: 2025-11-07

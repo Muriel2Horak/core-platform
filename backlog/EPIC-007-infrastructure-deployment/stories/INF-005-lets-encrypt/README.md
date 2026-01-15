@@ -1,3 +1,21 @@
+---
+id: INF-005
+epic: EPIC-007-infrastructure-deployment
+title: "Let's Encrypt SSL Automation"
+priority: P1
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-005-lets-encrypt/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-005: Let's Encrypt SSL Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

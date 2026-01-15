@@ -1,3 +1,21 @@
+---
+id: S1
+epic: EPIC-007-platform-hardening
+title: "Naming Standards & Linting (Phase S1)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-platform-hardening/stories/PH1-naming-standards-linting/README.md
+    - backlog/EPIC-007-platform-hardening/README.md
+---
+
 # S1: Naming Standards & Linting (Phase S1)
 
 **EPIC:** [EPIC-007: Platform Hardening](../README.md)  

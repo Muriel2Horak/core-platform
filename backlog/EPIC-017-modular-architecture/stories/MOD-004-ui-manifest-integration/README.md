@@ -1,3 +1,21 @@
+---
+id: MOD-004
+epic: EPIC-017-modular-architecture
+title: "UI Manifest Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/MOD-004-ui-manifest-integration/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # MOD-004: UI Manifest Integration
 
 **Status:** ⏳ **PENDING**  

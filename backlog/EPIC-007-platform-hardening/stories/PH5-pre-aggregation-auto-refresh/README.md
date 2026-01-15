@@ -1,3 +1,21 @@
+---
+id: S5
+epic: EPIC-007-platform-hardening
+title: "Pre-Aggregation Auto-Refresh (Phase S5)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-platform-hardening/stories/PH5-pre-aggregation-auto-refresh/README.md
+    - backlog/EPIC-007-platform-hardening/README.md
+---
+
 # S5: Pre-Aggregation Auto-Refresh (Phase S5)
 
 **EPIC:** [EPIC-007: Platform Hardening](../README.md)  

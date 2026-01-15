@@ -1,3 +1,21 @@
+---
+id: S8
+epic: EPIC-007-platform-hardening
+title: "Platform Security Audit (Phase S8)"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-platform-hardening/stories/PH8-platform-security-audit/README.md
+    - backlog/EPIC-007-platform-hardening/README.md
+---
+
 # S8: Platform Security Audit (Phase S8)
 
 **EPIC:** [EPIC-007: Platform Hardening](../README.md)  

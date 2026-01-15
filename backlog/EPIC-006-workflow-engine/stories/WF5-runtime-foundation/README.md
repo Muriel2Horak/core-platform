@@ -1,3 +1,21 @@
+---
+id: WORK-005
+epic: EPIC-006-workflow-engine
+title: "Runtime Foundation (Phase W6)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF5-runtime-foundation/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-005: Runtime Foundation (Phase W6)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  

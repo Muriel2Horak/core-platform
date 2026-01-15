@@ -1,3 +1,21 @@
+---
+id: DMS-001
+epic: EPIC-008-document-management-system
+title: "Document Versioning System"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-001-document-versioning/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-001: Document Versioning System
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  

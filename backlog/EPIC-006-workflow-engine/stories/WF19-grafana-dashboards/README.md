@@ -1,3 +1,21 @@
+---
+id: WF19
+epic: EPIC-006-workflow-engine
+title: "Grafana Dashboards - Workflow Monitoring"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF19-grafana-dashboards/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF19: Grafana Dashboards - Workflow Monitoring
 
 **Typ:** TASK  

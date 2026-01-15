@@ -1,3 +1,27 @@
+---
+id: N8
+epic: EPIC-011-n8n-workflow-automation
+title: "Deprecated"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-011-n8n-workflow-automation/stories/N8N3-nginx-proxy/README.md
+    - backlog/EPIC-011-n8n-workflow-automation/README.md
+---
+
+# Deprecated
+
+This story is duplicated. Use `../N8N3-nginx-reverse-proxy-configuration/README.md`.
+
+---
+
 # N8N3: Nginx Reverse Proxy for n8n
 
 **Typ:** TASK  

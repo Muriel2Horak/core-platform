@@ -1,3 +1,21 @@
+---
+id: INF-006
+epic: EPIC-007-infrastructure-deployment
+title: "Database Schema Version Control"
+priority: P2
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-006-db-schema-versioning/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-006: Database Schema Version Control
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

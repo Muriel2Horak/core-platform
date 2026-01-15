@@ -8,6 +8,12 @@ assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
 estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-001-backlog-system/stories/BL4-git-commit-tracker/README.md
+    - backlog/EPIC-001-backlog-system/README.md
 ---
 
 # CORE-004: Git Commit Tracker

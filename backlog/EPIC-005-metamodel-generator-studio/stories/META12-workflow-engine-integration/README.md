@@ -1,3 +1,21 @@
+---
+id: META-012
+epic: EPIC-005-metamodel-generator-studio
+title: "Workflow Engine Integration"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "160 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META12-workflow-engine-integration/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-012: Workflow Engine Integration
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

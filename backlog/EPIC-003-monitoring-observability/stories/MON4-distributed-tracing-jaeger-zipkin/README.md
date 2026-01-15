@@ -1,3 +1,21 @@
+---
+id: S4
+epic: EPIC-003-monitoring-observability
+title: "Distributed Tracing (Jaeger/Zipkin) (Phase S4)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-003-monitoring-observability/stories/MON4-distributed-tracing-jaeger-zipkin/README.md
+    - backlog/EPIC-003-monitoring-observability/README.md
+---
+
 # S4: Distributed Tracing (Jaeger/Zipkin) (Phase S4)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  

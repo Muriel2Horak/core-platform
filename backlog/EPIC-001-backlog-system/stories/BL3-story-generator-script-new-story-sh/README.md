@@ -8,6 +8,12 @@ assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
 estimate: "1 day"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-001-backlog-system/stories/BL3-story-generator-script-new-story-sh/README.md
+    - backlog/EPIC-001-backlog-system/README.md
 ---
 
 # CORE-003: Story Generator Script (new_story.sh)

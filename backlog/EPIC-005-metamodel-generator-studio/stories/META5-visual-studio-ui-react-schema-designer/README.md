@@ -1,3 +1,21 @@
+---
+id: META-005
+epic: EPIC-005-metamodel-generator-studio
+title: "Visual Studio UI (React Schema Designer)"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META5-visual-studio-ui-react-schema-designer/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-005: Visual Studio UI (React Schema Designer)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

@@ -1,3 +1,21 @@
+---
+id: S8
+epic: EPIC-016-advanced-data-ux-framework
+title: "Customizable Popup Layouts"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "85 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX8-customizable-popup-layouts/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S8: Customizable Popup Layouts
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

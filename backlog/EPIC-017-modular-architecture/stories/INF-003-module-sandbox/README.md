@@ -1,3 +1,21 @@
+---
+id: INF-003
+epic: EPIC-017-modular-architecture
+title: "Module Sandbox Environment"
+priority: P3
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/INF-003-module-sandbox/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # INF-003: Module Sandbox Environment
 
 **Status:** ⏳ **PENDING**  

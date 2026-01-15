@@ -1,3 +1,21 @@
+---
+id: INF-010
+epic: EPIC-007-infrastructure-deployment
+title: "Post-Deployment Smoke Tests"
+priority: P1
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-010-deployment-smoke-tests/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-010: Post-Deployment Smoke Tests
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

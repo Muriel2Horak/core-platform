@@ -1,3 +1,21 @@
+---
+id: S5
+epic: EPIC-016-advanced-data-ux-framework
+title: "Multi-Window Editing System"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "60 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX5-multi-window-editing-system/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S5: Multi-Window Editing System
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

@@ -1,3 +1,21 @@
+---
+id: MOD-001
+epic: EPIC-017-modular-architecture
+title: "Module Manifest Loader"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/MOD-001-module-manifest-loader/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # MOD-001: Module Manifest Loader
 
 **Status:** ⏳ **PENDING**  

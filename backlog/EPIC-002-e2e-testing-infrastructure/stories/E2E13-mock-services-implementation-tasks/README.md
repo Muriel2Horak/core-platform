@@ -1,3 +1,21 @@
+---
+id: S13
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Mock Services - Implementation Tasks"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E13-mock-services-implementation-tasks/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # S13: Mock Services - Implementation Tasks
 **Progress:** 0/6 | **Effort:** ~12h | **LOC:** ~800
 

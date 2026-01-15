@@ -139,15 +139,13 @@ def test_path_checker():
     result.assert_equal(results["code_paths"].exist_count, 1, "git_tracker.sh exists")
     result.assert_equal(results["code_paths"].percentage, 100.0, "code_paths 100%")
 
-    # Check test_paths (should be missing)
+    # Check test_paths (should exist)
     result.assert_equal(
-        results["test_paths"].exist_count, 0, "test_git_tracker.sh missing (expected)"
+        results["test_paths"].exist_count, 1, "test_integration.py exists"
     )
-    result.assert_equal(results["test_paths"].percentage, 0.0, "test_paths 0%")
-    result.assert_in(
-        "scripts/backlog/test_git_tracker.sh",
-        results["test_paths"].missing_paths,
-        "Missing test file tracked",
+    result.assert_equal(results["test_paths"].percentage, 100.0, "test_paths 100%")
+    result.assert_equal(
+        results["test_paths"].missing_paths, [], "No missing test files"
     )
 
     # Check docs_paths (should exist)

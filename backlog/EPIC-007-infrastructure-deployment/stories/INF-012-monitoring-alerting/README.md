@@ -1,3 +1,21 @@
+---
+id: INF-012
+epic: EPIC-007-infrastructure-deployment
+title: "Comprehensive Monitoring & Alerting"
+priority: P1
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-012-monitoring-alerting/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-012: Comprehensive Monitoring & Alerting
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

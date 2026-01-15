@@ -1,3 +1,21 @@
+---
+id: S11
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Advanced Visualization"
+priority: P3
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "30 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP11-advanced-visualization/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S11: Advanced Visualization
 
 **Status:** 📋 **PLANNED** (Phase 10 - Post-MVP)  

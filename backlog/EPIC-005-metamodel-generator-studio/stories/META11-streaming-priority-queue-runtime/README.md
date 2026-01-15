@@ -1,3 +1,21 @@
+---
+id: META-011
+epic: EPIC-005-metamodel-generator-studio
+title: "Streaming & Priority Queue Runtime ⚡"
+priority: P0
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "160 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META11-streaming-priority-queue-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-011: Streaming & Priority Queue Runtime ⚡
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

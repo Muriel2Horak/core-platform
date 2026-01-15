@@ -1,3 +1,21 @@
+---
+id: INF-001
+epic: EPIC-017-modular-architecture
+title: "Manifest Validator"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/INF-001-manifest-validator/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # INF-001: Manifest Validator
 
 **Status:** ⏳ **PENDING**  

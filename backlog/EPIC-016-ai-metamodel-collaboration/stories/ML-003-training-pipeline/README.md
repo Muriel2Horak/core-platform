@@ -1,3 +1,21 @@
+---
+id: S3
+epic: EPIC-016-ai-metamodel-collaboration
+title: "Model Training Pipeline"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-003-training-pipeline/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # S3: Model Training Pipeline
 
 > **Automated Training:** Airflow DAGs, hyperparameter tuning (Optuna), data versioning (DVC)

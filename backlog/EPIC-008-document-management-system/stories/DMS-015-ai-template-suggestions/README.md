@@ -1,3 +1,21 @@
+---
+id: DMS-015
+epic: EPIC-008-document-management-system
+title: "AI Template Suggestions (BONUS)"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-015-ai-template-suggestions/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-015: AI Template Suggestions (BONUS)
 
 **Epic:** EPIC-008 Document Management System  

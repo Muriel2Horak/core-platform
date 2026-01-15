@@ -1,3 +1,21 @@
+---
+id: S10
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Collaboration Features"
+priority: P3
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "35 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP10-collaboration-features/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S10: Collaboration Features
 
 **Status:** 📋 **PLANNED** (Phase 9 - Post-MVP)  

@@ -1,3 +1,21 @@
+---
+id: S10
+epic: EPIC-007-platform-hardening
+title: "Metamodel Studio (Phase S10)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-platform-hardening/stories/PH10-metamodel-studio/README.md
+    - backlog/EPIC-007-platform-hardening/README.md
+---
+
 # S10: Metamodel Studio (Phase S10)
 
 **EPIC:** [EPIC-007: Platform Hardening](../README.md)  

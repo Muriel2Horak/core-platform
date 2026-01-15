@@ -1,3 +1,21 @@
+---
+id: LIC-002
+epic: EPIC-017-modular-architecture
+title: "License Enforcement Middleware"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/LIC-002-license-enforcement-middleware/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # LIC-002: License Enforcement Middleware
 
 **Status:** ⏳ **PENDING**  

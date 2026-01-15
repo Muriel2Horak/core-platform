@@ -1,3 +1,21 @@
+---
+id: S2
+epic: EPIC-016-ai-metamodel-collaboration
+title: "Prediction API Gateway"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-002-prediction-api/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # S2: Prediction API Gateway
 
 > **API Layer:** RESTful endpoints, batch predictions, caching, rate limiting

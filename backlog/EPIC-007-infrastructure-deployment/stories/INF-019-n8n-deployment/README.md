@@ -1,3 +1,21 @@
+---
+id: INF-019
+epic: EPIC-007-infrastructure-deployment
+title: "N8N Workflow Engine Deployment"
+priority: P0
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-019-n8n-deployment/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-019: N8N Workflow Engine Deployment
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

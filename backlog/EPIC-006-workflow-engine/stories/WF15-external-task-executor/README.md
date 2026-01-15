@@ -1,3 +1,21 @@
+---
+id: WF15
+epic: EPIC-006-workflow-engine
+title: "EXTERNAL_TASK Executor - n8n Integration Bridge"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF15-external-task-executor/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF15: EXTERNAL_TASK Executor - n8n Integration Bridge
 
 **Typ:** TASK  

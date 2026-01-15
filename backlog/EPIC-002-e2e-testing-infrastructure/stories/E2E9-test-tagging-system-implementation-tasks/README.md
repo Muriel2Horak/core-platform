@@ -1,3 +1,21 @@
+---
+id: S9
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Test Tagging System - Implementation Tasks"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E9-test-tagging-system-implementation-tasks/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # S9: Test Tagging System - Implementation Tasks
 
 **Story:** [S9: Test ID Tagging System](../S9.md)  

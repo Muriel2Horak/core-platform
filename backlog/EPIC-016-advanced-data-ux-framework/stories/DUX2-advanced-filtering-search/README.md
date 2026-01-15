@@ -1,3 +1,21 @@
+---
+id: S2
+epic: EPIC-016-advanced-data-ux-framework
+title: "Advanced Filtering & Search"
+priority: P0
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "90 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX2-advanced-filtering-search/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S2: Advanced Filtering & Search
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

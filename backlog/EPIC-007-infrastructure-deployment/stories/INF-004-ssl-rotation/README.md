@@ -1,3 +1,21 @@
+---
+id: INF-004
+epic: EPIC-007-infrastructure-deployment
+title: "SSL Certificate Rotation Automation"
+priority: P2
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-004-ssl-rotation/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-004: SSL Certificate Rotation Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

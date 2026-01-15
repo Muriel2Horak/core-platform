@@ -1,3 +1,21 @@
+---
+id: S4
+epic: EPIC-008-document-management-system
+title: "Access Control & Sharing"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS4-access-control-sharing/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # S4: Access Control & Sharing
 
 > **Fine-Grained Permissions:** Document-level ACLs, sharing links s expirací, role-based access

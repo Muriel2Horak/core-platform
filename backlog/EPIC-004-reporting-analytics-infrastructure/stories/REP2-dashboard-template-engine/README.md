@@ -1,3 +1,21 @@
+---
+id: S2
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Dashboard Template Engine (Phase R2)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP2-dashboard-template-engine/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S2: Dashboard Template Engine (Phase R2)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  

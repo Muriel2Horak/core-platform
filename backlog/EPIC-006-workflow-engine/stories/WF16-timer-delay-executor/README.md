@@ -1,3 +1,21 @@
+---
+id: WF16
+epic: EPIC-006-workflow-engine
+title: "TIMER/DELAY Executor - Workflow Delays & Scheduled Actions"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF16-timer-delay-executor/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF16: TIMER/DELAY Executor - Workflow Delays & Scheduled Actions
 
 **Typ:** TASK  

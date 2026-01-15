@@ -1,3 +1,21 @@
+---
+id: S14
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Test Data Management - Implementation Tasks"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E14-test-data-management-implementation-task/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # S14: Test Data Management - Implementation Tasks
 **Progress:** 0/7 | **Effort:** ~14h | **LOC:** ~1,200
 

@@ -1,3 +1,21 @@
+---
+id: WF14
+epic: EPIC-006-workflow-engine
+title: "KAFKA_COMMAND Executor - Async Command/Reply Pattern"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF14-kafka-command-executor/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF14: KAFKA_COMMAND Executor - Async Command/Reply Pattern
 
 **Typ:** TASK  

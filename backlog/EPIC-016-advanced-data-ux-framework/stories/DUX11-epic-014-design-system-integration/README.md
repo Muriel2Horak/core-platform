@@ -1,3 +1,21 @@
+---
+id: S11
+epic: EPIC-016-advanced-data-ux-framework
+title: "EPIC-014 Design System Integration"
+priority: P0
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "45 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX11-epic-014-design-system-integration/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S11: EPIC-014 Design System Integration
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

@@ -1,3 +1,26 @@
+---
+id: N8N2
+epic: EPIC-011-n8n-workflow-automation
+title: "Keycloak SSO Integration"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths:
+    - docker/docker-compose.yml
+    - docker/keycloak/realm-core-platform.template.json
+    - docker/keycloak/realm-tenant-template.json
+    - docker/keycloak/realm-admin.template.json
+    - docker/keycloak/clients
+  test_paths: []
+  docs_paths:
+    - docs/KEYCLOAK_BOOTSTRAP_GUIDE.md
+    - docs/auth-keycloak-setup.md
+---
+
 # S2: Keycloak SSO Integration
 
 > **Authentication:** Configure Keycloak OIDC client for n8n SSO login
@@ -14,7 +37,8 @@
 **WHEN** accessing n8n UI at `/n8n`  
 **THEN** user is redirected to Keycloak login  
 **AND** successful login grants access to n8n  
-**AND** user roles (n8n-users, n8n-admins) are enforced
+**AND** user roles (WF_ADMIN/WF_EDITOR/WF_READER) are enforced  
+**AND** roles are exposed in the token and forwarded as `X-Auth-Request-Roles`
 
 ## 🏗️ Implementation
 
@@ -74,24 +98,44 @@ echo "⚠️  Add to .env: N8N_OAUTH_CLIENT_SECRET=$CLIENT_SECRET"
 ### 2. Create Roles
 
 ```bash
-# Create n8n-users role
+# Create WF_READER role
 curl -X POST "$KEYCLOAK_URL/admin/realms/$REALM/roles" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "n8n-users",
-    "description": "n8n workflow users (read-only)"
+    "name": "WF_READER",
+    "description": "n8n workflow read-only access"
   }'
 
-# Create n8n-admins role
+# Create WF_EDITOR role
 curl -X POST "$KEYCLOAK_URL/admin/realms/$REALM/roles" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "n8n-admins",
-    "description": "n8n administrators (full access)"
+    "name": "WF_EDITOR",
+    "description": "n8n workflow edit/run access"
+  }'
+
+# Create WF_ADMIN role
+curl -X POST "$KEYCLOAK_URL/admin/realms/$REALM/roles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "WF_ADMIN",
+    "description": "n8n workflow admin/governance access"
+  }'
+
+# Create WF_PROXY_SERVICE role
+curl -X POST "$KEYCLOAK_URL/admin/realms/$REALM/roles" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "WF_PROXY_SERVICE",
+    "description": "service role for n8n proxy/governance"
   }'
 ```
+
+Also create a confidential client `n8n-internal` (service account) for registry sync and store its client secret in Vault.
 
 ### 3. OAuth2 Proxy Configuration
 
@@ -109,10 +153,13 @@ services:
       OAUTH2_PROXY_CLIENT_ID: n8n-client
       OAUTH2_PROXY_CLIENT_SECRET: ${N8N_OAUTH_CLIENT_SECRET}
       OAUTH2_PROXY_REDIRECT_URL: https://admin.core-platform.local/oauth2/callback
+      OAUTH2_PROXY_SCOPE: "openid email profile roles"
+      OAUTH2_PROXY_OIDC_GROUPS_CLAIM: roles
+      OAUTH2_PROXY_ALLOWED_GROUPS: "WF_ADMIN,WF_EDITOR,WF_READER"
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
       OAUTH2_PROXY_COOKIE_SECURE: true
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
-      OAUTH2_PROXY_UPSTREAMS: http://n8n:5678
+      OAUTH2_PROXY_UPSTREAMS: http://n8n-proxy:3000
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
       OAUTH2_PROXY_SKIP_AUTH_ROUTES: "^/webhook.*"
     ports:
@@ -123,6 +170,22 @@ services:
       - keycloak
       - n8n
 ```
+
+### 4. Secrets via Vault (recommended)
+
+Store OAuth2-Proxy secrets in Vault and template them into the runtime container.
+
+**Vault secrets:**
+- `secret/<env>/keycloak.oauth2_proxy_client_secret`
+- `secret/<env>/keycloak.cookie_secret`
+
+**Vault agent templates:**
+- `docker/vault-agent/templates/oauth2-proxy.env.ctmpl`
+- `docker/vault-agent/templates/oauth2-proxy-flower.env.ctmpl`
+
+**Runtime files:**
+- `/run/secrets/oauth2-proxy.env`
+- `/run/secrets/oauth2-proxy-flower.env`
 
 ## ✅ Testing
 
@@ -145,7 +208,7 @@ curl -I http://localhost:4180/
 ## 🎯 Acceptance Checklist
 
 - [x] Keycloak client created (n8n-client)
-- [x] Roles created (n8n-users, n8n-admins)
+- [x] Roles created (WF_ADMIN, WF_EDITOR, WF_READER, WF_PROXY_SERVICE)
 - [x] OAuth2 Proxy deployed
 - [x] SSO login flow works
 - [x] Webhooks bypass authentication

@@ -1,3 +1,21 @@
+---
+id: DMS-004
+epic: EPIC-008-document-management-system
+title: "Document Audit Trail"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-004-audit-trail/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-004: Document Audit Trail
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  

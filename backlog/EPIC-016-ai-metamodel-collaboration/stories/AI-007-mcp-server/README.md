@@ -1,3 +1,21 @@
+---
+id: AI-007
+epic: EPIC-016-ai-metamodel-collaboration
+title: "MCP Server Implementation"
+priority: P1
+status: in-progress
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-007-mcp-server/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # AI-007: MCP Server Implementation
 
 **Status:** 🟡 **60% IN PROGRESS** (Prototype working, production features pending)  

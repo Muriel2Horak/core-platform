@@ -1,3 +1,24 @@
+---
+id: N8N6
+epic: EPIC-011-n8n-workflow-automation
+title: "Backend n8n Integration (BFF Pattern)"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/monitoring/bff/controller/MonitoringProxyController.java
+    - backend/src/main/java/cz/muriel/core/monitoring/bff/MonitoringBffController.java
+    - backend/src/main/java/cz/muriel/core/auth/config/SecurityConfig.java
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/monitoring/bff/MonitoringHeaderSecurityIT.java
+  docs_paths:
+    - docs/MONITORING_BFF_ARCHITECTURE.md
+---
+
 # S6: Backend n8n Integration (BFF Pattern)
 
 > **Backend Integration:** n8n REST API client, role-based proxy, workflow monitoring endpoints
@@ -14,13 +35,13 @@
 
 ## 🎯 Acceptance Criteria
 
-**GIVEN** user with `n8n-users` role  
+**GIVEN** user with `WF_READER` role  
 **WHEN** accessing workflow dashboard  
 **THEN** sees list of workflows with status, success rate, recent executions  
 **AND** can monitor real-time workflow executions  
 **AND** CANNOT access n8n admin UI
 
-**GIVEN** user with `n8n-admins` role  
+**GIVEN** user with `WF_EDITOR` or `WF_ADMIN` role  
 **WHEN** accessing workflow dashboard  
 **THEN** sees all monitoring data as regular user  
 **AND** sees "Open in n8n" link for each workflow  
@@ -32,7 +53,20 @@
 **THEN** status updates within 5 seconds  
 **AND** shows real-time progress (running/success/error)
 
+**GIVEN** users access n8n through the proxy/BFF  
+**WHEN** requests hit `/n8n` or `/rest/workflows`  
+**THEN** the proxy uses a service account session, enforces governance checks (N8N13), and supports WebSockets
+
 ## 🏗️ Implementation
+
+### 0. Proxy/BFF responsibilities (session + governance)
+
+- Bootstrap owner account via `/owner/setup` when user management is not initialized.
+- Establish admin session via `/login` and reuse `n8n-auth` cookie for proxied requests.
+- Activate workflows marked active after import so production webhooks register.
+- Call registry access checks before write operations and trigger registry sync after success.
+- Expose `/metrics` for governance allow/deny and latency; optionally filter list responses.
+- Provide `/rest/logout` passthrough for SLO flows.
 
 ### 1. Backend n8n API Client
 
@@ -383,8 +417,9 @@ import java.util.stream.Collectors;
  * 
  * Security:
  * - All endpoints require authentication (JWT token)
- * - Read-only endpoints: n8n-users, n8n-admins
- * - Write endpoints: n8n-admins only
+ * - Read-only endpoints: WF_READER, WF_EDITOR, WF_ADMIN
+ * - Write endpoints: WF_EDITOR or WF_ADMIN
+ * - Admin-only endpoints: WF_ADMIN
  * 
  * Caching:
  * - Workflows list cached for 5 minutes
@@ -404,13 +439,13 @@ public class N8nProxyController {
     /**
      * Get all workflows (summary view).
      * 
-     * Security: n8n-users, n8n-admins
+     * Security: WF_READER, WF_EDITOR, WF_ADMIN
      * Caching: 5 minutes
      * 
      * @return List of workflow summaries
      */
     @GetMapping("/workflows")
-    @PreAuthorize("hasAnyRole('n8n-users', 'n8n-admins')")
+    @PreAuthorize("hasAnyRole('WF_READER', 'WF_EDITOR', 'WF_ADMIN')")
     @Cacheable(value = "n8n-workflows", key = "'all'", unless = "#result == null")
     public ResponseEntity<List<WorkflowSummaryDTO>> getWorkflows(
         @AuthenticationPrincipal Jwt jwt
@@ -441,13 +476,13 @@ public class N8nProxyController {
     /**
      * Get workflow details.
      * 
-     * Security: n8n-admins only (contains sensitive data)
+     * Security: WF_EDITOR or WF_ADMIN (contains sensitive data)
      * 
      * @param id Workflow ID
      * @return Workflow details (sanitized - no credentials)
      */
     @GetMapping("/workflows/{id}")
-    @PreAuthorize("hasRole('n8n-admins')")
+    @PreAuthorize("hasAnyRole('WF_EDITOR', 'WF_ADMIN')")
     public ResponseEntity<WorkflowDetailDTO> getWorkflow(
         @PathVariable String id,
         @AuthenticationPrincipal Jwt jwt
@@ -484,7 +519,7 @@ public class N8nProxyController {
     /**
      * Get workflow executions.
      * 
-     * Security: n8n-users, n8n-admins
+     * Security: WF_READER, WF_EDITOR, WF_ADMIN
      * No caching: Real-time data
      * 
      * @param workflowId Workflow ID
@@ -493,7 +528,7 @@ public class N8nProxyController {
      * @return List of executions
      */
     @GetMapping("/workflows/{workflowId}/executions")
-    @PreAuthorize("hasAnyRole('n8n-users', 'n8n-admins')")
+    @PreAuthorize("hasAnyRole('WF_READER', 'WF_EDITOR', 'WF_ADMIN')")
     public ResponseEntity<List<ExecutionDTO>> getExecutions(
         @PathVariable String workflowId,
         @RequestParam(defaultValue = "50") int limit,
@@ -519,13 +554,13 @@ public class N8nProxyController {
     /**
      * Get execution details.
      * 
-     * Security: n8n-users, n8n-admins
+     * Security: WF_READER, WF_EDITOR, WF_ADMIN
      * 
      * @param executionId Execution ID
      * @return Execution details
      */
     @GetMapping("/executions/{executionId}")
-    @PreAuthorize("hasAnyRole('n8n-users', 'n8n-admins')")
+    @PreAuthorize("hasAnyRole('WF_READER', 'WF_EDITOR', 'WF_ADMIN')")
     public ResponseEntity<ExecutionDetailDTO> getExecution(
         @PathVariable String executionId,
         @AuthenticationPrincipal Jwt jwt
@@ -556,14 +591,14 @@ public class N8nProxyController {
     /**
      * Activate workflow.
      * 
-     * Security: n8n-admins only
+     * Security: WF_EDITOR or WF_ADMIN
      * Side effect: Clears workflow cache
      * 
      * @param id Workflow ID
      * @return 200 OK or 500 on error
      */
     @PostMapping("/workflows/{id}/activate")
-    @PreAuthorize("hasRole('n8n-admins')")
+    @PreAuthorize("hasAnyRole('WF_EDITOR', 'WF_ADMIN')")
     @CacheEvict(value = "n8n-workflows", allEntries = true)
     public ResponseEntity<Void> activateWorkflow(
         @PathVariable String id,
@@ -589,14 +624,14 @@ public class N8nProxyController {
     /**
      * Deactivate workflow.
      * 
-     * Security: n8n-admins only
+     * Security: WF_EDITOR or WF_ADMIN
      * Side effect: Clears workflow cache
      * 
      * @param id Workflow ID
      * @return 200 OK or 500 on error
      */
     @PostMapping("/workflows/{id}/deactivate")
-    @PreAuthorize("hasRole('n8n-admins')")
+    @PreAuthorize("hasAnyRole('WF_EDITOR', 'WF_ADMIN')")
     @CacheEvict(value = "n8n-workflows", allEntries = true)
     public ResponseEntity<Void> deactivateWorkflow(
         @PathVariable String id,
@@ -622,13 +657,13 @@ public class N8nProxyController {
     /**
      * Delete execution record.
      * 
-     * Security: n8n-admins only
+     * Security: WF_ADMIN only
      * 
      * @param executionId Execution ID
      * @return 200 OK or 500 on error
      */
     @DeleteMapping("/executions/{executionId}")
-    @PreAuthorize("hasRole('n8n-admins')")
+    @PreAuthorize("hasRole('WF_ADMIN')")
     public ResponseEntity<Void> deleteExecution(
         @PathVariable String executionId,
         @AuthenticationPrincipal Jwt jwt
@@ -981,7 +1016,7 @@ export const WorkflowDashboard: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {hasRole('n8n-admins') && (
+                    {(hasRole('WF_ADMIN') || hasRole('WF_EDITOR')) && (
                       <>
                         <button
                           onClick={() => toggleWorkflow(workflow.id, !workflow.active)}
@@ -1077,7 +1112,7 @@ export const WorkflowDashboard: React.FC = () => {
       {workflows.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-500 mb-4">No workflows found</div>
-          {hasRole('n8n-admins') && (
+          {(hasRole('WF_ADMIN') || hasRole('WF_EDITOR')) && (
             <a
               href="https://core-platform.local/n8n/"
               target="_blank"
@@ -1183,13 +1218,17 @@ export interface ExecutionDetail extends Execution {
 **Dependencies:** Task 1, Task 2, Spring Security
 **Acceptance:**
 
-- [ ] GET /api/n8n/workflows (@PreAuthorize n8n-users, n8n-admins)
+- [ ] GET /api/n8n/workflows (@PreAuthorize WF_READER/WF_EDITOR/WF_ADMIN)
 - [ ] GET /api/n8n/workflows/{id}/executions
-- [ ] POST /api/n8n/workflows/{id}/activate (admins only)
-- [ ] POST /api/n8n/workflows/{id}/deactivate (admins only)
+- [ ] POST /api/n8n/workflows/{id}/activate (WF_EDITOR/WF_ADMIN)
+- [ ] POST /api/n8n/workflows/{id}/deactivate (WF_EDITOR/WF_ADMIN)
 - [ ] @Cacheable for workflows (5 min TTL)
 - [ ] AuditService.log() for admin actions
 - [ ] Integration tests with @WebMvcTest
+- [ ] Service session cookie reuse + refresh on expiry (proxy requests)
+- [ ] Governance checks before write operations (N8N13)
+- [ ] Trigger registry sync after successful write operations (debounced)
+- [ ] /metrics exposes governance allow/deny/latency (proxy)
 
 ### Task 4: DTOs & Mapping
 
@@ -1264,7 +1303,7 @@ export interface ExecutionDetail extends Execution {
 **Acceptance:**
 
 - [ ] Test GET /api/n8n/workflows (with mocked n8n API)
-- [ ] Test role-based access (users vs admins)
+- [ ] Test role-based access (WF_READER vs WF_EDITOR/WF_ADMIN)
 - [ ] Test cache behavior (hit/miss)
 - [ ] Test activate/deactivate with audit logging
 - [ ] MockMvc + WireMock for n8n API
@@ -1276,8 +1315,8 @@ export interface ExecutionDetail extends Execution {
 **Dependencies:** Playwright, n8n running
 **Acceptance:**
 
-- [ ] Login as user → see dashboard (no admin links)
-- [ ] Login as admin → see "Open in n8n" links
+- [ ] Login as WF_READER user → see dashboard (no admin links)
+- [ ] Login as WF_EDITOR/WF_ADMIN user → see "Open in n8n" links
 - [ ] Verify workflow card shows correct stats
 - [ ] Verify auto-refresh updates executions
 - [ ] Test activate/deactivate workflow
@@ -1306,13 +1345,21 @@ export interface ExecutionDetail extends Execution {
 - Testing (Tasks 9-10): 5 hours
 - Documentation (Task 11): 1 hour
 
+## ✅ Dev Checklist
+
+- [ ] n8n and n8n-proxy reachable on internal network
+- [ ] Vault secrets injected (N8N_API_KEY, proxy service account creds)
+- [ ] OAuth2-proxy forwards `X-Auth-Request-Roles` headers
+- [ ] Registry access check endpoint reachable from BFF
+- [ ] /metrics exposes governance allow/deny/latency
+
 ## 🚀 Deployment Checklist
 
 - [ ] Generate n8n API key in n8n settings UI
 - [ ] Add `N8N_API_KEY` to `.env` file
 - [ ] Add `N8N_API_URL=http://n8n:5678` to `.env`
-- [ ] Create Keycloak groups: `n8n-users`, `n8n-admins`
-- [ ] Assign users to appropriate groups
+- [ ] Create Keycloak roles: `WF_READER`, `WF_EDITOR`, `WF_ADMIN`
+- [ ] Assign users to appropriate roles
 - [ ] Deploy backend changes (`make rebuild-backend`)
 - [ ] Deploy frontend changes (`make rebuild-frontend`)
 - [ ] Run integration tests (`make test-backend-full`)

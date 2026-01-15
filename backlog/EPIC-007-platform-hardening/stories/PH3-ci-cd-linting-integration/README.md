@@ -1,3 +1,21 @@
+---
+id: S3
+epic: EPIC-007-platform-hardening
+title: "CI/CD Linting Integration (Phase S3)"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-platform-hardening/stories/PH3-ci-cd-linting-integration/README.md
+    - backlog/EPIC-007-platform-hardening/README.md
+---
+
 # S3: CI/CD Linting Integration (Phase S3)
 
 **EPIC:** [EPIC-007: Platform Hardening](../README.md)  

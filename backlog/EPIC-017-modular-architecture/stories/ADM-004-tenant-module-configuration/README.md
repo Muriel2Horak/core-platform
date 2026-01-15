@@ -1,3 +1,21 @@
+---
+id: ADM-004
+epic: EPIC-017-modular-architecture
+title: "Tenant Module Configuration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-004-tenant-module-configuration/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-004: Tenant Module Configuration
 
 **Status:** ⏳ **PENDING**  

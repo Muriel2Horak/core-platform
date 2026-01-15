@@ -1,3 +1,21 @@
+---
+id: LIC-003
+epic: EPIC-017-modular-architecture
+title: "License Management API"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/LIC-003-license-management-api/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # LIC-003: License Management API
 
 **Status:** ⏳ **PENDING**  

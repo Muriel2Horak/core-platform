@@ -1,3 +1,21 @@
+---
+id: DMS-006
+epic: EPIC-008-document-management-system
+title: "WebDAV Lock Mechanism (Office Integration)"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-006-webdav-editing/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-006: WebDAV Lock Mechanism (Office Integration)
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  

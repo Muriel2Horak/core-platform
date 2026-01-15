@@ -1,3 +1,21 @@
+---
+id: S3
+epic: EPIC-003-monitoring-observability
+title: "Alerting Rules (Prometheus AlertManager) (Phase S3)"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-003-monitoring-observability/stories/MON3-alerting-rules-prometheus-alertmanager/README.md
+    - backlog/EPIC-003-monitoring-observability/README.md
+---
+
 # S3: Alerting Rules (Prometheus AlertManager) (Phase S3)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  

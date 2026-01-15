@@ -8,6 +8,12 @@ assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
 estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-001-backlog-system/stories/BL6-path-mapping-validation-coverage-reporti/README.md
+    - backlog/EPIC-001-backlog-system/README.md
 ---
 
 # CORE-006: Path Mapping Validation & Coverage Reporting
@@ -112,10 +118,10 @@ Scenario: Generate text coverage report
     📊 Path Mapping Coverage: CORE-005
     
     ✅ code_paths:  1/1 (100%) - scripts/backlog/git_tracker.sh
-    ⚠️  test_paths:  0/1 (0%)   - MISSING: scripts/backlog/test_git_tracker.sh
+    ✅ test_paths:  1/1 (100%) - scripts/backlog/test_integration.py
     ✅ docs_paths:  3/3 (100%) - backlog/README.md, docs/development/backlog-workflow.md, CHANGELOG.md
     
-    📈 Overall: 80% (4/5 paths exist)
+    📈 Overall: 100% (5/5 paths exist)
     """
 ```
 

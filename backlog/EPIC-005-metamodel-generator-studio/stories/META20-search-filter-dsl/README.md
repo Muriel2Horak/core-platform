@@ -1,3 +1,21 @@
+---
+id: META-020
+epic: EPIC-005-metamodel-generator-studio
+title: "Search & Filter DSL"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "80 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META20-search-filter-dsl/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-020: Search & Filter DSL
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

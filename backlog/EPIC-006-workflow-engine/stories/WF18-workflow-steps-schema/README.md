@@ -1,3 +1,21 @@
+---
+id: WF18
+epic: EPIC-006-workflow-engine
+title: "Workflow Steps Schema - Metamodel Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF18-workflow-steps-schema/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF18: Workflow Steps Schema - Metamodel Integration
 
 **Typ:** TASK  

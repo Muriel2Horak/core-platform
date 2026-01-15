@@ -1,3 +1,21 @@
+---
+id: AI-010
+epic: EPIC-016-ai-metamodel-collaboration
+title: "AI Code Review Bot"
+priority: P3
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-010-code-review-bot/README.md
+    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+---
+
 # AI-010: AI Code Review Bot
 
 **Status:** 🔮 **PLANNED** (0% complete - future enhancement)  

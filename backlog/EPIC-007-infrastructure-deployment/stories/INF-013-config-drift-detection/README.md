@@ -1,3 +1,21 @@
+---
+id: INF-013
+epic: EPIC-007-infrastructure-deployment
+title: "Configuration Drift Detection"
+priority: P2
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-013-config-drift-detection/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-013: Configuration Drift Detection
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

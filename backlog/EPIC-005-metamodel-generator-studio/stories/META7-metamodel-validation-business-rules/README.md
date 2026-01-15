@@ -1,3 +1,21 @@
+---
+id: META-007
+epic: EPIC-005-metamodel-generator-studio
+title: "Metamodel Validation & Business Rules"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META7-metamodel-validation-business-rules/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-007: Metamodel Validation & Business Rules
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

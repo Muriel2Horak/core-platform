@@ -1,3 +1,27 @@
+---
+id: N8
+epic: EPIC-011-n8n-workflow-automation
+title: "Deprecated"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-011-n8n-workflow-automation/stories/N8N4-workflow-templates/README.md
+    - backlog/EPIC-011-n8n-workflow-automation/README.md
+---
+
+# Deprecated
+
+This story is duplicated. Use `../N8N4-workflow-templates-documentation/README.md`.
+
+---
+
 # N8N4: Pre-built Workflow Templates
 
 **Typ:** TASK  

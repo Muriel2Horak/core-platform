@@ -1,3 +1,21 @@
+---
+id: INF-017
+epic: EPIC-007-infrastructure-deployment
+title: "Disaster Recovery Plan & Procedures"
+priority: P2
+status: todo
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-017-disaster-recovery/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-017: Disaster Recovery Plan & Procedures
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

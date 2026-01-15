@@ -1,3 +1,21 @@
+---
+id: FWK-003
+epic: EPIC-017-modular-architecture
+title: "Public API Stabilization"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/FWK-003-public-api-stabilization/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # FWK-003: Public API Stabilization
 
 **Status:** ⏳ **PENDING**  

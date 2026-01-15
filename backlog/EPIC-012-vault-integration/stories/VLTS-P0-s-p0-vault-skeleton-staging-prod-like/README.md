@@ -1,3 +1,21 @@
+---
+id: S-P0
+epic: EPIC-012-vault-integration
+title: "Vault Skeleton (Staging, Prod-Like)"
+priority: P0
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "6 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-012-vault-integration/stories/VLTS-P0-s-p0-vault-skeleton-staging-prod-like/README.md
+    - backlog/EPIC-012-vault-integration/README.md
+---
+
 # S-P0: Vault Skeleton (Staging, Prod-Like)
 
 > **Foundation:** HashiCorp Vault HA Raft deployment, audit device, init/unseal scripts, Make automation

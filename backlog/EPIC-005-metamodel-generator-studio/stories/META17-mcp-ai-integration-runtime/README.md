@@ -1,3 +1,21 @@
+---
+id: META-017
+epic: EPIC-005-metamodel-generator-studio
+title: "MCP/AI Integration Runtime"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "120 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META17-mcp-ai-integration-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-017: MCP/AI Integration Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

@@ -1,3 +1,21 @@
+---
+id: S6
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Custom Metrics & Calculated Fields (Phase R6)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP6-custom-metrics-calculated-fields/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S6: Custom Metrics & Calculated Fields (Phase R6)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  
