@@ -39,10 +39,20 @@ services:
       POSTGRES_USER: ${DB_INTERNAL_USERNAME}
       POSTGRES_PASSWORD: ${DB_INTERNAL_PASSWORD}
       POSTGRES_DB: ${DB_INTERNAL_NAME}
+      # Core app database credentials
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_PASSWORD_FILE: ${DATABASE_PASSWORD_FILE:-}
       # Keycloak database credentials pro init skripty
       KEYCLOAK_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KEYCLOAK_DB_PASSWORD_FILE: ${KEYCLOAK_DB_PASSWORD_FILE:-}
       KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME}
+      # Grafana database credentials pro init skripty
+      GRAFANA_DB_NAME: ${GRAFANA_DB_NAME}
+      GRAFANA_DB_USERNAME: ${GRAFANA_DB_USERNAME}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
+      GRAFANA_DB_PASSWORD_FILE: ${GRAFANA_DB_PASSWORD_FILE:-}
     volumes:
       - core_db_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro

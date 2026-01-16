@@ -55,6 +55,7 @@ help:
 	@echo "  test-backend-full     - Backend ALL tests (unit + integration, 10-15 min)"
 	@echo "  test-frontend         - Frontend unit tests"
 	@echo "  test-build-doctor     - Build Doctor pre-flight tests"
+	@echo "  test-db-separate-users - DB user isolation checks (core/keycloak/grafana)"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -1563,6 +1564,11 @@ nuclear-rebuild-frontend:
 .PHONY: test-build-doctor
 test-build-doctor:
 	@bash tests/build_doctor_tests.sh
+
+# DB separate users isolation tests
+.PHONY: test-db-separate-users
+test-db-separate-users:
+	@START_DB=true bash tests/db_separate_users_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit
