@@ -59,6 +59,7 @@ help:
 	@echo "  test-db-separate-users - DB user isolation checks (core/keycloak/grafana)"
 	@echo "  test-smoke-tests      - Smoke test script dry-run"
 	@echo "  test-db-backup        - Backup/restore dry-run tests"
+	@echo "  test-ssl-rotation     - SSL rotation dry-run"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -77,6 +78,7 @@ help:
 	@echo "  env-validate    - Quick .env validation (file exists, vars set)"
 	@echo "  doctor          - Full health check (.env + service connectivity)"
 	@echo "  validate-templates - Validate envsubst template syntax"
+	@echo "  ssl-rotate-check - Check and rotate SSL certificates"
 	@echo ""
 	@echo "🔐 Vault:"
 	@echo "  vault-up        - Start Vault + Vault Agent (vault-only secrets)"
@@ -234,6 +236,11 @@ deploy:
 .PHONY: validate-templates
 validate-templates:
 	@bash scripts/templates/validate-syntax.sh
+
+# SSL rotation check
+.PHONY: ssl-rotate-check
+ssl-rotate-check:
+	@bash scripts/ssl/check-and-rotate.sh
 
 # Full environment doctor check (validation + connectivity)
 .PHONY: doctor
@@ -1648,6 +1655,11 @@ test-smoke-tests:
 .PHONY: test-db-backup
 test-db-backup:
 	@bash tests/db_backup_tests.sh
+
+# SSL rotation dry-run tests
+.PHONY: test-ssl-rotation
+test-ssl-rotation:
+	@bash tests/ssl_rotation_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

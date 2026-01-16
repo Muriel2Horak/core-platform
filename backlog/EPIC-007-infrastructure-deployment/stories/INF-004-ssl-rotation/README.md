@@ -3,14 +3,18 @@ id: INF-004
 epic: EPIC-007-infrastructure-deployment
 title: "SSL Certificate Rotation Automation"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - docker/ssl/generate-ssl.sh
+    - scripts/ssl/check-and-rotate.sh
+    - Makefile
+  test_paths:
+    - tests/ssl_rotation_tests.sh
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-004-ssl-rotation/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
@@ -19,7 +23,7 @@ path_mapping:
 # INF-004: SSL Certificate Rotation Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** MEDIUM  
 **Effort:** 2 dny, ~400 LOC  
 **Owner:** Platform Team  
