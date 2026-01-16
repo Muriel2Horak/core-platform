@@ -66,6 +66,7 @@ help:
 	@echo "  test-vault-skeleton   - Vault S-P0 config checks"
 	@echo "  test-vault-pki        - Vault S-P1 PKI config checks"
 	@echo "  test-vault-migration  - Vault S-P2 secrets migration checks"
+	@echo "  test-vault-rotation   - Vault S-P3 rotation checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -96,7 +97,9 @@ help:
 	@echo "  vault-list-secrets - List secrets under kv/core"
 	@echo "  vault-pki-setup - Setup Vault PKI root + intermediate CAs"
 	@echo "  vault-pki-issue - Issue edge TLS cert into vault_secrets"
+	@echo "  vault-rotate-backend-db-pass - Rotate backend DB password"
 	@echo "  vault-smoke     - Vault health + audit log checks"
+	@echo "  vault-smoke-runtime - Vault KV access smoke check"
 	@echo "  vault-logs      - Tail Vault logs"
 	@echo ""
 	@echo "� Backlog Management:"
@@ -268,7 +271,7 @@ doctor:
 # 🔐 VAULT (Vault-only secrets + Vault Agent)
 # =============================================================================
 
-.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-push-secrets vault-list-secrets vault-pki-setup vault-pki-issue vault-smoke vault-logs vault-status
+.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-push-secrets vault-list-secrets vault-pki-setup vault-pki-issue vault-rotate-backend-db-pass vault-smoke vault-smoke-runtime vault-logs vault-status
 
 vault-up:
 	@$(VAULT_COMPOSE) up -d vault vault-agent
@@ -297,8 +300,14 @@ vault-pki-setup:
 vault-pki-issue:
 	@bash scripts/vault/pki-issue.sh
 
+vault-rotate-backend-db-pass:
+	@bash scripts/vault/rotate-backend-db-pass.sh
+
 vault-smoke:
 	@bash scripts/vault/vault-smoke.sh
+
+vault-smoke-runtime:
+	@bash scripts/vault/vault-smoke-runtime.sh
 
 vault-logs:
 	@$(VAULT_COMPOSE) logs -f vault vault-agent
@@ -1722,6 +1731,11 @@ test-vault-pki:
 .PHONY: test-vault-migration
 test-vault-migration:
 	@bash tests/vault_secrets_migration_tests.sh
+
+# Vault S-P3 rotation checks
+.PHONY: test-vault-rotation
+test-vault-rotation:
+	@bash tests/vault_rotation_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

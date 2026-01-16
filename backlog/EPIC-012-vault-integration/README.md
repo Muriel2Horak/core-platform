@@ -4,7 +4,7 @@
 
 ---
 
-**Status:** 🔵 **IN PROGRESS** (S-P0/S-P1/S-P2 done, S-P3+ pending)  
+**Status:** 🔵 **IN PROGRESS** (S-P0/S-P1/S-P2/S-P3 done, S-P4 pending)  
 **Definice:** ✅ **100%** (S-P0..S-P4 specifikováno s AC)
 
 ## 🎯 Epic Goal
