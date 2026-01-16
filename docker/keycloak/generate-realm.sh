@@ -87,8 +87,8 @@ debug_echo "Running envsubst command..."
 # 🔧 FIX: Nejprve nahradíme fallback syntaxi standardní syntaxí pro envsubst
 # Používáme ADMIN_DOMAIN místo DOMAIN pro admin realm
 debug_echo "Processing fallback syntax..."
-sed 's/\${TEST_USER_PASSWORD:[^}]*}/${TEST_USER_PASSWORD}/g; s/\${TEST_ADMIN_PASSWORD:[^}]*}/${TEST_ADMIN_PASSWORD}/g; s/\${GRAFANA_OAUTH_SECRET:[^}]*}/${GRAFANA_OAUTH_SECRET}/g' "$REALM_TEMPLATE" | \
-DOMAIN="$ADMIN_DOMAIN" GRAFANA_OAUTH_SECRET="${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}" envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET $TEST_USER_PASSWORD $TEST_ADMIN_PASSWORD $GRAFANA_OAUTH_SECRET' > "$REALM_OUTPUT"
+sed 's/\${TEST_USER_PASSWORD:[^}]*}/${TEST_USER_PASSWORD}/g; s/\${TEST_ADMIN_PASSWORD:[^}]*}/${TEST_ADMIN_PASSWORD}/g; s/\${GRAFANA_OIDC_SECRET:[^}]*}/${GRAFANA_OIDC_SECRET}/g' "$REALM_TEMPLATE" | \
+DOMAIN="$ADMIN_DOMAIN" GRAFANA_OIDC_SECRET="${GRAFANA_OIDC_SECRET:-grafana-secret-change-in-prod}" envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET $TEST_USER_PASSWORD $TEST_ADMIN_PASSWORD $GRAFANA_OIDC_SECRET' > "$REALM_OUTPUT"
 
 # Kontrola, že výstupní soubor byl vytvořen
 if [[ ! -f "$REALM_OUTPUT" ]]; then

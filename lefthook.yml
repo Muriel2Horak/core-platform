@@ -25,6 +25,11 @@ pre-commit:
       run: bash scripts/validate-dashboard-structure.sh
       fail_text: "❌ Dashboard structure validation failed. Move loose JSON files to subdirectories!"
 
+    template-validate:
+      glob: "{docker/**/*.template*,docker/**/realm-*.template.json}"
+      run: bash scripts/templates/validate-syntax.sh
+      fail_text: "❌ Template syntax validation failed. Run: make validate-templates"
+
 pre-push:
   commands:
     backend-tests:

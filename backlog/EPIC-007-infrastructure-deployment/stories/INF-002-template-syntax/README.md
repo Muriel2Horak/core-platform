@@ -3,15 +3,27 @@ id: INF-002
 epic: EPIC-007-infrastructure-deployment
 title: "Template Syntax Standardization"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "3 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - scripts/templates/validate-syntax.sh
+    - docker/keycloak/realm-admin.template.json
+    - docker/keycloak/realm-core-platform.template.json
+    - docker/nginx/nginx-ssl.conf.template
+    - docker/keycloak/generate-realm.sh
+    - Makefile
+    - lefthook.yml
+    - scripts/env-validate.sh
+    - .env.template
+    - .env.example
+  test_paths:
+    - scripts/templates/validate-syntax.sh
   docs_paths:
+    - docs/templates.md
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-002-template-syntax/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
@@ -19,7 +31,7 @@ path_mapping:
 # INF-002: Template Syntax Standardization
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 3 dny, ~600 LOC  
 **Owner:** Platform Team  

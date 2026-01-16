@@ -102,6 +102,8 @@ validate_env_file() {
     # Test users (required for E2E)
     "TEST_USER_PASSWORD"
     "TEST_ADMIN_PASSWORD"
+    "TEST_STUDIO_PASSWORD"
+    "TEST_ANALYST_PASSWORD"
   )
   
   source .env 2>/dev/null || { error "Failed to source .env"; return 1; }

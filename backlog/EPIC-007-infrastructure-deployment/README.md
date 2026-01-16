@@ -325,6 +325,7 @@ Nginx (SSL Termination & Reverse Proxy)
 - **Runtime hodnoty:** Z environment proměnných
 - **Templates:** Generované z env při startu (Keycloak realm, Nginx conf)
 - **Žádné duplicity:** DB URL jen jednou (v env), ne v properties i env
+- **Syntax:** Jednotná pravidla v `docs/templates.md`
 
 #### 2. `.env` management
 

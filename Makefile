@@ -72,6 +72,7 @@ help:
 	@echo "🔍 Environment Validation:"
 	@echo "  env-validate    - Quick .env validation (file exists, vars set)"
 	@echo "  doctor          - Full health check (.env + service connectivity)"
+	@echo "  validate-templates - Validate envsubst template syntax"
 	@echo ""
 	@echo "🔐 Vault:"
 	@echo "  vault-up        - Start Vault + Vault Agent (vault-only secrets)"
@@ -208,6 +209,11 @@ verify:
 .PHONY: env-validate
 env-validate:
 	@bash scripts/env-validate.sh
+
+# Template syntax validation
+.PHONY: validate-templates
+validate-templates:
+	@bash scripts/templates/validate-syntax.sh
 
 # Full environment doctor check (validation + connectivity)
 .PHONY: doctor
