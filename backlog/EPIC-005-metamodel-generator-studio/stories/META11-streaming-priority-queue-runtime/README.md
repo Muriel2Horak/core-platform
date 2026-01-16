@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
-
 # META-011: Streaming & Priority Queue Runtime ⚡
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

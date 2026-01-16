@@ -13,12 +13,12 @@ path_mapping:
     - monitoring
     - docker/prometheus
     - docker/grafana
+    - docker/docker-compose.yml
   test_paths: []
   docs_paths:
     - docs/MONITORING_DEPLOYMENT_GUIDE.md
     - docs/LOKI_MONITORING_UI.md
 ---
-
 
 # S5: Monitoring & Alerting Integration
 

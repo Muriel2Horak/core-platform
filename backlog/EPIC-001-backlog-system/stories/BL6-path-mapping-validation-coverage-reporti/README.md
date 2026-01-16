@@ -3,24 +3,35 @@ id: CORE-006
 epic: EPIC-001-backlog-system
 title: "Path Mapping Validation & Coverage Reporting"
 priority: P1  # Must Have - blocks CORE-005 enhanced version
-status: ready
+status: done
 assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - backend/src/
+    - scripts/backlog/README.md
+    - scripts/backlog/git_tracker.sh
+    - scripts/backlog/lib/
+    - scripts/backlog/lib/coverage_reporter.py
+    - scripts/backlog/lib/path_checker.py
+    - scripts/backlog/lib/yaml_parser.py
+    - scripts/backlog/path_validator.py
+    - scripts/backlog/test_integration.py
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/
+    - e2e/specs/
   docs_paths:
     - backlog/EPIC-001-backlog-system/stories/BL6-path-mapping-validation-coverage-reporti/README.md
     - backlog/EPIC-001-backlog-system/README.md
+    - docs/development/backlog-workflow.md
 ---
-
 
 # CORE-006: Path Mapping Validation & Coverage Reporting
 
 > **Epic:** [EPIC-001-backlog-system](../README.md)  
-> **Priority:** P1 | **Status:** ready | **Estimate:** 2 days
+> **Priority:** P1 | **Status:** ✅ **DONE**| **Estimate:** 2 days
 
 ## 👤 Role / Potřeba / Benefit
 

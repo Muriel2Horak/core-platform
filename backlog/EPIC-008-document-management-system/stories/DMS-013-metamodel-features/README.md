@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-008-document-management-system/README.md
 ---
 
-
 # DMS-013: Metamodel Document Features Configuration
 
 **Epic:** EPIC-008 Document Management System  

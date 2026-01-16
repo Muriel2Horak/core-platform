@@ -14,8 +14,9 @@ path_mapping:
   docs_paths:
     - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-008-copilot-integration/README.md
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
+    - .github/copilot-golden-rules.md
+    - .github/copilot-instructions.md
 ---
-
 
 # AI-008: GitHub Copilot Integration
 

@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-003-monitoring-observability/README.md
 ---
 
-
 # S8: Business Dashboards (Native Monitoring UI)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  

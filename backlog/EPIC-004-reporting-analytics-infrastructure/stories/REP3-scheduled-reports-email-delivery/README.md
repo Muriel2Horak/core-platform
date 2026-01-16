@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
 ---
 
-
 # S3: Scheduled Reports & Email Delivery (Phase R3)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  

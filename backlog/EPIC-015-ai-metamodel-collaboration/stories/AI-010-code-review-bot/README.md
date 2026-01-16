@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
-
 # AI-010: AI Code Review Bot
 
 **Status:** 🔴 **TODO**

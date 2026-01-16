@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-
 # S8: Test Registry & Tracking (Implementation)
 
 **Story:** Test Registry & Tracking  

@@ -3,24 +3,24 @@ id: S11
 epic: EPIC-016-advanced-data-ux-framework
 title: "EPIC-014 Design System Integration"
 priority: P0
-status: ready
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: "45 hours"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - frontend/src/components/
   test_paths: []
   docs_paths:
     - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX11-epic-014-design-system-integration/README.md
     - backlog/EPIC-016-advanced-data-ux-framework/README.md
 ---
 
-
 # S11: EPIC-014 Design System Integration
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 🟡 **READY**| **Priority:** 🔴 **P0 - CRITICAL**  
+**Status:** ✅ **DONE**| **Priority:** 🔴 **P0 - CRITICAL**  
 **Effort:** ~45 hours  
 **Sprint:** FINAL (after S1-S10 complete)  
 **Owner:** TBD

@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
-
 # S9: Platform Documentation (Phase S9)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  

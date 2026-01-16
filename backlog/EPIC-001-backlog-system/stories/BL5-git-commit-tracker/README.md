@@ -3,7 +3,7 @@ id: CORE-005
 epic: EPIC-001-backlog-system
 title: "Git Commit Tracker"
 priority: P2  # P1 (Must Have) | P2 (Should Have) | P3 (Nice to Have)
-status: refactor
+status: done
 assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
@@ -11,19 +11,21 @@ estimate: "2 days"
 path_mapping:
   code_paths:
     - scripts/backlog/git_tracker.sh
+    - scripts/backlog/
+    - scripts/backlog/test_integration.py
   test_paths:
     - scripts/backlog/test_integration.py  # TODO: Add unit tests
+    - e2e/specs/
   docs_paths:
     - backlog/README.md
     - docs/development/backlog-workflow.md
     - CHANGELOG.md
 ---
 
-
 # CORE-005: Git Commit Tracker
 
 > **Epic:** [EPIC-001-backlog-system](../README.md)  
-> **Priority:** P2 | **Status:** 🟠 **REFACTOR**| **Estimate:** 2 days
+> **Priority:** P2 | **Status:** ✅ **DONE**| **Estimate:** 2 days
 
 ## 👤 Role / Potřeba / Benefit
 

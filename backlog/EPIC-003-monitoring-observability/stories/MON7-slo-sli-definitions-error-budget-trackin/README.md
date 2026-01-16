@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-003-monitoring-observability/README.md
 ---
 
-
 # S7: SLO/SLI Definitions & Error Budget Tracking (Phase S7)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  

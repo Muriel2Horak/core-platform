@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
-
 # S5: Pre-Aggregation Auto-Refresh (Phase S5)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  

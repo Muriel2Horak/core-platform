@@ -3,19 +3,19 @@ id: N8
 epic: EPIC-011-n8n-workflow-automation
 title: "Deprecated"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: "1 day"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - docker/docker-compose.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-011-n8n-workflow-automation/stories/N8N1-platform-deployment/README.md
     - backlog/EPIC-011-n8n-workflow-automation/README.md
 ---
-
 
 # Deprecated
 
@@ -31,7 +31,7 @@ This story is duplicated. Use `../N8N1-n8n-platform-deployment/README.md`.
 **Priorita:** HIGH (foundation)  
 **Effort:** 400 LOC, 1 den  
 **Dependencies:** PostgreSQL infrastructure  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

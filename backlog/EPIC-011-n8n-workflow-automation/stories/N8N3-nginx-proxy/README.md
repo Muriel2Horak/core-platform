@@ -3,19 +3,20 @@ id: N8
 epic: EPIC-011-n8n-workflow-automation
 title: "Deprecated"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - docker/docker-compose.yml
+    - docker/nginx/nginx-ssl.conf.template
   test_paths: []
   docs_paths:
     - backlog/EPIC-011-n8n-workflow-automation/stories/N8N3-nginx-proxy/README.md
     - backlog/EPIC-011-n8n-workflow-automation/README.md
 ---
-
 
 # Deprecated
 
@@ -31,7 +32,7 @@ This story is duplicated. Use `../N8N3-nginx-reverse-proxy-configuration/README.
 **Priorita:** HIGH  
 **Effort:** 200 LOC, 0.5 dne  
 **Dependencies:** N8N1 (Platform Deployment), N8N2 (Keycloak SSO)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

@@ -18,7 +18,6 @@ path_mapping:
     - backlog/EPIC-011-n8n-workflow-automation/README.md
 ---
 
-
 # S1: n8n Platform Deployment
 
 > **Foundation:** Deploy n8n Community Edition with PostgreSQL backend and webhook support

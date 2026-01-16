@@ -3,24 +3,25 @@ id: INF-021
 epic: EPIC-007-infrastructure-deployment
 title: "HashiCorp Vault Integration"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
 updated: 2026-01-15
 estimate: "3 days"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/pom.xml
+    - docker/ssl/
   test_paths: []
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-021-vault-integration/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-021: HashiCorp Vault Integration
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 3 dny, ~900 LOC  
 **Owner:** Security + Platform Team  

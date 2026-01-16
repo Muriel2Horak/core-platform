@@ -19,7 +19,6 @@ path_mapping:
     - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
 ---
 
-
 # S11: Advanced Visualization
 
 **Status:** ✅ **DONE**

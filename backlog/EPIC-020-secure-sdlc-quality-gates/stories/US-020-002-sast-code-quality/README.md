@@ -23,7 +23,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-002-sast-code-quality/README.md
 ---
 
-
 # US-020-002: SAST a code quality gates
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

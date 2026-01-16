@@ -19,7 +19,6 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
-
 # WF13: REST_SYNC Executor - Synchronní REST API Volání
 
 **Typ:** TASK  

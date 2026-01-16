@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-
 # S7: Performance Testing (Phase S7)
 
 **EPIC:** [EPIC-002: E2E Testing Infrastructure](../README.md)  

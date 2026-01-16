@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-017-modular-architecture/README.md
 ---
 
-
 # ADM-002: Tenant Module Assignment
 
 **Status:** ⏳ **PENDING**  

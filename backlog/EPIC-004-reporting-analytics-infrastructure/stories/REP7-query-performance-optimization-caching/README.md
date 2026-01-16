@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
 ---
 
-
 # S7: Query Performance Optimization & Caching (Phase R7)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  

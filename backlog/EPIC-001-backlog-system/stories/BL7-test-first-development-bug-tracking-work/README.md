@@ -14,14 +14,19 @@ path_mapping:
     - backlog/templates/story.md
     - scripts/backlog/test_validator.sh
     - docs/development/test-driven-workflow.md
+    - scripts/backlog/
+    - scripts/backlog/test_integration.py
+    - scripts/backlog/test_story_validator.py
   test_paths:
     - scripts/backlog/test_story_validator.py
+    - backend/src/test/java/cz/muriel/core/
+    - e2e/specs/
   docs_paths:
     - backlog/README.md
     - docs/development/backlog-workflow.md
     - CHANGELOG.md
+    - docs/development/test-driven-workflow.md
 ---
-
 
 # CORE-007: Test-First Development & Bug Tracking Workflow
 

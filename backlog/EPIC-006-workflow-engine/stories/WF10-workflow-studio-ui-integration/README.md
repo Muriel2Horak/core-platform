@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
-
 # WORK-010: Workflow Studio UI Integration (Phase W12)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  

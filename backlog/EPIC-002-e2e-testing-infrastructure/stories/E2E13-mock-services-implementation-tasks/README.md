@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-
 # S13: Mock Services (Implementation)
 
 **Status:** 🔵 TODO  

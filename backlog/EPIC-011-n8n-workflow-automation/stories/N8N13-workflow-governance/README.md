@@ -19,7 +19,6 @@ path_mapping:
     - backlog/WORKFLOW_N8N_AUDIT_2025.md
 ---
 
-
 # N8N13: Workflow Governance and RBAC
 
 Status: ✅ DONE

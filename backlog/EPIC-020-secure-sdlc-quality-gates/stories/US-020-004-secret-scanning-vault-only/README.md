@@ -23,7 +23,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-004-secret-scanning-vault-only/README.md
 ---
 
-
 # US-020-004: Secret scanning a Vault-only policy
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

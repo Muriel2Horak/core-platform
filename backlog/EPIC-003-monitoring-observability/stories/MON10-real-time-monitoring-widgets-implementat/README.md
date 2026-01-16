@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-003-monitoring-observability/README.md
 ---
 
-
 # S10: Real-Time Monitoring Widgets
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  

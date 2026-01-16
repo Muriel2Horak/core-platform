@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-005: Let's Encrypt SSL Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

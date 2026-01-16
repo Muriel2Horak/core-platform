@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-011-n8n-workflow-automation/README.md
 ---
 
-
 # Deprecated
 
 This story is duplicated. Use `../N8N4-workflow-templates-documentation/README.md`.

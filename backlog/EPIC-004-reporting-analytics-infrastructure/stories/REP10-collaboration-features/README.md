@@ -20,7 +20,6 @@ path_mapping:
     - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
 ---
 
-
 # S10: Collaboration Features
 
 **Status:** ✅ **DONE**

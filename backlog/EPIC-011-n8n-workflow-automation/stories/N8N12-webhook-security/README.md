@@ -17,7 +17,6 @@ path_mapping:
     - docs/SECURITY_MIGRATION_GUIDE.md
 ---
 
-
 # N8N12: Webhook Security and Signature Verification
 
 Status: ✅ DONE

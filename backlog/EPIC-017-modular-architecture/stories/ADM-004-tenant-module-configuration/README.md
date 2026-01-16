@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-017-modular-architecture/README.md
 ---
 
-
 # ADM-004: Tenant Module Configuration
 
 **Status:** ⏳ **PENDING**  

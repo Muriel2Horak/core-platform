@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-004: SSL Certificate Rotation Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

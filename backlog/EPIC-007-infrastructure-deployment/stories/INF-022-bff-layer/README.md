@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-022: BFF (Backend-for-Frontend) Layer
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

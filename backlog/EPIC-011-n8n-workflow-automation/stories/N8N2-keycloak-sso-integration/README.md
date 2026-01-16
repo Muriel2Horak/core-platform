@@ -21,7 +21,6 @@ path_mapping:
     - docs/auth-keycloak-setup.md
 ---
 
-
 # S2: Keycloak SSO Integration
 
 > **Authentication:** Configure Keycloak OIDC client for n8n SSO login

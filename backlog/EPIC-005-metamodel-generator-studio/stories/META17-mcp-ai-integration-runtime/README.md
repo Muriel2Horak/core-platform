@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
-
 # META-017: MCP/AI Integration Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  

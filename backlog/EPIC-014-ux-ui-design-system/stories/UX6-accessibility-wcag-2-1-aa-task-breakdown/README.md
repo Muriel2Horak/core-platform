@@ -20,7 +20,6 @@ path_mapping:
     - backlog/EPIC-014-ux-ui-design-system/README.md
 ---
 
-
 # S6: Accessibility (WCAG 2.1 AA) - Task Breakdown
 
 **EPIC:** [EPIC-014: UX/UI & Design System](../README.md)  

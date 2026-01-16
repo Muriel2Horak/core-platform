@@ -3,24 +3,25 @@ id: INF-009
 epic: EPIC-007-infrastructure-deployment
 title: "Flyway Multi-DB Migration Coordination"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
 updated: 2026-01-15
 estimate: "3 days"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - backend/src/main/resources/db/migration/
   test_paths: []
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-009-flyway-migrations/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-009: Flyway Multi-DB Migration Coordination
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** HIGH  
 **Effort:** 3 dny, ~800 LOC  
 **Owner:** Platform + DBA Team  

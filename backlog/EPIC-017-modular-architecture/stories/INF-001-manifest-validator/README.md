@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-017-modular-architecture/README.md
 ---
 
-
 # INF-001: Manifest Validator
 
 **Status:** ⏳ **PENDING**  

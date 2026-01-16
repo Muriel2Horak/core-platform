@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
-
 # WORK-002: Workflow Execution Engine (Phase W3)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  

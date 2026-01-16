@@ -14,12 +14,12 @@ path_mapping:
     - docker/nginx/nginx.dev.conf
     - docker/docker-compose.yml
     - docker/keycloak/realm-tenant-template.json
+    - docker/vault-agent/config.hcl
   test_paths: []
   docs_paths:
     - docs/DYNAMIC_JWT_MULTITENANCY.md
     - docs/MULTITENANCY_ARCHITECTURE.md
 ---
-
 
 # N8N8: Multi-Tenant SSO and Routing
 

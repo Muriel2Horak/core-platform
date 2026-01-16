@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
 ---
 
-
 # S2: Dashboard Template Engine (Phase R2)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  

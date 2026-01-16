@@ -22,7 +22,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-005-iac-config-linting/README.md
 ---
 
-
 # US-020-005: IaC a config linting
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

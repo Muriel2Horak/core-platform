@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-016-advanced-data-ux-framework/README.md
 ---
 
-
 # S14: Miro-style Freeform Board
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

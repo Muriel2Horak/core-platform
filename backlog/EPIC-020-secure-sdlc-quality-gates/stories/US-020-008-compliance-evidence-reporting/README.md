@@ -21,7 +21,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-008-compliance-evidence-reporting/README.md
 ---
 
-
 # US-020-008: Compliance evidence a reporting
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

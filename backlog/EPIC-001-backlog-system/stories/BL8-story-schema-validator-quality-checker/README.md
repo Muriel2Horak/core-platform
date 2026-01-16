@@ -22,7 +22,6 @@ path_mapping:
     - CHANGELOG.md
 ---
 
-
 # CORE-008: Story Schema Validator & Quality Checker
 
 > **Epic:** [EPIC-001](../../README.md) | **Priority:** P1 | **Estimate:** 2 days

@@ -3,23 +3,30 @@ id: E2E15
 epic: EPIC-002-e2e-testing-infrastructure
 title: "GitHub Actions CI/CD Workflows Documentation"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: "4 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - .github/workflows-disabled/
+    - .github/workflows-disabled/e2e.yml
+    - .github/workflows-disabled/post-deploy.yml
+    - .github/workflows-disabled/pre-deploy.yml
+    - .github/workflows-disabled/security-scan.yml
+    - .github/workflows/
+    - docker/docker-compose.yml
+  test_paths:
+    - e2e/specs/
   docs_paths:
     - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E15-github-actions-workflows/README.md
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-
 # E2E15: GitHub Actions CI/CD Workflows Documentation
 
-**Status:** 📝 **DOCUMENTATION**  
+**Status:** ✅ **DONE**
 **Effort:** 4 hodiny  
 **Priority:** 🔥 HIGH  
 **Category:** CI/CD Pipeline

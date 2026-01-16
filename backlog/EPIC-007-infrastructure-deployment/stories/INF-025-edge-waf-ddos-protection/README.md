@@ -23,7 +23,6 @@ path_mapping:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-025-edge-waf-ddos-protection/README.md
 ---
 
-
 # INF-025: Edge WAF + DDoS protection (Nginx + ModSecurity + CrowdSec)
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

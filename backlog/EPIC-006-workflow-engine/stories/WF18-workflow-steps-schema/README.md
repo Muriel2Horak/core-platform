@@ -19,7 +19,6 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
-
 # WF18: Workflow Steps Schema - Metamodel Integration
 
 **Typ:** TASK  

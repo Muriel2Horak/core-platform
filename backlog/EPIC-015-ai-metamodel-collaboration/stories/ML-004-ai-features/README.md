@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
-
 # S4: AI-Powered Platform Features
 
 > **Intelligent Features:** Workflow suggestions, anomaly detection, predictive alerts, NLP search

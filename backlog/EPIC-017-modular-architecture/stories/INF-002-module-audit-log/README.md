@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-017-modular-architecture/README.md
 ---
 
-
 # INF-002: Module Audit Log
 
 **Status:** ⏳ **PENDING**  

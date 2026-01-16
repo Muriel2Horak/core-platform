@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
-
 # S10: Coverage Dashboard (Implementation)
 
 **Status:** 🔵 TODO  

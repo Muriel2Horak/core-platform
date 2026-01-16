@@ -19,7 +19,6 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
-
 # WF12: APPROVAL Executor
 
 > **Typ kroku:** Automatický / Čekající na schválení  

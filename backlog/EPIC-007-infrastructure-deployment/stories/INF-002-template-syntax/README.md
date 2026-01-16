@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-002: Template Syntax Standardization
 
 **Epic:** EPIC-007 Infrastructure & Deployment  

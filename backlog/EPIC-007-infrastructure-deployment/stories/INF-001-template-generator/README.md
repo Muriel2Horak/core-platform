@@ -3,24 +3,27 @@ id: INF-001
 epic: EPIC-007-infrastructure-deployment
 title: "Centralized Template Generator"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
 updated: 2026-01-15
 estimate: "2 days"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - docker/keycloak/generate-realm.sh
+    - docker/keycloak/realm-admin.json
+    - docker/keycloak/realm-admin.template.json
+    - docker/nginx/nginx-ssl.conf.template
   test_paths: []
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-001-template-generator/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-001: Centralized Template Generator
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 2 dny, ~400 LOC  
 **Owner:** Platform Team  

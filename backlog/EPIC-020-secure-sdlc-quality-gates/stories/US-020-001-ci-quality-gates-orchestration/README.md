@@ -21,7 +21,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-001-ci-quality-gates-orchestration/README.md
 ---
 
-
 # US-020-001: CI Quality Gates Orchestration
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

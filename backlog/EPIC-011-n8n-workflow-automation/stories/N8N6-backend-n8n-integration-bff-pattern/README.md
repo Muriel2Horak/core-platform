@@ -13,12 +13,12 @@ path_mapping:
     - backend/src/main/java/cz/muriel/core/monitoring/bff/controller/MonitoringProxyController.java
     - backend/src/main/java/cz/muriel/core/monitoring/bff/MonitoringBffController.java
     - backend/src/main/java/cz/muriel/core/auth/config/SecurityConfig.java
+    - backend/src/main/resources/application.yml
   test_paths:
     - backend/src/test/java/cz/muriel/core/monitoring/bff/MonitoringHeaderSecurityIT.java
   docs_paths:
     - docs/MONITORING_BFF_ARCHITECTURE.md
 ---
-
 
 # S6: Backend n8n Integration (BFF Pattern)
 

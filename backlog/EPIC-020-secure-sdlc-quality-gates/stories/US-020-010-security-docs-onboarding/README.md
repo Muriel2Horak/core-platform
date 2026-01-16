@@ -23,7 +23,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-010-security-docs-onboarding/README.md
 ---
 
-
 # US-020-010: Security pipeline documentation and onboarding
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

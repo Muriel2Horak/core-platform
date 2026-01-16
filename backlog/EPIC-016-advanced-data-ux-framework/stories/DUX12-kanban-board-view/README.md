@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-016-advanced-data-ux-framework/README.md
 ---
 
-
 # S12: Kanban Board View
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  

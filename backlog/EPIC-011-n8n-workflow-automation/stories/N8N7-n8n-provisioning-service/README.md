@@ -18,7 +18,6 @@ path_mapping:
     - docs/TENANT_ONBOARDING.md
 ---
 
-
 # N8N7: n8n Provisioning Service
 
 Status: ✅ DONE

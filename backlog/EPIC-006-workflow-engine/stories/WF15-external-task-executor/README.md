@@ -19,7 +19,6 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
-
 # WF15: EXTERNAL_TASK Executor - n8n Integration Bridge
 
 **Typ:** TASK  

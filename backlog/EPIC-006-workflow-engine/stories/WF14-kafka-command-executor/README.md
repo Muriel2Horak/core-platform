@@ -12,13 +12,13 @@ path_mapping:
   code_paths:
     - backend/src/main/java/cz/muriel/core/workflow
     - backend/src/main/java/cz/muriel/core/kafka
+    - backend/src/main/resources/application.yml
   test_paths:
     - backend/src/test/java/cz/muriel/core/workflow
   docs_paths:
     - backlog/EPIC-006-workflow-engine/stories/WF14-kafka-command-executor/README.md
     - backlog/EPIC-006-workflow-engine/README.md
 ---
-
 
 # WF14: KAFKA_COMMAND Executor - Async Command/Reply Pattern
 

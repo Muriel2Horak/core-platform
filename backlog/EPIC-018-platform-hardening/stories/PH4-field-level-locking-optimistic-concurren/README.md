@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
-
 # S4: Field-Level Locking & Optimistic Concurrency (Phase S4)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  

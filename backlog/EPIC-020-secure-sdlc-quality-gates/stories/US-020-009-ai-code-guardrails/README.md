@@ -23,7 +23,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-009-ai-code-guardrails/README.md
 ---
 
-
 # US-020-009: AI-generated code guardrails
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

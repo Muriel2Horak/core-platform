@@ -16,7 +16,6 @@ path_mapping:
     - backlog/WORKFLOW_UNIFIED_ARCHITECTURE.md
 ---
 
-
 # S4: Workflow Templates & Documentation
 
 > **Enablement:** Provide starter templates and user guide for n8n workflows

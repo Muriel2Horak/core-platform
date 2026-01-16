@@ -3,24 +3,25 @@ id: INF-020
 epic: EPIC-007-infrastructure-deployment
 title: "Multi-Tenancy Architecture (Subdomains)"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
 updated: 2026-01-15
 estimate: "4 days"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - docker/nginx/nginx-ssl.conf.template
   test_paths: []
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-020-multi-tenancy/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
 
-
 # INF-020: Multi-Tenancy Architecture (Subdomains)
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 4 dny, ~1200 LOC  
 **Owner:** Platform + Architecture Team  

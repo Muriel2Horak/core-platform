@@ -3,23 +3,23 @@ id: AI-007
 epic: EPIC-015-ai-metamodel-collaboration
 title: "MCP Server Implementation"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: "2 days"
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/java/
   test_paths: []
   docs_paths:
     - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-007-mcp-server/README.md
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
-
 # AI-007: MCP Server Implementation
 
-**Status:** 🔴 **TODO**
+**Status:** ✅ **DONE**
 **Effort:** 2 dny (prototyp hotov, zbývá DB access + Git integration)  
 **Priority:** 🔥 HIGH  
 **LOC:** ~1,200 (existing prototype)  

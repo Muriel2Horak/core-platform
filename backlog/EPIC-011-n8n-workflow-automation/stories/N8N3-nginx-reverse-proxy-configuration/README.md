@@ -18,7 +18,6 @@ path_mapping:
     - docs/keycloak-ssl-setup.md
 ---
 
-
 # S3: Nginx Reverse Proxy Configuration
 
 > **Routing:** Configure Nginx to proxy `/n8n/*` to OAuth2 Proxy with SSL termination

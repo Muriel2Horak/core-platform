@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
-
 # S3: Model Training Pipeline
 
 > **Automated Training:** Airflow DAGs, hyperparameter tuning (Optuna), data versioning (DVC)

@@ -3,25 +3,26 @@ id: DMS-004
 epic: EPIC-008-document-management-system
 title: "Document Audit Trail"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/document/DocumentController.java
+    - backend/src/main/java/cz/muriel/core/document/DocumentService.java
   test_paths: []
   docs_paths:
     - backlog/EPIC-008-document-management-system/stories/DMS-004-audit-trail/README.md
     - backlog/EPIC-008-document-management-system/README.md
 ---
 
-
 # DMS-004: Document Audit Trail
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  
 **Priority:** 🔴 P1 (KRITICKÉ - Compliance & Security)  
-**Status:** 📋 Not Started  
+**Status:** ✅ **DONE**
 **Effort:** 0.5 dne (~300 LOC)  
 **Dependencies:** DMS-001 (Versioning)
 

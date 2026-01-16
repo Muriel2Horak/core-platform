@@ -20,7 +20,6 @@ path_mapping:
     - docs/SECURITY_RUNBOOK.md
 ---
 
-
 # N8N9: Tenant Isolation and Audit Trail
 
 Status: ✅ DONE

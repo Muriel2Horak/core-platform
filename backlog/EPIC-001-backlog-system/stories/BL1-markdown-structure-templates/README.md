@@ -7,7 +7,6 @@ assignee: dev-team
 created: 2025-11-06
 ---
 
-
 ```
 
 **Mermaid Diagrams (optional):**
@@ -46,3 +45,10 @@ graph LR
 **Created:** 2025-11-06  
 **Started:** 2025-11-06  
 **Target:** 2025-11-07 (1 day)
+
+## 🎯 Akceptační kritéria (AC)
+
+- [ ] Šablony pro story/epic/subtask/bug existují v `backlog/templates/`.
+- [ ] Každá šablona obsahuje povinné sekce (YAML, DoR, AC, DoD, Subtasks).
+- [ ] `backlog/templates/README.md` popisuje základní použití šablon.
+

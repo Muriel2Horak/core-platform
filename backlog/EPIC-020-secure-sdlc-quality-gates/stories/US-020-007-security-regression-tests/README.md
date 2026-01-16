@@ -24,7 +24,6 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-007-security-regression-tests/README.md
 ---
 
-
 # US-020-007: Security regression testy (tenant isolation + RBAC)
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates

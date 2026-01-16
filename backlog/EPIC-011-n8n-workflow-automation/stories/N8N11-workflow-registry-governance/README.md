@@ -18,7 +18,6 @@ path_mapping:
     - docs/MODULE_LICENSING.md
 ---
 
-
 # N8N11: Workflow Registry Sync
 
 Status: ✅ DONE

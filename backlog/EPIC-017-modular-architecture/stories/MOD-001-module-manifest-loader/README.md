@@ -16,7 +16,6 @@ path_mapping:
     - backlog/EPIC-017-modular-architecture/README.md
 ---
 
-
 # MOD-001: Module Manifest Loader
 
 **Status:** ⏳ **PENDING**  
