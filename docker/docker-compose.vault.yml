@@ -1,0 +1,197 @@
+services:
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: core-vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+      SKIP_SETCAP: "true"
+    volumes:
+      - vault_data:/vault/data
+      - ./vault/config.hcl:/vault/config/config.hcl:ro
+      - ./vault/start-vault.sh:/vault/start-vault.sh:ro
+    ports:
+      - "${VAULT_PORT:-8200}:8200"
+    command: ["/vault/start-vault.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - core-net
+
+  vault-agent:
+    image: hashicorp/vault:1.15
+    container_name: core-vault-agent
+    user: "0:1000"
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        mkdir -p /vault/secrets
+        chown root:1000 /vault/secrets
+        chmod 750 /vault/secrets
+        VAULT_AGENT_ADDR="${VAULT_AGENT_ADDR:-http://vault:8200}"
+        sed -e "s#__VAULT_ADDR__#${VAULT_AGENT_ADDR}#g" \
+          /vault/config/config.hcl > /tmp/vault-agent-config.hcl
+        exec vault agent -config=/tmp/vault-agent-config.hcl
+    environment:
+      VAULT_AGENT_ADDR: ${VAULT_AGENT_ADDR:-http://vault:8200}
+      SKIP_SETCAP: "true"
+      HOME: /tmp
+    volumes:
+      - ./vault-agent/config.hcl:/vault/config/config.hcl:ro
+      - ./vault-agent/templates:/vault/templates:ro
+      - vault_secrets:/vault/secrets
+      - ../.vault-approle:/vault/approle:ro
+    depends_on:
+      vault:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /vault/secrets/postgres-password && test -s /vault/secrets/keycloak-db-password && test -s /vault/secrets/backend.env && test -s /vault/secrets/keycloak.env"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - core-net
+
+  db:
+    group_add:
+      - "1000"
+    environment:
+      POSTGRES_PASSWORD: ""
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+      KEYCLOAK_DB_PASSWORD: ""
+      KEYCLOAK_DB_PASSWORD_FILE: /run/secrets/keycloak-db-password
+    volumes:
+      - vault_secrets:/run/secrets:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  backend:
+    group_add:
+      - "1000"
+    volumes:
+      - vault_secrets:/run/secrets:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  keycloak:
+    group_add:
+      - "1000"
+    volumes:
+      - vault_secrets:/run/secrets:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  grafana-provisioner:
+    group_add:
+      - "1000"
+    volumes:
+      - vault_secrets:/run/secrets:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  grafana:
+    group_add:
+      - "1000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana-admin-password
+      GF_DATABASE_PASSWORD__FILE: /run/secrets/grafana-db-password
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET__FILE: /run/secrets/grafana-oidc-secret
+    volumes:
+      - vault_secrets:/run/secrets:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  pgadmin:
+    group_add:
+      - "1000"
+    entrypoint: ["/vault/with-secrets.sh"]
+    environment:
+      VAULT_ENV_FILE: /run/secrets/pgadmin.env
+    volumes:
+      - vault_secrets:/run/secrets:ro
+      - ./vault/with-secrets.sh:/vault/with-secrets.sh:ro
+    command: ["/entrypoint.sh"]
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  redis:
+    group_add:
+      - "1000"
+    command:
+      - sh
+      - -c
+      - |
+        REDIS_PASSWORD=""
+        if [ -f /run/secrets/redis-password ]; then
+          REDIS_PASSWORD="$(cat /run/secrets/redis-password)"
+        fi
+        if [ -n "$${REDIS_PASSWORD}" ]; then
+          exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"
+        fi
+        exec redis-server --appendonly yes
+    volumes:
+      - vault_secrets:/run/secrets:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  minio:
+    group_add:
+      - "1000"
+    entrypoint: ["/vault/with-secrets.sh"]
+    environment:
+      VAULT_ENV_FILE: /run/secrets/minio.env
+    volumes:
+      - vault_secrets:/run/secrets:ro
+      - ./vault/with-secrets.sh:/vault/with-secrets.sh:ro
+    command: ["minio", "server", "/data", "--console-address", ":9001"]
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  cube:
+    group_add:
+      - "1000"
+    entrypoint: ["/vault/with-secrets.sh"]
+    environment:
+      VAULT_ENV_FILE: /run/secrets/cube.env
+    volumes:
+      - vault_secrets:/run/secrets:ro
+      - ./vault/with-secrets.sh:/vault/with-secrets.sh:ro
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+  postgres-exporter:
+    group_add:
+      - "1000"
+    entrypoint: ["/vault/with-secrets.sh"]
+    environment:
+      VAULT_ENV_FILE: /run/secrets/postgres-exporter.env
+    volumes:
+      - vault_secrets:/run/secrets:ro
+      - ./vault/with-secrets.sh:/vault/with-secrets.sh:ro
+    command: ["postgres_exporter"]
+    depends_on:
+      vault-agent:
+        condition: service_healthy
+
+volumes:
+  vault_data:
+  vault_secrets:

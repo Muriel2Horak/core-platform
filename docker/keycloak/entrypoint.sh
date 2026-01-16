@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+if [ -f /run/secrets/keycloak.env ]; then
+  set -a
+  . /run/secrets/keycloak.env
+  set +a
+  echo "🔐 Loaded Vault secrets from /run/secrets/keycloak.env"
+fi
+
 # Start Keycloak in background
 echo "🚀 Starting Keycloak..."
 /opt/keycloak/bin/kc.sh start \

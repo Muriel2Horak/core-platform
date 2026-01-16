@@ -45,7 +45,7 @@
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-compress</artifactId>
-				<version>1.24.0</version>
+				<version>1.27.1</version>
 			</dependency>
 
 			<!-- Force apache-mime4j to 0.8.11 (conflicts: Keycloak/Resteasy vs Tika) -->
@@ -64,7 +64,7 @@
 			<dependency>
 				<groupId>org.apache.poi</groupId>
 				<artifactId>poi-ooxml</artifactId>
-				<version>5.2.3</version>
+				<version>5.4.0</version>
 			</dependency>
 
 			<!-- Force commons-io to 2.14.0 (latest from Tika) -->
@@ -78,7 +78,7 @@
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcprov-jdk18on</artifactId>
-				<version>1.76</version>
+				<version>1.79</version>
 			</dependency>
 
 			<!-- Force error_prone_annotations to 2.40.0 (latest from Caffeine) -->
@@ -283,7 +283,7 @@
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>9.37.3</version>
+			<version>10.0.2</version>
 		</dependency>
 
 		<!-- Testcontainers pro integration testy -->
@@ -386,19 +386,19 @@
 		<dependency>
 			<groupId>io.minio</groupId>
 			<artifactId>minio</artifactId>
-			<version>8.5.7</version>
+			<version>8.6.0</version>
 		</dependency>
 
 		<!-- Apache Tika for text extraction -->
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
-			<version>2.9.1</version>
+			<version>3.2.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-parsers-standard-package</artifactId>
-			<version>2.9.1</version>
+			<version>3.2.2</version>
 		</dependency>
 	</dependencies>
 

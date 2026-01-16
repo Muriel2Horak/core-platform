@@ -10,6 +10,7 @@ BUILD_TS := $(shell date +%Y%m%d-%H%M%S)
 LOG_DIR := diagnostics
 LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
 JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
+VAULT_COMPOSE := docker compose -f docker/docker-compose.yml -f docker/docker-compose.vault.yml --env-file .env
 
 .PHONY: help test-mt report-mt test-and-report clean-artifacts backlog-new backlog-help
 .PHONY: up down clean clean-fast rebuild doctor watch verify verify-full
@@ -66,6 +67,13 @@ help:
 	@echo "🔍 Environment Validation:"
 	@echo "  env-validate    - Quick .env validation (file exists, vars set)"
 	@echo "  doctor          - Full health check (.env + service connectivity)"
+	@echo ""
+	@echo "🔐 Vault:"
+	@echo "  vault-up        - Start Vault + Vault Agent (vault-only secrets)"
+	@echo "  vault-bootstrap - Init/unseal Vault + seed secrets + AppRole"
+	@echo "  vault-seed      - Seed secrets from .env into Vault"
+	@echo "  vault-approle   - Recreate Vault Agent AppRole creds"
+	@echo "  vault-logs      - Tail Vault logs"
 	@echo ""
 	@echo "� Backlog Management:"
 	@echo "  backlog-new     - Create new User Story from template"
@@ -200,6 +208,33 @@ env-validate:
 .PHONY: doctor
 doctor:
 	@bash scripts/env-validate.sh --full
+
+# =============================================================================
+# 🔐 VAULT (Vault-only secrets + Vault Agent)
+# =============================================================================
+
+.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-logs vault-status
+
+vault-up:
+	@$(VAULT_COMPOSE) up -d vault vault-agent
+
+vault-down:
+	@$(VAULT_COMPOSE) down
+
+vault-bootstrap:
+	@bash scripts/vault/bootstrap-vault.sh
+
+vault-seed:
+	@bash scripts/vault/bootstrap-vault.sh --seed-only
+
+vault-approle:
+	@bash scripts/vault/bootstrap-vault.sh --approle-only
+
+vault-logs:
+	@$(VAULT_COMPOSE) logs -f vault vault-agent
+
+vault-status:
+	@$(VAULT_COMPOSE) ps vault vault-agent
 
 # Full integration tests (includes multitenancy and streaming)
 .PHONY: verify-full
