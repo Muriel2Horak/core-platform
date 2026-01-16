@@ -37,22 +37,29 @@ STARTED_DB="false"
 if ! docker ps --format '{{.Names}}' | grep -q "^core-db$"; then
   if [[ "${START_DB:-false}" == "true" ]]; then
     DB_CONTAINER_NAME="core-db-test"
-    STARTED_DB="true"
-    echo "▶️  Starting isolated test database container..."
-    docker run -d --name "$DB_CONTAINER_NAME" \
-      -e POSTGRES_USER="$DB_INTERNAL_USERNAME" \
-      -e POSTGRES_PASSWORD="$DB_INTERNAL_PASSWORD" \
-      -e POSTGRES_DB="$DB_INTERNAL_NAME" \
-      -e DATABASE_USERNAME="$CORE_DB_USER" \
-      -e DATABASE_PASSWORD="$CORE_DB_PASS" \
-      -e KEYCLOAK_DB_NAME="$KEYCLOAK_DB_NAME" \
-      -e KEYCLOAK_DB_USERNAME="$KEYCLOAK_DB_USER" \
-      -e KEYCLOAK_DB_PASSWORD="$KEYCLOAK_DB_PASS" \
-      -e GRAFANA_DB_NAME="$GRAFANA_DB_NAME" \
-      -e GRAFANA_DB_USERNAME="$GRAFANA_DB_USER" \
-      -e GRAFANA_DB_PASSWORD="$GRAFANA_DB_PASS" \
-      -v "$PROJECT_ROOT/docker/db/init:/docker-entrypoint-initdb.d:ro" \
-      postgres:16 >/dev/null
+    if docker ps -a --format '{{.Names}}' | grep -q "^${DB_CONTAINER_NAME}$"; then
+      if ! docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER_NAME}$"; then
+        echo "▶️  Starting existing test database container..."
+        docker start "$DB_CONTAINER_NAME" >/dev/null
+      fi
+    else
+      STARTED_DB="true"
+      echo "▶️  Starting isolated test database container..."
+      docker run -d --name "$DB_CONTAINER_NAME" \
+        -e POSTGRES_USER="$DB_INTERNAL_USERNAME" \
+        -e POSTGRES_PASSWORD="$DB_INTERNAL_PASSWORD" \
+        -e POSTGRES_DB="$DB_INTERNAL_NAME" \
+        -e DATABASE_USERNAME="$CORE_DB_USER" \
+        -e DATABASE_PASSWORD="$CORE_DB_PASS" \
+        -e KEYCLOAK_DB_NAME="$KEYCLOAK_DB_NAME" \
+        -e KEYCLOAK_DB_USERNAME="$KEYCLOAK_DB_USER" \
+        -e KEYCLOAK_DB_PASSWORD="$KEYCLOAK_DB_PASS" \
+        -e GRAFANA_DB_NAME="$GRAFANA_DB_NAME" \
+        -e GRAFANA_DB_USERNAME="$GRAFANA_DB_USER" \
+        -e GRAFANA_DB_PASSWORD="$GRAFANA_DB_PASS" \
+        -v "$PROJECT_ROOT/docker/db/init:/docker-entrypoint-initdb.d:ro" \
+        postgres:16 >/dev/null
+    fi
 
     for i in $(seq 1 30); do
       if docker exec "$DB_CONTAINER_NAME" pg_isready -U "$DB_INTERNAL_USERNAME" -d "$DB_INTERNAL_NAME" >/dev/null 2>&1; then
@@ -60,6 +67,12 @@ if ! docker ps --format '{{.Names}}' | grep -q "^core-db$"; then
       fi
       sleep 2
     done
+
+    if ! docker exec "$DB_CONTAINER_NAME" pg_isready -U "$DB_INTERNAL_USERNAME" -d "$DB_INTERNAL_NAME" >/dev/null 2>&1; then
+      echo "❌ Database container did not become ready"
+      docker logs "$DB_CONTAINER_NAME" --tail 50
+      exit 1
+    fi
   else
     echo "❌ core-db container is not running"
     echo "💡 Start it with: START_DB=true make test-db-separate-users"
