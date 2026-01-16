@@ -56,6 +56,9 @@ services:
     volumes:
       - core_db_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./db/wal-archive:/var/lib/postgresql/wal-archive
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     ports:
       - "${DB_PORT:-5432}:5432"
     networks:

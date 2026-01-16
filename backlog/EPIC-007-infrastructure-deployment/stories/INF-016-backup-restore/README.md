@@ -3,14 +3,23 @@ id: INF-016
 epic: EPIC-007-infrastructure-deployment
 title: "Automated Database Backup & Restore"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "3 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - scripts/backup/pg-backup.sh
+    - scripts/backup/pg-restore.sh
+    - scripts/backup/pg-verify-backup.sh
+    - docker/db/postgresql.conf
+    - docker/db/wal-archive/.gitkeep
+    - docker/docker-compose.yml
+    - Makefile
+    - .gitignore
+  test_paths:
+    - tests/db_backup_tests.sh
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-016-backup-restore/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
@@ -19,7 +28,7 @@ path_mapping:
 # INF-016: Automated Database Backup & Restore
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 3 dny, ~600 LOC  
 **Owner:** DBA + Platform Team  

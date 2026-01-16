@@ -58,6 +58,7 @@ help:
 	@echo "  test-build-doctor     - Build Doctor pre-flight tests"
 	@echo "  test-db-separate-users - DB user isolation checks (core/keycloak/grafana)"
 	@echo "  test-smoke-tests      - Smoke test script dry-run"
+	@echo "  test-db-backup        - Backup/restore dry-run tests"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -156,6 +157,9 @@ help-advanced:
 	@echo "  db-rollback        - Roll back Flyway migrations (VERSION=)"
 	@echo "  db-rollback-test   - Validate undo scripts + dry-run rollback"
 	@echo "  validate-undo-migrations - Check every V has U migration"
+	@echo "  db-backup          - Run database backup (full + base)"
+	@echo "  db-restore         - Restore from backup (DB=, FILE=, TIMESTAMP=)"
+	@echo "  db-backup-verify   - Verify latest backups"
 	@echo ""
 	@echo "🧹 Cleanup:"
 	@echo "  clean-artifacts     - Clean test artifacts"
@@ -991,6 +995,30 @@ db-rollback:
 db-rollback-test:
 	@bash tests/db_rollback_tests.sh
 
+# Database backup (full + base)
+.PHONY: db-backup
+db-backup:
+	@bash scripts/backup/pg-backup.sh
+
+# Database restore (FILE or TIMESTAMP required)
+.PHONY: db-restore
+db-restore:
+	@if [ -z "$(FILE)" ] && [ -z "$(TIMESTAMP)" ]; then \
+		echo "❌ Usage: make db-restore DB=core FILE=backups/postgres/full/core_<ts>.dump"; \
+		echo "   or:  make db-restore TIMESTAMP=2025-11-08T14:30:00Z"; \
+		exit 1; \
+	fi
+	@if [ -n "$(TIMESTAMP)" ]; then \
+		bash scripts/backup/pg-restore.sh --timestamp "$(TIMESTAMP)"; \
+	else \
+		bash scripts/backup/pg-restore.sh --db "$(DB)" --file "$(FILE)"; \
+	fi
+
+# Verify latest backups
+.PHONY: db-backup-verify
+db-backup-verify:
+	@bash scripts/backup/pg-verify-backup.sh
+
 # =============================================================================
 # 🌐 DOCKER REGISTRY VALIDATION
 # =============================================================================
@@ -1615,6 +1643,11 @@ test-db-separate-users:
 .PHONY: test-smoke-tests
 test-smoke-tests:
 	@bash tests/deploy_smoke_tests.sh
+
+# Backup/restore dry-run tests
+.PHONY: test-db-backup
+test-db-backup:
+	@bash tests/db_backup_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

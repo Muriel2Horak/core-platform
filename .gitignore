@@ -70,3 +70,7 @@ build/
 docker/nginx/nginx.conf
 docker/nginx/*.conf
 !docker/nginx/*.template
+# Backups and WAL archives
+backups/
+docker/db/wal-archive/*
+!docker/db/wal-archive/.gitkeep
