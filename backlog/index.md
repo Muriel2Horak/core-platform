@@ -21,7 +21,7 @@ Last updated: 2026-01-15
 | EPIC-008 Document Management System | 20% COMPLETE | MinIO backend + upload API in prod | EPIC-008-document-management-system/README.md |
 | EPIC-010 Agile Work Management | PLANNED | First reference business module | EPIC-010-agile-work-management/README.md |
 | EPIC-011 n8n Workflow Automation | 0% IMPLEMENTED | n8n external orchestration layer | EPIC-011-n8n-workflow-automation/README.md |
-| EPIC-012 Vault Integration | IN PROGRESS (S-P0/S-P1 done) | Secrets management and PKI | EPIC-012-vault-integration/README.md |
+| EPIC-012 Vault Integration | IN PROGRESS (S-P0/S-P1/S-P2 done) | Secrets management and PKI | EPIC-012-vault-integration/README.md |
 | EPIC-013 Reporting Module | 100% COMPLETE | Reporting UI module | EPIC-013-reporting-module/README.md |
 | EPIC-014 UX/UI Design System | 20% COMPLETE | MUI theme + component library | EPIC-014-ux-ui-design-system/README.md |
 | EPIC-016 Advanced Data UX Framework | PLANNED | Data UX framework | EPIC-016-advanced-data-ux-framework/README.md |

@@ -121,8 +121,8 @@ init_and_unseal() {
 
 ensure_kv() {
   load_token_from_file
-  if ! vault_exec secrets list -format=json | jq -e '."secret/"' >/dev/null 2>&1; then
-    vault_exec secrets enable -path=secret kv-v2 >/dev/null
+  if ! vault_exec secrets list -format=json | jq -e '."kv/"' >/dev/null 2>&1; then
+    vault_exec secrets enable -path=kv kv-v2 >/dev/null
   fi
 }
 
@@ -141,11 +141,11 @@ setup_approle() {
   vault_exec auth enable approle >/dev/null 2>&1 || true
 
 cat <<'POLICY' | vault_exec policy write core-platform-agent -
-path "secret/data/core-platform/*" {
+path "kv/data/core/*" {
   capabilities = ["read"]
 }
 
-path "secret/metadata/core-platform/*" {
+path "kv/metadata/core/*" {
   capabilities = ["read", "list"]
 }
 
@@ -204,44 +204,44 @@ seed_secrets() {
   local minio_secret_key="${MINIO_SECRET_KEY:-}"
   local cube_api_secret="${CUBE_API_SECRET:-}"
 
-  vault_exec kv put secret/core-platform/postgres \
+  vault_exec kv put kv/core/postgres \
     username="$db_username" \
     database="$db_name" \
     password="$db_password" >/dev/null
 
-  vault_exec kv put secret/core-platform/keycloak-db \
+  vault_exec kv put kv/core/keycloak-db \
     username="$keycloak_db_username" \
     database="$keycloak_db_name" \
     password="$keycloak_db_password" >/dev/null
 
-  vault_exec kv put secret/core-platform/keycloak \
+  vault_exec kv put kv/core/keycloak \
     admin_password="$keycloak_admin_password" \
     admin_client_secret="$keycloak_admin_client_secret" \
     client_secret="$keycloak_client_secret" \
     test_user_password="${TEST_USER_PASSWORD:-}" \
     test_admin_password="${TEST_ADMIN_PASSWORD:-}" >/dev/null
 
-  vault_exec kv put secret/core-platform/grafana \
+  vault_exec kv put kv/core/grafana \
     admin_password="$grafana_admin_password" \
     db_password="$grafana_db_password" \
     oidc_secret="$grafana_oidc_secret" \
     jwt_secret="$grafana_jwt_secret" >/dev/null
 
-  vault_exec kv put secret/core-platform/pgadmin \
+  vault_exec kv put kv/core/pgadmin \
     email="$pgadmin_email" \
     password="$pgadmin_password" >/dev/null
 
-  vault_exec kv put secret/core-platform/redis \
+  vault_exec kv put kv/core/redis \
     password="$redis_password" >/dev/null
 
-  vault_exec kv put secret/core-platform/minio \
+  vault_exec kv put kv/core/minio \
     access_key="$minio_access_key" \
     secret_key="$minio_secret_key" >/dev/null
 
-  vault_exec kv put secret/core-platform/cube \
+  vault_exec kv put kv/core/cube \
     api_secret="$cube_api_secret" >/dev/null
 
-  echo "Vault secrets seeded under secret/core-platform/*"
+  echo "Vault secrets seeded under kv/core/*"
 }
 
 wait_for_vault

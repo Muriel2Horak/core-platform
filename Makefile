@@ -65,6 +65,7 @@ help:
 	@echo "  test-letsencrypt      - Let's Encrypt dry-run checks"
 	@echo "  test-vault-skeleton   - Vault S-P0 config checks"
 	@echo "  test-vault-pki        - Vault S-P1 PKI config checks"
+	@echo "  test-vault-migration  - Vault S-P2 secrets migration checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -91,6 +92,8 @@ help:
 	@echo "  vault-bootstrap - Init/unseal Vault + seed secrets + AppRole"
 	@echo "  vault-seed      - Seed secrets from .env into Vault"
 	@echo "  vault-approle   - Recreate Vault Agent AppRole creds"
+	@echo "  vault-push-secrets - Seed secrets into Vault (kv/core)"
+	@echo "  vault-list-secrets - List secrets under kv/core"
 	@echo "  vault-pki-setup - Setup Vault PKI root + intermediate CAs"
 	@echo "  vault-pki-issue - Issue edge TLS cert into vault_secrets"
 	@echo "  vault-smoke     - Vault health + audit log checks"
@@ -265,7 +268,7 @@ doctor:
 # 🔐 VAULT (Vault-only secrets + Vault Agent)
 # =============================================================================
 
-.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-pki-setup vault-pki-issue vault-smoke vault-logs vault-status
+.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-push-secrets vault-list-secrets vault-pki-setup vault-pki-issue vault-smoke vault-logs vault-status
 
 vault-up:
 	@$(VAULT_COMPOSE) up -d vault vault-agent
@@ -281,6 +284,12 @@ vault-seed:
 
 vault-approle:
 	@bash scripts/vault/bootstrap-vault.sh --approle-only
+
+vault-push-secrets:
+	@bash scripts/vault/bootstrap-vault.sh --seed-only
+
+vault-list-secrets:
+	@bash scripts/vault/list-secrets.sh
 
 vault-pki-setup:
 	@bash scripts/vault/pki-setup.sh
@@ -1708,6 +1717,11 @@ test-vault-skeleton:
 .PHONY: test-vault-pki
 test-vault-pki:
 	@bash tests/vault_pki_tests.sh
+
+# Vault S-P2 secrets migration checks
+.PHONY: test-vault-migration
+test-vault-migration:
+	@bash tests/vault_secrets_migration_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit
