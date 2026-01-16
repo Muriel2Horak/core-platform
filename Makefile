@@ -153,6 +153,9 @@ help-advanced:
 	@echo "💾 Database:"
 	@echo "  reset-db           - Reset database data"
 	@echo "  db-clean-migrate   - Clean DB & run fresh migrations (DEV/CI only)"
+	@echo "  db-rollback        - Roll back Flyway migrations (VERSION=)"
+	@echo "  db-rollback-test   - Validate undo scripts + dry-run rollback"
+	@echo "  validate-undo-migrations - Check every V has U migration"
 	@echo ""
 	@echo "🧹 Cleanup:"
 	@echo "  clean-artifacts     - Clean test artifacts"
@@ -968,6 +971,25 @@ db-clean-migrate:
 		sleep 2; \
 	done; \
 	echo "⚠️  Backend might still be starting up"
+
+# Validate undo migrations
+.PHONY: validate-undo-migrations
+validate-undo-migrations:
+	@bash scripts/db/validate-undo-scripts.sh
+
+# Roll back Flyway migrations (version required)
+.PHONY: db-rollback
+db-rollback:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Usage: make db-rollback VERSION=2"; \
+		exit 1; \
+	fi
+	@bash scripts/db/rollback.sh $(VERSION)
+
+# Rollback dry-run tests
+.PHONY: db-rollback-test
+db-rollback-test:
+	@bash tests/db_rollback_tests.sh
 
 # =============================================================================
 # 🌐 DOCKER REGISTRY VALIDATION

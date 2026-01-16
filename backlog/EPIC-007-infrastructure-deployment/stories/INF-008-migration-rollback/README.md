@@ -3,14 +3,27 @@ id: INF-008
 epic: EPIC-007-infrastructure-deployment
 title: "Database Migration Rollback Strategy"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - backend/src/main/resources/db/migration/U1__init.sql
+    - backend/src/main/resources/db/migration/U2__init_keycloak_cdc.sql
+    - backend/src/main/resources/db/migration/U3__workflow_runtime.sql
+    - backend/src/main/resources/db/migration/U4__workflow_versioning.sql
+    - backend/src/main/resources/db/migration/U5__make_service_account_token_nullable.sql
+    - backend/src/main/resources/db/migration/U6__add_admin_tenant_grafana_binding.sql
+    - backend/src/main/resources/db/migration/U7__remove_grafana_integration.sql
+    - backend/src/main/resources/db/migration/U8__make_keycloak_group_id_nullable.sql
+    - scripts/db/rollback.sh
+    - scripts/db/validate-undo-scripts.sh
+    - Makefile
+    - lefthook.yml
+  test_paths:
+    - tests/db_rollback_tests.sh
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-008-migration-rollback/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
@@ -19,7 +32,7 @@ path_mapping:
 # INF-008: Database Migration Rollback Strategy
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** DBA Team  
