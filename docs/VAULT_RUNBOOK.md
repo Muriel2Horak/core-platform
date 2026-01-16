@@ -32,6 +32,12 @@ make vault-smoke-runtime
 Vault audit log is written to `/vault/logs/audit.log` and scraped by Promtail.
 Use Loki to query `job="vault-audit"`.
 
+## Alerts
+
+Prometheus alerts are defined in `docker/prometheus/alerts/axiom_vault.yml`:
+- `VaultSealed` (critical)
+- `VaultNoLeader` (warning)
+
 ## Break-Glass
 
 If Vault token is lost, use the unseal key file:

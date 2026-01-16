@@ -67,6 +67,9 @@ help:
 	@echo "  test-vault-pki        - Vault S-P1 PKI config checks"
 	@echo "  test-vault-migration  - Vault S-P2 secrets migration checks"
 	@echo "  test-vault-rotation   - Vault S-P3 rotation checks"
+	@echo "  test-vault-oidc       - Vault S-P4 OIDC config checks"
+	@echo "  test-vault-snapshot   - Vault S-P4 snapshot checks"
+	@echo "  test-vault-monitoring - Vault S-P4 monitoring checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -98,6 +101,9 @@ help:
 	@echo "  vault-pki-setup - Setup Vault PKI root + intermediate CAs"
 	@echo "  vault-pki-issue - Issue edge TLS cert into vault_secrets"
 	@echo "  vault-rotate-backend-db-pass - Rotate backend DB password"
+	@echo "  vault-oidc-setup - Configure GitHub Actions OIDC auth"
+	@echo "  vault-snapshot  - Save Vault Raft snapshot"
+	@echo "  vault-restore   - Restore Vault Raft snapshot"
 	@echo "  vault-smoke     - Vault health + audit log checks"
 	@echo "  vault-smoke-runtime - Vault KV access smoke check"
 	@echo "  vault-logs      - Tail Vault logs"
@@ -271,7 +277,7 @@ doctor:
 # 🔐 VAULT (Vault-only secrets + Vault Agent)
 # =============================================================================
 
-.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-push-secrets vault-list-secrets vault-pki-setup vault-pki-issue vault-rotate-backend-db-pass vault-smoke vault-smoke-runtime vault-logs vault-status
+.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-push-secrets vault-list-secrets vault-pki-setup vault-pki-issue vault-rotate-backend-db-pass vault-oidc-setup vault-snapshot vault-restore vault-smoke vault-smoke-runtime vault-logs vault-status
 
 vault-up:
 	@$(VAULT_COMPOSE) up -d vault vault-agent
@@ -302,6 +308,15 @@ vault-pki-issue:
 
 vault-rotate-backend-db-pass:
 	@bash scripts/vault/rotate-backend-db-pass.sh
+
+vault-oidc-setup:
+	@bash scripts/vault/oidc-setup.sh
+
+vault-snapshot:
+	@bash scripts/vault/snapshot-save.sh
+
+vault-restore:
+	@bash scripts/vault/snapshot-restore.sh
 
 vault-smoke:
 	@bash scripts/vault/vault-smoke.sh
@@ -1736,6 +1751,21 @@ test-vault-migration:
 .PHONY: test-vault-rotation
 test-vault-rotation:
 	@bash tests/vault_rotation_tests.sh
+
+# Vault S-P4 OIDC checks
+.PHONY: test-vault-oidc
+test-vault-oidc:
+	@bash tests/vault_oidc_tests.sh
+
+# Vault S-P4 snapshot checks
+.PHONY: test-vault-snapshot
+test-vault-snapshot:
+	@bash tests/vault_snapshot_tests.sh
+
+# Vault S-P4 monitoring checks
+.PHONY: test-vault-monitoring
+test-vault-monitoring:
+	@bash tests/vault_monitoring_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

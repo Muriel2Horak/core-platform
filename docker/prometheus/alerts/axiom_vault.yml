@@ -1,0 +1,22 @@
+groups:
+  - name: vault
+    rules:
+      - alert: VaultSealed
+        expr: vault_core_unsealed == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: vault
+        annotations:
+          summary: "Vault is sealed"
+          description: "Vault core is sealed and not serving requests."
+
+      - alert: VaultNoLeader
+        expr: vault_core_leadership == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: vault
+        annotations:
+          summary: "Vault leader missing"
+          description: "Vault has no leader (single-node should be leader)."
