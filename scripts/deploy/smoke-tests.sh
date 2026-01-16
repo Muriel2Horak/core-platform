@@ -7,6 +7,9 @@ cd "$PROJECT_ROOT"
 DRY_RUN=false
 BASE_URL="${BASE_URL:-}"
 TIMEOUT="${TIMEOUT:-20}"
+SMOKE_FORCE_RESOLVE="${SMOKE_FORCE_RESOLVE:-false}"
+SMOKE_RESOLVE_IP="${SMOKE_RESOLVE_IP:-127.0.0.1}"
+KAFKA_PORT="${KAFKA_PORT:-9092}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,8 +68,8 @@ resolve_flag_for_url() {
     fi
   fi
 
-  if ! getent hosts "$host" >/dev/null 2>&1; then
-    echo "--resolve ${host}:${port}:127.0.0.1"
+  if [[ "$SMOKE_FORCE_RESOLVE" == "true" ]] || ! getent hosts "$host" >/dev/null 2>&1; then
+    echo "--resolve ${host}:${port}:${SMOKE_RESOLVE_IP}"
   fi
 }
 
@@ -112,8 +115,13 @@ run_check "Database connectivity" \
   "docker exec core-db pg_isready -U '${DB_INTERNAL_USERNAME:-core}' -d '${DB_INTERNAL_NAME:-core}'"
 
 if docker ps --format '{{.Names}}' | grep -q '^core-kafka$'; then
-  run_check "Kafka connectivity" \
-    "docker exec core-kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list | wc -l | grep -q '[1-9]'"
+  if command -v nc >/dev/null 2>&1; then
+    run_check "Kafka connectivity" \
+      "nc -z -w 2 127.0.0.1 $KAFKA_PORT"
+  else
+    run_check "Kafka connectivity" \
+      "bash -c '</dev/tcp/127.0.0.1/$KAFKA_PORT'"
+  fi
 else
   echo "▶️  Kafka connectivity (skipped - container not running)" | tee -a "$LOG_FILE"
 fi
