@@ -48,6 +48,7 @@ services:
     volumes:
       - ./vault-agent/config.hcl:/vault/config/config.hcl:ro
       - ./vault-agent/templates:/vault/templates:ro
+      - ./vault-agent/scripts:/vault/scripts:ro
       - vault_secrets:/vault/secrets
       - ../.vault-approle:/vault/approle:ro
     depends_on:

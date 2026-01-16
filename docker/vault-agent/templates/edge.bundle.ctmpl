@@ -1,0 +1,5 @@
+{{- with secret "pki_int/issue/edge-tls" "common_name=admin.core-platform.local" "alt_names=*.core-platform.local,core-platform.local" "ttl=24h" -}}
+{{ .Data.private_key }}
+{{ .Data.certificate }}
+{{ .Data.issuing_ca }}
+{{- end }}

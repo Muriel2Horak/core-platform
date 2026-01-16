@@ -140,13 +140,17 @@ setup_approle() {
   load_token_from_file
   vault_exec auth enable approle >/dev/null 2>&1 || true
 
-  cat <<'POLICY' | vault_exec policy write core-platform-agent -
+cat <<'POLICY' | vault_exec policy write core-platform-agent -
 path "secret/data/core-platform/*" {
   capabilities = ["read"]
 }
 
 path "secret/metadata/core-platform/*" {
   capabilities = ["read", "list"]
+}
+
+path "pki_int/issue/edge-tls" {
+  capabilities = ["create", "update", "read"]
 }
 POLICY
 

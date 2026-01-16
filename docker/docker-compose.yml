@@ -13,7 +13,7 @@ services:
       - ./nginx/nginx-ssl.conf.template:/etc/nginx/nginx-ssl.conf.template:ro
       - ./nginx/docker-entrypoint.sh:/custom-entrypoint.sh:ro
       # 🔒 Updated to use new wildcard SSL certificates
-      - ../ssl:/etc/nginx/ssl:ro
+      - ${SSL_VOLUME:-../ssl}:/etc/nginx/ssl:ro
       - certbot-www:/var/www/certbot:ro
     entrypoint: ["/custom-entrypoint.sh"]
     command: ["nginx", "-g", "daemon off;"]

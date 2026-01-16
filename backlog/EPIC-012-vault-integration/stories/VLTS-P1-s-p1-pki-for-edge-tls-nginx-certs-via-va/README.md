@@ -3,14 +3,26 @@ id: S-P1
 epic: EPIC-012-vault-integration
 title: "PKI for Edge TLS (NGINX Certs via Vault)"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
-estimate: ""
+updated: 2026-01-16
+estimate: "8 hours"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - .env.template
+    - .env.example
+    - docker/docker-compose.yml
+    - docker/docker-compose.vault.yml
+    - docker/vault-agent/config.hcl
+    - docker/vault-agent/templates/edge.bundle.ctmpl
+    - docker/vault-agent/scripts/render-edge-cert.sh
+    - scripts/vault/bootstrap-vault.sh
+    - scripts/vault/pki-setup.sh
+    - scripts/vault/pki-issue.sh
+    - Makefile
+  test_paths:
+    - tests/vault_pki_tests.sh
   docs_paths:
     - backlog/EPIC-012-vault-integration/stories/VLTS-P1-s-p1-pki-for-edge-tls-nginx-certs-via-va/README.md
     - backlog/EPIC-012-vault-integration/README.md
@@ -43,6 +55,12 @@ path_mapping:
 **WHEN** running `curl https://admin.core-platform.local`  
 **THEN** certificate is issued by Vault intermediate CA  
 **AND** SAN includes `*.core-platform.local, core-platform.local`
+
+## 🧪 Testing
+
+```bash
+make test-vault-pki
+```
 
 ## 🏗️ Implementation
 

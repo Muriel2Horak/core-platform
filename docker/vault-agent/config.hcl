@@ -112,3 +112,11 @@ template {
   destination = "/vault/secrets/postgres-exporter.env"
   perms       = 0640
 }
+
+# Edge TLS bundle (Vault PKI)
+template {
+  source      = "/vault/templates/edge.bundle.ctmpl"
+  destination = "/vault/secrets/edge.bundle"
+  perms       = 0640
+  command     = "/vault/scripts/render-edge-cert.sh /vault/secrets/edge.bundle /vault/secrets/cert.pem /vault/secrets/key.pem /vault/secrets/ca.pem"
+}
