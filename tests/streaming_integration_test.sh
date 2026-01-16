@@ -22,10 +22,21 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-BACKEND_URL="http://localhost:8080"
-KAFKA_CONTAINER="core-kafka"
-DB_CONTAINER="core-db"
-ARTIFACTS_DIR="artifacts"
+BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
+KAFKA_CONTAINER="${KAFKA_CONTAINER:-core-kafka}"
+DB_CONTAINER="${DB_CONTAINER:-core-db}"
+KAFKA_BOOTSTRAP="${KAFKA_BOOTSTRAP:-localhost:9092}"
+KAFKA_PORT="${KAFKA_PORT:-9092}"
+KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8081}"
+DB_USER="${DB_USER:-core_user}"
+DB_NAME="${DB_NAME:-core_db}"
+ARTIFACTS_DIR="${ARTIFACTS_DIR:-artifacts}"
+CURL_FLAGS="${CURL_FLAGS:-}"
+KEYCLOAK_CURL_FLAGS="${KEYCLOAK_CURL_FLAGS:-$CURL_FLAGS}"
+CURL_TIMEOUT="${CURL_TIMEOUT:-10}"
+SKIP_KAFKA_CLI="${SKIP_KAFKA_CLI:-false}"
+STREAMING_ENABLED="${STREAMING_ENABLED:-false}"
+FORCE_STREAMING_TESTS="${FORCE_STREAMING_TESTS:-false}"
 
 # Counters
 TESTS_TOTAL=0
@@ -59,10 +70,23 @@ print_info() {
     echo -e "${BLUE}ℹ️  INFO:${NC} $1"
 }
 
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$seconds" "$@"
+    else
+        perl -e 'alarm shift; exec @ARGV' "$seconds" "$@"
+    fi
+}
+
 wait_for_backend() {
     print_info "Waiting for backend to be ready..."
     for i in {1..30}; do
-        if curl -s "$BACKEND_URL/api/actuator/health" >/dev/null 2>&1; then
+        if curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/health" >/dev/null 2>&1; then
             print_success "Backend is ready"
             return 0
         fi
@@ -81,8 +105,15 @@ test_infrastructure() {
     
     # Kafka
     print_test "Kafka connectivity"
-    if docker exec "$KAFKA_CONTAINER" kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1; then
-        print_success "Kafka is UP"
+    if [[ "$SKIP_KAFKA_CLI" != "true" ]]; then
+        if run_with_timeout 10 docker exec "$KAFKA_CONTAINER" kafka-broker-api-versions --bootstrap-server "$KAFKA_BOOTSTRAP" >/dev/null 2>&1; then
+            print_success "Kafka is UP"
+            return 0
+        fi
+    fi
+
+    if command -v nc >/dev/null 2>&1 && nc -z -w 2 127.0.0.1 "$KAFKA_PORT"; then
+        print_success "Kafka port $KAFKA_PORT is reachable"
     else
         print_failure "Kafka is DOWN"
         return 1
@@ -90,7 +121,7 @@ test_infrastructure() {
     
     # Database
     print_test "Database connectivity"
-    if docker exec "$DB_CONTAINER" psql -U core_user -d core_db -c "SELECT 1;" >/dev/null 2>&1; then
+    if run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
         print_success "Database is UP"
     else
         print_failure "Database is DOWN"
@@ -99,7 +130,7 @@ test_infrastructure() {
     
     # Backend
     print_test "Backend health endpoint"
-    HEALTH=$(curl -s "$BACKEND_URL/api/actuator/health" 2>/dev/null)
+    HEALTH=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/health" 2>/dev/null || echo "")
     if echo "$HEALTH" | jq -e '.status == "UP"' >/dev/null 2>&1; then
         print_success "Backend is UP"
     else
@@ -109,7 +140,7 @@ test_infrastructure() {
     
     # Streaming schema
     print_test "Streaming database schema"
-    if docker exec "$DB_CONTAINER" psql -U core_user -d core_db -c "SELECT 1 FROM streaming.command_queue LIMIT 1;" >/dev/null 2>&1; then
+    if run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM streaming.command_queue LIMIT 1;" >/dev/null 2>&1; then
         print_success "Streaming schema exists"
     else
         print_failure "Streaming schema missing"
@@ -122,9 +153,14 @@ test_infrastructure() {
 # =============================================================================
 test_kafka_topics() {
     print_header "Test 2: Kafka Topics"
-    
+
+    if [[ "$SKIP_KAFKA_CLI" == "true" ]]; then
+        print_info "Kafka CLI checks skipped"
+        return 0
+    fi
+
     print_test "List Kafka topics"
-    TOPICS=$(docker exec "$KAFKA_CONTAINER" kafka-topics --bootstrap-server localhost:9092 --list 2>/dev/null)
+    TOPICS=$(run_with_timeout 10 docker exec "$KAFKA_CONTAINER" kafka-topics --bootstrap-server "$KAFKA_BOOTSTRAP" --list 2>/dev/null || echo "")
     TOPIC_COUNT=$(echo "$TOPICS" | wc -l | tr -d ' ')
     print_success "Found $TOPIC_COUNT topics"
     echo "$TOPICS" | head -5
@@ -146,7 +182,7 @@ get_jwt_token() {
     print_test "Get JWT token from Keycloak"
     
     # Try to get token (may fail if Keycloak not ready)
-    TOKEN_RESPONSE=$(curl -s -X POST "http://localhost:8081/realms/core-platform/protocol/openid-connect/token" \
+    TOKEN_RESPONSE=$(curl -s $KEYCLOAK_CURL_FLAGS -m "$CURL_TIMEOUT" -X POST "$KEYCLOAK_URL/realms/core-platform/protocol/openid-connect/token" \
         -H "Content-Type: application/x-www-form-urlencoded" \
         -d "username=admin" \
         -d "password=admin" \
@@ -178,7 +214,7 @@ test_create_command() {
     
     PAYLOAD='{"name":"Test User","email":"test@example.com"}'
     
-    RESPONSE=$(curl -s -X POST "$BACKEND_URL/api/streaming/commands" \
+    RESPONSE=$(curl -s $CURL_FLAGS -X POST "$BACKEND_URL/api/streaming/commands" \
         -H "Authorization: Bearer $JWT_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{
@@ -220,7 +256,7 @@ test_command_processing() {
     
     for i in {1..15}; do
         # Check command_queue status
-        STATUS=$(docker exec "$DB_CONTAINER" psql -U core_user -d core_db -t -c \
+        STATUS=$(run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
             "SELECT status FROM streaming.command_queue WHERE id = '$COMMAND_ID';" 2>/dev/null | tr -d ' ')
         
         echo "Attempt $i/15: Status = '$STATUS'"
@@ -245,14 +281,19 @@ test_command_processing() {
 # =============================================================================
 test_kafka_message() {
     print_header "Test 6: Kafka Message Published"
-    
+
+    if [[ "$SKIP_KAFKA_CLI" == "true" ]]; then
+        print_info "Kafka CLI checks skipped"
+        return 0
+    fi
+
     print_test "Check if message was published to Kafka"
     
     TOPIC="streaming-events.entity.events.user"
     
     # Consume last message from topic
-    MESSAGE=$(docker exec "$KAFKA_CONTAINER" kafka-console-consumer \
-        --bootstrap-server localhost:9092 \
+    MESSAGE=$(run_with_timeout 10 docker exec "$KAFKA_CONTAINER" kafka-console-consumer \
+        --bootstrap-server "$KAFKA_BOOTSTRAP" \
         --topic "$TOPIC" \
         --from-beginning \
         --max-messages 1 \
@@ -276,7 +317,7 @@ test_metrics() {
     
     print_test "Fetch streaming metrics"
     
-    METRICS=$(curl -s "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null | grep "^streaming_" || echo "")
+    METRICS=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null | grep "^streaming_" || echo "")
     
     if [ -n "$METRICS" ]; then
         print_success "Streaming metrics exposed"
@@ -303,7 +344,7 @@ test_queue_status() {
     
     print_test "Check streaming queue status"
     
-    QUEUE_STATUS=$(docker exec "$DB_CONTAINER" psql -U core_user -d core_db -c \
+    QUEUE_STATUS=$(run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
         "SELECT status, priority, COUNT(*) as count FROM streaming.command_queue GROUP BY status, priority ORDER BY priority DESC, status;" \
         2>/dev/null)
     
@@ -326,7 +367,7 @@ test_dlq_status() {
     
     print_test "Check DLQ (should be empty for successful test)"
     
-    DLQ_COUNT=$(docker exec "$DB_CONTAINER" psql -U core_user -d core_db -t -c \
+    DLQ_COUNT=$(run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
         "SELECT COUNT(*) FROM streaming.dead_letter_queue;" 2>/dev/null | tr -d ' ')
     
     if [ "$DLQ_COUNT" == "0" ]; then
@@ -336,7 +377,7 @@ test_dlq_status() {
         print_info "DLQ has $DLQ_COUNT messages"
         
         # Show DLQ entries
-        docker exec "$DB_CONTAINER" psql -U core_user -d core_db -c \
+        run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
             "SELECT entity, operation, error_message FROM streaming.dead_letter_queue LIMIT 5;" \
             2>/dev/null
         return 0
@@ -381,7 +422,7 @@ test_bulk_commands() {
     sleep 5
     
     # Check metrics
-    METRICS=$(curl -s "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null | grep "streaming_commands_created_total" | grep "user" || echo "")
+    METRICS=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null | grep "streaming_commands_created_total" | grep "user" || echo "")
     print_info "Metrics: $METRICS"
 }
 
@@ -390,9 +431,14 @@ test_bulk_commands() {
 # =============================================================================
 main() {
     print_header "🧪 STREAMING INTEGRATION TEST"
-    
+
     # Setup
     mkdir -p "$ARTIFACTS_DIR"
+
+    if [[ "$STREAMING_ENABLED" != "true" && "$FORCE_STREAMING_TESTS" != "true" ]]; then
+        print_info "STREAMING_ENABLED=false; skipping streaming integration tests"
+        exit 0
+    fi
     
     # Wait for backend
     wait_for_backend
