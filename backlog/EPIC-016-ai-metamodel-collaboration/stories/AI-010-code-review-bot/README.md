@@ -43,6 +43,17 @@ So that I get faster feedback and catch bugs/violations before human review.
 - 🔮 Developer can dismiss/resolve bot comments
 - 🔮 Bot learns from developer feedback (accepted/rejected suggestions)
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | GitHub Actions workflow (PR trigger, diff collection) | 0.5d | none |
+| 2 | Prompt template + LLM call with guardrails | 0.5d | 1 |
+| 3 | Review comment posting (inline + summary) | 0.5d | 2 |
+| 4 | Ruleset integrations (naming-lint, secrets scan, test delta) | 0.5d | 2 |
+| 5 | Feedback loop (accept/dismiss tracking) | 0.5d | 3 |
+| 6 | Rate limits + cost controls + audit logs | 0.5d | 3 |
+
 ---
 
 ## 🏗️ Planned Features

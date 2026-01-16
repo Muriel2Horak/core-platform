@@ -45,6 +45,16 @@ So that I can get AI-powered assistance with context about our backlog, code, an
 
 ---
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Harden tool registry (path allowlist, output size limits, redaction) | 0.5d | none |
+| 2 | Add DB access tools (`query_metamodel`, `query_backlog`) via read-only connection + RBAC checks | 1d | 1 |
+| 3 | Add Git tools (`git_status`, `git_diff`, `git_log`, `git_branches`) with safe output limits | 1d | 1 |
+| 4 | Packaging + docs (npm package, config examples, README) | 0.5d | 2,3 |
+| 5 | Tests + CI smoke (unit for tools, integration run) | 0.5d | 2,3 |
+
 ## 🏗️ Technical Implementation
 
 ### Architecture

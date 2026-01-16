@@ -44,6 +44,15 @@ So that I get consistent, project-specific autocomplete and avoid common mistake
 - ✅ All team members use Copilot with same instructions
 - ✅ 100% adoption across team
 
+## 🧩 Implementation Tasks (DONE)
+
+| Order | Task | Output |
+| --- | --- | --- |
+| 1 | Author `.github/copilot-instructions.md` with project rules | Consistent Copilot suggestions |
+| 2 | Add `.github/copilot-golden-rules.md` for build/deploy nuances | Deep-dive guidance |
+| 3 | Socialize instructions to team + onboarding note | 100% adoption |
+| 4 | Add maintenance checklist for updates | Continuous improvement |
+
 ---
 
 ## 🏗️ Implementation (DONE)

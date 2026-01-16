@@ -43,6 +43,17 @@ So that every story has automated tests without manual boilerplate writing.
 - ⏳ Developer reviews + commits generated test
 - ⏳ CI enforces: Every story must have tests (or fail build)
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | CLI generator (`generate-from-story.ts`) with README parser | 0.5d | none |
+| 2 | Prompt template + context loader (fixtures, conventions) | 0.5d | 1 |
+| 3 | MCP/LLM integration + response extraction | 0.5d | 2 |
+| 4 | Generated test placement + naming conventions | 0.25d | 3 |
+| 5 | CI gate: fail if story has no tests or tests missing | 0.5d | 4 |
+| 6 | Pilot on 3 stories + refine prompts | 0.25d | 3 |
+
 ---
 
 ## 🏗️ Planned Implementation

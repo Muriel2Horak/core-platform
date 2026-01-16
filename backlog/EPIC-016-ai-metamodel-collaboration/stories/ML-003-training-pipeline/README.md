@@ -34,6 +34,17 @@ path_mapping:
 **AND** hyperparameter tuning finds optimal parameters  
 **AND** trained model is registered in MLflow
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Airflow deployment + DAG skeletons | 0.5d | none |
+| 2 | Data extraction + feature engineering steps | 0.5d | 1 |
+| 3 | Training + Optuna tuning loop | 0.5d | 2 |
+| 4 | Evaluation + model validation gates | 0.5d | 3 |
+| 5 | MLflow registration + promotion hooks | 0.5d | 4 |
+| 6 | Scheduling + monitoring + alerts | 0.5d | 1 |
+
 ## 🏗️ Implementation
 
 ### Airflow DAG

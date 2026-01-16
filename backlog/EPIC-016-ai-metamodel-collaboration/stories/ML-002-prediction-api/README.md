@@ -34,6 +34,17 @@ path_mapping:
 **AND** results are cached in Redis  
 **AND** rate limiting prevents abuse
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define API contract + DTOs (single + batch) | 0.5d | none |
+| 2 | Implement PredictionService + model routing | 0.5d | ML-001 |
+| 3 | Add Redis cache + rate limits | 0.5d | 2 |
+| 4 | Batch execution (queue + status endpoint) | 0.5d | 2 |
+| 5 | Tenant isolation + auth/RBAC | 0.5d | 2 |
+| 6 | Metrics + load tests (P95 latency) | 0.5d | 3 |
+
 ## 🏗️ Implementation
 
 ### Prediction Controller

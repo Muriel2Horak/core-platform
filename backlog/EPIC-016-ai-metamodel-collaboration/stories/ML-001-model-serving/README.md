@@ -35,6 +35,17 @@ path_mapping:
 **AND** I can A/B test model versions  
 **AND** predictions have <50ms P95 latency
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Select serving stack + Docker compose (TorchServe/TF Serving) | 0.5d | none |
+| 2 | MLflow registry integration + model promotion flow | 0.5d | 1 |
+| 3 | Model packaging + deploy hooks (mar/serving format) | 0.5d | 2 |
+| 4 | Routing for versioning + A/B split | 0.5d | 2 |
+| 5 | Metrics + autoscaling (latency, error rate) | 0.5d | 3 |
+| 6 | Security (auth, tenant scoping, rate limits) | 0.5d | 3 |
+
 ## 🏗️ Implementation
 
 ### MLflow Model Registry

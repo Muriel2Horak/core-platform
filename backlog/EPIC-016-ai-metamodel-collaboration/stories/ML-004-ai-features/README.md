@@ -38,6 +38,17 @@ path_mapping:
 **THEN** I receive an alert within 5 minutes  
 **AND** anomaly detection has <5% false positives
 
+## 🧩 Implementation Tasks
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define AI feature list + success metrics | 0.5d | none |
+| 2 | Implement suggestion service (routing + scoring) | 0.5d | ML-002 |
+| 3 | Anomaly detection pipeline + alerting integration | 0.5d | ML-001 |
+| 4 | Feedback loop storage + retraining hooks | 0.5d | ML-003 |
+| 5 | UI integration (suggestions + alerts) | 0.5d | 2,3 |
+| 6 | A/B rollout + metrics dashboards | 0.5d | 5 |
+
 ## 🏗️ Implementation
 
 ### Feature 1: Workflow Routing Suggestions
