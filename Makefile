@@ -11,6 +11,9 @@ LOG_DIR := diagnostics
 LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
 JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
 VAULT_COMPOSE := docker compose -f docker/docker-compose.yml -f docker/docker-compose.vault.yml --env-file .env
+SKIP_DOCTOR ?= false
+
+include scripts/build-doctor/Makefile.doctor
 
 .PHONY: help test-mt report-mt test-and-report clean-artifacts backlog-new backlog-help
 .PHONY: up down clean clean-fast rebuild doctor watch verify verify-full
@@ -51,6 +54,7 @@ help:
 	@echo "  test-backend          - Backend UNIT tests only (fast, 2-5 min)"
 	@echo "  test-backend-full     - Backend ALL tests (unit + integration, 10-15 min)"
 	@echo "  test-frontend         - Frontend unit tests"
+	@echo "  test-build-doctor     - Build Doctor pre-flight tests"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -424,7 +428,7 @@ logs-tail:
 # =============================================================================
 
 # Production up with Build Doctor
-up:
+up: doctor-pre-build
 	@scripts/build/wrapper.sh $(MAKE) _up_inner 2>&1 | tee -a $(LOG_FILE)
 
 _up_inner: validate-env kc-image
@@ -748,7 +752,7 @@ rebuild-clean: check-registries
 	@NO_CACHE=true scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
 
 # Clean with Build Doctor (FULL E2E TESTING)
-clean: check-registries
+clean: doctor-pre-build check-registries
 	@CLEAN_START=$$(date +%s); \
 	bash scripts/build/auto-split.sh "NO_CACHE=true SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"; \
 	EXIT_CODE=$$?; \
@@ -984,7 +988,7 @@ check-registries:
 
 # Build all images
 .PHONY: build
-build: check-registries
+build: doctor-pre-build check-registries
 	@echo "🔨 Building all images (with cache)..."
 	@$(MAKE) kc-image
 	docker compose -f docker/docker-compose.yml --env-file .env build
@@ -1554,6 +1558,11 @@ nuclear-rebuild-frontend:
 # =============================================================================
 # 🧪 BACKEND TESTING TARGETS
 # =============================================================================
+
+# Build Doctor tests (pre-flight checks)
+.PHONY: test-build-doctor
+test-build-doctor:
+	@bash tests/build_doctor_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

@@ -3,23 +3,35 @@ id: INF-014
 epic: EPIC-007-infrastructure-deployment
 title: "Build Doctor Pre-Flight Checks"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - scripts/build-doctor/pre-build-checks.sh
+    - scripts/build-doctor/check-env.sh
+    - scripts/build-doctor/check-docker.sh
+    - scripts/build-doctor/check-ports.sh
+    - scripts/build-doctor/check-disk.sh
+    - scripts/build-doctor/check-templates.sh
+    - scripts/build-doctor/Makefile.doctor
+    - docker/keycloak/generate-realm.sh
+    - Makefile
+  test_paths:
+    - tests/build_doctor_tests.sh
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-014-build-doctor/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
+    - docs/BUILD_DOCTOR.md
+    - README.md
 ---
 
 # INF-014: Build Doctor Pre-Flight Checks
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** 🔥 CRITICAL  
 **Effort:** 2 dny, ~600 LOC  
 **Owner:** Platform Team  

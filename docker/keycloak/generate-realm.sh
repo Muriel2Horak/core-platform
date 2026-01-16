@@ -7,9 +7,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Input template and output file
-REALM_TEMPLATE="$SCRIPT_DIR/realm-admin.template.json"
-REALM_OUTPUT="$SCRIPT_DIR/realm-admin.json"
+# Input template and output file (overridable for checks/tests)
+REALM_TEMPLATE="${REALM_TEMPLATE:-$SCRIPT_DIR/realm-admin.template.json}"
+REALM_OUTPUT="${REALM_OUTPUT:-$SCRIPT_DIR/realm-admin.json}"
 
 # 🌐 Dynamické generování Keycloak realm exportu s aktuální DOMAIN
 # Použije environment proměnnou DOMAIN pro generování správných redirect URIs

@@ -14,6 +14,28 @@ Build Doctor automaticky:
 - **Integruje s Loki** pro pokročilou analýzu logů
 - **Automaticky ověřuje** prostředí po deployu (smoke testy)
 - **🆕 Spouští unit testy** před každým buildem
+- **🆕 Předběžné pre-flight checky** (env, Docker, porty, disk, templaty)
+
+## ✅ Pre-flight checks (Build Doctor)
+
+Před `make build`, `make up` a `make clean` se automaticky spustí rychlé kontroly:
+- `.env` je kompletní a validní
+- Docker daemon běží
+- Porty 80/443/8080/5432/6379/9092 jsou volné
+- Disk má alespoň 10 GB volného místa
+- Keycloak realm template je synchronní s `realm-admin.json`
+
+Bypass pro CI nebo urgentní situace:
+
+```bash
+SKIP_DOCTOR=true make build
+```
+
+Testy Build Doctoru:
+
+```bash
+make test-build-doctor
+```
 
 ## 🚀 Rychlý start
 

@@ -133,6 +133,12 @@ make verify        # Rychlé smoke testy (~15s)
 make verify-full   # Plné integration testy (~3min)
 ```
 
+Pre-flight kontroly lze v CI přeskočit:
+
+```bash
+SKIP_DOCTOR=true make build
+```
+
 **⚡ Build Optimization:** `make rebuild` nyní používá Docker cache, což znamená:
 - Dependencies se stahují pouze jednou
 - Běžné změny v kódu = rebuild za ~2-3 minuty místo ~10 minut
