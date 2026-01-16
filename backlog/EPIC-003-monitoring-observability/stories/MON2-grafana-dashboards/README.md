@@ -9,7 +9,9 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - docker/docker-compose.yml
+    - docker/grafana/provisioning/dashboards/dashboards.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-003-monitoring-observability/stories/MON2-grafana-dashboards/README.md
@@ -19,7 +21,7 @@ path_mapping:
 # S2: Grafana Dashboards (Phase S2)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červen 2024 (Phase S2)  
 **LOC:** ~2,500 řádků (JSON)  
 **Sprint:** Monitoring Wave 1

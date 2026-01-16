@@ -9,7 +9,8 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/resources/metamodel
   test_paths: []
   docs_paths:
     - backlog/EPIC-018-platform-hardening/stories/PH6-cube-js-schema-generation-from-metamodel/README.md
@@ -19,7 +20,7 @@ path_mapping:
 # S6: Cube.js Schema Generation from Metamodel (Phase S6)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase S6)  
 **LOC:** ~1,500 řádků  
 **Sprint:** Platform Hardening Wave 2

@@ -15,6 +15,7 @@ path_mapping:
     - docs/MODULE_REGISTRY.md
 ---
 
+
 # N8N10: Core API Connector Node
 
 Status: TODO

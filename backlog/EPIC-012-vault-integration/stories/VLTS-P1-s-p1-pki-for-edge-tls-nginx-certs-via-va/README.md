@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-012-vault-integration/README.md
 ---
 
+
 # S-P1: PKI for Edge TLS (NGINX Certs via Vault)
 
 > **Dynamic Certificates:** Vault PKI engine issues *.core-platform.local certs, Vault Agent templates for NGINX, auto-renewal

@@ -3,7 +3,7 @@ id: N8N7
 epic: EPIC-011-n8n-workflow-automation
 title: "n8n Provisioning Service"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -18,9 +18,10 @@ path_mapping:
     - docs/TENANT_ONBOARDING.md
 ---
 
+
 # N8N7: n8n Provisioning Service
 
-Status: TODO
+Status: ✅ DONE
 Priority: High
 Dependencies: N8N1, N8N2, N8N8
 

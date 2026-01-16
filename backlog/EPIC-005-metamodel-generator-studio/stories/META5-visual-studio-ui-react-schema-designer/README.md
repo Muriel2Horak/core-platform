@@ -3,7 +3,7 @@ id: META-005
 epic: EPIC-005-metamodel-generator-studio
 title: "Visual Studio UI (React Schema Designer)"
 priority: P2
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-005: Visual Studio UI (React Schema Designer)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (UI mockups exist)  
+**Status:** 🟡 **READY**
 **Priorita:** P1 (High-value feature)  
 **Estimated LOC:** ~800 řádků (React + backend API)  
 

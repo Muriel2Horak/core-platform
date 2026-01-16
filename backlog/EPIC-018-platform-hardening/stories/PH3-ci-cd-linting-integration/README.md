@@ -9,7 +9,11 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/resources/metamodel/
+    - frontend/src/
+    - tools/naming-lint
+    - tools/naming-lint/
   test_paths: []
   docs_paths:
     - backlog/EPIC-018-platform-hardening/stories/PH3-ci-cd-linting-integration/README.md
@@ -19,7 +23,7 @@ path_mapping:
 # S3: CI/CD Linting Integration (Phase S3)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase S3)  
 **LOC:** ~300 řádků  
 **Sprint:** Platform Hardening Wave 1

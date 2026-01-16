@@ -3,7 +3,7 @@ id: N8N12
 epic: EPIC-011-n8n-workflow-automation
 title: "Webhook Security and Signature Verification"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -17,9 +17,10 @@ path_mapping:
     - docs/SECURITY_MIGRATION_GUIDE.md
 ---
 
+
 # N8N12: Webhook Security and Signature Verification
 
-Status: TODO
+Status: ✅ DONE
 Priority: High
 Estimate: 1.5 days (~350 LOC)
 Dependencies: N8N8

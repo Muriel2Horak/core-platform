@@ -3,13 +3,14 @@ id: S1
 epic: EPIC-008-document-management-system
 title: "File Upload/Download Service"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - docker/docker-compose.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-008-document-management-system/stories/DMS1-file-upload-download-service/README.md

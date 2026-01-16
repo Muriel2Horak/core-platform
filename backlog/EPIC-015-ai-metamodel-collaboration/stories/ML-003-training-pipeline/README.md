@@ -3,7 +3,7 @@ id: S3
 epic: EPIC-015-ai-metamodel-collaboration
 title: "Model Training Pipeline"
 priority: P2
-status: done
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -15,6 +15,7 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/stories/ML-003-training-pipeline/README.md
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
+
 
 # S3: Model Training Pipeline
 

@@ -3,7 +3,7 @@ id: S5
 epic: EPIC-018-platform-hardening
 title: "Pre-Aggregation Auto-Refresh (Phase S5)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
+
 # S5: Pre-Aggregation Auto-Refresh (Phase S5)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase S5)  
 **LOC:** ~800 řádků  
 **Sprint:** Platform Hardening Wave 2

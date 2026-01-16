@@ -3,7 +3,7 @@ id: N8N6
 epic: EPIC-011-n8n-workflow-automation
 title: "Backend n8n Integration (BFF Pattern)"
 priority: P1
-status: ready
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -18,6 +18,7 @@ path_mapping:
   docs_paths:
     - docs/MONITORING_BFF_ARCHITECTURE.md
 ---
+
 
 # S6: Backend n8n Integration (BFF Pattern)
 

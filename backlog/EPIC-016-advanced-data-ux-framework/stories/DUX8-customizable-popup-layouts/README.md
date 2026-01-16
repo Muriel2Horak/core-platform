@@ -3,7 +3,7 @@ id: S8
 epic: EPIC-016-advanced-data-ux-framework
 title: "Customizable Popup Layouts"
 priority: P2
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-016-advanced-data-ux-framework/README.md
 ---
 
+
 # S8: Customizable Popup Layouts
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟢 **P2 - MEDIUM**  
 **Effort:** ~85 hours  
 **Sprint:** 4  
@@ -684,4 +685,3 @@ test('Customize popup layout', async ({ page }) => {
 
 **Status:** 📋 TODO  
 **Next:** S9: Tile Click Actions
-

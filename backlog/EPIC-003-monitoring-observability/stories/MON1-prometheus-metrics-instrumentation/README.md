@@ -9,7 +9,9 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - docker/prometheus/prometheus.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-003-monitoring-observability/stories/MON1-prometheus-metrics-instrumentation/README.md
@@ -19,7 +21,7 @@ path_mapping:
 # S1: Prometheus Metrics Instrumentation (Phase S1)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červen 2024 (Phase S1)  
 **LOC:** ~1,800 řádků  
 **Sprint:** Monitoring Wave 1

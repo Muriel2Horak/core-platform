@@ -3,7 +3,7 @@ id: META-016
 epic: EPIC-005-metamodel-generator-studio
 title: "RBAC & Field-Level Security"
 priority: P0
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-016: RBAC & Field-Level Security
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL**  
+**Status:** 🟡 **READY**
 **Priorita:** P0 (Critical - Security!)  
 **Estimated LOC:** ~1,800 řádků  
 **Effort:** 3 týdny (120 hodin)

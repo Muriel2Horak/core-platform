@@ -3,7 +3,7 @@ id: CORE-007
 epic: EPIC-001-backlog-system
 title: "Test-First Development & Bug Tracking Workflow"
 priority: P1
-status: ready
+status: done
 assignee: ""
 created: 2025-11-06
 updated: 2025-11-06
@@ -22,10 +22,11 @@ path_mapping:
     - CHANGELOG.md
 ---
 
+
 # CORE-007: Test-First Development & Bug Tracking Workflow
 
 > **Epic:** [EPIC-001-backlog-system](../../README.md)  
-> **Priority:** P1 | **Status:** ready | **Estimate:** 2 days
+> **Priority:** P1 | **Status:** ✅ **DONE**| **Estimate:** 2 days
 
 ## 👤 Role / Potřeba / Benefit
 

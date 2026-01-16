@@ -9,7 +9,8 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - .github/dependabot.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-018-platform-hardening/stories/PH8-platform-security-audit/README.md
@@ -19,7 +20,7 @@ path_mapping:
 # S8: Platform Security Audit (Phase S8)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase S8)  
 **LOC:** ~1,200 řádků  
 **Sprint:** Platform Hardening Wave 3

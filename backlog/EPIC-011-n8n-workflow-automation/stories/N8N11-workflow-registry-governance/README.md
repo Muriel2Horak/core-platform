@@ -3,7 +3,7 @@ id: N8N11
 epic: EPIC-011-n8n-workflow-automation
 title: "Workflow Registry Sync"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -18,9 +18,10 @@ path_mapping:
     - docs/MODULE_LICENSING.md
 ---
 
+
 # N8N11: Workflow Registry Sync
 
-Status: TODO
+Status: ✅ DONE
 Priority: High
 Estimate: 1.5 days (~500 LOC)
 Dependencies: N8N6, N8N7

@@ -9,7 +9,10 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/pom.xml
+    - backend/src/main/resources/application.yml
+    - docker/docker-compose.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-003-monitoring-observability/stories/MON4-distributed-tracing-jaeger-zipkin/README.md
@@ -19,7 +22,7 @@ path_mapping:
 # S4: Distributed Tracing (Jaeger/Zipkin) (Phase S4)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červenec 2024 (Phase S4)  
 **LOC:** ~800 řádků  
 **Sprint:** Monitoring Wave 2

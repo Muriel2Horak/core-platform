@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-017-modular-architecture/README.md
 ---
 
+
 # ADM-001: Global Module Catalog
 
 **Status:** ⏳ **PENDING**  

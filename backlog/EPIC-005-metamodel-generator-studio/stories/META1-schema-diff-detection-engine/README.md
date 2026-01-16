@@ -9,8 +9,10 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/metamodel/schema/
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/metamodel/schema/
   docs_paths:
     - backlog/EPIC-005-metamodel-generator-studio/stories/META1-schema-diff-detection-engine/README.md
     - backlog/EPIC-005-metamodel-generator-studio/README.md
@@ -19,7 +21,7 @@ path_mapping:
 # META-001: Schema Diff Detection Engine
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** 15. září 2025  
 **LOC:** ~600 řádků  
 **Sprint:** Metamodel Phase 1

@@ -3,7 +3,7 @@ id: WF14
 epic: EPIC-006-workflow-engine
 title: "KAFKA_COMMAND Executor - Async Command/Reply Pattern"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -19,6 +19,7 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WF14: KAFKA_COMMAND Executor - Async Command/Reply Pattern
 
 **Typ:** TASK  
@@ -27,7 +28,7 @@ path_mapping:
 **Priorita:** MEDIUM (async integration pattern)  
 **Effort:** 600 LOC, 2 dny  
 **Dependencies:** W7 (Executor Framework), Kafka infrastructure  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

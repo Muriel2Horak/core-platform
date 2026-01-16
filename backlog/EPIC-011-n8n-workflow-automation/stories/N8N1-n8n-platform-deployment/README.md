@@ -3,7 +3,7 @@ id: N8N1
 epic: EPIC-011-n8n-workflow-automation
 title: "n8n Platform Deployment"
 priority: P1
-status: ready
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -17,6 +17,7 @@ path_mapping:
   docs_paths:
     - backlog/EPIC-011-n8n-workflow-automation/README.md
 ---
+
 
 # S1: n8n Platform Deployment
 

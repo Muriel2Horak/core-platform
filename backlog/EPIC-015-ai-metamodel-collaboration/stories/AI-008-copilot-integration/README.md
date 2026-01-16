@@ -3,7 +3,7 @@ id: AI-008
 epic: EPIC-015-ai-metamodel-collaboration
 title: "GitHub Copilot Integration"
 priority: P1
-status: done
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,9 +16,10 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
+
 # AI-008: GitHub Copilot Integration
 
-**Status:** ✅ **DONE** (Production, ~500 LOC project rules)  
+**Status:** 🔴 **TODO**
 **Effort:** - (already complete)  
 **Priority:** 🔥 HIGH  
 **LOC:** ~500 (Copilot instructions in `.github/`)  

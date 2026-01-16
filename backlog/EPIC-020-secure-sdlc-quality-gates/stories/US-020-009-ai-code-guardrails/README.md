@@ -3,7 +3,7 @@ id: US-020-009
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "AI-generated code guardrails"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -23,11 +23,12 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-009-ai-code-guardrails/README.md
 ---
 
+
 # US-020-009: AI-generated code guardrails
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** TODO
+**Status:** ✅ **DONE**
 **Estimate:** 2 days
 
 ## User Story

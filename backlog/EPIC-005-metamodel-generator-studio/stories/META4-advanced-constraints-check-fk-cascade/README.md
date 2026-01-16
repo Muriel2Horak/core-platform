@@ -3,7 +3,7 @@ id: META-004
 epic: EPIC-005-metamodel-generator-studio
 title: "Advanced Constraints (CHECK, FK Cascade)"
 priority: P2
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-004: Advanced Constraints (CHECK, FK Cascade)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (Not implemented yet)  
+**Status:** 🟡 **READY**
 **Priorita:** P2 (Nice-to-have)  
 **Estimated LOC:** ~250 řádků  
 

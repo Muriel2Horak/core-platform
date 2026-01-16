@@ -3,7 +3,7 @@ id: N8N13
 epic: EPIC-011-n8n-workflow-automation
 title: "Workflow Governance and RBAC"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -19,9 +19,10 @@ path_mapping:
     - backlog/WORKFLOW_N8N_AUDIT_2025.md
 ---
 
+
 # N8N13: Workflow Governance and RBAC
 
-Status: TODO
+Status: ✅ DONE
 Priority: High
 Estimate: 2 days (~500 LOC)
 Dependencies: N8N11, N8N2, N8N3

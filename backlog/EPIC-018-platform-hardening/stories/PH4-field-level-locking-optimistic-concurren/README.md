@@ -3,7 +3,7 @@ id: S4
 epic: EPIC-018-platform-hardening
 title: "Field-Level Locking & Optimistic Concurrency (Phase S4)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
+
 # S4: Field-Level Locking & Optimistic Concurrency (Phase S4)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase S4)  
 **LOC:** ~2,800 řádků  
 **Sprint:** Platform Hardening Wave 2

@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-012-vault-integration/README.md
 ---
 
+
 # S-P0: Vault Skeleton (Staging, Prod-Like)
 
 > **Foundation:** HashiCorp Vault HA Raft deployment, audit device, init/unseal scripts, Make automation

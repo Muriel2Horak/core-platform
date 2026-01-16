@@ -3,7 +3,7 @@ id: AI-010
 epic: EPIC-015-ai-metamodel-collaboration
 title: "AI Code Review Bot"
 priority: P3
-status: done
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,9 +16,10 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
+
 # AI-010: AI Code Review Bot
 
-**Status:** 🔮 **PLANNED** (0% complete - future enhancement)  
+**Status:** 🔴 **TODO**
 **Effort:** 3 dny (GitHub Actions + Claude API + prompt tuning)  
 **Priority:** 🟢 LOW  
 **LOC:** ~800 (estimated)  

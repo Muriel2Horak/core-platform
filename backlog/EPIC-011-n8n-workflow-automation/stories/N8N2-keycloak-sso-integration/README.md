@@ -3,7 +3,7 @@ id: N8N2
 epic: EPIC-011-n8n-workflow-automation
 title: "Keycloak SSO Integration"
 priority: P1
-status: ready
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -20,6 +20,7 @@ path_mapping:
     - docs/KEYCLOAK_BOOTSTRAP_GUIDE.md
     - docs/auth-keycloak-setup.md
 ---
+
 
 # S2: Keycloak SSO Integration
 

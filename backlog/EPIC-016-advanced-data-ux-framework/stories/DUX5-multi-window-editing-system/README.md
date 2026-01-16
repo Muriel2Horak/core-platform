@@ -3,7 +3,7 @@ id: S5
 epic: EPIC-016-advanced-data-ux-framework
 title: "Multi-Window Editing System"
 priority: P1
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-016-advanced-data-ux-framework/README.md
 ---
 
+
 # S5: Multi-Window Editing System
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟡 **P1 - HIGH**  
 **Effort:** ~60 hours  
 **Sprint:** 5-6  

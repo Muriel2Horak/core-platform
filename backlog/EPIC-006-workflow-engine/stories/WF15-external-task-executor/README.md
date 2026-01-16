@@ -3,7 +3,7 @@ id: WF15
 epic: EPIC-006-workflow-engine
 title: "EXTERNAL_TASK Executor - n8n Integration Bridge"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -19,6 +19,7 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WF15: EXTERNAL_TASK Executor - n8n Integration Bridge
 
 **Typ:** TASK  
@@ -27,7 +28,7 @@ path_mapping:
 **Priorita:** 🔴 CRITICAL (klíč pro n8n integraci)  
 **Effort:** 800 LOC, 3 dny  
 **Dependencies:** W7 (Executor Framework), N8N6 (BFF API)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

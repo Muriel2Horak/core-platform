@@ -3,7 +3,7 @@ id: WF13
 epic: EPIC-006-workflow-engine
 title: "REST_SYNC Executor - Synchronní REST API Volání"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -19,6 +19,7 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WF13: REST_SYNC Executor - Synchronní REST API Volání
 
 **Typ:** TASK  
@@ -27,7 +28,7 @@ path_mapping:
 **Priorita:** HIGH (kritická integrace s externími systémy)  
 **Effort:** 1,200 LOC, 5 dní  
 **Dependencies:** W7 (Executor Framework)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

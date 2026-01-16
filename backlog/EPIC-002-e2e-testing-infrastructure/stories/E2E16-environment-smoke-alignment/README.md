@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
 ---
 
+
 # E2E16: Environment & Smoke Alignment
 
 **Status:** 🔵 **TODO**  

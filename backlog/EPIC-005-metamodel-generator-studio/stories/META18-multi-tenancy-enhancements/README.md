@@ -3,7 +3,7 @@ id: META-018
 epic: EPIC-005-metamodel-generator-studio
 title: "Multi-Tenancy Enhancements"
 priority: P3
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-018: Multi-Tenancy Enhancements
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟢 **NICE TO HAVE**  
+**Status:** 🟡 **READY**
 **Priorita:** P3 (Low)  
 **Estimated LOC:** ~600 řádků  
 **Effort:** 1 týden (40 hodin)

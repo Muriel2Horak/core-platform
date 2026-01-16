@@ -3,7 +3,7 @@ id: CORE-003
 epic: EPIC-001-backlog-system
 title: "Story Generator Script (new_story.sh)"
 priority: P1  # P1 (Must Have) | P2 (Should Have) | P3 (Nice to Have)
-status: in-progress  # ready | in-progress | blocked | done
+status: ready
 assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-001-backlog-system/README.md
 ---
 
+
 # CORE-003: Story Generator Script (new_story.sh)
 
 > **Epic:** [EPIC-001: Backlog System](../../README.md)  
-> **Priority:** P1 | **Status:** In Progress | **Estimate:** 1 day
+> **Priority:** P1 | **Status:** 🟡 **READY**| **Estimate:** 1 day
 
 ## 👤 Role / Potřeba / Benefit
 

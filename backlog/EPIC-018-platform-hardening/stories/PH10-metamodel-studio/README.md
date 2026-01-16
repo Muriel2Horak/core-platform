@@ -3,7 +3,7 @@ id: S10
 epic: EPIC-018-platform-hardening
 title: "Metamodel Studio (Phase S10)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
+
 # S10: Metamodel Studio (Phase S10)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase S10)  
 **LOC:** ~12,000 řádků  
 **Sprint:** Platform Hardening Wave 4 (Mega Feature)

@@ -3,7 +3,7 @@ id: META-002
 epic: EPIC-005-metamodel-generator-studio
 title: "Hot Reload REST API"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-002: Hot Reload REST API
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** 20. září 2025  
 **LOC:** ~200 řádků  
 **Sprint:** Metamodel Phase 2

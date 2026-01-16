@@ -3,7 +3,7 @@ id: AI-009
 epic: EPIC-015-ai-metamodel-collaboration
 title: "AI Test Generation from Acceptance Criteria"
 priority: P2
-status: done
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,9 +16,10 @@ path_mapping:
     - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
+
 # AI-009: AI Test Generation from Acceptance Criteria
 
-**Status:** ⏳ **PENDING** (30% design complete)  
+**Status:** 🔴 **TODO**
 **Effort:** 2 dny (prompt engineering + tooling)  
 **Priority:** 🟡 MEDIUM  
 **LOC:** ~600 (estimated)  

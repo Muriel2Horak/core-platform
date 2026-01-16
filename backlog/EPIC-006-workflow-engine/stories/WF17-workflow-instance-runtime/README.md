@@ -3,7 +3,7 @@ id: WF17
 epic: EPIC-006-workflow-engine
 title: "Workflow Instance Runtime - Step-by-Step Orchestration"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -18,6 +18,7 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WF17: Workflow Instance Runtime - Step-by-Step Orchestration
 
 **Typ:** TASK  
@@ -26,7 +27,7 @@ path_mapping:
 **Priorita:** 🔴 CRITICAL (foundation pro step execution)  
 **Effort:** 1,500 LOC, 6 dní  
 **Dependencies:** W7 (Executor Framework), WF12-WF16 (Typed Executors)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

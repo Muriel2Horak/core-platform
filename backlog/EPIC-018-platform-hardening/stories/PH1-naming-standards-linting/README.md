@@ -9,7 +9,12 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/java/
+    - backend/src/main/resources/application.yml
+    - backend/src/main/resources/metamodel/
+    - tools/naming-lint
+    - tools/naming-lint/
   test_paths: []
   docs_paths:
     - backlog/EPIC-018-platform-hardening/stories/PH1-naming-standards-linting/README.md
@@ -19,7 +24,7 @@ path_mapping:
 # S1: Naming Standards & Linting (Phase S1)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase S1)  
 **LOC:** ~1,200 řádků  
 **Sprint:** Platform Hardening Wave 1

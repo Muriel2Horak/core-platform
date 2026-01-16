@@ -3,7 +3,7 @@ id: WF18
 epic: EPIC-006-workflow-engine
 title: "Workflow Steps Schema - Metamodel Integration"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -19,6 +19,7 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WF18: Workflow Steps Schema - Metamodel Integration
 
 **Typ:** TASK  
@@ -27,7 +28,7 @@ path_mapping:
 **Priorita:** MEDIUM  
 **Effort:** 600 LOC, 3 dny  
 **Dependencies:** META-001 (Entity Definition), W10 (Workflow Steps UI), WF17 (Runtime)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

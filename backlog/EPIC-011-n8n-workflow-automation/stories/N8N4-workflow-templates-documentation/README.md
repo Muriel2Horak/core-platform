@@ -3,7 +3,7 @@ id: N8N4
 epic: EPIC-011-n8n-workflow-automation
 title: "Workflow Templates and Documentation"
 priority: P2
-status: ready
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -15,6 +15,7 @@ path_mapping:
     - backlog/WORKFLOW_N8N_NEW_STORIES.md
     - backlog/WORKFLOW_UNIFIED_ARCHITECTURE.md
 ---
+
 
 # S4: Workflow Templates & Documentation
 

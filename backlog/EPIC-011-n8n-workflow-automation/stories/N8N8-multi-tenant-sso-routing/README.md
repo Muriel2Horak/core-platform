@@ -3,7 +3,7 @@ id: N8N8
 epic: EPIC-011-n8n-workflow-automation
 title: "Multi-Tenant SSO and Routing"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -20,9 +20,10 @@ path_mapping:
     - docs/MULTITENANCY_ARCHITECTURE.md
 ---
 
+
 # N8N8: Multi-Tenant SSO and Routing
 
-Status: TODO
+Status: ✅ DONE
 Priority: High
 Dependencies: N8N1, N8N2
 

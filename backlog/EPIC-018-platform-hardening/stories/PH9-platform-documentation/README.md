@@ -3,7 +3,7 @@ id: S9
 epic: EPIC-018-platform-hardening
 title: "Platform Documentation (Phase S9)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-018-platform-hardening/README.md
 ---
 
+
 # S9: Platform Documentation (Phase S9)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase S9)  
 **LOC:** ~2,500 řádků  
 **Sprint:** Platform Hardening Wave 3

@@ -9,7 +9,11 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/pom.xml
+    - backend/src/main/resources/logback-spring.xml
+    - docker/docker-compose.yml
+    - docker/grafana/provisioning/datasources/loki.yml
   test_paths: []
   docs_paths:
     - backlog/EPIC-003-monitoring-observability/stories/MON5-centralized-logging-loki/README.md
@@ -19,7 +23,7 @@ path_mapping:
 # S5: Centralized Logging (Loki) (Phase S5)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Srpen 2024 (Phase S5)  
 **LOC:** ~1,000 řádků  
 **Sprint:** Monitoring Wave 3

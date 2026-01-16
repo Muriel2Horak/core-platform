@@ -3,7 +3,7 @@ id: META-007
 epic: EPIC-005-metamodel-generator-studio
 title: "Metamodel Validation & Business Rules"
 priority: P2
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-007: Metamodel Validation & Business Rules
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (Design phase)  
+**Status:** 🟡 **READY**
 **Priorita:** P2 (Quality assurance)  
 **Estimated LOC:** ~400 řádků  
 

@@ -3,7 +3,7 @@ id: WORK-011
 epic: EPIC-006-workflow-engine
 title: "Workflow Testing & Simulation (Phase W13)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WORK-011: Workflow Testing & Simulation (Phase W13)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase W13)  
 **LOC:** ~400 řádků  
 **Sprint:** Workflow Testing

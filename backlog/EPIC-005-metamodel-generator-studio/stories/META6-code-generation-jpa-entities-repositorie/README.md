@@ -3,7 +3,7 @@ id: META-006
 epic: EPIC-005-metamodel-generator-studio
 title: "Code Generation (JPA Entities, Repositories, Controllers)"
 priority: P2
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-006: Code Generation (JPA Entities, Repositories, Controllers)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (Design phase)  
+**Status:** 🟡 **READY**
 **Priorita:** P2 (Nice-to-have automation)  
 **Estimated LOC:** ~600 řádků  
 

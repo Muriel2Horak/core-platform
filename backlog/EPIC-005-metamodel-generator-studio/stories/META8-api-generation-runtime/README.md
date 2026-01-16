@@ -3,7 +3,7 @@ id: META-008
 epic: EPIC-005-metamodel-generator-studio
 title: "API Generation Runtime"
 priority: P1
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-008: API Generation Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL** - Klíčová funkcionalita  
+**Status:** 🟡 **READY**
 **Priorita:** P1 (High Priority)  
 **Estimated LOC:** ~1,500 řádků  
 **Effort:** 3 týdny (120 hodin)

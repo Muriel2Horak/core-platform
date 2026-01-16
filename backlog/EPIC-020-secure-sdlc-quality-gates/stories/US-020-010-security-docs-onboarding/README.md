@@ -3,7 +3,7 @@ id: US-020-010
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "Security pipeline documentation and onboarding"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -23,11 +23,12 @@ path_mapping:
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-010-security-docs-onboarding/README.md
 ---
 
+
 # US-020-010: Security pipeline documentation and onboarding
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** TODO
+**Status:** ✅ **DONE**
 **Estimate:** 2 days
 
 ## User Story

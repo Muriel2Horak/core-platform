@@ -3,7 +3,7 @@ id: S7
 epic: EPIC-003-monitoring-observability
 title: "SLO/SLI Definitions & Error Budget Tracking (Phase S7)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-003-monitoring-observability/README.md
 ---
 
+
 # S7: SLO/SLI Definitions & Error Budget Tracking (Phase S7)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Září 2024 (Phase S7)  
 **LOC:** ~800 řádků  
 **Sprint:** Monitoring Wave 4

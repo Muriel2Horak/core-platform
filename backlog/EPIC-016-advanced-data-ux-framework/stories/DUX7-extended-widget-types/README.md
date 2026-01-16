@@ -3,7 +3,7 @@ id: S7
 epic: EPIC-016-advanced-data-ux-framework
 title: "Extended Widget Types"
 priority: P1
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-016-advanced-data-ux-framework/README.md
 ---
 
+
 # S7: Extended Widget Types
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟡 **P1 - HIGH**  
 **Effort:** ~150 hours  
 **Sprint:** 6-8  
@@ -1023,4 +1024,3 @@ test('renders KPI with upward trend', () => {
 **Status:** 📋 TODO  
 **Effort:** ~150 hours (~4 sprints)  
 **Next:** Integrate with S1 (DataView) as widget options
-

@@ -9,7 +9,8 @@ created: 2026-01-15
 updated: 2026-01-15
 estimate: ""
 path_mapping:
-  code_paths: []
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/streaming/
   test_paths: []
   docs_paths:
     - backlog/EPIC-018-platform-hardening/stories/PH7-streaming-infrastructure-revamp/README.md
@@ -19,7 +20,7 @@ path_mapping:
 # S7: Streaming Infrastructure Revamp (Phase S7)
 
 **EPIC:** [EPIC-018: Platform Hardening](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase S7)  
 **LOC:** ~900 řádků  
 **Sprint:** Platform Hardening Wave 3

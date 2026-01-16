@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-001-backlog-system/README.md
 ---
 
+
 # CORE-006: Path Mapping Validation & Coverage Reporting
 
 > **Epic:** [EPIC-001-backlog-system](../README.md)  

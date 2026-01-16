@@ -3,7 +3,7 @@ id: WORK-008
 epic: EPIC-006-workflow-engine
 title: "Timer Nodes & SLA Tracking (Phase W10)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WORK-008: Timer Nodes & SLA Tracking (Phase W10)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase W10)  
 **LOC:** ~300 řádků  
 **Sprint:** Workflow Advanced

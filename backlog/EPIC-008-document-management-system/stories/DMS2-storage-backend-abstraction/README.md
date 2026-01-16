@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-008-document-management-system/README.md
 ---
 
+
 # S2: Storage Backend Abstraction
 
 > **Multi-Cloud Support:** Abstraction layer pro S3, MinIO, local filesystem s pre-signed URLs a CDN integration

@@ -3,7 +3,7 @@ id: INF-025
 epic: EPIC-007-infrastructure-deployment
 title: "Edge WAF + DDoS protection (Nginx + ModSecurity + CrowdSec)"
 priority: P0
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -23,11 +23,12 @@ path_mapping:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-025-edge-waf-ddos-protection/README.md
 ---
 
+
 # INF-025: Edge WAF + DDoS protection (Nginx + ModSecurity + CrowdSec)
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
 **Priority:** P0  
-**Status:** TODO  
+**Status:** ✅ **DONE**
 **Estimate:** 4 days
 
 ## User Story

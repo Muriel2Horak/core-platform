@@ -3,7 +3,7 @@ id: META-011
 epic: EPIC-005-metamodel-generator-studio
 title: "Streaming & Priority Queue Runtime ⚡"
 priority: P0
-status: todo
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-005-metamodel-generator-studio/README.md
 ---
 
+
 # META-011: Streaming & Priority Queue Runtime ⚡
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL** - Schema existuje, runtime CHYBÍ!  
+**Status:** 🟡 **READY**
 **Priorita:** P0 (Critical - Start Immediately)  
 **Estimated LOC:** ~2,000 řádků  
 **Effort:** 4 týdny (160 hodin)

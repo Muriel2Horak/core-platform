@@ -3,7 +3,7 @@ id: N8N5
 epic: EPIC-011-n8n-workflow-automation
 title: "Monitoring and Alerting Integration"
 priority: P2
-status: ready
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -18,6 +18,7 @@ path_mapping:
     - docs/MONITORING_DEPLOYMENT_GUIDE.md
     - docs/LOKI_MONITORING_UI.md
 ---
+
 
 # S5: Monitoring & Alerting Integration
 

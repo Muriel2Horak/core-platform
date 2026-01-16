@@ -3,7 +3,7 @@ id: WF16
 epic: EPIC-006-workflow-engine
 title: "TIMER/DELAY Executor - Workflow Delays & Scheduled Actions"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -18,6 +18,7 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WF16: TIMER/DELAY Executor - Workflow Delays & Scheduled Actions
 
 **Typ:** TASK  
@@ -26,7 +27,7 @@ path_mapping:
 **Priorita:** MEDIUM  
 **Effort:** 400 LOC, 2 dny  
 **Dependencies:** W7 (Executor Framework), W8 (Timers & SLA)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

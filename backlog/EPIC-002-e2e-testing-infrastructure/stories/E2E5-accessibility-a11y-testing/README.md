@@ -10,7 +10,8 @@ updated: 2026-01-15
 estimate: ""
 path_mapping:
   code_paths: []
-  test_paths: []
+  test_paths:
+    - e2e/playwright-report/
   docs_paths:
     - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E5-accessibility-a11y-testing/README.md
     - backlog/EPIC-002-e2e-testing-infrastructure/README.md
@@ -19,7 +20,7 @@ path_mapping:
 # S5: Accessibility (a11y) Testing (Phase S5)
 
 **EPIC:** [EPIC-002: E2E Testing Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Srpen 2024 (Phase S5)  
 **LOC:** ~600 řádků  
 **Sprint:** E2E Testing Wave 3

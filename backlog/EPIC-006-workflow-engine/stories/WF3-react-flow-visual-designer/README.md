@@ -3,7 +3,7 @@ id: WORK-003
 epic: EPIC-006-workflow-engine
 title: "React Flow Visual Designer (Phase W4)"
 priority: P2
-status: done
+status: ready
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
@@ -16,10 +16,11 @@ path_mapping:
     - backlog/EPIC-006-workflow-engine/README.md
 ---
 
+
 # WORK-003: React Flow Visual Designer (Phase W4)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase W4)  
 **LOC:** ~1,500 řádků (React + TypeScript)  
 **Sprint:** Workflow UI

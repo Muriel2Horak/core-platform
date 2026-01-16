@@ -16,6 +16,7 @@ path_mapping:
     - backlog/EPIC-011-n8n-workflow-automation/README.md
 ---
 
+
 # Deprecated
 
 This story is duplicated. Use `../N8N5-monitoring-alerting-integration/README.md`.
