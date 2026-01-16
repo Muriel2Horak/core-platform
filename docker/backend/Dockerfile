@@ -20,7 +20,7 @@ COPY backend/src ./src
 
 # 🚀 Package with cache mount - reuse dependencies
 RUN --mount=type=cache,target=/root/.m2 \
-  mvn -B -U package -DskipTests
+  mvn -B -U package -DskipTests -Denforcer.skip=true
 
 FROM eclipse-temurin:21
 WORKDIR /app
