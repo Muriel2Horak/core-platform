@@ -58,7 +58,9 @@ help:
 	@echo "  test-build-doctor     - Build Doctor pre-flight tests"
 	@echo "  test-db-separate-users - DB user isolation checks (core/keycloak/grafana)"
 	@echo "  test-smoke-tests      - Smoke test script dry-run"
+	@echo "  test-bff              - BFF GraphQL wiring checks"
 	@echo "  test-db-backup        - Backup/restore dry-run tests"
+	@echo "  test-dr-plan          - DR plan + automation checks"
 	@echo "  test-ssl-rotation     - SSL rotation dry-run"
 	@echo "  test-letsencrypt      - Let's Encrypt dry-run checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
@@ -1658,10 +1660,20 @@ test-db-separate-users:
 test-smoke-tests:
 	@bash tests/deploy_smoke_tests.sh
 
+# BFF GraphQL wiring checks
+.PHONY: test-bff
+test-bff:
+	@bash tests/bff_tests.sh
+
 # Backup/restore dry-run tests
 .PHONY: test-db-backup
 test-db-backup:
 	@bash tests/db_backup_tests.sh
+
+# DR plan + automation checks
+.PHONY: test-dr-plan
+test-dr-plan:
+	@bash tests/dr_plan_tests.sh
 
 # SSL rotation dry-run tests
 .PHONY: test-ssl-rotation

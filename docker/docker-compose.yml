@@ -22,6 +22,8 @@ services:
         condition: service_healthy  # ✅ OPRAVENO: Čeká na frontend health check
       backend:
         condition: service_started
+      bff:
+        condition: service_started
       keycloak:
         condition: service_started
       grafana:
@@ -162,6 +164,38 @@ services:
       start_period: 600s  # 10 minut - backend má pomalý AspectJ weaving
     networks:
       - core-net
+    restart: unless-stopped
+
+  # 🧩 BFF (Backend-for-Frontend) - GraphQL aggregator
+  bff:
+    build:
+      context: ../bff
+      dockerfile: Dockerfile
+    container_name: core-bff
+    environment:
+      - NODE_ENV=production
+      - PORT=${BFF_PORT:-4000}
+      - BFF_BACKEND_URL=${BFF_BACKEND_URL:-http://backend:8080}
+      - REDIS_URL=${BFF_REDIS_URL:-}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - BFF_TENANT_CLAIM=${BFF_TENANT_CLAIM:-tenant}
+      - BFF_DEFAULT_TENANT=${BFF_DEFAULT_TENANT:-default}
+      - BFF_BACKEND_TIMEOUT_MS=${BFF_BACKEND_TIMEOUT_MS:-5000}
+      - GRAPHQL_PLAYGROUND=${BFF_GRAPHQL_PLAYGROUND:-false}
+    ports:
+      - "${BFF_PORT:-4000}:4000"
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - core-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # 🛡️ Frontend - PRODUKČNÍ BUILD PRO DEV PARITY

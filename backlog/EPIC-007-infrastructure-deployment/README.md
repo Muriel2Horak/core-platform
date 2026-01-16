@@ -250,6 +250,10 @@ bash scripts/smoke-test-env.sh
 │    ├─→ OAuth2 Resource Server (JWT validation)             │
 │    └─→ Actuator endpoints (/health, /metrics)              │
 │                                                             │
+│  BFF (Node.js + Apollo GraphQL)                             │
+│    ├─→ REST aggregation + parallel calls                    │
+│    └─→ Tenant-aware caching (Redis)                         │
+│                                                             │
 │  Frontend (React 18, TypeScript, Vite)                      │
 │    ├─→ OAuth2 Client (Authorization Code Flow)             │
 │    └─→ Static assets served by Nginx                       │

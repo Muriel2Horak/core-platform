@@ -3,14 +3,29 @@ id: INF-022
 epic: EPIC-007-infrastructure-deployment
 title: "BFF (Backend-for-Frontend) Layer"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - bff/package.json
+    - bff/tsconfig.json
+    - bff/Dockerfile
+    - bff/src/index.ts
+    - bff/src/schema.ts
+    - bff/src/context.ts
+    - bff/src/resolvers/index.ts
+    - bff/src/clients/backend.ts
+    - bff/src/dataloaders/user.ts
+    - docker/docker-compose.yml
+    - docker/nginx/nginx-ssl.conf.template
+    - .env.example
+    - .env.template
+    - Makefile
+  test_paths:
+    - tests/bff_tests.sh
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-022-bff-layer/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
@@ -19,7 +34,7 @@ path_mapping:
 # INF-022: BFF (Backend-for-Frontend) Layer
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** 🔥 HIGH  
 **Effort:** 2 dny, ~700 LOC  
 **Owner:** Frontend + Backend Team  
@@ -513,6 +528,12 @@ scrape_configs:
 
 ## 🧪 TESTING
 
+### Repo Checks
+
+```bash
+make test-bff
+```
+
 ### Unit Tests
 
 **File:** `bff/src/__tests__/resolvers.test.ts`
@@ -569,4 +590,4 @@ test('GraphQL query returns dashboard data', async ({ request }) => {
 ---
 
 **Created:** 8. listopadu 2025  
-**Status:** 🔴 Ready for Implementation
+**Status:** ✅ Done
