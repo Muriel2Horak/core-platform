@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import jwt from "jsonwebtoken";
 import Redis from "ioredis";
 import { createBackendClient, type BackendClient } from "./clients/backend";
@@ -34,7 +33,7 @@ const getRedisClient = (): Redis => {
   return redisClient;
 };
 
-const extractTenantId = (req: Request, token?: string): string => {
+const extractTenantId = (req: unknown, token?: string): string => {
   const claimName =
     process.env.BFF_TENANT_CLAIM ||
     process.env.AUTH_JWT_TENANT_CLAIM ||
@@ -48,7 +47,12 @@ const extractTenantId = (req: Request, token?: string): string => {
     }
   }
 
-  const headerTenant = req.headers["x-tenant-id"];
+  const headers =
+    req && typeof req === "object" && "headers" in req
+      ? (req as { headers?: Record<string, unknown> }).headers
+      : undefined;
+
+  const headerTenant = headers?.["x-tenant-id"];
   if (typeof headerTenant === "string" && headerTenant.length > 0) {
     return headerTenant;
   }
@@ -56,8 +60,12 @@ const extractTenantId = (req: Request, token?: string): string => {
   return process.env.BFF_DEFAULT_TENANT || "default";
 };
 
-export const createContext = (req: Request): BffContext => {
-  const authHeader = req.headers.authorization || "";
+export const createContext = (req: unknown): BffContext => {
+  const headers =
+    req && typeof req === "object" && "headers" in req
+      ? (req as { headers?: Record<string, unknown> }).headers
+      : undefined;
+  const authHeader = (headers?.authorization as string | undefined) || "";
   const token = authHeader.startsWith("Bearer ")
     ? authHeader.slice("Bearer ".length)
     : undefined;

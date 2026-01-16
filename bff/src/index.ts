@@ -5,14 +5,14 @@ import { typeDefs } from "./schema";
 import { resolvers } from "./resolvers";
 import { createContext } from "./context";
 
-const app = express();
+const app = express() as unknown as import("express").Application;
 
 const enablePlayground = process.env.GRAPHQL_PLAYGROUND === "true";
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => createContext(req),
+  context: ({ req }: { req: unknown }) => createContext(req),
   introspection: true,
   plugins: enablePlayground
     ? [ApolloServerPluginLandingPageLocalDefault({ embed: true })]
@@ -21,7 +21,7 @@ const server = new ApolloServer({
 
 async function start() {
   await server.start();
-  server.applyMiddleware({ app, path: "/graphql" });
+  server.applyMiddleware({ app: app as any, path: "/graphql" });
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
