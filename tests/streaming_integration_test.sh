@@ -30,6 +30,7 @@ KAFKA_PORT="${KAFKA_PORT:-9092}"
 KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8081}"
 DB_USER="${DB_USER:-core_user}"
 DB_NAME="${DB_NAME:-core_db}"
+DB_PASSWORD="${DB_PASSWORD:-}"
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-artifacts}"
 CURL_FLAGS="${CURL_FLAGS:-}"
 KEYCLOAK_CURL_FLAGS="${KEYCLOAK_CURL_FLAGS:-$CURL_FLAGS}"
@@ -37,6 +38,11 @@ CURL_TIMEOUT="${CURL_TIMEOUT:-10}"
 SKIP_KAFKA_CLI="${SKIP_KAFKA_CLI:-false}"
 STREAMING_ENABLED="${STREAMING_ENABLED:-false}"
 FORCE_STREAMING_TESTS="${FORCE_STREAMING_TESTS:-false}"
+KEYCLOAK_REALM="${KEYCLOAK_REALM:-admin}"
+KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-admin-cli}"
+KEYCLOAK_CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-}"
+KEYCLOAK_USERNAME="${KEYCLOAK_USERNAME:-admin}"
+KEYCLOAK_PASSWORD="${KEYCLOAK_PASSWORD:-admin}"
 
 # Counters
 TESTS_TOTAL=0
@@ -97,6 +103,23 @@ wait_for_backend() {
     exit 1
 }
 
+wait_for_db() {
+    print_info "Waiting for database to be ready..."
+    for i in {1..30}; do
+        if run_with_timeout 5 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
+            IN_RECOVERY=$(run_with_timeout 5 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT pg_is_in_recovery();" 2>/dev/null | tr -d '[:space:]')
+            if [[ "$IN_RECOVERY" == "f" ]]; then
+                print_success "Database is ready"
+                return 0
+            fi
+        fi
+        echo -n "."
+        sleep 2
+    done
+    print_failure "Database not ready after 60s"
+    exit 1
+}
+
 # =============================================================================
 # Test 1: Infrastructure Health Check
 # =============================================================================
@@ -121,7 +144,7 @@ test_infrastructure() {
     
     # Database
     print_test "Database connectivity"
-    if run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+    if run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
         print_success "Database is UP"
     else
         print_failure "Database is DOWN"
@@ -140,7 +163,7 @@ test_infrastructure() {
     
     # Streaming schema
     print_test "Streaming database schema"
-    if run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM streaming.command_queue LIMIT 1;" >/dev/null 2>&1; then
+    if run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM streaming.command_queue LIMIT 1;" >/dev/null 2>&1; then
         print_success "Streaming schema exists"
     else
         print_failure "Streaming schema missing"
@@ -182,12 +205,13 @@ get_jwt_token() {
     print_test "Get JWT token from Keycloak"
     
     # Try to get token (may fail if Keycloak not ready)
-    TOKEN_RESPONSE=$(curl -s $KEYCLOAK_CURL_FLAGS -m "$CURL_TIMEOUT" -X POST "$KEYCLOAK_URL/realms/core-platform/protocol/openid-connect/token" \
+    TOKEN_RESPONSE=$(curl -s $KEYCLOAK_CURL_FLAGS -m "$CURL_TIMEOUT" -X POST "$KEYCLOAK_URL/realms/$KEYCLOAK_REALM/protocol/openid-connect/token" \
         -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "username=admin" \
-        -d "password=admin" \
+        -d "username=$KEYCLOAK_USERNAME" \
+        -d "password=$KEYCLOAK_PASSWORD" \
         -d "grant_type=password" \
-        -d "client_id=core-admin-client" 2>/dev/null || echo "{}")
+        -d "client_id=$KEYCLOAK_CLIENT_ID" \
+        ${KEYCLOAK_CLIENT_SECRET:+-d "client_secret=$KEYCLOAK_CLIENT_SECRET"} 2>/dev/null || echo "{}")
     
     JWT_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
     
@@ -256,7 +280,7 @@ test_command_processing() {
     
     for i in {1..15}; do
         # Check command_queue status
-        STATUS=$(run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+        STATUS=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
             "SELECT status FROM streaming.command_queue WHERE id = '$COMMAND_ID';" 2>/dev/null | tr -d ' ')
         
         echo "Attempt $i/15: Status = '$STATUS'"
@@ -344,7 +368,7 @@ test_queue_status() {
     
     print_test "Check streaming queue status"
     
-    QUEUE_STATUS=$(run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+    QUEUE_STATUS=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
         "SELECT status, priority, COUNT(*) as count FROM streaming.command_queue GROUP BY status, priority ORDER BY priority DESC, status;" \
         2>/dev/null)
     
@@ -367,7 +391,7 @@ test_dlq_status() {
     
     print_test "Check DLQ (should be empty for successful test)"
     
-    DLQ_COUNT=$(run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    DLQ_COUNT=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
         "SELECT COUNT(*) FROM streaming.dead_letter_queue;" 2>/dev/null | tr -d ' ')
     
     if [ "$DLQ_COUNT" == "0" ]; then
@@ -377,7 +401,7 @@ test_dlq_status() {
         print_info "DLQ has $DLQ_COUNT messages"
         
         # Show DLQ entries
-        run_with_timeout 10 docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+        run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
             "SELECT entity, operation, error_message FROM streaming.dead_letter_queue LIMIT 5;" \
             2>/dev/null
         return 0
@@ -442,6 +466,7 @@ main() {
     
     # Wait for backend
     wait_for_backend
+    wait_for_db
     
     # Run tests
     test_infrastructure || true
