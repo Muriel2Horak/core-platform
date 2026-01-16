@@ -703,7 +703,8 @@ volumes:
 networks:
   core-net:
     driver: bridge
+    name: ${COMPOSE_PROJECT_NAME:-core-platform}-core-net
     ipam:
       config:
-        - subnet: 172.18.0.0/16  # 🔒 Subnet for static IP assignment
-          gateway: 172.18.0.1
+        - subnet: 172.30.0.0/16  # 🔒 Subnet for static IP assignment
+          gateway: 172.30.0.1
