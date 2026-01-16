@@ -3,7 +3,7 @@ id: N8N11
 epic: EPIC-011-n8n-workflow-automation
 title: "Workflow Registry Sync"
 priority: P1
-status: ready
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15

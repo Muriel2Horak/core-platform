@@ -3,7 +3,7 @@ id: N8N13
 epic: EPIC-011-n8n-workflow-automation
 title: "Workflow Governance and RBAC"
 priority: P1
-status: ready
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15

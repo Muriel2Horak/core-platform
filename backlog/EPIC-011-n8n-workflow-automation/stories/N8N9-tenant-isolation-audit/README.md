@@ -3,7 +3,7 @@ id: N8N9
 epic: EPIC-011-n8n-workflow-automation
 title: "Tenant Isolation and Audit Trail"
 priority: P2
-status: ready
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15

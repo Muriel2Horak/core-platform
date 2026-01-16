@@ -3,7 +3,7 @@ id: N8N12
 epic: EPIC-011-n8n-workflow-automation
 title: "Webhook Security and Signature Verification"
 priority: P1
-status: ready
+status: todo
 assignee: ""
 created: 2026-01-15
 updated: 2026-01-15
