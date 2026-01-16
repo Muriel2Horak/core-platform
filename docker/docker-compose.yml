@@ -30,7 +30,7 @@ services:
         condition: service_healthy  # ✅ FIX: Čeká na Grafana health check
     networks:
       core-net:
-        ipv4_address: 172.18.0.20  # 🔒 Static IP for stable DNS resolution from Grafana
+        ipv4_address: 172.30.0.20  # 🔒 Static IP for stable DNS resolution from Grafana
     restart: unless-stopped
 
   # 🗄️ Database
@@ -211,7 +211,7 @@ services:
     # NOTE: No volume mount - static files are baked into the image during build
     # For development with hot-reload, use: make dev-watch or docker compose watch
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost/ || exit 1" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -699,6 +699,7 @@ volumes:
   redis_data:
   minio_data:
   kafka_data:
+  vault_audit:
 
 
 networks:
