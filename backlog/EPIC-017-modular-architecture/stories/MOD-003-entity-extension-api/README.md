@@ -45,6 +45,18 @@ So that I can add functionality without modifying core entities.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Metamodel overlay apply/remove | 0.5d | EPIC-005 |
+| 2 | Validation + rollback hooks | 0.5d | 1 |
+| 3 | Tenant-scoped extensions | 0.25d | 1 |
+| 4 | Migration hooks | 0.25d | 1 |
+| 5 | Tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Extension Manifest

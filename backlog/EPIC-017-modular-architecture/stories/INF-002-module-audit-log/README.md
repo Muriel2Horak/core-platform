@@ -45,6 +45,18 @@ So that I can track who installed/enabled/disabled modules and when.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Audit event model + DB schema | 0.5d | none |
+| 2 | Emit events on register/activate/deactivate | 0.5d | MOD-002 |
+| 3 | Loki labels + promtail pipeline | 0.25d | 1 |
+| 4 | Admin query API | 0.25d | 1 |
+| 5 | Tests + sample dashboards | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Database Schema

@@ -44,6 +44,18 @@ So that my modules don't break on CORE upgrades.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Inventory public API surface + mark internal | 0.5d | none |
+| 2 | Semver + deprecation policy docs | 0.25d | 1 |
+| 3 | Compatibility test suite | 0.5d | 1 |
+| 4 | Changelog automation | 0.25d | 2 |
+| 5 | CI gate for breaking changes | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Public API Interfaces

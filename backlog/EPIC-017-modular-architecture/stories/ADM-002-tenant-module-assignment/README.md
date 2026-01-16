@@ -44,6 +44,18 @@ So that each tenant has only modules they licensed.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Tenant module list view + status badges | 0.5d | MOD-002 |
+| 2 | Enable/disable flow with confirmations | 0.5d | 1 |
+| 3 | License status display + expiry warnings | 0.25d | LIC-001 |
+| 4 | Audit logging + RBAC checks | 0.25d | 1 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### React Component

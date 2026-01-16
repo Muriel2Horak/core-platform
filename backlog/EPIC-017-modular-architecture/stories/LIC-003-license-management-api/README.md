@@ -44,6 +44,18 @@ So that I can activate modules for tenants.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | CRUD endpoints + validation | 0.5d | LIC-001 |
+| 2 | Assign/revoke license per tenant | 0.5d | 1 |
+| 3 | Import/export license keys | 0.25d | 1 |
+| 4 | Audit log events | 0.25d | 1 |
+| 5 | API tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### API Endpoints

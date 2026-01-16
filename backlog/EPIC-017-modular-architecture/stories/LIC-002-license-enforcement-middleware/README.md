@@ -45,6 +45,18 @@ So that unlicensed modules return 403 Forbidden.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Middleware hook in API/BFF | 0.5d | LIC-001 |
+| 2 | Tenant-module lookup + policy evaluation | 0.5d | 1 |
+| 3 | Deny/allow response handling | 0.25d | 2 |
+| 4 | Metrics + audit logging | 0.25d | 2 |
+| 5 | Integration tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Spring Interceptor

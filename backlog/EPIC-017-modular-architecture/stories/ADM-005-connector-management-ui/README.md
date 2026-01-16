@@ -44,6 +44,18 @@ So that modules can send emails, sync with Jira, etc.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Connector list + status/health display | 0.5d | MOD-005 |
+| 2 | Credential form + secret masking | 0.5d | 1 |
+| 3 | Enable/disable + health check trigger | 0.25d | 1 |
+| 4 | Audit log integration | 0.25d | 1 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Connector Form

@@ -44,6 +44,18 @@ So that I can verify modules before enabling for production tenants.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define sandbox policy (allowed APIs/files) | 0.5d | none |
+| 2 | Runtime isolation (classloader/process) | 0.5d | 1 |
+| 3 | Resource limits + timeouts | 0.25d | 2 |
+| 4 | Escape detection + audit | 0.25d | 2 |
+| 5 | Security tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Sandbox Tenant Creation

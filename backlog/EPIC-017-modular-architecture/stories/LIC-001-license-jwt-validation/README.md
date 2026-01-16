@@ -46,6 +46,18 @@ So that only licensed tenants can use premium modules and tampering is prevented
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Key management + JWKS config | 0.5d | none |
+| 2 | JWT validation + caching | 0.5d | 1 |
+| 3 | Error mapping + audit events | 0.25d | 2 |
+| 4 | Key rotation support | 0.25d | 1 |
+| 5 | Unit tests | 0.25d | 2 |
+
+---
+
 ## 🔐 License Structure (JWT)
 
 ### Claims

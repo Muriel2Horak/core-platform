@@ -44,6 +44,18 @@ So that invalid modules don't crash the system.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | JSON schema validation + parser | 0.5d | MOD-001 |
+| 2 | Dependency/version checks + namespace collisions | 0.5d | 1 |
+| 3 | Validation report structure | 0.25d | 1 |
+| 4 | CLI/CI validation hook | 0.25d | 2 |
+| 5 | Unit tests + fixtures | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Validator Service

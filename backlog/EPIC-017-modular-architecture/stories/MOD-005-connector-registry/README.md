@@ -44,6 +44,18 @@ So that multiple modules can reuse connectors without duplication.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Connector schema + registry store | 0.5d | none |
+| 2 | Register/update/remove API | 0.5d | 1 |
+| 3 | Health status tracking | 0.25d | 1 |
+| 4 | RBAC + audit logging | 0.25d | 1 |
+| 5 | Integration tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Connector Manifest

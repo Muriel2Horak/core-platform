@@ -44,6 +44,18 @@ So that frontend renders module UI without code changes.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | UI manifest schema + loader | 0.5d | none |
+| 2 | Route/menu registration | 0.5d | 1 |
+| 3 | RBAC enforcement + tenant gating | 0.25d | 1 |
+| 4 | Lazy-load assets + cache | 0.25d | 2 |
+| 5 | UI tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Manifest UI Section

@@ -44,6 +44,18 @@ So that I can proactively renew expiring licenses.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | KPI widgets: active licenses, expiring, disabled | 0.5d | LIC-003 |
+| 2 | Usage/consumption charts + filters | 0.5d | 1 |
+| 3 | Expiry alerts + export (CSV/PDF) | 0.25d | 1 |
+| 4 | Backend endpoints integration + caching | 0.25d | 1 |
+| 5 | UI tests + snapshot tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Dashboard Widgets

@@ -44,6 +44,18 @@ So that I can run CORE in Kubernetes with my custom modules.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Helm chart skeleton + values schema | 0.5d | none |
+| 2 | Secrets integration + TLS config | 0.5d | 1 |
+| 3 | Publish to chart repo | 0.25d | 1 |
+| 4 | Install/upgrade docs | 0.25d | 1 |
+| 5 | CI lint + helm test | 0.25d | 1 |
+
+---
+
 ## 💻 Implementation
 
 ### Helm Chart Structure

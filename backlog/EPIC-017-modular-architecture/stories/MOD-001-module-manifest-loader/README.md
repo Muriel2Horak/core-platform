@@ -45,6 +45,18 @@ So that modules can declare their entities, workflows, UI, and dependencies with
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Directory scan + manifest parsing | 0.5d | none |
+| 2 | Store entries in registry | 0.5d | 1 |
+| 3 | Hot-reload API + cache invalidation | 0.25d | 1 |
+| 4 | Conflict/version checks | 0.25d | 1 |
+| 5 | Unit tests | 0.25d | 2 |
+
+---
+
 ## 📐 Manifest Schema (JSON Schema)
 
 **File:** `schemas/module-manifest-schema.json`

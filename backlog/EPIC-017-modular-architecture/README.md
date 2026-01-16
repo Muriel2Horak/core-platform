@@ -1,6 +1,7 @@
 # EPIC-017: Modular Architecture & Custom Products
 
 **Status:** 🔮 **PLANNED** (0% – architektonický design, dependency na EPIC-005/006/011)  
+**Definice:** ✅ **100%** (ADM/MOD/LIC/INF/FWK stories specifikovano s AC + tasky)  
 **Effort:** ~45 dní (registry, licensing, admin UI, reference modul)  
 **Priority:** 🔥 **CRITICAL** (komerční moduly, partner ekosystém)  
 **Business Value:** €500k+/rok (placené moduly, partner řešení)  
@@ -56,6 +57,45 @@ Core Platform je monolitický systém. Každé nové rozšíření (projektové 
 - ✅ Partner vendor může stavět nad CORE jako dependency (bez forku)
 - ✅ Tenant admin vidí jen povolené moduly (RBAC + licensing)
 - ✅ Moduly nepřepisují core (namespacy, manifest validace)
+
+---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Stories | Gap / Riziko |
+| --- | --- | --- |
+| Modul registrace | MOD-001, MOD-002 | Neexistuje loader/registry → nelze aktivovat moduly |
+| Licensing | LIC-001..003 | Bez JWT validace a enforcementu nelze monetizovat |
+| Admin UI | ADM-001..005 | Chybí katalog, assignment, konfigurace a connectors UI |
+| SDK distribuce | FWK-001..004 | Bez SDK/artefaktů nelze budovat externí moduly |
+| Bezpečnost & audit | INF-001..003 | Chybí validace manifestu, audit log, sandbox |
+| UI integrace | MOD-004 | UI routes/menus nejsou napojeny na modul loader |
+| Connector registry | MOD-005 | Bez registry nelze řídit konektory v modulech |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [MOD-001: Manifest Loader](./stories/MOD-001-module-manifest-loader/README.md) | Scan + parse + hot-reload | Nahrávání manifestů |
+| [MOD-002: Module Registry](./stories/MOD-002-module-registry/README.md) | Registry + lifecycle | Evidence modulů |
+| [MOD-003: Entity Extension API](./stories/MOD-003-entity-extension-api/README.md) | Metamodel overlay + rollback | Rozšíření entit |
+| [MOD-004: UI Manifest Integration](./stories/MOD-004-ui-manifest-integration/README.md) | UI routes/menus + RBAC | Modulové UI |
+| [MOD-005: Connector Registry](./stories/MOD-005-connector-registry/README.md) | Registry konektorů | Konektory modulů |
+| [LIC-001: License JWT Validation](./stories/LIC-001-license-jwt-validation/README.md) | JWT validace + key mgmt | Ověření licencí |
+| [LIC-002: License Enforcement](./stories/LIC-002-license-enforcement-middleware/README.md) | Middleware enforcement | Gate podle licence |
+| [LIC-003: License Management API](./stories/LIC-003-license-management-api/README.md) | CRUD licencí + audit | Správa licencí |
+| [ADM-001: Global Module Catalog](./stories/ADM-001-global-module-catalog/README.md) | Katalog + akce | Admin katalog |
+| [ADM-002: Tenant Module Assignment](./stories/ADM-002-tenant-module-assignment/README.md) | Enable/disable per tenant | Tenant správa |
+| [ADM-003: Licensing Dashboard](./stories/ADM-003-licensing-dashboard/README.md) | KPI + expirace | Licenční přehled |
+| [ADM-004: Tenant Module Configuration](./stories/ADM-004-tenant-module-configuration/README.md) | Konfigurační UI | Modul konfigurace |
+| [ADM-005: Connector Management UI](./stories/ADM-005-connector-management-ui/README.md) | UI pro konektory | Connector UI |
+| [INF-001: Manifest Validator](./stories/INF-001-manifest-validator/README.md) | Validace manifestů | Bezpečný loader |
+| [INF-002: Module Audit Log](./stories/INF-002-module-audit-log/README.md) | Audit událostí | Observability |
+| [INF-003: Module Sandbox](./stories/INF-003-module-sandbox/README.md) | Sandbox politiky | Izolace modulů |
+| [FWK-001: Maven Artifacts](./stories/FWK-001-maven-artifacts/README.md) | SDK artefakty | Java SDK |
+| [FWK-002: npm Packages](./stories/FWK-002-npm-packages/README.md) | UI SDK balíky | Frontend SDK |
+| [FWK-003: Public API Stabilization](./stories/FWK-003-public-api-stabilization/README.md) | Stabilní API | Kompatibilita |
+| [FWK-004: Helm Chart Distribution](./stories/FWK-004-helm-chart-distribution/README.md) | Helm chart | Deploy modulu |
 
 ---
 

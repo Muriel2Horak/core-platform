@@ -46,6 +46,18 @@ So that I can enable/disable modules, track their state, and enforce lifecycle r
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | DB schema + service layer | 0.5d | none |
+| 2 | Dependency resolution engine | 0.5d | 1 |
+| 3 | Lifecycle states (installed/enabled/disabled) | 0.25d | 1 |
+| 4 | Admin API endpoints | 0.25d | 1 |
+| 5 | API tests | 0.25d | 2 |
+
+---
+
 ## 📐 Module Lifecycle
 
 ```

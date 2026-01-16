@@ -45,6 +45,18 @@ So that I can build on top of CORE without forking.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define module SDK interfaces + packaging | 0.5d | none |
+| 2 | Maven publish pipeline + repository config | 0.5d | 1 |
+| 3 | BOM + versioning policy | 0.25d | 1 |
+| 4 | Reference module build (sample) | 0.5d | 1 |
+| 5 | CI release checks | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Parent POM

@@ -44,6 +44,18 @@ So that I can build custom frontends on top of CORE.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define UI SDK packages + build config | 0.5d | none |
+| 2 | Publish pipeline (private registry) + versioning | 0.5d | 1 |
+| 3 | Type definitions + tree-shaking | 0.25d | 1 |
+| 4 | Example module integration | 0.25d | 1 |
+| 5 | CI release checks | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Package Structure

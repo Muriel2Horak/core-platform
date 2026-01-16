@@ -44,6 +44,18 @@ So that I can customize module behavior (e.g., SLA times, notification emails).
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Config schema rendering (form builder) | 0.5d | MOD-004 |
+| 2 | Persist config + validation errors | 0.5d | 1 |
+| 3 | Reset to defaults + versioning | 0.25d | 2 |
+| 4 | RBAC + audit events | 0.25d | 2 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### Configuration Form

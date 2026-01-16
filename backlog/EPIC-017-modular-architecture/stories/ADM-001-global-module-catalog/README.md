@@ -45,6 +45,18 @@ So that I can install and manage modules.
 
 ---
 
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Module catalog API integration + data model | 0.5d | MOD-002 |
+| 2 | Table UI with status chips + actions (install/enable/disable) | 0.5d | 1 |
+| 3 | Dependency graph visualization (D3) + empty states | 0.5d | 1 |
+| 4 | Filters/search + pagination | 0.25d | 2 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
+
+---
+
 ## 💻 Implementation
 
 ### React Component
