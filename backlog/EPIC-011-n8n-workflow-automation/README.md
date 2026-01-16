@@ -115,7 +115,7 @@ Deprecated duplicates are marked in their README files and kept for reference.
    - 400+ built-in nodes pro external systems (Jira, M365, Slack, Trello, Google Workspace)
    - Visual workflow builder (no-code integrations)
    - **Per-tenant workflow designers** (každý tenant má svůj n8n account)
-   - AI orchestration via MCP/LLM gateway (EPIC-016)
+   - AI orchestration via MCP/LLM gateway (EPIC-015)
    - ETL/batch processing (CSV export, data transformation)
 
 2. **Security & Governance**

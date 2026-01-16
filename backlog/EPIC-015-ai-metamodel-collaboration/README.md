@@ -1,4 +1,4 @@
-# EPIC-016: AI & ML Platform Integration
+# EPIC-015: AI & ML Platform Integration
 
 **Status:** 🟡 **30% IN PROGRESS** (MCP server prototyp, Copilot integrace ✅)  
 **Priority:** 🔥 **HIGH** (strategic differentiator)  

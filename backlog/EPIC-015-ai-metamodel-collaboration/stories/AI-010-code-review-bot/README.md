@@ -1,6 +1,6 @@
 ---
 id: AI-010
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "AI Code Review Bot"
 priority: P3
 status: done
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-010-code-review-bot/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-010-code-review-bot/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # AI-010: AI Code Review Bot

@@ -1,6 +1,6 @@
 ---
 id: S3
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "Model Training Pipeline"
 priority: P2
 status: done
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-003-training-pipeline/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/ML-003-training-pipeline/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # S3: Model Training Pipeline

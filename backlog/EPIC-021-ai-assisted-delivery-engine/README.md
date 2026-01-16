@@ -4,7 +4,7 @@
 **Definice:** ✅ **100%** (AIDE-001..AIDE-013 specifikováno s AC + tasky)  
 **Priority:** 🔥 **HIGH** (delivery acceleration & quality gate initiative)  
 **Effort:** ~30–35 dní (2 týmy, sdílené mezi core-platform & isp-migration-tool)  
-**Dependencies:** EPIC-001 (backlog system), EPIC-005 (metamodel studio & docs), EPIC-016 (AI tooling/MCP), EPIC-020 (secure SDLC quality gates)
+**Dependencies:** EPIC-001 (backlog system), EPIC-005 (metamodel studio & docs), EPIC-015 (AI tooling/MCP), EPIC-020 (secure SDLC quality gates)
 
 > **Mission:** Vybudovat opakovatelný, bezpečný a auditovatelný proces, ve kterém AI agenti (Codex, Copilot, další MCP klienti) automatizovaně zpracují DevTasky z oficiálního backlogu, napíší kód/testy/PR, provedou AI review a při nejasnostech navrhnou doplňující úkoly – to vše v sandboxu, s řízenými právy, měřitelnými KPI a jasným human override flow.
 
@@ -162,7 +162,7 @@ Target pilot: core-platform sprint (2 týdny). Po vyhodnocení KPI se pattern re
 |----|-------|--------|----------|--------------|
 | **AIDE-001** | AI-ready DevTask Template | ⏳ PLANNED | 🔥 HIGH | EPIC-001 |
 | **AIDE-002** | AGENTS.md & Engineering Standards | ⏳ PLANNED | 🔥 HIGH | EPIC-005, EPIC-020 |
-| **AIDE-003** | Codex/Copilot Setup & Bot Accounts | ⏳ PLANNED | 🔥 HIGH | EPIC-016 |
+| **AIDE-003** | Codex/Copilot Setup & Bot Accounts | ⏳ PLANNED | 🔥 HIGH | EPIC-015 |
 | **AIDE-004** | AI Implementation Agent: DevTask → PR | ⏳ PLANNED | 🔥 HIGH | AIDE-001..003 |
 | **AIDE-005** | AI Code Review & Quality Gate | ⏳ PLANNED | 🔥 HIGH | AIDE-004, EPIC-020 |
 | **AIDE-006** | Security & Governance Guardrails | ⏳ PLANNED | 🔥 HIGH | Security team |
@@ -468,7 +468,7 @@ Target pilot: core-platform sprint (2 týdny). Po vyhodnocení KPI se pattern re
 1. **Pilot (core-platform):** vybrat 5–8 AI-eligible DevTasků ze sprint backlogu, spustit plný proces, sledovat KPI.  
 2. **Retrospektiva & úpravy:** vyhodnocení guardrails, noise a lidské zkušenosti.  
 3. **Rollout na isp-migration-tool:** re-use šablon, updatovat AGENTS.md, nastavit sandbox (repo fork), přidat KPI do dashboardu.  
-4. **Long-term:** možnost přidat další agenty (např. AI QA bot, AI infra bot) a navázat na EPIC-016 (AI tools) + EPIC-020 (quality gates).
+4. **Long-term:** možnost přidat další agenty (např. AI QA bot, AI infra bot) a navázat na EPIC-015 (AI tools) + EPIC-020 (quality gates).
 
 ---
 

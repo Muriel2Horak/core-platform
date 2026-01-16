@@ -174,7 +174,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 - **EPIC-011** (n8n Workflow Automation) - service account auth, integration security, Vault pro credentials
 - **EPIC-012** (Vault Integration) - secrets storage, rotace, policies (implementuje požadavky EPIC-000 Pillar 3)
 - **EPIC-014** (UX/UI Design System) - security UI komponenty (login, consent, error states)
-- **EPIC-016** (AI/MCP Collaboration) - AI safety, data protection, PII anonymizace
+- **EPIC-015** (AI/MCP Collaboration) - AI safety, data protection, PII anonymizace
 - **EPIC-017** (Modular Architecture) - module isolation, tenant-scoped plugin registry
 
 ### Detailní Vazby na Ostatní EPICy
@@ -316,7 +316,7 @@ EPIC-000 definuje **co** musí platforma splňovat v oblasti bezpečnosti. **Jak
 #### Implementace (odkazy na EPICy)
 - **EPIC-007:** Keycloak deployment s SSL, realm config, service account setup
 - **EPIC-011:** n8n používá service account, OAuth2 proxy konfigurace
-- **EPIC-016:** AI/MCP má service account, ne user credentials
+- **EPIC-015:** AI/MCP má service account, ne user credentials
 
 #### Outcomes
 - [ ] Keycloak realm `admin` nakonfigurován s definovanými rolemi (platform + tenant)
@@ -810,7 +810,7 @@ public class TenantGuard implements Filter {
 
 **AI Gateway / Policy Layer (Princip):**
 - **EPIC-000 říká:** Všechny AI requesty musí jít přes "AI Gateway" nebo policy layer
-- **EPIC-016 implementuje:** Konkrétní implementace (proxy, rate limiting, PII detection)
+- **EPIC-015 implementuje:** Konkrétní implementace (proxy, rate limiting, PII detection)
 
 **Requirements:**
 - ❌ NIKDY production secrets do AI bez explicitní anonymizace:
@@ -866,7 +866,7 @@ public class TenantGuard implements Filter {
 - ✅ "AI analyzuj anonymizované metrics" (PII odstraněno před odesláním)
 - ✅ "AI asistent pro metamodel design" (pracuje s schema, ne s daty)
 
-#### AI & LLM Security - Specifické Požadavky (EPIC-016)
+#### AI & LLM Security - Specifické Požadavky (EPIC-015)
 
 **Všechna AI volání (ChatGPT, interní LLM, MCP tools) MUSÍ:**
 - ✅ Jít přes **bezpečnou backend vrstvu** (ne přímo z prohlížeče)
@@ -899,7 +899,7 @@ public class TenantGuard implements Filter {
 #### Implementace (odkazy na EPICy)
 - **EPIC-011:** n8n deployment za OAuth2 Proxy, service account config, Vault credentials
 - **EPIC-012:** Vault paths pro external connector secrets
-- **EPIC-016:** AI Gateway implementace, PII detection, rate limiting
+- **EPIC-015:** AI Gateway implementace, PII detection, rate limiting
 
 #### Outcomes
 - [ ] n8n za OAuth2 Proxy, autentizace přes Keycloak

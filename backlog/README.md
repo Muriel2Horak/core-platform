@@ -58,8 +58,8 @@ Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`*
 | EPIC-012: Vault | `VLT` | `VLT1-vault-skeleton-staging` |
 | EPIC-014: UX/UI | `UX` | `UX1-mui-theme-foundation` |
 | EPIC-016: Data UX | `DUX` | `DUX1-universal-data-view-engine` |
-| EPIC-016: AI Metamodel Collaboration | `AI` | `AI-001-ai-metamodel-designer` |
-| EPIC-016: AI Metamodel Collaboration (ML track) | `ML` | `ML-001-model-serving` |
+| EPIC-015: AI Metamodel Collaboration | `AI` | `AI-001-ai-metamodel-designer` |
+| EPIC-015: AI Metamodel Collaboration (ML track) | `ML` | `ML-001-model-serving` |
 | EPIC-017: Modular Architecture | `MOD/LIC/ADM/FWK` | `MOD-001-module-manifest-loader` |
 | EPIC-020: Secure SDLC | `SECQ` | `SECQ1-sonarqube-quality-gates` |
 

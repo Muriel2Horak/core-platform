@@ -1,6 +1,6 @@
 ---
 id: AI-009
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "AI Test Generation from Acceptance Criteria"
 priority: P2
 status: done
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-009-test-generation/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-009-test-generation/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # AI-009: AI Test Generation from Acceptance Criteria
@@ -423,8 +423,8 @@ npx playwright test TEST-001
 
 ```bash
 # 1. Create story
-mkdir -p backlog/EPIC-016/stories/AI-NEW
-vim backlog/EPIC-016/stories/AI-NEW/README.md
+mkdir -p backlog/EPIC-015/stories/AI-NEW
+vim backlog/EPIC-015/stories/AI-NEW/README.md
 # Add acceptance criteria
 
 # 2. Generate test
@@ -450,7 +450,7 @@ git commit -m "test: Add E2E test for AI-NEW story"
 - [Anthropic Claude API](https://docs.anthropic.com/claude/reference/messages)
 - [Playwright Best Practices](https://playwright.dev/docs/best-practices)
 - Project: `e2e/helpers/fixtures.ts` (test patterns)
-- EPIC-016 AI-001: AI Metamodel Designer (similar AI integration)
+- EPIC-015 AI-001: AI Metamodel Designer (similar AI integration)
 
 ---
 

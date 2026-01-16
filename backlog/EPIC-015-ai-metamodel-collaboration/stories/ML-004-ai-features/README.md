@@ -1,6 +1,6 @@
 ---
 id: S4
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "AI-Powered Platform Features"
 priority: P2
 status: todo
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-004-ai-features/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/ML-004-ai-features/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # S4: AI-Powered Platform Features

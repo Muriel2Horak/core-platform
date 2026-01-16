@@ -25,16 +25,16 @@ Last updated: 2026-01-15
 | EPIC-013 Reporting Module | 100% COMPLETE | Reporting UI module | EPIC-013-reporting-module/README.md |
 | EPIC-014 UX/UI Design System | 20% COMPLETE | MUI theme + component library | EPIC-014-ux-ui-design-system/README.md |
 | EPIC-016 Advanced Data UX Framework | PLANNED | Data UX framework | EPIC-016-advanced-data-ux-framework/README.md |
-| EPIC-016 AI Metamodel Collaboration | 30% IN PROGRESS | MCP server + Copilot integration | EPIC-016-ai-metamodel-collaboration/README.md |
+| EPIC-015 AI Metamodel Collaboration | 30% IN PROGRESS | MCP server + Copilot integration | EPIC-015-ai-metamodel-collaboration/README.md |
 | EPIC-017 Modular Architecture | PLANNED | Module system and licensing | EPIC-017-modular-architecture/README.md |
 | EPIC-020 Secure SDLC Quality Gates | 0% IMPLEMENTED | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
 | EPIC-021 AI Assisted Delivery Engine | PLANNED | AI delivery engine | EPIC-021-ai-assisted-delivery-engine/README.md |
 
 ## Cleanup Notes
 
-- EPIC-016 is duplicated for different scopes. Both are kept for now; renumbering is tracked as backlog cleanup work.
+- EPIC-016 AI scope was renumbered to EPIC-015 to remove the duplicate EPIC number.
 - EPIC-004 (analytics infrastructure) and EPIC-013 (reporting module) overlap by domain but cover different layers. Treat them as separate epics.
-- EPIC-009 appears in legacy dashboards but has no directory; scope is currently covered by EPIC-016-ai-metamodel-collaboration.
+- EPIC-009 appears in legacy dashboards but has no directory; scope is currently covered by EPIC-015-ai-metamodel-collaboration.
 
 ## Update Rules
 

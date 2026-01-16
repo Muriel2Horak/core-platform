@@ -592,7 +592,7 @@ Následující **NEPATŘÍ** do EPIC-007 a budou řešeny jinými EPICy:
 - Metamodel Studio → EPIC-005
 - Workflow Designer → EPIC-006
 - DMS (Document Management) → EPIC-008
-- AI/MCP integrace → EPIC-016
+- AI/MCP integrace → EPIC-015
 
 ### Pokročilé security pro produkci
 - HSM integrace

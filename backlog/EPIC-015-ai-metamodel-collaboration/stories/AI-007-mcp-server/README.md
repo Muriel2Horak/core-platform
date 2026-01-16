@@ -1,6 +1,6 @@
 ---
 id: AI-007
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "MCP Server Implementation"
 priority: P1
 status: in-progress
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-007-mcp-server/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-007-mcp-server/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # AI-007: MCP Server Implementation
@@ -153,7 +153,7 @@ const TOOLS: Tool[] = [
       properties: {
         epicId: {
           type: "string",
-          description: "EPIC ID (e.g., 'EPIC-001', 'EPIC-016')",
+          description: "EPIC ID (e.g., 'EPIC-001', 'EPIC-015')",
         },
       },
       required: ["epicId"],
@@ -298,13 +298,13 @@ main().catch((error) => {
 
 ### Example Usage in Claude
 ```
-User: "What's in the EPIC-016 README?"
+User: "What's in the EPIC-015 README?"
 
-Claude: [Calls get_epic_summary("EPIC-016")]
+Claude: [Calls get_epic_summary("EPIC-015")]
 Response:
-  EPIC Summary (EPIC-016):
+  EPIC Summary (EPIC-015):
   
-  # EPIC-016: AI & ML Platform Integration
+  # EPIC-015: AI & ML Platform Integration
   Status: 🟡 30% IN PROGRESS
   ...
 ```

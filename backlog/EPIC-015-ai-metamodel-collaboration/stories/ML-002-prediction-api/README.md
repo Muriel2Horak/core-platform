@@ -1,6 +1,6 @@
 ---
 id: S2
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "Prediction API Gateway"
 priority: P2
 status: todo
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/ML-002-prediction-api/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/ML-002-prediction-api/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # S2: Prediction API Gateway

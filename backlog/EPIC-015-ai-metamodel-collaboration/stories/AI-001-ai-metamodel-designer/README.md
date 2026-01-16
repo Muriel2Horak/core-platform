@@ -1,6 +1,6 @@
 ---
 id: AI-001
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "AI Metamodel Designer"
 priority: P1
 status: todo
@@ -12,13 +12,13 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-001-ai-metamodel-designer/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-001-ai-metamodel-designer/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # AI-001: AI Metamodel Designer
 
-**EPIC:** EPIC-016 - AI & Metamodel Collaboration  
+**EPIC:** EPIC-015 - AI & Metamodel Collaboration  
 **Status:** ⏳ **PLANNED**  
 **Priority:** 🔥 **HIGH**  
 **Effort:** 3 dny (~1,200 LOC)  

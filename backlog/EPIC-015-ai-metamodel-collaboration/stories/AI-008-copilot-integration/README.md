@@ -1,6 +1,6 @@
 ---
 id: AI-008
-epic: EPIC-016-ai-metamodel-collaboration
+epic: EPIC-015-ai-metamodel-collaboration
 title: "GitHub Copilot Integration"
 priority: P1
 status: done
@@ -12,8 +12,8 @@ path_mapping:
   code_paths: []
   test_paths: []
   docs_paths:
-    - backlog/EPIC-016-ai-metamodel-collaboration/stories/AI-008-copilot-integration/README.md
-    - backlog/EPIC-016-ai-metamodel-collaboration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/stories/AI-008-copilot-integration/README.md
+    - backlog/EPIC-015-ai-metamodel-collaboration/README.md
 ---
 
 # AI-008: GitHub Copilot Integration
@@ -308,7 +308,7 @@ If yes, setup is complete ✅
 - **Team Feedback**: Weekly review of Copilot suggestions (what works, what doesn't)
 - **Metrics Tracking**: Monitor adoption, productivity, code quality
 
-### Future Enhancements (EPIC-016 AI-009, AI-010)
+### Future Enhancements (EPIC-015 AI-009, AI-010)
 - **AI-009: Test Generation** - Auto-generate Playwright tests from acceptance criteria
 - **AI-010: Code Review Bot** - AI reviews PRs for naming, security, best practices
 
