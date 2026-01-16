@@ -203,7 +203,7 @@ class MonitoringMetricsAndLogsIT extends AbstractIntegrationTest {
   @Test
   void shouldExposePrometheusScrapeEndpoint() {
     // Verify Prometheus-compatible metrics endpoint
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/prometheus",
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/prometheus",
         String.class);
 
     // May return 404 if prometheus actuator not enabled, that's ok for test profile

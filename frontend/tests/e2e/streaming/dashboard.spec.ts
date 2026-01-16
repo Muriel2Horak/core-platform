@@ -122,7 +122,7 @@ test.describe('Streaming Dashboard - E2E', () => {
   });
 
   test('prometheus metrics include streaming metrics', async ({ page, request }) => {
-    const response = await request.get('/actuator/prometheus');
+    const response = await request.get('/api/actuator/prometheus');
     expect(response.ok()).toBeTruthy();
 
     const metrics = await response.text();

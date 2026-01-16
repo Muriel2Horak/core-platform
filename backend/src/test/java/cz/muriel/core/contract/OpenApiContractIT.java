@@ -116,7 +116,7 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
   @Test
   void testMetricsEndpointExists() {
     // When: Call Prometheus metrics endpoint
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/prometheus",
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/prometheus",
         String.class);
 
     // Then: Should return metrics

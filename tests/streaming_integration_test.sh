@@ -276,7 +276,7 @@ test_metrics() {
     
     print_test "Fetch streaming metrics"
     
-    METRICS=$(curl -s "$BACKEND_URL/actuator/prometheus" 2>/dev/null | grep "^streaming_" || echo "")
+    METRICS=$(curl -s "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null | grep "^streaming_" || echo "")
     
     if [ -n "$METRICS" ]; then
         print_success "Streaming metrics exposed"
@@ -381,7 +381,7 @@ test_bulk_commands() {
     sleep 5
     
     # Check metrics
-    METRICS=$(curl -s "$BACKEND_URL/actuator/prometheus" 2>/dev/null | grep "streaming_commands_created_total" | grep "user" || echo "")
+    METRICS=$(curl -s "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null | grep "streaming_commands_created_total" | grep "user" || echo "")
     print_info "Metrics: $METRICS"
 }
 
