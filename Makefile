@@ -45,6 +45,7 @@ help:
 	@echo "  up              - Start production environment"
 	@echo "  down            - Stop all services"
 	@echo "  restart         - Restart all services"
+	@echo "  deploy          - Deploy with post-deploy smoke tests"
 	@echo "  rebuild         - Rebuild with cache (FAST ⚡)"
 	@echo "  rebuild-clean   - Rebuild without cache (slow but clean)"
 	@echo "  clean           - Clean restart + FULL E2E testing 🧪"
@@ -56,6 +57,7 @@ help:
 	@echo "  test-frontend         - Frontend unit tests"
 	@echo "  test-build-doctor     - Build Doctor pre-flight tests"
 	@echo "  test-db-separate-users - DB user isolation checks (core/keycloak/grafana)"
+	@echo "  test-smoke-tests      - Smoke test script dry-run"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -66,6 +68,7 @@ help:
 	@echo "  test-e2e-sync         - Keycloak Sync E2E tests (10 tests)"
 	@echo "  test-e2e-loki         - Loki monitoring UI E2E tests (LogViewer + CSV)"
 	@echo "  smoke-test-loki       - Quick API validation (curl-based, 1-2 min)"
+	@echo "  smoke-tests           - Post-deploy smoke tests"
 	@echo "  verify                - Quick smoke tests (health checks)"
 	@echo "  verify-full           - Full integration tests"
 	@echo ""
@@ -209,6 +212,16 @@ verify:
 .PHONY: env-validate
 env-validate:
 	@bash scripts/env-validate.sh
+
+# Post-deployment smoke tests
+.PHONY: smoke-tests
+smoke-tests:
+	@bash scripts/deploy/smoke-tests.sh
+
+# Deployment with smoke tests
+.PHONY: deploy
+deploy:
+	@bash scripts/deploy/deploy-with-tests.sh
 
 # Template syntax validation
 .PHONY: validate-templates
@@ -1575,6 +1588,11 @@ test-build-doctor:
 .PHONY: test-db-separate-users
 test-db-separate-users:
 	@START_DB=true bash tests/db_separate_users_tests.sh
+
+# Smoke test script dry-run
+.PHONY: test-smoke-tests
+test-smoke-tests:
+	@bash tests/deploy_smoke_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit
