@@ -6,13 +6,19 @@ priority: P0
 status: done
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "6 hours"
 path_mapping:
   code_paths:
+    - docker/docker-compose.vault.yml
     - docker/docker-compose.yml
     - docker/vault/config.hcl
-  test_paths: []
+    - docker/promtail/config.yml
+    - scripts/vault/bootstrap-vault.sh
+    - scripts/vault/vault-smoke.sh
+    - Makefile
+  test_paths:
+    - tests/vault_skeleton_tests.sh
   docs_paths:
     - backlog/EPIC-012-vault-integration/stories/VLTS-P0-s-p0-vault-skeleton-staging-prod-like/README.md
     - backlog/EPIC-012-vault-integration/README.md

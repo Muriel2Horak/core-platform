@@ -475,6 +475,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - promtail_positions:/tmp
+      - vault_audit:/var/log/vault:ro
     depends_on:
       - loki
     networks:

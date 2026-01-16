@@ -126,6 +126,16 @@ ensure_kv() {
   fi
 }
 
+enable_audit() {
+  load_token_from_file
+  require_token
+
+  if ! vault_exec audit list -format=json | jq -e '."file/"' >/dev/null 2>&1; then
+    vault_exec audit enable file file_path=/vault/logs/audit.log >/dev/null
+    echo "Vault audit enabled (file)"
+  fi
+}
+
 setup_approle() {
   load_token_from_file
   vault_exec auth enable approle >/dev/null 2>&1 || true
@@ -236,16 +246,19 @@ case "$MODE" in
   seed)
     load_token_from_file
     require_token
+    enable_audit
     ensure_kv
     seed_secrets
     ;;
   approle)
     load_token_from_file
     require_token
+    enable_audit
     setup_approle
     ;;
   *)
     init_and_unseal
+    enable_audit
     ensure_kv
     setup_approle
     seed_secrets

@@ -11,6 +11,7 @@ services:
       - vault_data:/vault/data
       - ./vault/config.hcl:/vault/config/config.hcl:ro
       - ./vault/start-vault.sh:/vault/start-vault.sh:ro
+      - vault_audit:/vault/logs
     ports:
       - "${VAULT_PORT:-8200}:8200"
     command: ["/vault/start-vault.sh"]
@@ -195,3 +196,4 @@ services:
 volumes:
   vault_data:
   vault_secrets:
+  vault_audit:

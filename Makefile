@@ -63,6 +63,7 @@ help:
 	@echo "  test-dr-plan          - DR plan + automation checks"
 	@echo "  test-ssl-rotation     - SSL rotation dry-run"
 	@echo "  test-letsencrypt      - Let's Encrypt dry-run checks"
+	@echo "  test-vault-skeleton   - Vault S-P0 config checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -89,6 +90,7 @@ help:
 	@echo "  vault-bootstrap - Init/unseal Vault + seed secrets + AppRole"
 	@echo "  vault-seed      - Seed secrets from .env into Vault"
 	@echo "  vault-approle   - Recreate Vault Agent AppRole creds"
+	@echo "  vault-smoke     - Vault health + audit log checks"
 	@echo "  vault-logs      - Tail Vault logs"
 	@echo ""
 	@echo "� Backlog Management:"
@@ -260,7 +262,7 @@ doctor:
 # 🔐 VAULT (Vault-only secrets + Vault Agent)
 # =============================================================================
 
-.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-logs vault-status
+.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-smoke vault-logs vault-status
 
 vault-up:
 	@$(VAULT_COMPOSE) up -d vault vault-agent
@@ -276,6 +278,9 @@ vault-seed:
 
 vault-approle:
 	@bash scripts/vault/bootstrap-vault.sh --approle-only
+
+vault-smoke:
+	@bash scripts/vault/vault-smoke.sh
 
 vault-logs:
 	@$(VAULT_COMPOSE) logs -f vault vault-agent
@@ -1684,6 +1689,11 @@ test-ssl-rotation:
 .PHONY: test-letsencrypt
 test-letsencrypt:
 	@bash tests/letsencrypt_tests.sh
+
+# Vault S-P0 config checks
+.PHONY: test-vault-skeleton
+test-vault-skeleton:
+	@bash tests/vault_skeleton_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit
