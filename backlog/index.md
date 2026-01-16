@@ -12,7 +12,7 @@ Last updated: 2026-01-15
 | EPIC-000 Security Platform Hardening | MASTER REFERENCE (continuous) | Security baseline and principles | EPIC-000-security-platform-hardening/README.md |
 | EPIC-001 Backlog System | COMPLETE (Phase 1 delivered, Phase 2 deferred) | Git-native backlog system | EPIC-001-backlog-system/README.md |
 | EPIC-002 E2E Testing Infrastructure | IN PROGRESS | Wave 1 done, later phases pending | EPIC-002-e2e-testing-infrastructure/README.md |
-| EPIC-003 Monitoring & Observability | 70% COMPLETE | Core stack done, frontend dashboards pending | EPIC-003-monitoring-observability/README.md |
+| EPIC-003 Monitoring & Observability | 100% COMPLETE | Native UI + live widgets done | EPIC-003-monitoring-observability/README.md |
 | EPIC-004 Reporting Analytics Infrastructure | 100% COMPLETE | Cube.js infrastructure | EPIC-004-reporting-analytics-infrastructure/README.md |
 | EPIC-005 Metamodel Generator Studio | Phase 1-3 implemented, Phase 4+ planned | Metamodel generator and studio | EPIC-005-metamodel-generator-studio/README.md |
 | EPIC-006 Workflow Engine | 70% COMPLETE | Phase 1 done, Phase 2 in progress | EPIC-006-workflow-engine/README.md |

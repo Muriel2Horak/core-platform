@@ -70,6 +70,7 @@ help:
 	@echo "  test-vault-oidc       - Vault S-P4 OIDC config checks"
 	@echo "  test-vault-snapshot   - Vault S-P4 snapshot checks"
 	@echo "  test-vault-monitoring - Vault S-P4 monitoring checks"
+	@echo "  test-monitoring-epic3 - EPIC-003 completion checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -1766,6 +1767,11 @@ test-vault-snapshot:
 .PHONY: test-vault-monitoring
 test-vault-monitoring:
 	@bash tests/vault_monitoring_tests.sh
+
+# EPIC-003 completion checks
+.PHONY: test-monitoring-epic3
+test-monitoring-epic3:
+	@bash tests/monitoring_epic3_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

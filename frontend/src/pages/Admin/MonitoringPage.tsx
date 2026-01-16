@@ -3,7 +3,7 @@ import { Assessment } from '@mui/icons-material';
 import { useState } from 'react';
 import { GlassPaper } from '../../shared/ui';
 import { AiHelpWidget } from '../../components/AiHelpWidget';
-import { LogViewer, MetricCard } from '../../components/Monitoring';
+import { LogViewer, MetricCard, MetricsDashboard } from '../../components/Monitoring';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -56,6 +56,7 @@ export const MonitoringPage = () => {
           <Tab label="Systém" />
           <Tab label="Zabezpečení" />
           <Tab label="Audit" />
+          <Tab label="Metriky" />
         </Tabs>
 
         {/* Tab 0: System */}
@@ -101,6 +102,11 @@ export const MonitoringPage = () => {
               />
             </Grid>
           </Grid>
+        </TabPanel>
+
+        {/* Tab 3: Metrics */}
+        <TabPanel value={tabValue} index={3}>
+          <MetricsDashboard />
         </TabPanel>
       </GlassPaper>
     </Container>
