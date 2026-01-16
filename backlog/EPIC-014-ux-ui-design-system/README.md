@@ -93,6 +93,32 @@ Core Platform Design System
 
 ---
 
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Form components | S3 | Chybí jednotné form komponenty + validace → nekonzistentní UX |
+| Navigation patterns | S4 | Chybí layouty a menu patterny |
+| Responsive design | S5 | Chybí jasná responsive pravidla napříč aplikací |
+| Accessibility | S6 | Neřešené WCAG 2.1 AA → compliance/UX riziko |
+| Loading states | S7 | Chybí loading/skeleton patterny |
+| Error states | S8 | Chybí standardní error UI + recovery flow |
+| Data tables | S9 | Chybí standardní tabulky + data display |
+| Tokens & docs | S10 | Chybí dokumentace tokenů a usage guide |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [S3: Form Components & Validation](#s3-form-components--validation) | Inputs, selects, validation patterns | Konzistentní form UX |
+| [S4: Navigation Patterns](#s4-navigation-patterns) | App shell, menu, breadcrumbs | Jednotná navigace |
+| [S5: Responsive Design](#s5-responsive-design) | Breakpoints + responsive layouty | Mobilní podpora |
+| [S6: Accessibility](#s6-accessibility) | WCAG 2.1 AA standardy + audit | Přístupnost |
+| [S7: Loading States](#s7-loading-states) | Skeletony, spinnery, transitions | Vizualní feedback |
+| [S8: Error States](#s8-error-states) | Error patterns + recovery flows | Chybová UX |
+| [S9: Data Tables](#s9-data-tables) | Table komponenty + paging | Data display |
+| [S10: Design Tokens](#s10-design-tokens) | Token docs + guidelines | Dokumentace DS |
+
 ## 📖 Detailed Stories
 
 ### S1: MUI Theme Foundation
