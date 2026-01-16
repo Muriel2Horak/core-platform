@@ -1,0 +1,50 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: core-traefik
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - core-net
+    restart: unless-stopped
+
+  nginx:
+    ports: []
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.core-web.rule=HostRegexp(`{host:.+}`)
+      - traefik.http.routers.core-web.entrypoints=web
+      - traefik.http.routers.core-web.middlewares=redirect-to-https
+      - traefik.http.routers.core-secure.rule=HostRegexp(`{host:.+}`)
+      - traefik.http.routers.core-secure.entrypoints=websecure
+      - traefik.http.routers.core-secure.tls=true
+      - traefik.http.routers.core-secure.tls.certresolver=letsencrypt
+      - traefik.http.services.core.loadbalancer.server.port=80
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+
+  ssl-expiry-exporter:
+    image: alpine:3.20
+    container_name: core-ssl-expiry-exporter
+    command: ["/scripts/ssl/ssl-expiry-exporter.sh"]
+    volumes:
+      - ./ssl:/ssl:ro
+      - ../scripts/ssl:/scripts/ssl:ro
+    networks:
+      - core-net
+    restart: unless-stopped
+
+volumes:
+  letsencrypt:

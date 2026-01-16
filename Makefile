@@ -60,6 +60,7 @@ help:
 	@echo "  test-smoke-tests      - Smoke test script dry-run"
 	@echo "  test-db-backup        - Backup/restore dry-run tests"
 	@echo "  test-ssl-rotation     - SSL rotation dry-run"
+	@echo "  test-letsencrypt      - Let's Encrypt dry-run checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -79,6 +80,7 @@ help:
 	@echo "  doctor          - Full health check (.env + service connectivity)"
 	@echo "  validate-templates - Validate envsubst template syntax"
 	@echo "  ssl-rotate-check - Check and rotate SSL certificates"
+	@echo "  ssl-expiry-check - Check Let's Encrypt certificate expiry"
 	@echo ""
 	@echo "🔐 Vault:"
 	@echo "  vault-up        - Start Vault + Vault Agent (vault-only secrets)"
@@ -241,6 +243,11 @@ validate-templates:
 .PHONY: ssl-rotate-check
 ssl-rotate-check:
 	@bash scripts/ssl/check-and-rotate.sh
+
+# Let's Encrypt expiry check
+.PHONY: ssl-expiry-check
+ssl-expiry-check:
+	@bash scripts/ssl/check-expiry.sh
 
 # Full environment doctor check (validation + connectivity)
 .PHONY: doctor
@@ -1660,6 +1667,11 @@ test-db-backup:
 .PHONY: test-ssl-rotation
 test-ssl-rotation:
 	@bash tests/ssl_rotation_tests.sh
+
+# Let's Encrypt dry-run tests
+.PHONY: test-letsencrypt
+test-letsencrypt:
+	@bash tests/letsencrypt_tests.sh
 
 # Run backend unit tests only
 .PHONY: test-backend-unit

@@ -3,14 +3,25 @@ id: INF-005
 epic: EPIC-007-infrastructure-deployment
 title: "Let's Encrypt SSL Automation"
 priority: P1
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - docker/docker-compose.traefik.yml
+    - docker/prometheus/prometheus.yml
+    - docker/prometheus/alerts/axiom_ssl_cert_expiry.yml
+    - scripts/ssl/check-expiry.sh
+    - scripts/ssl/export-expiry-metric.sh
+    - scripts/ssl/ssl-expiry-exporter.sh
+    - .env.template
+    - .env.example
+    - .gitignore
+    - Makefile
+  test_paths:
+    - tests/letsencrypt_tests.sh
   docs_paths:
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-005-lets-encrypt/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
@@ -19,7 +30,7 @@ path_mapping:
 # INF-005: Let's Encrypt SSL Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 2 dny, ~600 LOC  
 **Owner:** Platform Team  

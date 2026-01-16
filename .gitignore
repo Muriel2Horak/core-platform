@@ -74,3 +74,4 @@ docker/nginx/*.conf
 backups/
 docker/db/wal-archive/*
 !docker/db/wal-archive/.gitkeep
+docker/ssl/acme.json
