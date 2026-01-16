@@ -1,6 +1,7 @@
 # EPIC-020: Secure SDLC & Quality Gates
 
 **Status:** 🔴 **0% IMPLEMENTED**  
+**Definice:** ✅ **100%** (US-020-001..US-020-010 specifikováno s AC + tasky)  
 **Priority:** P0 (CROSS-CUTTING BASELINE)  
 **Owner:** Security + DevOps + Quality  
 **Created:** 9. listopadu 2025  
@@ -104,6 +105,36 @@ EPIC-000 definuje **co** musí platit, EPIC-020 definuje **jak to kontrolujeme**
 **Tento EPIC pouze doplňuje kontroly nad těmito oblastmi, ne jejich implementaci.**
 
 ---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Orchestrace gates | US-020-001 | Chybí jednotná gate matice a blokování merge |
+| SAST & code quality | US-020-002 | Bez SAST se do kódu dostanou kritické chyby |
+| Dependency & image scan | US-020-003 | Neviditelné CVE v závislostech a kontejnerech |
+| Secret scanning | US-020-004 | Riziko leaků mimo Vault-only policy |
+| IaC & config lint | US-020-005 | Chybí validace Docker/K8s/Nginx/GHA |
+| DAST | US-020-006 | Bez běhu ZAP chybí aplikační testy |
+| Security regression | US-020-007 | Neexistují cross-tenant/RBAC regressions |
+| Compliance evidence | US-020-008 | Chybí auditovatelná evidence do Loki |
+| AI code guardrails | US-020-009 | Riziko nekvalitního AI outputu |
+| Security docs | US-020-010 | Chybí onboarding a runbooky |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [US-020-001: CI Quality Gates](./stories/US-020-001-ci-quality-gates-orchestration/README.md) | PR/nightly/release gate orchestrace | Block merge gate |
+| [US-020-002: SAST & Code Quality](./stories/US-020-002-sast-code-quality/README.md) | CodeQL/Sonar nastavení | SAST baseline |
+| [US-020-003: Dependency & Container Scans](./stories/US-020-003-dependency-container-scanning/README.md) | SCA + image scan + allowlist | CVE kontrola |
+| [US-020-004: Secret Scanning](./stories/US-020-004-secret-scanning-vault-only/README.md) | Gitleaks + Vault-only policy | Secret gate |
+| [US-020-005: IaC & Config Lint](./stories/US-020-005-iac-config-linting/README.md) | Docker/K8s/GHA/Nginx lint | IaC gate |
+| [US-020-006: DAST Scan](./stories/US-020-006-dast-security-scan/README.md) | OWASP ZAP nightly | DAST report |
+| [US-020-007: Security Regression Tests](./stories/US-020-007-security-regression-tests/README.md) | Tenant/RBAC regresní testy | Security E2E |
+| [US-020-008: Compliance Evidence](./stories/US-020-008-compliance-evidence-reporting/README.md) | Evidence schema + Loki export | Audit trail |
+| [US-020-009: AI Guardrails](./stories/US-020-009-ai-code-guardrails/README.md) | AI checklist + risky patterns | AI gate |
+| [US-020-010: Security Docs](./stories/US-020-010-security-docs-onboarding/README.md) | Onboarding + runbooky | Dokumentace |
 
 ## 🔗 Vztah k Ostatním EPICům
 
