@@ -88,7 +88,7 @@ echo -e "\n${BLUE}🔍 Prerequisite Checks${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check if services are running
-if ! curl -s -f "${BACKEND_URL}/actuator/health" > /dev/null; then
+if ! curl -s -f "${BACKEND_URL}/api/actuator/health" > /dev/null; then
   echo -e "${RED}❌ Backend not running at $BACKEND_URL${NC}"
   echo "Please start services: make up or docker compose up"
   exit 1

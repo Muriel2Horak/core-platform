@@ -50,7 +50,7 @@ echo ""
 
 # 3. Check backend health
 echo "☕ Checking backend..."
-BACKEND_HEALTH=$(curl -s http://localhost:8080/actuator/health 2>/dev/null | jq -r '.status // "DOWN"')
+BACKEND_HEALTH=$(curl -s http://localhost:8080/api/actuator/health 2>/dev/null | jq -r '.status // "DOWN"')
 if [ "$BACKEND_HEALTH" = "UP" ]; then
     check_pass "Backend health check: UP"
     

@@ -62,7 +62,7 @@ print_info() {
 wait_for_backend() {
     print_info "Waiting for backend to be ready..."
     for i in {1..30}; do
-        if curl -s "$BACKEND_URL/actuator/health" >/dev/null 2>&1; then
+        if curl -s "$BACKEND_URL/api/actuator/health" >/dev/null 2>&1; then
             print_success "Backend is ready"
             return 0
         fi
@@ -99,7 +99,7 @@ test_infrastructure() {
     
     # Backend
     print_test "Backend health endpoint"
-    HEALTH=$(curl -s "$BACKEND_URL/actuator/health" 2>/dev/null)
+    HEALTH=$(curl -s "$BACKEND_URL/api/actuator/health" 2>/dev/null)
     if echo "$HEALTH" | jq -e '.status == "UP"' >/dev/null 2>&1; then
         print_success "Backend is UP"
     else

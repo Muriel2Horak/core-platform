@@ -34,7 +34,7 @@ echo ""
 
 # Test 1: Backend Health
 echo "Testing Backend Health..."
-HEALTH=$(curl -s http://localhost:8080/actuator/health)
+HEALTH=$(curl -s http://localhost:8080/api/actuator/health)
 if echo "$HEALTH" | grep -q '"status":"UP"'; then
     test_passed "Backend health endpoint returns UP"
 else

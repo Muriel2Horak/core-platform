@@ -77,8 +77,8 @@ fi
 success "JWT token validated"
 
 # ===== TEST 1: Feature Flags =====
-log "TEST 1: Checking feature flags via backend /actuator/health"
-HEALTH=$(c "$BASE/actuator/health" 2>/dev/null || echo '{}')
+log "TEST 1: Checking feature flags via backend /api/actuator/health"
+HEALTH=$(c "$BASE/api/actuator/health" 2>/dev/null || echo '{}')
 echo "$HEALTH" | jq . > /dev/null 2>&1 || warn "Health endpoint didn't return valid JSON"
 success "Backend actuator/health accessible"
 

@@ -584,7 +584,7 @@ _up_inner: validate-env kc-image
 	@MAX_WAIT=420; \
 	ELAPSED=0; \
 	while [ $$ELAPSED -lt $$MAX_WAIT ]; do \
-		if docker exec core-backend curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then \
+		if docker exec core-backend curl -sf http://localhost:8080/api/actuator/health > /dev/null 2>&1; then \
 			echo "✅ Backend is ready (took $${ELAPSED}s)"; \
 			break; \
 		fi; \
@@ -1279,7 +1279,7 @@ wait-for-services:
 	@bash scripts/setup-keycloak-triggers.sh || echo "⚠️  Failed to install triggers - CDC synchronization may not work"
 	@echo "⏳ Waiting for backend..."
 	@for i in $$(seq 1 45); do \
-		if curl -s http://localhost:8080/actuator/health >/dev/null 2>&1; then \
+		if curl -s http://localhost:8080/api/actuator/health >/dev/null 2>&1; then \
 			break; \
 		fi; \
 		sleep 2; \
@@ -1915,7 +1915,7 @@ test-backend-health:
 	@echo "🧪 Running backend health checks..."
 	@mkdir -p artifacts
 	@echo "Testing basic health endpoint..." > artifacts/backend_health.log
-	@if curl -s http://localhost:8080/actuator/health | jq -e '.status == "UP"' >/dev/null 2>&1; then \
+	@if curl -s http://localhost:8080/api/actuator/health | jq -e '.status == "UP"' >/dev/null 2>&1; then \
 		echo "✅ Health check: UP" | tee -a artifacts/backend_health.log; \
 	else \
 		echo "❌ Health check: DOWN" | tee -a artifacts/backend_health.log; \

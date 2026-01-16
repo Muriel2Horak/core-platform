@@ -29,7 +29,7 @@ echo "⏳ Waiting for services to be ready..."
 # Wait for backend
 MAX_WAIT=60
 ELAPSED=0
-until curl -s http://localhost:8080/actuator/health > /dev/null 2>&1; do
+until curl -s http://localhost:8080/api/actuator/health > /dev/null 2>&1; do
     if [ $ELAPSED -ge $MAX_WAIT ]; then
         echo "❌ Backend did not start in time"
         docker compose --profile streaming logs backend

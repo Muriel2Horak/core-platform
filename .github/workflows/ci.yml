@@ -133,7 +133,7 @@ jobs:
         run: |
           echo "⏳ Waiting for Backend to be ready..."
           for i in {1..30}; do
-            if curl -sf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+            if curl -sf http://localhost:8080/api/actuator/health >/dev/null 2>&1; then
               echo "✅ Backend is ready";
               break;
             fi
@@ -151,7 +151,7 @@ jobs:
           
           # Test Backend
           echo "⚙️ Testing Backend..."
-          curl -sf http://localhost:8080/actuator/health || (echo "❌ Backend failed"; exit 1)
+          curl -sf http://localhost:8080/api/actuator/health || (echo "❌ Backend failed"; exit 1)
           
           # Test Frontend (basic connectivity)
           echo "🎨 Testing Frontend..."

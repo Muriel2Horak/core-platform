@@ -48,7 +48,7 @@ class MonitoringMetricsAndLogsIT extends AbstractIntegrationTest {
 
   @Test
   void shouldExposeHealthEndpoint() {
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/health", String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).contains("UP");
@@ -167,7 +167,7 @@ class MonitoringMetricsAndLogsIT extends AbstractIntegrationTest {
     // etc.)
 
     // For now, just verify app started (logs were written)
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/health", String.class);
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 

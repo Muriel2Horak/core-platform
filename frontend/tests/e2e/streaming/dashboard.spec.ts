@@ -106,7 +106,7 @@ test.describe('Streaming Dashboard - E2E', () => {
   });
 
   test('health check shows streaming components', async ({ page, request }) => {
-    const response = await request.get('/actuator/health');
+    const response = await request.get('/api/actuator/health');
     expect(response.ok()).toBeTruthy();
 
     const health = await response.json();

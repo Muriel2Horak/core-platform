@@ -208,7 +208,7 @@ check_service_connectivity() {
   
   # Backend
   check "Backend connectivity"
-  if docker exec core-backend curl -sf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+  if docker exec core-backend curl -sf http://localhost:8080/api/actuator/health >/dev/null 2>&1; then
     success "Backend is ready"
     
     # Get actual datasource URL from backend

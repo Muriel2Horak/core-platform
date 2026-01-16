@@ -86,7 +86,7 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
   @Test
   void testHealthEndpointContract() throws ValidationException, ResolutionException {
     // When: Call health endpoint
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/health", String.class);
 
     // Then: Validate against OpenAPI spec (if defined)
     assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
@@ -140,7 +140,7 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
   @Test
   void testResponseSchemas() throws Exception {
     // Test common response patterns
-    ResponseEntity<String> healthResponse = restTemplate.getForEntity("/actuator/health",
+    ResponseEntity<String> healthResponse = restTemplate.getForEntity("/api/actuator/health",
         String.class);
 
     JsonNode healthJson = objectMapper.readTree(healthResponse.getBody());
