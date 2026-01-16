@@ -3,15 +3,21 @@ id: INF-017
 epic: EPIC-007-infrastructure-deployment
 title: "Disaster Recovery Plan & Procedures"
 priority: P2
-status: todo
+status: done
 assignee: ""
 created: 2025-11-08
-updated: 2026-01-15
+updated: 2026-01-16
 estimate: "2 days"
 path_mapping:
-  code_paths: []
-  test_paths: []
+  code_paths:
+    - scripts/dr/failover-to-secondary.sh
+    - scripts/dr/restore-from-offsite.sh
+    - Makefile
+  test_paths:
+    - tests/dr_plan_tests.sh
   docs_paths:
+    - docs/disaster-recovery/DR_PLAN.md
+    - docs/disaster-recovery/DR_DRILLS.md
     - backlog/EPIC-007-infrastructure-deployment/stories/INF-017-disaster-recovery/README.md
     - backlog/EPIC-007-infrastructure-deployment/README.md
 ---
@@ -19,7 +25,7 @@ path_mapping:
 # INF-017: Disaster Recovery Plan & Procedures
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** MEDIUM  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** Ops + Platform Team  
@@ -308,5 +314,13 @@ echo "✅ Failover completed. Monitor: https://$SECONDARY_HOST"
 
 ---
 
+## TESTING
+
+```bash
+make test-dr-plan
+```
+
+---
+
 **Created:** 8. listopadu 2025  
-**Status:** 🔴 Ready for Implementation
+**Status:** ✅ Done

@@ -196,7 +196,7 @@ bash scripts/smoke-test-env.sh
 | n8n infra | Shared n8n + SSO + audit headers | INF-019 | Blokuje EPIC-011 |
 | Observability | Alerting baseline + dashboards | INF-012 | Neni definovana alerting politika |
 | CI/CD | Pipeline + enhanced gates | INF-015, INF-023 | Release proces neni standardizovan |
-| Backup/DR | Backup + restore + DR plan | INF-016, INF-017 | RPO/RTO nedefinovane |
+| Backup/DR | Backup + restore + DR plan | INF-016, INF-017 | RPO/RTO definovane, runbooky hotove |
 | Smoke test | Automated env validation | INF-010 | Bez smoke testu nelze rychle verifikovat |
 | Edge security | WAF/DDoS protection | INF-025 | Zvysene riziko na edge |
 
