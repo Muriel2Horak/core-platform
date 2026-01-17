@@ -100,7 +100,7 @@ if (tenantId == null) {
 - [x] Přidat validaci tenant existence přes `TenantService`
 - [x] Přidat unit testy pro různé scénáře
 - [x] Implementovat `TenantContextHolder` helper
-- [ ] Aktualizovat dokumentaci API
+- [x] Aktualizovat dokumentaci API
 
 **Časová náročnost:** ~1 hodina  
 **Risk:** HIGH (bezpečnostní díra - může přistupovat k cizím tenant datům!)
