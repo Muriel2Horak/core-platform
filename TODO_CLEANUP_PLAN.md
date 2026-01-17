@@ -99,7 +99,7 @@ if (tenantId == null) {
 - [x] Extrahovat tenant ID z JWT claims (SecurityContextHolder)
 - [x] Přidat validaci tenant existence přes `TenantService`
 - [x] Přidat unit testy pro různé scénáře
-- [ ] Zvážit `TenantContextHolder` helper (aktuálně není potřeba)
+- [x] Implementovat `TenantContextHolder` helper
 - [ ] Aktualizovat dokumentaci API
 
 **Časová náročnost:** ~1 hodina  
