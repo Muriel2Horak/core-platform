@@ -230,7 +230,7 @@ if (kafkaEnabled) {
 - [x] Rozhodnout, že Kafka integrace je potřeba (AI config invalidation)
 - [x] Implementovat Kafka producer (AdminAiConfigController)
 - [x] Vytvořit `ConfigChangeEvent` model
-- [ ] Přidat consumers v ostatních službách
+- [x] Přidat consumer v core backendu (ostatní služby TBD)
 - [x] Dokumentovat event schema
 
 **Časová náročnost:** ~1-2 hodiny (pokud se implementuje)  
