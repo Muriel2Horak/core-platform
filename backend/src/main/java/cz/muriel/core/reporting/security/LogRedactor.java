@@ -65,10 +65,8 @@ public class LogRedactor {
         redacted.put(entry.getKey(), redactString(strValue));
       }
       // Recursively redact nested maps
-      else if (value instanceof Map) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> nestedMap = (Map<String, Object>) value;
-        redacted.put(entry.getKey(), redact(nestedMap));
+      else if (value instanceof Map<?, ?> nestedMap) {
+        redacted.put(entry.getKey(), redact(coerceMap(nestedMap)));
       }
     }
 
@@ -126,10 +124,8 @@ public class LogRedactor {
       return null;
     }
 
-    if (obj instanceof Map) {
-      @SuppressWarnings("unchecked")
-      Map<String, Object> map = (Map<String, Object>) obj;
-      return redact(map);
+    if (obj instanceof Map<?, ?> map) {
+      return redact(coerceMap(map));
     }
 
     if (obj instanceof String str) {
@@ -137,5 +133,14 @@ public class LogRedactor {
     }
 
     return obj;
+  }
+
+  private Map<String, Object> coerceMap(Map<?, ?> source) {
+    Map<String, Object> result = new java.util.HashMap<>();
+    for (Map.Entry<?, ?> entry : source.entrySet()) {
+      String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+      result.put(key, entry.getValue());
+    }
+    return result;
   }
 }

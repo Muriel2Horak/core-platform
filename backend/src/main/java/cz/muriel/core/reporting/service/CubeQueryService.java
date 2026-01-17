@@ -4,6 +4,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -28,7 +29,6 @@ public class CubeQueryService {
    * @param tenantId Tenant ID for RLS and CB isolation
    * @return Query result from Cube.js
    */
-  @SuppressWarnings("unchecked")
   public Map<String, Object> executeQuery(Map<String, Object> query, String tenantId) {
     // Use query deduplication to prevent duplicate concurrent queries
     return queryDeduplicator.executeWithDeduplication(query, tenantId, () -> {
@@ -40,7 +40,8 @@ public class CubeQueryService {
 
         return cubeWebClient.post().uri("/cubejs-api/v1/load")
             .header("Authorization", "Bearer " + tenantId) // Cube.js uses tenant as JWT
-            .bodyValue(Map.of("query", query)).retrieve().bodyToMono(Map.class).block();
+            .bodyValue(Map.of("query", query)).retrieve()
+            .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {}).block();
       });
     });
   }
@@ -53,7 +54,6 @@ public class CubeQueryService {
    * @param tenantId Tenant ID for RLS
    * @return Entity metadata
    */
-  @SuppressWarnings("unchecked")
   public Map<String, Object> getEntityMetadata(String entityName, String tenantId) {
     CircuitBreaker circuitBreaker = circuitBreakerRegistry
         .circuitBreaker("cubeMetadataCircuitBreaker-" + tenantId);
@@ -62,7 +62,8 @@ public class CubeQueryService {
       log.debug("Fetching metadata for entity {} (tenant {})", entityName, tenantId);
 
       return cubeWebClient.get().uri("/cubejs-api/v1/meta")
-          .header("Authorization", "Bearer " + tenantId).retrieve().bodyToMono(Map.class).block();
+          .header("Authorization", "Bearer " + tenantId).retrieve()
+          .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {}).block();
     });
   }
 }
