@@ -3,16 +3,15 @@ id: US-020-006
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "DAST a bezpecnostni sken"
 priority: P0
-status: done
+status: in_progress
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
+updated: 2026-01-17
 estimate: "4 days"
 path_mapping:
   code_paths:
-    - .github/workflows-disabled/security-scans.yml
-    - .zap/rules.tsv
-    - e2e/playwright.config.ts
+    - .github/workflows/quality-gates-nightly.yml
+    - scripts/ci/dast-smoke.sh
   test_paths:
     - tests/e2e/presence.spec.ts
     - scripts/run-frontend-e2e.sh
@@ -26,7 +25,7 @@ path_mapping:
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** ✅ **DONE**
+**Status:** 🟡 **IN PROGRESS**
 **Estimate:** 4 days
 
 ## User Story
@@ -55,7 +54,7 @@ path_mapping:
 
 ## Acceptance Criteria
 
-- [ ] OWASP ZAP baseline scan bezi nightly.
+- [x] OWASP ZAP baseline scan bezi nightly.
 - [ ] High/Medium nove findingy failuji nightly pipeline.
 - [ ] ZAP report je ulozen jako artefakt a odkazovan v summary.
 - [ ] Scope skenu (URL, auth) je zdokumentovan.
@@ -63,7 +62,7 @@ path_mapping:
 ## Definition of Done (DoD)
 
 **Kód:**
-- [ ] DAST job je integrovany do nightly pipeline.
+- [x] DAST job je integrovany do nightly pipeline.
 - [ ] ZAP konfigurace je verzovana.
 
 **Testy:**
@@ -73,7 +72,7 @@ path_mapping:
 - [ ] Dokumentovan scope a auth postup pro ZAP.
 
 **Deployment:**
-- [ ] Nightly pipeline bezi v pravidelnem intervalu.
+- [x] Nightly pipeline bezi v pravidelnem intervalu.
 
 ## Závislosti
 

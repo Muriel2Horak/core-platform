@@ -3,17 +3,21 @@ id: US-020-009
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "AI-generated code guardrails"
 priority: P0
-status: done
+status: in_progress
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
+updated: 2026-01-17
 estimate: "2 days"
 path_mapping:
   code_paths:
     - .github/PULL_REQUEST_TEMPLATE.md
     - .github/copilot-golden-rules.md
     - .github/copilot-instructions.md
-    - .github/workflows-disabled/ai-preflight.yml
+    - .github/workflows/quality-gates-pr.yml
+    - .github/workflows/quality-gates-nightly.yml
+    - .github/workflows/quality-gates-release.yml
+    - scripts/ci/ai-risky-patterns.txt
+    - scripts/ci/check-ai-risky-patterns.sh
   test_paths:
     - backend/src/test/java/cz/muriel/core/metamodel/validator/AiSchemaValidatorTest.java
     - backend/src/test/java/cz/muriel/core/controller/ai/AiContextControllerSecurityTest.java
@@ -27,7 +31,7 @@ path_mapping:
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** ✅ **DONE**
+**Status:** 🟡 **IN PROGRESS**
 **Estimate:** 2 days
 
 ## User Story
@@ -57,7 +61,7 @@ path_mapping:
 ## Acceptance Criteria
 
 - [ ] AI Code Security Checklist je zdokumentovan a pouzit v PR.
-- [ ] Risky pattern detection bezi na PR a vytvari warning.
+- [x] Risky pattern detection bezi na PR a vytvari warning.
 - [ ] PR template vyzaduje AI disclosure (tool + files).
 - [ ] CODEOWNERS vynucuje security review pro citlive cesty.
 - [ ] Developer training materials jsou dostupne.
@@ -65,7 +69,7 @@ path_mapping:
 ## Definition of Done (DoD)
 
 **Kód:**
-- [ ] CI check nebo script pro risky pattern detection je nasazen.
+- [x] CI check nebo script pro risky pattern detection je nasazen.
 - [ ] CODEOWNERS pravidla jsou soucasti repozitare.
 
 **Testy:**
@@ -77,7 +81,7 @@ path_mapping:
 - [ ] Training materials jsou dostupne pro tym.
 
 **Deployment:**
-- [ ] Guardrails jsou aktivni v PR pipeline.
+- [x] Guardrails jsou aktivni v PR pipeline.
 
 ## Závislosti
 

@@ -3,15 +3,21 @@ id: US-020-001
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "CI Quality Gates Orchestration"
 priority: P0
-status: done
+status: in_progress
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
+updated: 2026-01-17
 estimate: "3 days"
 path_mapping:
   code_paths:
     - .github/workflows/ci.yml
-    - .github/workflows-disabled/security-scans.yml
+    - .github/workflows/quality-gates-pr.yml
+    - .github/workflows/quality-gates-nightly.yml
+    - .github/workflows/quality-gates-release.yml
+    - scripts/ci/aggregate-gates.sh
+    - scripts/ci/write-gate-result.sh
+    - scripts/ci/gate-matrix.json
+    - docs/QUALITY_GATES_RUNBOOK.md
   test_paths:
     - scripts/build/pre-build-test.sh
     - scripts/infra-smoke-test.sh
@@ -25,7 +31,7 @@ path_mapping:
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** ✅ **DONE**
+**Status:** 🟡 **IN PROGRESS**
 **Estimate:** 3 days
 
 ## User Story
@@ -55,26 +61,26 @@ path_mapping:
 
 ## Acceptance Criteria
 
-- [ ] PR pipeline spouští minimální sadu gate kontrol a blokuje merge při failu.
-- [ ] Nightly pipeline spouští full regresi (DAST + full E2E) a generuje report.
-- [ ] Release pipeline je blocking a vyžaduje PASS všech kritických gate kontrol.
-- [ ] Gate matice (PR/nightly/release) je zdokumentovaná a verzovaná v repozitáři.
+- [x] PR pipeline spouští minimální sadu gate kontrol a blokuje merge při failu.
+- [x] Nightly pipeline spouští full regresi (DAST + full E2E) a generuje report.
+- [x] Release pipeline je blocking a vyžaduje PASS všech kritických gate kontrol.
+- [x] Gate matice (PR/nightly/release) je zdokumentovaná a verzovaná v repozitáři.
 
 ## Definition of Done (DoD)
 
 **Kód:**
-- [ ] Workflow definice jsou v repozitáři a jsou spustitelné.
-- [ ] Gating logika je centralizovaná (konfig/skript).
+- [x] Workflow definice jsou v repozitáři a jsou spustitelné.
+- [x] Gating logika je centralizovaná (konfig/skript).
 
 **Testy:**
 - [ ] Pipeline validace běží pro PR i nightly a vrací PASS/FAIL.
 - [ ] Failing gate skutečně blokuje merge.
 
 **Dokumentace:**
-- [ ] Runbook a popis triggerů jsou aktualizované.
+- [x] Runbook a popis triggerů jsou aktualizované.
 
 **Deployment:**
-- [ ] Gates jsou aktivní pro main a release branch.
+- [x] Gates jsou aktivní pro main a release branch.
 
 ## Závislosti
 

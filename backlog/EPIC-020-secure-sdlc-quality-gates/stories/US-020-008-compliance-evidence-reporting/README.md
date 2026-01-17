@@ -3,15 +3,17 @@ id: US-020-008
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "Compliance evidence a reporting"
 priority: P0
-status: done
+status: in_progress
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
+updated: 2026-01-17
 estimate: "3 days"
 path_mapping:
   code_paths:
-    - scripts/build/build-summary.sh
-    - scripts/build/test-progress-tracker.sh
+    - scripts/ci/aggregate-gates.sh
+    - scripts/ci/collect-evidence.sh
+    - scripts/ci/write-gate-result.sh
+    - docs/QUALITY_GATES_RUNBOOK.md
   test_paths:
     - tests/make_report.sh
     - tests/loki_query.sh
@@ -25,7 +27,7 @@ path_mapping:
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** ✅ **DONE**
+**Status:** 🟡 **IN PROGRESS**
 **Estimate:** 3 days
 
 ## User Story
@@ -54,25 +56,25 @@ path_mapping:
 
 ## Acceptance Criteria
 
-- [ ] CI agreguje vysledky do jednoho JSON summary.
-- [ ] Summary je ulozen jako artefakt a/nebo poslan do Loki.
-- [ ] Evidence obsahuje mapovani na EPIC-000 baseline body.
+- [x] CI agreguje vysledky do jednoho JSON summary.
+- [x] Summary je ulozen jako artefakt a/nebo poslan do Loki.
+- [x] Evidence obsahuje mapovani na EPIC-000 baseline body.
 - [ ] Dashboard/report ukazuje posledni PASS/FAIL.
 
 ## Definition of Done (DoD)
 
 **Kód:**
-- [ ] Collector krok je integrovany do CI.
-- [ ] Export do uloziste je funkcni.
+- [x] Collector krok je integrovany do CI.
+- [x] Export do uloziste je funkcni.
 
 **Testy:**
 - [ ] Testovaci pipeline vygeneruje validni summary.
 
 **Dokumentace:**
-- [ ] Format evidence a retence jsou popsane.
+- [x] Format evidence a retence jsou popsane.
 
 **Deployment:**
-- [ ] Evidence se generuje pro PR i nightly.
+- [x] Evidence se generuje pro PR i nightly.
 
 ## Závislosti
 

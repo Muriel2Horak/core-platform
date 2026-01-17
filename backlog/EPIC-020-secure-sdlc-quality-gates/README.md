@@ -1,6 +1,6 @@
 # EPIC-020: Secure SDLC & Quality Gates
 
-**Status:** ✅ **COMPLETE (OPEN FOR FOLLOW-UPS)**  
+**Status:** 🟡 **IN PROGRESS**  
 **Definice:** ✅ **100%** (US-020-001..US-020-010 specifikováno s AC + tasky)  
 **Priority:** P0 (CROSS-CUTTING BASELINE)  
 **Owner:** Security + DevOps + Quality  
@@ -121,7 +121,7 @@ EPIC-000 definuje **co** musí platit, EPIC-020 definuje **jak to kontrolujeme**
 | AI code guardrails | US-020-009 | Riziko nekvalitního AI outputu |
 | Security docs | US-020-010 | Chybí onboarding a runbooky |
 
-## 🧩 DEV tasky (PENDING) - popis a scope
+## 🧩 DEV tasky (IN PROGRESS) - popis a scope
 
 | DEV task | Popis (high-level) | Výstup |
 | --- | --- | --- |
@@ -1539,6 +1539,6 @@ Pro security findings nebo questions:
 
 ---
 
-**Status:** 🔴 0% IMPLEMENTED  
+**Status:** 🟡 In progress (gate orchestration + evidence + guardrails baseline)  
 **Next:** US-020-002 (SonarQube setup)  
 **Owner:** DevOps + Security Team

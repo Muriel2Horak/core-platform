@@ -3,16 +3,18 @@ id: US-020-007
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "Security regression testy (tenant isolation + RBAC)"
 priority: P0
-status: done
+status: in_progress
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-15
+updated: 2026-01-17
 estimate: "4 days"
 path_mapping:
   code_paths:
     - backend/src/main/java/cz/muriel/core/tenant/TenantFilter.java
     - backend/src/main/java/cz/muriel/core/tenant/TenantResolver.java
     - backend/src/main/java/cz/muriel/core/auth/config/SecurityConfig.java
+    - scripts/ci/security-regression.sh
+    - .github/workflows/quality-gates-nightly.yml
   test_paths:
     - backend/src/test/java/cz/muriel/core/tenant/TenantFilterIntegrationTest.java
     - backend/src/test/java/cz/muriel/core/tenant/TenantResolverTest.java
@@ -28,7 +30,7 @@ path_mapping:
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** ✅ **DONE**
+**Status:** 🟡 **IN PROGRESS**
 **Estimate:** 4 days
 
 ## User Story

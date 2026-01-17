@@ -29,7 +29,7 @@ Last updated: 2026-01-15
 | EPIC-016 Advanced Data UX Framework | PLANNED | Data UX framework | EPIC-016-advanced-data-ux-framework/README.md |
 | EPIC-015 AI Metamodel Collaboration | 30% IN PROGRESS | MCP server + Copilot integration | EPIC-015-ai-metamodel-collaboration/README.md |
 | EPIC-017 Modular Architecture | PLANNED | Module system and licensing | EPIC-017-modular-architecture/README.md |
-| EPIC-020 Secure SDLC Quality Gates | 0% IMPLEMENTED | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
+| EPIC-020 Secure SDLC Quality Gates | IN PROGRESS (~30%) | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
 | EPIC-021 AI Assisted Delivery Engine | PLANNED | AI delivery engine | EPIC-021-ai-assisted-delivery-engine/README.md |
 
 Notes:
@@ -559,7 +559,7 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
 | EPIC-018: Platform | 🟢 DONE | S1-S10 | ~10,000 | 100% |
 | EPIC-008: DMS | 🔶 PARTIAL | ~5 | ~3,000 | 80% |
 | EPIC-009: AI/MCP | 🔶 IN PROGRESS | TBD | TBD | 40% |
-| EPIC-020: Secure SDLC | 🔴 NOT STARTED | 8 | ~2,600 | 0% |
+| EPIC-020: Secure SDLC | 🟡 IN PROGRESS | 8 | ~2,600 | 30% |
 | **TOTAL** | | **~100** | **~83,100** | **~88%** |
 
 ---
@@ -568,7 +568,7 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
 
 **Doporučené priority:**
 
-1. **EPIC-020: Secure SDLC (URGENT - P0)**
+1. **EPIC-020: Secure SDLC (URGENT - P0, IN PROGRESS)**
    - Implementovat mandatory quality gates
    - SonarQube + Trivy + GitLeaks setup
    - AI code governance checklist
