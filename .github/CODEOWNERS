@@ -1,0 +1,9 @@
+# Security-sensitive areas
+/.github/workflows/ @Muriel2Horak
+/scripts/ci/ @Muriel2Horak
+/backend/src/main/java/**/auth/ @Muriel2Horak
+/backend/src/main/java/**/security/ @Muriel2Horak
+/backend/src/main/java/**/tenant/ @Muriel2Horak
+/docker/nginx/ @Muriel2Horak
+/frontend/nginx.conf @Muriel2Horak
+/docker/frontend/nginx.conf @Muriel2Horak

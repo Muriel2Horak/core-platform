@@ -55,21 +55,26 @@ path_mapping:
 ## Acceptance Criteria
 
 - [x] OWASP ZAP baseline scan bezi nightly.
-- [ ] High/Medium nove findingy failuji nightly pipeline.
-- [ ] ZAP report je ulozen jako artefakt a odkazovan v summary.
-- [ ] Scope skenu (URL, auth) je zdokumentovan.
+- [x] High/Medium nove findingy failuji nightly pipeline.
+- [x] ZAP report je ulozen jako artefakt a odkazovan v summary.
+- [x] Scope skenu (URL, auth) je zdokumentovan.
+
+## Scope Configuration
+
+- Target URL: `DAST_TARGET_URL` (defaults to `https://admin.core-platform.local`)
+- Enablement: `RUN_DAST=1` in nightly workflow
 
 ## Definition of Done (DoD)
 
 **Kód:**
 - [x] DAST job je integrovany do nightly pipeline.
-- [ ] ZAP konfigurace je verzovana.
+- [x] ZAP konfigurace je verzovana.
 
 **Testy:**
 - [ ] Testovaci zranitelnost vyvola fail v nightly.
 
 **Dokumentace:**
-- [ ] Dokumentovan scope a auth postup pro ZAP.
+- [x] Dokumentovan scope a auth postup pro ZAP.
 
 **Deployment:**
 - [x] Nightly pipeline bezi v pravidelnem intervalu.

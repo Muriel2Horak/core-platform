@@ -3,8 +3,8 @@
 (?i)secret
 (?i)password
 (?i)jwt.*sign
-(?i)permitAll\\(
-(?i)csrf\\(\\)\\.disable
+(?i)permitAll\(
+(?i)csrf\(\)\.disable
 (?i)disableCsrf
 (?i)trustAll
 (?i)skipValidation

@@ -46,6 +46,7 @@ jobs:
           fi
           scripts/ci/write-gate-result.sh --name unit-tests --status "$status" --details "backend:$backend_status frontend_install:$npm_status frontend_tests:$frontend_status"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-unit-tests
           path: gate-results/unit-tests.json
@@ -53,6 +54,11 @@ jobs:
   sast:
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_BACKEND_PROJECT_KEY: ${{ secrets.SONAR_BACKEND_PROJECT_KEY }}
+      SONAR_FRONTEND_PROJECT_KEY: ${{ secrets.SONAR_FRONTEND_PROJECT_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Java
@@ -83,15 +89,50 @@ jobs:
         id: codeql_analyze
         uses: github/codeql-action/analyze@v3
         continue-on-error: true
+      - name: SonarQube scan (backend)
+        id: sonar_backend
+        continue-on-error: true
+        if: env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != ''
+        run: |
+          project_key="${SONAR_BACKEND_PROJECT_KEY:-core-platform-backend}"
+          ./backend/mvnw -f backend/pom.xml -DskipTests sonar:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.login="${SONAR_TOKEN}" \
+            -Dsonar.projectKey="${project_key}"
+      - name: SonarQube scan (frontend)
+        id: sonar_frontend
+        continue-on-error: true
+        if: env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != ''
+        uses: sonarsource/sonarqube-scan-action@v3
+        with:
+          projectBaseDir: frontend
+          args: >
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.projectKey=${{ secrets.SONAR_FRONTEND_PROJECT_KEY || 'core-platform-frontend' }}
+            -Dsonar.sources=src
       - name: Write SAST gate result
         if: always()
         run: |
           status=pass
-          if [ "${{ steps.codeql_init.outcome }}" != "success" ] || [ "${{ steps.codeql_build.outcome }}" != "success" ] || [ "${{ steps.codeql_analyze.outcome }}" != "success" ]; then
+          sonar_backend_outcome="${{ steps.sonar_backend.outcome }}"
+          sonar_frontend_outcome="${{ steps.sonar_frontend.outcome }}"
+          if [ -z "$sonar_backend_outcome" ] || [ "$sonar_backend_outcome" = "skipped" ]; then
+            sonar_backend_outcome="success"
+          fi
+          if [ -z "$sonar_frontend_outcome" ] || [ "$sonar_frontend_outcome" = "skipped" ]; then
+            sonar_frontend_outcome="success"
+          fi
+          if [ "${{ steps.codeql_init.outcome }}" != "success" ] || \
+             [ "${{ steps.codeql_build.outcome }}" != "success" ] || \
+             [ "${{ steps.codeql_analyze.outcome }}" != "success" ] || \
+             [ "$sonar_backend_outcome" != "success" ] || \
+             [ "$sonar_frontend_outcome" != "success" ]; then
             status=fail
           fi
-          scripts/ci/write-gate-result.sh --name sast --status "$status" --details "codeql:${{ steps.codeql_analyze.outcome }}"
+          scripts/ci/write-gate-result.sh --name sast --status "$status" --details "codeql:${{ steps.codeql_analyze.outcome }} sonar_backend:${{ steps.sonar_backend.outcome || 'skipped' }} sonar_frontend:${{ steps.sonar_frontend.outcome || 'skipped' }}"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-sast
           path: gate-results/sast.json
@@ -128,6 +169,7 @@ jobs:
           fi
           scripts/ci/write-gate-result.sh --name sca --status "$status" --details "backend:$backend_status frontend_install:$npm_status frontend_audit:$frontend_status"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-sca
           path: gate-results/sca.json
@@ -141,6 +183,7 @@ jobs:
         id: gitleaks
         uses: gitleaks/gitleaks-action@v2
         continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           config-path: .gitleaks.toml
           report-path: gitleaks-report.json
@@ -148,11 +191,16 @@ jobs:
         if: always()
         run: |
           status=pass
-          if [ "${{ steps.gitleaks.outcome }}" != "success" ]; then
+          gitleaks_outcome="${{ steps.gitleaks.outcome }}"
+          if [ -z "$gitleaks_outcome" ] || [ "$gitleaks_outcome" = "skipped" ]; then
+            gitleaks_outcome="success"
+          fi
+          if [ "$gitleaks_outcome" != "success" ]; then
             status=fail
           fi
-          scripts/ci/write-gate-result.sh --name secret-scan --status "$status" --details "gitleaks:${{ steps.gitleaks.outcome }}"
+          scripts/ci/write-gate-result.sh --name secret-scan --status "$status" --details "gitleaks:${{ steps.gitleaks.outcome || 'skipped' }}"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-secret-scan
           path: gate-results/secret-scan.json
@@ -166,6 +214,7 @@ jobs:
         id: hadolint
         uses: hadolint/hadolint-action@v3.1.0
         continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           recursive: true
           config: .hadolint.yaml
@@ -173,10 +222,12 @@ jobs:
         id: actionlint
         uses: rhysd/actionlint@v1
         continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
       - name: Kube-linter
         id: kube_linter
         uses: stackrox/kube-linter-action@v1
         continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           directory: k8s
           config: .kube-linter.yaml
@@ -188,14 +239,25 @@ jobs:
         if: always()
         run: |
           status=pass
-          if [ "${{ steps.hadolint.outcome }}" != "success" ] || \
-             [ "${{ steps.actionlint.outcome }}" != "success" ] || \
-             [ "${{ steps.kube_linter.outcome }}" != "success" ] || \
-             [ "${{ steps.nginx_lint.outcome }}" != "success" ]; then
+          hadolint_outcome="${{ steps.hadolint.outcome }}"
+          actionlint_outcome="${{ steps.actionlint.outcome }}"
+          kube_outcome="${{ steps.kube_linter.outcome }}"
+          nginx_outcome="${{ steps.nginx_lint.outcome }}"
+          for outcome in hadolint_outcome actionlint_outcome kube_outcome nginx_outcome; do
+            value="${!outcome}"
+            if [ -z "$value" ] || [ "$value" = "skipped" ]; then
+              printf -v "$outcome" "%s" "success"
+            fi
+          done
+          if [ "$hadolint_outcome" != "success" ] || \
+             [ "$actionlint_outcome" != "success" ] || \
+             [ "$kube_outcome" != "success" ] || \
+             [ "$nginx_outcome" != "success" ]; then
             status=fail
           fi
           scripts/ci/write-gate-result.sh --name iac-lint --status "$status" --details "hadolint:${{ steps.hadolint.outcome }} actionlint:${{ steps.actionlint.outcome }} kube:${{ steps.kube_linter.outcome }} nginx:${{ steps.nginx_lint.outcome }}"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-iac-lint
           path: gate-results/iac-lint.json
@@ -203,6 +265,10 @@ jobs:
   container-scan:
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      TRIVY_USERNAME: ${{ secrets.TRIVY_USERNAME }}
+      TRIVY_PASSWORD: ${{ secrets.TRIVY_PASSWORD }}
+      TRIVY_DB_REPOSITORY: ${{ secrets.TRIVY_DB_REPOSITORY }}
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan
@@ -226,6 +292,7 @@ jobs:
           fi
           scripts/ci/write-gate-result.sh --name container-scan --status "$status" --details "trivy:${{ steps.trivy.outcome }}"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-container-scan
           path: gate-results/container-scan.json
@@ -251,6 +318,7 @@ jobs:
           fi
           scripts/ci/write-gate-result.sh --name ai-guardrails --status "$status" --details "ai-scan:${{ steps.ai_scan.outcome }}"
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-results-ai-guardrails
           path: gate-results/ai-guardrails.json
@@ -269,20 +337,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download gate results
+        if: ${{ github.actor != 'nektos/act' }}
         uses: actions/download-artifact@v4
         with:
           pattern: gate-results-*
           path: gate-results
           merge-multiple: true
       - name: Aggregate quality gates
+        if: ${{ github.actor != 'nektos/act' }}
         run: scripts/ci/aggregate-gates.sh --event release --results gate-results --output gate-summary
       - name: Collect compliance evidence
+        if: ${{ github.actor != 'nektos/act' }}
         run: scripts/ci/collect-evidence.sh gate-summary/summary.json compliance-evidence
+      - name: Skip aggregation for act
+        if: ${{ github.actor == 'nektos/act' }}
+        run: echo "Skipping aggregation in act."
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: gate-summary
           path: gate-summary
       - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
         with:
           name: compliance-evidence
           path: compliance-evidence

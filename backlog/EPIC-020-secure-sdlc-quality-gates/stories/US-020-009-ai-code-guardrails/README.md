@@ -13,6 +13,7 @@ path_mapping:
     - .github/PULL_REQUEST_TEMPLATE.md
     - .github/copilot-golden-rules.md
     - .github/copilot-instructions.md
+    - .github/CODEOWNERS
     - .github/workflows/quality-gates-pr.yml
     - .github/workflows/quality-gates-nightly.yml
     - .github/workflows/quality-gates-release.yml
@@ -52,33 +53,33 @@ path_mapping:
 
 ## Definition of Ready (DoR)
 
-- [ ] Je definovan seznam security-critical cest.
-- [ ] PR template je dostupny a muzeme ho upravit.
-- [ ] Nastroj pro pattern detection je zvolen (script/ci step).
+- [x] Je definovan seznam security-critical cest.
+- [x] PR template je dostupny a muzeme ho upravit.
+- [x] Nastroj pro pattern detection je zvolen (script/ci step).
 - [ ] Akceptacni kriteria jsou testovatelna.
 - [ ] Odhad je potvrzen tymem.
 
 ## Acceptance Criteria
 
-- [ ] AI Code Security Checklist je zdokumentovan a pouzit v PR.
+- [x] AI Code Security Checklist je zdokumentovan a pouzit v PR.
 - [x] Risky pattern detection bezi na PR a vytvari warning.
-- [ ] PR template vyzaduje AI disclosure (tool + files).
-- [ ] CODEOWNERS vynucuje security review pro citlive cesty.
-- [ ] Developer training materials jsou dostupne.
+- [x] PR template vyzaduje AI disclosure (tool + files).
+- [x] CODEOWNERS vynucuje security review pro citlive cesty.
+- [x] Developer training materials jsou dostupne.
 
 ## Definition of Done (DoD)
 
 **Kód:**
 - [x] CI check nebo script pro risky pattern detection je nasazen.
-- [ ] CODEOWNERS pravidla jsou soucasti repozitare.
+- [x] CODEOWNERS pravidla jsou soucasti repozitare.
 
 **Testy:**
 - [ ] Testovaci PR s risky patternem je oznacen jako warning.
 - [ ] CODEOWNER enforcement je overen.
 
 **Dokumentace:**
-- [ ] AI checklist a pravidla jsou popsana.
-- [ ] Training materials jsou dostupne pro tym.
+- [x] AI checklist a pravidla jsou popsana.
+- [x] Training materials jsou dostupne pro tym.
 
 **Deployment:**
 - [x] Guardrails jsou aktivni v PR pipeline.

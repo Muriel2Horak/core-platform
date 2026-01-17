@@ -47,9 +47,9 @@ path_mapping:
 
 ## Definition of Ready (DoR)
 
-- [ ] Je definovan format evidence (JSON).
-- [ ] Je zvolene uloziste (artifact/Loki).
-- [ ] CI ma pristup k ulozisti.
+- [x] Je definovan format evidence (JSON).
+- [x] Je zvolene uloziste (artifact/Loki).
+- [x] CI ma pristup k ulozisti.
 - [ ] Akceptacni kriteria jsou testovatelna.
 - [ ] Odhad je potvrzen tymem.
 - [ ] Je definovana retence dat.

@@ -21,6 +21,20 @@ Source of truth: `scripts/ci/gate-matrix.json`.
 4. Compliance evidence is written to `compliance-evidence/compliance-summary.json`.
 5. If any required gate is missing or fails, the aggregator exits non-zero.
 
+## Required Secrets (CI)
+
+- `SONAR_HOST_URL`, `SONAR_TOKEN`
+- `SONAR_BACKEND_PROJECT_KEY` (optional, default `core-platform-backend`)
+- `SONAR_FRONTEND_PROJECT_KEY` (optional, default `core-platform-frontend`)
+- `DAST_TARGET_URL` (nightly DAST target)
+- Security regression secrets: `KC_BASE`, `KC_REALM`, `KC_CLIENT_ID`, `TEST_USER1`, `TEST_PASSWORD1`, `TEST_USER2`, `TEST_PASSWORD2`, `TENANT1_KEY`, `TENANT2_KEY`, `BE_BASE`, `BE_API_PATH`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOKI_BASE`, `SERVICE_LABEL`, `TIMEOUT`, `RETRY_COUNT`
+- Optional Trivy auth: `TRIVY_USERNAME`, `TRIVY_PASSWORD`, `TRIVY_DB_REPOSITORY`
+
+## Gate Flags
+
+- `RUN_DAST=1` enables OWASP ZAP baseline in nightly.
+- `RUN_SECURITY_REGRESSION=1` enables multitenancy/RBAC regression in nightly.
+
 ## Local Execution (Developer)
 
 Use the same scripts locally to validate the aggregator:

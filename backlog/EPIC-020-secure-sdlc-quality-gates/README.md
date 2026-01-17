@@ -1539,6 +1539,6 @@ Pro security findings nebo questions:
 
 ---
 
-**Status:** 🟡 In progress (gate orchestration + evidence + guardrails baseline)  
+**Status:** 🟡 In progress (gate orchestration + evidence + guardrails + SAST/SCA/IaC baseline)  
 **Next:** US-020-002 (SonarQube setup)  
 **Owner:** DevOps + Security Team
