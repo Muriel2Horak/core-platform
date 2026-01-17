@@ -229,7 +229,7 @@ if (kafkaEnabled) {
 **Akce:**
 - [x] Rozhodnout, že Kafka integrace je potřeba (AI config invalidation)
 - [x] Implementovat Kafka producer (AdminAiConfigController)
-- [ ] Vytvořit `ConfigChangeEvent` model (pokud bude potřeba silné schema)
+- [x] Vytvořit `ConfigChangeEvent` model
 - [ ] Přidat consumers v ostatních službách
 - [ ] Dokumentovat event schema
 

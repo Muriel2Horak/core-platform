@@ -1,6 +1,7 @@
 package cz.muriel.core.controller.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.muriel.core.dto.ConfigChangeEvent;
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
@@ -163,9 +164,10 @@ public class AdminAiConfigController {
    */
   private void publishConfigChangeEvent(GlobalAiConfig aiConfig) {
     try {
-      Map<String, Object> event = Map.of("eventId", UUID.randomUUID().toString(), "eventType",
-          "AI_CONFIG_CHANGED", "timestamp", Instant.now().toString(), "config",
-          Map.of("enabled", aiConfig.getEnabled() != null ? aiConfig.getEnabled() : false, "mode",
+      ConfigChangeEvent event = new ConfigChangeEvent(UUID.randomUUID().toString(),
+          "AI_CONFIG_CHANGED", Instant.now().toString(),
+          new ConfigChangeEvent.AiConfigPayload(
+              aiConfig.getEnabled() != null && aiConfig.getEnabled(),
               aiConfig.getMode() != null ? aiConfig.getMode().toString() : "META_ONLY"));
 
       String eventJson = objectMapper.writeValueAsString(event);
