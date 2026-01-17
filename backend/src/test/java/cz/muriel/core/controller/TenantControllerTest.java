@@ -1,16 +1,24 @@
 package cz.muriel.core.controller;
 
 import cz.muriel.core.entity.Tenant;
+import cz.muriel.core.config.PrimaryJpaConfig;
 import cz.muriel.core.service.TenantService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,7 +32,12 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TenantController.class) @Import(TenantControllerTest.SecurityTestConfig.class)
+@WebMvcTest(controllers = TenantController.class,
+    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+        classes = PrimaryJpaConfig.class))
+@Import(TenantControllerTest.SecurityTestConfig.class)
+@ContextConfiguration(classes = {TenantController.class, TenantControllerTest.SecurityTestConfig.class})
+@Execution(ExecutionMode.SAME_THREAD)
 class TenantControllerTest {
 
   @Autowired
@@ -39,6 +52,7 @@ class TenantControllerTest {
     Tenant tenant = Tenant.builder().key("test-tenant").build();
 
     when(tenantService.getCurrentTenant()).thenReturn(Optional.of(tenant));
+    when(tenantService.getTenantDisplayName("test-tenant")).thenReturn("Tenant test-tenant");
 
     // When & Then
     mockMvc
@@ -86,6 +100,10 @@ class TenantControllerTest {
     @Bean
     SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
       http.csrf(csrf -> csrf.disable())
+          .anonymous(anonymous -> anonymous.disable())
+          .exceptionHandling(
+              exceptions -> exceptions.authenticationEntryPoint(
+                  new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
           .authorizeHttpRequests(authz -> authz.requestMatchers("/api/**").authenticated()
               .anyRequest().permitAll());
       return http.build();

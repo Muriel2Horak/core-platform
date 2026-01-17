@@ -1,5 +1,8 @@
 package cz.muriel.core.reporting.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component @Slf4j
 public class QueryDeduplicator {
 
+  private static final ObjectMapper FINGERPRINT_MAPPER = new ObjectMapper()
+      .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+
   private final Map<String, CompletableFuture<Map<String, Object>>> inflightQueries = new ConcurrentHashMap<>();
 
   /**
@@ -37,18 +43,21 @@ public class QueryDeduplicator {
       java.util.function.Supplier<Map<String, Object>> executor) {
     String fingerprint = computeFingerprint(query, tenantId);
 
-    CompletableFuture<Map<String, Object>> future = inflightQueries.computeIfAbsent(fingerprint,
-        key -> {
-          log.debug("Executing new query with fingerprint: {}", fingerprint);
-          return CompletableFuture.supplyAsync(() -> {
-            try {
-              return executor.get();
-            } finally {
-              // Remove from inflight map after completion
-              inflightQueries.remove(fingerprint);
-            }
-          });
-        });
+    CompletableFuture<Map<String, Object>> placeholder = new CompletableFuture<>();
+    CompletableFuture<Map<String, Object>> existing = inflightQueries.putIfAbsent(fingerprint,
+        placeholder);
+    CompletableFuture<Map<String, Object>> future = existing != null ? existing : placeholder;
+
+    if (existing == null) {
+      log.debug("Executing new query with fingerprint: {}", fingerprint);
+      try {
+        placeholder.complete(executor.get());
+      } catch (Exception e) {
+        placeholder.completeExceptionally(e);
+      } finally {
+        inflightQueries.remove(fingerprint, placeholder);
+      }
+    }
 
     try {
       if (inflightQueries.containsKey(fingerprint) && future != inflightQueries.get(fingerprint)) {
@@ -73,10 +82,13 @@ public class QueryDeduplicator {
    */
   private String computeFingerprint(Map<String, Object> query, String tenantId) {
     try {
-      String queryString = query.toString() + ":" + tenantId;
+      Object canonical = canonicalize(query);
+      String queryString = FINGERPRINT_MAPPER.writeValueAsString(canonical) + ":" + tenantId;
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
       byte[] hash = digest.digest(queryString.getBytes(java.nio.charset.StandardCharsets.UTF_8));
       return bytesToHex(hash);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize query for fingerprinting", e);
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("SHA-256 algorithm not available", e);
     }
@@ -95,6 +107,24 @@ public class QueryDeduplicator {
       hexString.append(hex);
     }
     return hexString.toString();
+  }
+
+  private Object canonicalize(Object value) {
+    if (value instanceof Map<?, ?> map) {
+      var sorted = new java.util.TreeMap<String, Object>();
+      for (var entry : map.entrySet()) {
+        sorted.put(String.valueOf(entry.getKey()), canonicalize(entry.getValue()));
+      }
+      return sorted;
+    }
+    if (value instanceof java.util.List<?> list) {
+      var canonical = new java.util.ArrayList<>(list.size());
+      for (var item : list) {
+        canonical.add(canonicalize(item));
+      }
+      return canonical;
+    }
+    return value;
   }
 
   /**

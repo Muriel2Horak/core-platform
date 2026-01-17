@@ -42,8 +42,6 @@ class AiContextControllerStrictReadsTest {
     ai.setMode(AiVisibilityMode.META_ONLY);
     config.setAi(ai);
 
-    when(assembler.assembleContext(anyString(), any())).thenReturn(Map.of("ok", true));
-
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
         provider, tenantService, editLockProvider);
 
@@ -71,8 +69,6 @@ class AiContextControllerStrictReadsTest {
     ai.setEnabled(true);
     ai.setMode(AiVisibilityMode.META_ONLY);
     config.setAi(ai);
-
-    when(assembler.assembleContext(anyString(), any())).thenReturn(Map.of("ok", true));
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
         provider, tenantService, editLockProvider);

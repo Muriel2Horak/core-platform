@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -37,7 +38,7 @@ class AiContextControllerSecurityTest {
   void getContext_usesTenantIdFromJwtWhenMissingParam() {
     UUID tenantId = UUID.randomUUID();
     Jwt jwt = createMockJwt(tenantId.toString());
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
 
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
@@ -68,7 +69,7 @@ class AiContextControllerSecurityTest {
   @Test
   void getContext_rejectsMissingTenantClaim() {
     Jwt jwt = createMockJwt(null);
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
 
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
@@ -121,7 +122,7 @@ class AiContextControllerSecurityTest {
   @Test
   void getContext_rejectsInvalidTenantClaimFormat() {
     Jwt jwt = createMockJwt("not-a-uuid");
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
 
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);

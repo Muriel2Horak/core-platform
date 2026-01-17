@@ -13,12 +13,14 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Duration;
 
 /**
  * 🏗️ Base class for integration tests with shared Testcontainers and per-test
@@ -60,6 +62,8 @@ public abstract class AbstractIntegrationTest {
   protected static final KafkaContainer kafkaContainer = new KafkaContainer(
       DockerImageName.parse("confluentinc/cp-kafka:7.6.1")).withKraft() // Use KRaft mode (no
                                                                         // Zookeeper)
+          .withEnv("KAFKA_HEAP_OPTS", "-Xms256m -Xmx256m")
+          .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(5)))
           .withStartupAttempts(3);
 
   // ==================== PER-TEST ISOLATION ====================

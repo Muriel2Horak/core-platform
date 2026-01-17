@@ -23,8 +23,8 @@ class McpCapabilitiesServiceTest {
     McpCapabilitiesService service = new McpCapabilitiesService(permissionService);
     Authentication auth = mock(Authentication.class);
 
-    when(auth.getAuthorities()).thenReturn(
-        List.of(new SimpleGrantedAuthority("CORE_ROLE_ADMIN")));
+    doReturn(List.of(new SimpleGrantedAuthority("CORE_ROLE_ADMIN")))
+        .when(auth).getAuthorities();
     when(permissionService.hasPermission(anyList(), anyString())).thenAnswer(invocation -> {
       String permission = invocation.getArgument(1, String.class);
       return permission.startsWith("users:read") || permission.startsWith("users:update");
@@ -43,8 +43,8 @@ class McpCapabilitiesServiceTest {
     McpCapabilitiesService service = new McpCapabilitiesService(permissionService);
     Authentication auth = mock(Authentication.class);
 
-    when(auth.getAuthorities()).thenReturn(
-        List.of(new SimpleGrantedAuthority("CORE_ROLE_TENANT_ADMIN")));
+    doReturn(List.of(new SimpleGrantedAuthority("CORE_ROLE_TENANT_ADMIN")))
+        .when(auth).getAuthorities();
     when(permissionService.hasPermission(anyList(), anyString())).thenAnswer(invocation -> {
       String permission = invocation.getArgument(1, String.class);
       return permission.startsWith("users:read");

@@ -124,13 +124,17 @@ class QueryDeduplicatorTest {
   void shouldRemoveFromInflightAfterCompletion() throws Exception {
     // Arrange
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"));
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch blocking = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
 
     // Act: Execute query
     CompletableFuture<Map<String, Object>> future = CompletableFuture
         .supplyAsync(() -> queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
           executionCount.incrementAndGet();
+          started.countDown();
           try {
-            Thread.sleep(100);
+            release.await();
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           }
@@ -138,11 +142,12 @@ class QueryDeduplicatorTest {
         }));
 
     // During execution, inflight count should be > 0
-    Thread.sleep(50);
+    started.await();
     assertTrue(queryDeduplicator.getInflightCount() > 0,
         "Should have in-flight query during execution");
 
     // Wait for completion
+    release.countDown();
     future.join();
 
     // After completion, inflight should be 0
@@ -172,49 +177,46 @@ class QueryDeduplicatorTest {
 
     List<String> fingerprints = Collections.synchronizedList(new ArrayList<>());
 
-    // Act: Execute same query in parallel to test deduplication
-    CountDownLatch latch = new CountDownLatch(2);
-    CountDownLatch startLatch = new CountDownLatch(1);
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch blocking = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
 
-    new Thread(() -> {
-      try {
-        startLatch.await();
-        queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
+    CompletableFuture<?> first = CompletableFuture.supplyAsync(
+        () -> queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
           fingerprints.add("exec1");
+          started.countDown();
+          blocking.countDown();
           try {
-            Thread.sleep(100); // Simulate slow query
+            release.await();
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           }
           return Map.of();
-        });
-      } catch (Exception e) {
-        // ignore
-      } finally {
-        latch.countDown();
-      }
-    }).start();
+        }));
 
-    new Thread(() -> {
-      try {
-        startLatch.await();
-        queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
-          fingerprints.add("exec2");
-          return Map.of();
-        });
-      } catch (Exception e) {
-        // ignore
-      } finally {
-        latch.countDown();
-      }
-    }).start();
-
-    startLatch.countDown(); // Start both threads
     try {
-      latch.await();
+      started.await();
+      blocking.await();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     }
+
+    CompletableFuture<Void> releaseLater = CompletableFuture.runAsync(() -> {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      release.countDown();
+    });
+
+    queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
+      fingerprints.add("exec2");
+      return Map.of();
+    });
+
+    releaseLater.join();
+    first.join();
 
     // Assert: Same fingerprint → only 1 execution (deduplication worked)
     assertEquals(1, fingerprints.size(), "Identical queries should generate same fingerprint");

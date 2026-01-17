@@ -100,8 +100,8 @@ public class MetamodelCrudService {
     // Map to response
     List<String> columnList = new ArrayList<>(allowedColumns);
     return results.stream().map(row -> {
-      if (row instanceof Object[] columns) {
-        return mapRowToMap(columns, columnList);
+      if (row instanceof Object[] rowValues) {
+        return mapRowToMap(rowValues, columnList);
       }
       return Map.<String, Object>of();
     }).collect(Collectors.toList());
