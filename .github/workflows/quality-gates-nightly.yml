@@ -16,10 +16,32 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder unit tests
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Run unit tests
         run: |
-          echo "TODO: wire unit tests"
-          scripts/ci/write-gate-result.sh --name unit-tests --status pass --details "placeholder"
+          set +e
+          ./backend/mvnw -f backend/pom.xml -DskipITs test
+          backend_status=$?
+          npm --prefix frontend ci
+          npm_status=$?
+          npm --prefix frontend run test:run
+          frontend_status=$?
+          status=pass
+          if [ $backend_status -ne 0 ] || [ $npm_status -ne 0 ] || [ $frontend_status -ne 0 ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name unit-tests --status "$status" --details "backend:$backend_status frontend_install:$npm_status frontend_tests:$frontend_status"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-unit-tests
@@ -30,10 +52,42 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder SAST
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Initialize CodeQL
+        id: codeql_init
+        uses: github/codeql-action/init@v3
+        continue-on-error: true
+        with:
+          languages: java,javascript
+      - name: Build for CodeQL
+        id: codeql_build
+        continue-on-error: true
         run: |
-          echo "TODO: wire SAST"
-          scripts/ci/write-gate-result.sh --name sast --status pass --details "placeholder"
+          ./backend/mvnw -f backend/pom.xml -DskipTests package
+          npm --prefix frontend ci
+      - name: Analyze CodeQL
+        id: codeql_analyze
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+      - name: Write SAST gate result
+        if: always()
+        run: |
+          status=pass
+          if [ "${{ steps.codeql_init.outcome }}" != "success" ] || [ "${{ steps.codeql_build.outcome }}" != "success" ] || [ "${{ steps.codeql_analyze.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name sast --status "$status" --details "codeql:${{ steps.codeql_analyze.outcome }}"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-sast
@@ -44,10 +98,32 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder SCA
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Dependency checks
         run: |
-          echo "TODO: wire SCA"
-          scripts/ci/write-gate-result.sh --name sca --status pass --details "placeholder"
+          set +e
+          ./backend/mvnw -f backend/pom.xml -DskipTests dependency-check:check
+          backend_status=$?
+          npm --prefix frontend ci
+          npm_status=$?
+          npm --prefix frontend audit --omit=dev --audit-level=high
+          frontend_status=$?
+          status=pass
+          if [ $backend_status -ne 0 ] || [ $npm_status -ne 0 ] || [ $frontend_status -ne 0 ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name sca --status "$status" --details "backend:$backend_status frontend_install:$npm_status frontend_audit:$frontend_status"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-sca
@@ -58,10 +134,21 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder secret scan
+      - name: GitLeaks scan
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        with:
+          config-path: .gitleaks.toml
+          report-path: gitleaks-report.json
+      - name: Write secret scan gate result
+        if: always()
         run: |
-          echo "TODO: wire secret scan"
-          scripts/ci/write-gate-result.sh --name secret-scan --status pass --details "placeholder"
+          status=pass
+          if [ "${{ steps.gitleaks.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name secret-scan --status "$status" --details "gitleaks:${{ steps.gitleaks.outcome }}"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-secret-scan
@@ -72,10 +159,39 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder IaC lint
+      - name: Hadolint
+        id: hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        continue-on-error: true
+        with:
+          recursive: true
+          config: .hadolint.yaml
+      - name: actionlint
+        id: actionlint
+        uses: rhysd/actionlint@v1
+        continue-on-error: true
+      - name: Kube-linter
+        id: kube_linter
+        uses: stackrox/kube-linter-action@v1
+        continue-on-error: true
+        with:
+          directory: k8s
+          config: .kube-linter.yaml
+      - name: Nginx config lint
+        id: nginx_lint
+        continue-on-error: true
+        run: scripts/ci/nginx-lint.sh
+      - name: Write IaC lint gate result
+        if: always()
         run: |
-          echo "TODO: wire IaC lint"
-          scripts/ci/write-gate-result.sh --name iac-lint --status pass --details "placeholder"
+          status=pass
+          if [ "${{ steps.hadolint.outcome }}" != "success" ] || \
+             [ "${{ steps.actionlint.outcome }}" != "success" ] || \
+             [ "${{ steps.kube_linter.outcome }}" != "success" ] || \
+             [ "${{ steps.nginx_lint.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name iac-lint --status "$status" --details "hadolint:${{ steps.hadolint.outcome }} actionlint:${{ steps.actionlint.outcome }} kube:${{ steps.kube_linter.outcome }} nginx:${{ steps.nginx_lint.outcome }}"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-iac-lint

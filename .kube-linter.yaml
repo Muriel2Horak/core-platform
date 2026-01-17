@@ -1,0 +1,4 @@
+checks:
+  include:
+    - "no-latest-tag"
+    - "no-privileged"
