@@ -78,8 +78,7 @@ public class RelationshipResolver {
 
     log.debug("Loading M:N relationship '{}': {}", field.getName(), sql);
 
-    @SuppressWarnings("unchecked")
-    List<Object> targetIds = entityManager.createNativeQuery(sql).getResultList();
+    List<?> targetIds = entityManager.createNativeQuery(sql).getResultList();
 
     entity.put(field.getName(), targetIds);
     log.debug("Loaded {} related entities for '{}'", targetIds.size(), field.getName());
@@ -118,9 +117,8 @@ public class RelationshipResolver {
     String sql = String.format("SELECT * FROM %s WHERE %s = ?", targetTable, refField);
 
     try {
-      @SuppressWarnings("unchecked")
-      List<Map<String, Object>> relatedEntities = entityManager.createNativeQuery(sql)
-          .setParameter(1, entityId).getResultList();
+      List<?> relatedEntities = entityManager.createNativeQuery(sql).setParameter(1, entityId)
+          .getResultList();
 
       entity.put(field.getName(), relatedEntities);
       log.debug("1:N relationship '{}' loaded {} entities", field.getName(),
