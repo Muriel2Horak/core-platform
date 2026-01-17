@@ -1,0 +1,136 @@
+name: Quality Gates (Nightly)
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder unit tests
+        run: |
+          echo "TODO: wire unit tests"
+          scripts/ci/write-gate-result.sh --name unit-tests --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-unit-tests
+          path: gate-results/unit-tests.json
+
+  sast:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder SAST
+        run: |
+          echo "TODO: wire SAST"
+          scripts/ci/write-gate-result.sh --name sast --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-sast
+          path: gate-results/sast.json
+
+  sca:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder SCA
+        run: |
+          echo "TODO: wire SCA"
+          scripts/ci/write-gate-result.sh --name sca --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-sca
+          path: gate-results/sca.json
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder secret scan
+        run: |
+          echo "TODO: wire secret scan"
+          scripts/ci/write-gate-result.sh --name secret-scan --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-secret-scan
+          path: gate-results/secret-scan.json
+
+  iac-lint:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder IaC lint
+        run: |
+          echo "TODO: wire IaC lint"
+          scripts/ci/write-gate-result.sh --name iac-lint --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-iac-lint
+          path: gate-results/iac-lint.json
+
+  dast:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder DAST
+        run: |
+          echo "TODO: wire DAST"
+          scripts/ci/write-gate-result.sh --name dast --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-dast
+          path: gate-results/dast.json
+
+  security-regression:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Placeholder security regression
+        run: |
+          echo "TODO: wire security regression"
+          scripts/ci/write-gate-result.sh --name security-regression --status pass --details "placeholder"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-security-regression
+          path: gate-results/security-regression.json
+
+  aggregate:
+    runs-on: ubuntu-latest
+    needs:
+      - unit-tests
+      - sast
+      - sca
+      - secret-scan
+      - iac-lint
+      - dast
+      - security-regression
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download gate results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gate-results-*
+          path: gate-results
+          merge-multiple: true
+      - name: Aggregate quality gates
+        run: scripts/ci/aggregate-gates.sh --event nightly --results gate-results --output gate-summary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-summary
+          path: gate-summary
