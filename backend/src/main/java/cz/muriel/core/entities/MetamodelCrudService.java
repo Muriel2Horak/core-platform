@@ -95,12 +95,16 @@ public class MetamodelCrudService {
     sql.append(" LIMIT ").append(size).append(" OFFSET ").append(page * size);
 
     // Execute query
-    @SuppressWarnings("unchecked")
-    List<Object[]> results = entityManager.createNativeQuery(sql.toString()).getResultList();
+    List<?> results = entityManager.createNativeQuery(sql.toString()).getResultList();
 
     // Map to response
     List<String> columnList = new ArrayList<>(allowedColumns);
-    return results.stream().map(row -> mapRowToMap(row, columnList)).collect(Collectors.toList());
+    return results.stream().map(row -> {
+      if (row instanceof Object[] columns) {
+        return mapRowToMap(columns, columnList);
+      }
+      return Map.<String, Object>of();
+    }).collect(Collectors.toList());
   }
 
   /**

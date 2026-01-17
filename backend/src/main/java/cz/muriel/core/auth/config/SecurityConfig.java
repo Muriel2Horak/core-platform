@@ -108,10 +108,12 @@ public class SecurityConfig {
         Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
         if (realmAccess != null) {
           Object rolesObj = realmAccess.get("roles");
-          if (rolesObj instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<String> roles = (List<String>) rolesObj;
-            roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
+          if (rolesObj instanceof List<?> roles) {
+            roles.forEach(role -> {
+              if (role instanceof String roleName) {
+                authorities.add(new SimpleGrantedAuthority(roleName));
+              }
+            });
           }
         }
 
@@ -119,14 +121,14 @@ public class SecurityConfig {
         Map<String, Object> resourceAccess = jwt.getClaimAsMap("resource_access");
         if (resourceAccess != null) {
           resourceAccess.forEach((clientId, clientAccess) -> {
-            if (clientAccess instanceof Map) {
-              @SuppressWarnings("unchecked")
-              Map<String, Object> clientAccessMap = (Map<String, Object>) clientAccess;
+            if (clientAccess instanceof Map<?, ?> clientAccessMap) {
               Object rolesObj = clientAccessMap.get("roles");
-              if (rolesObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) rolesObj;
-                roles.forEach(role -> authorities.add(new SimpleGrantedAuthority(role)));
+              if (rolesObj instanceof List<?> roles) {
+                roles.forEach(role -> {
+                  if (role instanceof String roleName) {
+                    authorities.add(new SimpleGrantedAuthority(roleName));
+                  }
+                });
               }
             }
           });
