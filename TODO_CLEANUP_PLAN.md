@@ -54,8 +54,8 @@ when(jdbcTemplate.query(
 ```
 
 **Akce:**
-- [ ] Odstranit všechny `@SuppressWarnings({ "unchecked", "rawtypes" })`
-- [ ] Přepsat všechny 4 instance na typed stubs
+- [x] Odstranit všechny `@SuppressWarnings({ "unchecked", "rawtypes" })`
+- [x] Přepsat všechny 4 instance na typed stubs
 - [ ] Ověřit, že testy stále projdou
 
 **Časová náročnost:** ~30 minut  
