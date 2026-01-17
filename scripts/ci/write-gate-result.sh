@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  write-gate-result.sh --name <gate> --status <pass|fail|skip> [--details <text>] [--output <path>]
+  write-gate-result.sh --name <gate> --status <pass|fail|warn|skip> [--details <text>] [--output <path>]
 EOF
 }
 

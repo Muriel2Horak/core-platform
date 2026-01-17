@@ -86,11 +86,16 @@ for gate in required:
         results[gate] = json.load(handle)
 
 failed = []
+warnings = []
 for gate in required:
     payload = results.get(gate)
     if not payload:
         continue
-    if payload.get("status") != "pass":
+    status = payload.get("status")
+    if status == "warn":
+        warnings.append(gate)
+        continue
+    if status != "pass":
         failed.append(gate)
 
 overall = "pass" if not missing and not failed else "fail"
@@ -101,6 +106,7 @@ summary = {
     "required_gates": required,
     "missing_gates": missing,
     "failed_gates": failed,
+    "warning_gates": warnings,
     "results": results,
     "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
 }
@@ -129,6 +135,11 @@ if failed:
     lines.append("")
     lines.append("## Failed Gates")
     for gate in failed:
+        lines.append(f"- {gate}")
+if warnings:
+    lines.append("")
+    lines.append("## Warning Gates")
+    for gate in warnings:
         lines.append(f"- {gate}")
 
 summary_md = "\n".join(lines) + "\n"

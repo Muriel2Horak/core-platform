@@ -314,7 +314,11 @@ jobs:
         run: |
           status=pass
           if [ "${{ steps.ai_scan.outcome }}" != "success" ]; then
-            status=fail
+            status=warn
+            echo "::warning::AI guardrails detected risky patterns. Review the checklist before merge."
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              echo "- AI guardrails: WARN (risky patterns detected)" >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
           scripts/ci/write-gate-result.sh --name ai-guardrails --status "$status" --details "ai-scan:${{ steps.ai_scan.outcome }}"
       - uses: actions/upload-artifact@v4

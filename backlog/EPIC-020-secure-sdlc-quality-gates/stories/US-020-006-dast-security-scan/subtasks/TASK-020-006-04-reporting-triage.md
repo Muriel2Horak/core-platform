@@ -4,8 +4,8 @@
 Zajistit reporty a proces zpracovani nalezu.
 
 ## 📋 Tasks
-- [ ] Definovat thresholdy pro fail.
-- [ ] Ulozit reporty jako artefakty.
+- [x] Definovat thresholdy pro fail.
+- [x] Ulozit reporty jako artefakty.
 - [ ] Popsat triage proces.
 
 ## 📤 Output
@@ -13,6 +13,6 @@ Zajistit reporty a proces zpracovani nalezu.
 - CI summary s odkazy.
 
 ## ✅ Acceptance Criteria for This Subtask
-- [ ] High/Medium findingy failuji nightly.
-- [ ] Reporty jsou archivovane.
+- [x] High/Medium findingy failuji nightly.
+- [x] Reporty jsou archivovane.
 - [ ] Triage postup je zdokumentovan.

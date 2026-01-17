@@ -4,15 +4,15 @@
 Zapojit ZAP scan do nightly pipeline.
 
 ## 📋 Tasks
-- [ ] Pridat ZAP job do nightly workflow.
-- [ ] Zajistit artefakt s reportem.
-- [ ] Pridat summary vystup.
+- [x] Pridat ZAP job do nightly workflow.
+- [x] Zajistit artefakt s reportem.
+- [x] Pridat summary vystup.
 
 ## 📤 Output
 - Nightly job s ZAP scanem.
 - Artefakt s reportem.
 
 ## ✅ Acceptance Criteria for This Subtask
-- [ ] Nightly pipeline spusti ZAP scan.
-- [ ] Report je ulozen jako artefakt.
-- [ ] Summary obsahuje vysledek DAST.
+- [x] Nightly pipeline spusti ZAP scan.
+- [x] Report je ulozen jako artefakt.
+- [x] Summary obsahuje vysledek DAST.

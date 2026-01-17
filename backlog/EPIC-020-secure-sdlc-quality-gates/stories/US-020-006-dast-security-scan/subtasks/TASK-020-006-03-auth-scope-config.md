@@ -4,8 +4,8 @@
 Zajistit autenticaci a omezeni scope pro DAST.
 
 ## 📋 Tasks
-- [ ] Nastavit autentizaci (pokud je potreba).
-- [ ] Definovat allowed/denied URL.
+- [x] Nastavit autentizaci (pokud je potreba).
+- [x] Definovat allowed/denied URL.
 - [ ] Otestovat, ze scan nezasahuje mimo scope.
 
 ## 📤 Output

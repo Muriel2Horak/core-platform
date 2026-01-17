@@ -63,6 +63,8 @@ path_mapping:
 
 - Target URL: `DAST_TARGET_URL` (defaults to `https://admin.core-platform.local`)
 - Enablement: `RUN_DAST=1` in nightly workflow
+- Optional: `DAST_EXCLUDE_REGEX` (comma-separated regex list)
+- Optional: `DAST_AUTH_HEADER` (Authorization header value)
 
 ## Definition of Done (DoD)
 
