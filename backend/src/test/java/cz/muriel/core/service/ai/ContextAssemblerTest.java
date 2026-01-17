@@ -34,6 +34,9 @@ class ContextAssemblerTest {
   @Mock
   private WfContextService wfContextService;
 
+  @Mock
+  private McpCapabilitiesService mcpCapabilitiesService;
+
   private GlobalMetamodelConfig globalConfig;
   private ContextAssembler assembler;
 
@@ -45,7 +48,8 @@ class ContextAssemblerTest {
     aiConfig.setMode(AiVisibilityMode.META_ONLY);
     globalConfig.setAi(aiConfig);
 
-    assembler = new ContextAssembler(registry, uiContextService, wfContextService, globalConfig);
+    assembler = new ContextAssembler(registry, uiContextService, wfContextService, globalConfig,
+        mcpCapabilitiesService);
   }
 
   @Test
