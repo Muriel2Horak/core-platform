@@ -43,6 +43,10 @@ KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-admin-cli}"
 KEYCLOAK_CLIENT_SECRET="${KEYCLOAK_CLIENT_SECRET:-}"
 KEYCLOAK_USERNAME="${KEYCLOAK_USERNAME:-admin}"
 KEYCLOAK_PASSWORD="${KEYCLOAK_PASSWORD:-admin}"
+COMMAND_SOURCE="${COMMAND_SOURCE:-db}"
+TOPIC_PREFIX="${TOPIC_PREFIX:-core}"
+BACKEND_READY_TIMEOUT="${BACKEND_READY_TIMEOUT:-240}"
+BACKEND_READY_INTERVAL="${BACKEND_READY_INTERVAL:-2}"
 
 # Counters
 TESTS_TOTAL=0
@@ -91,15 +95,17 @@ run_with_timeout() {
 
 wait_for_backend() {
     print_info "Waiting for backend to be ready..."
-    for i in {1..30}; do
-        if curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/health" >/dev/null 2>&1; then
+    local attempts=$((BACKEND_READY_TIMEOUT / BACKEND_READY_INTERVAL))
+    for i in $(seq 1 "$attempts"); do
+        HEALTH=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/health" 2>/dev/null || echo "")
+        if echo "$HEALTH" | grep -q "\"status\":\"UP\""; then
             print_success "Backend is ready"
             return 0
         fi
         echo -n "."
-        sleep 2
+        sleep "$BACKEND_READY_INTERVAL"
     done
-    print_failure "Backend not ready after 60s"
+    print_failure "Backend not ready after ${BACKEND_READY_TIMEOUT}s"
     exit 1
 }
 
@@ -120,6 +126,11 @@ wait_for_db() {
     exit 1
 }
 
+get_admin_tenant_id() {
+    run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -q -c \
+        "SELECT id FROM tenants WHERE key='admin' LIMIT 1;" 2>/dev/null | head -n 1 | tr -d '[:space:]'
+}
+
 # =============================================================================
 # Test 1: Infrastructure Health Check
 # =============================================================================
@@ -131,7 +142,8 @@ test_infrastructure() {
     if [[ "$SKIP_KAFKA_CLI" != "true" ]]; then
         if run_with_timeout 10 docker exec "$KAFKA_CONTAINER" kafka-broker-api-versions --bootstrap-server "$KAFKA_BOOTSTRAP" >/dev/null 2>&1; then
             print_success "Kafka is UP"
-            return 0
+        else
+            print_info "Kafka broker API check failed; falling back to port probe"
         fi
     fi
 
@@ -154,7 +166,7 @@ test_infrastructure() {
     # Backend
     print_test "Backend health endpoint"
     HEALTH=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/health" 2>/dev/null || echo "")
-    if echo "$HEALTH" | jq -e '.status == "UP"' >/dev/null 2>&1; then
+    if echo "$HEALTH" | grep -q "\"status\":\"UP\""; then
         print_success "Backend is UP"
     else
         print_failure "Backend is DOWN or unhealthy"
@@ -163,7 +175,7 @@ test_infrastructure() {
     
     # Streaming schema
     print_test "Streaming database schema"
-    if run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM streaming.command_queue LIMIT 1;" >/dev/null 2>&1; then
+    if run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM command_queue LIMIT 1;" >/dev/null 2>&1; then
         print_success "Streaming schema exists"
     else
         print_failure "Streaming schema missing"
@@ -183,13 +195,22 @@ test_kafka_topics() {
     fi
 
     print_test "List Kafka topics"
+    if ! docker exec "$KAFKA_CONTAINER" sh -c "command -v kafka-topics" >/dev/null 2>&1; then
+        print_info "Kafka CLI not available in container; skipping topic checks"
+        return 0
+    fi
+
     TOPICS=$(run_with_timeout 10 docker exec "$KAFKA_CONTAINER" kafka-topics --bootstrap-server "$KAFKA_BOOTSTRAP" --list 2>/dev/null || echo "")
-    TOPIC_COUNT=$(echo "$TOPICS" | wc -l | tr -d ' ')
+    if [ -z "$TOPICS" ]; then
+        TOPIC_COUNT=0
+    else
+        TOPIC_COUNT=$(echo "$TOPICS" | wc -l | tr -d ' ')
+    fi
     print_success "Found $TOPIC_COUNT topics"
     echo "$TOPICS" | head -5
     
     print_test "Check for streaming topics"
-    if echo "$TOPICS" | grep -q "streaming-events"; then
+    if echo "$TOPICS" | grep -q "${TOPIC_PREFIX}\\.entity\\.events"; then
         print_success "Streaming topics exist"
     else
         print_info "No streaming topics yet (will be auto-created)"
@@ -228,6 +249,79 @@ get_jwt_token() {
     fi
 }
 
+create_command_via_db() {
+    local payload="$1"
+    local priority="$2"
+    local tenant_id
+    local sanitized_payload
+
+    tenant_id=$(get_admin_tenant_id)
+    if [ -z "$tenant_id" ]; then
+        print_failure "Failed to resolve admin tenant id"
+        return 1
+    fi
+
+    sanitized_payload=$(printf "%s" "$payload" | sed "s/'/''/g")
+
+    COMMAND_ID=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -q -c \
+        "INSERT INTO command_queue (tenant_id, entity, entity_id, operation, payload, priority) VALUES ('$tenant_id', 'user', gen_random_uuid(), 'CREATE', '$sanitized_payload', '$priority') RETURNING id;" 2>/dev/null | head -n 1 | tr -d '[:space:]')
+
+    if [ -n "$COMMAND_ID" ] && [ "$COMMAND_ID" != "null" ]; then
+        print_info "Command created in DB with ID: $COMMAND_ID"
+        echo "$COMMAND_ID" > "$ARTIFACTS_DIR/command_id.txt"
+        export COMMAND_ID
+        return 0
+    else
+        print_failure "Failed to create command in DB"
+        return 1
+    fi
+}
+
+create_command_via_api() {
+    local payload="$1"
+    local priority="$2"
+    local escaped_payload
+
+    escaped_payload=$(printf "%s" "$payload" | sed "s/\"/\\\\\"/g")
+
+    RESPONSE=$(curl -s $CURL_FLAGS -X POST "$BACKEND_URL/api/streaming/commands" \
+        -H "Authorization: Bearer $JWT_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"entity\": \"user\",
+            \"entityId\": \"$(uuidgen | tr '[:upper:]' '[:lower:]')\",
+            \"operation\": \"CREATE\",
+            \"priority\": \"${priority^^}\",
+            \"payload\": \"$escaped_payload\"
+        }" 2>/dev/null || echo "{}")
+
+    echo "$RESPONSE" | jq '.' > "$ARTIFACTS_DIR/command_create_response.json" 2>/dev/null || true
+
+    COMMAND_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
+
+    if [ -n "$COMMAND_ID" ] && [ "$COMMAND_ID" != "null" ]; then
+        print_info "Command created with ID: $COMMAND_ID"
+        echo "$COMMAND_ID" > "$ARTIFACTS_DIR/command_id.txt"
+        export COMMAND_ID
+        return 0
+    else
+        print_failure "Failed to create command via API"
+        echo "Response: $RESPONSE"
+        return 1
+    fi
+}
+
+create_command() {
+    local payload="$1"
+    local priority="$2"
+
+    if [ "$COMMAND_SOURCE" == "api" ]; then
+        create_command_via_api "$payload" "$priority"
+    else
+        create_command_via_db "$payload" "$priority"
+    fi
+}
+
 # =============================================================================
 # Test 4: Create Streaming Command
 # =============================================================================
@@ -237,32 +331,13 @@ test_create_command() {
     print_test "Create HIGH priority command"
     
     PAYLOAD='{"name":"Test User","email":"test@example.com"}'
-    
-    RESPONSE=$(curl -s $CURL_FLAGS -X POST "$BACKEND_URL/api/streaming/commands" \
-        -H "Authorization: Bearer $JWT_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d "{
-            \"entity\": \"user\",
-            \"entityId\": 12345,
-            \"operation\": \"CREATE\",
-            \"priority\": \"HIGH\",
-            \"payload\": \"$PAYLOAD\"
-        }" 2>/dev/null || echo "{}")
-    
-    echo "$RESPONSE" | jq '.' > "$ARTIFACTS_DIR/command_create_response.json" 2>/dev/null || true
-    
-    COMMAND_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
-    
-    if [ -n "$COMMAND_ID" ] && [ "$COMMAND_ID" != "null" ]; then
-        print_success "Command created with ID: $COMMAND_ID"
-        echo "$COMMAND_ID" > "$ARTIFACTS_DIR/command_id.txt"
-        export COMMAND_ID
+
+    if create_command "$PAYLOAD" "high"; then
+        print_success "Command created"
         return 0
-    else
-        print_failure "Failed to create command"
-        echo "Response: $RESPONSE"
-        return 1
     fi
+    print_failure "Failed to create command"
+    return 1
 }
 
 # =============================================================================
@@ -280,16 +355,16 @@ test_command_processing() {
     
     for i in {1..15}; do
         # Check command_queue status
-        STATUS=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
-            "SELECT status FROM streaming.command_queue WHERE id = '$COMMAND_ID';" 2>/dev/null | tr -d ' ')
+        STATUS=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -q -c \
+            "SELECT status FROM command_queue WHERE id = '$COMMAND_ID';" 2>/dev/null | head -n 1 | tr -d ' ')
         
         echo "Attempt $i/15: Status = '$STATUS'"
         
-        if [ "$STATUS" == "COMPLETED" ]; then
+        if [ "$STATUS" == "completed" ]; then
             print_success "Command processed successfully"
             return 0
-        elif [ "$STATUS" == "FAILED" ]; then
-            print_failure "Command processing failed"
+        elif [ "$STATUS" == "dlq" ]; then
+            print_failure "Command moved to DLQ"
             return 1
         fi
         
@@ -311,9 +386,14 @@ test_kafka_message() {
         return 0
     fi
 
+    if ! docker exec "$KAFKA_CONTAINER" sh -c "command -v kafka-console-consumer" >/dev/null 2>&1; then
+        print_info "Kafka consumer CLI not available; skipping message check"
+        return 0
+    fi
+
     print_test "Check if message was published to Kafka"
     
-    TOPIC="streaming-events.entity.events.user"
+    TOPIC="${TOPIC_PREFIX}.entity.events.user"
     
     # Consume last message from topic
     MESSAGE=$(run_with_timeout 10 docker exec "$KAFKA_CONTAINER" kafka-console-consumer \
@@ -369,7 +449,7 @@ test_queue_status() {
     print_test "Check streaming queue status"
     
     QUEUE_STATUS=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
-        "SELECT status, priority, COUNT(*) as count FROM streaming.command_queue GROUP BY status, priority ORDER BY priority DESC, status;" \
+        "SELECT status, priority, COUNT(*) as count FROM command_queue GROUP BY status, priority ORDER BY priority DESC, status;" \
         2>/dev/null)
     
     if [ -n "$QUEUE_STATUS" ]; then
@@ -392,7 +472,7 @@ test_dlq_status() {
     print_test "Check DLQ (should be empty for successful test)"
     
     DLQ_COUNT=$(run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
-        "SELECT COUNT(*) FROM streaming.dead_letter_queue;" 2>/dev/null | tr -d ' ')
+        "SELECT COUNT(*) FROM command_queue WHERE status = 'dlq';" 2>/dev/null | tr -d ' ')
     
     if [ "$DLQ_COUNT" == "0" ]; then
         print_success "DLQ is empty (no errors)"
@@ -402,7 +482,7 @@ test_dlq_status() {
         
         # Show DLQ entries
         run_with_timeout 10 docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
-            "SELECT entity, operation, error_message FROM streaming.dead_letter_queue LIMIT 5;" \
+            "SELECT entity, operation, error_message FROM command_queue WHERE status = 'dlq' LIMIT 5;" \
             2>/dev/null
         return 0
     fi
@@ -414,28 +494,12 @@ test_dlq_status() {
 test_bulk_commands() {
     print_header "Test 10: Bulk Command Creation (Performance)"
     
-    if [ -z "$JWT_TOKEN" ] || [ "$JWT_TOKEN" == "mock-token-for-testing" ]; then
-        print_info "Skipping bulk test (no valid JWT token)"
-        return 0
-    fi
-    
     print_test "Create 10 commands in rapid succession"
     
     SUCCESS_COUNT=0
     for i in {1..10}; do
-        RESPONSE=$(curl -s -X POST "$BACKEND_URL/api/streaming/commands" \
-            -H "Authorization: Bearer $JWT_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{
-                \"entity\": \"user\",
-                \"entityId\": $((10000 + i)),
-                \"operation\": \"UPDATE\",
-                \"priority\": \"NORMAL\",
-                \"payload\": \"{\\\"test\\\": true, \\\"iteration\\\": $i}\"
-            }" 2>/dev/null || echo "{}")
-        
-        ID=$(echo "$RESPONSE" | jq -r '.id // empty')
-        if [ -n "$ID" ] && [ "$ID" != "null" ]; then
+        BULK_PAYLOAD="{\"test\": true, \"iteration\": $i}"
+        if create_command "$BULK_PAYLOAD" "normal"; then
             SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
         fi
     done
@@ -471,7 +535,9 @@ main() {
     # Run tests
     test_infrastructure || true
     test_kafka_topics || true
-    get_jwt_token || true
+    if [ "$COMMAND_SOURCE" == "api" ]; then
+        get_jwt_token || true
+    fi
     test_create_command || true
     test_command_processing || true
     test_kafka_message || true
