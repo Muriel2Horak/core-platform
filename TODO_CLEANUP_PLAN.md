@@ -340,12 +340,13 @@ class Phase2IntegrationTest {
 ```
 
 **Akce:**
-- [ ] Rozhodnout mezi Mock (rychlé) vs Testcontainers (realističtější)
-- [ ] Implementovat `TestKeycloakConfig`
+- [x] Rozhodnout mezi Mock (rychlé) vs Testcontainers (realističtější)
+- [x] Použít test profile + dummy Keycloak properties
+- [ ] Implementovat `TestKeycloakConfig` (pokud bude potřeba detailní mockování)
 - [ ] Vytvořit test realm JSON (pokud Testcontainers)
-- [ ] Přepsat testy s correct setup
+- [x] Přepsat testy s correct setup
 - [ ] Ověřit, že všechny testy projdou
-- [ ] Odstranit `@Disabled`
+- [x] Odstranit `@Disabled` (Phase2IntegrationTest)
 
 **Časová náročnost:** ~1-2 hodiny (Mock) nebo ~3-4 hodiny (Testcontainers)  
 **Risk:** MEDIUM (test coverage gap)
@@ -368,7 +369,7 @@ class Phase2IntegrationTest {
 
 ### Sprint 3: Test Fixes (4-6 hodin)
 - [x] Fix TenantControllerTest (přepsat na @WebMvcTest)
-- [ ] Fix Phase2IntegrationTest (mock Keycloak)
+- [x] Fix Phase2IntegrationTest (mock Keycloak)
 - [ ] Ověřit test coverage
 - [ ] Remove all @Disabled annotations
 

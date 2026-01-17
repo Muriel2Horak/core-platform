@@ -2,13 +2,13 @@ package cz.muriel.core.phase2;
 
 import io.minio.MinioClient;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
@@ -24,10 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 
  * Tests for WebSocket, Workflow, Documents and Search functionality
  * 
- * ⚠️ DISABLED: Requires full Keycloak setup (KeycloakAdminService) FIXME:
- * Create TestKeycloakConfig with mocks or run these tests separately
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers @Disabled("Requires full Keycloak environment - KeycloakAdminService autowiring fails in test context")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers
+@ActiveProfiles("test")
 public class Phase2IntegrationTest {
 
   @LocalServerPort
@@ -68,10 +67,18 @@ public class Phase2IntegrationTest {
     // Redis
     registry.add("spring.data.redis.host", redis::getHost);
     registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+    registry.add("app.redis.enabled", () -> "true");
+    registry.add("keycloak.datasource.enabled", () -> "false");
 
     // MinIO
     registry.add("minio.endpoint",
         () -> String.format("http://%s:%d", minio.getHost(), minio.getFirstMappedPort()));
+
+    // Keycloak (dummy values for bean initialization)
+    registry.add("keycloak.admin.base-url", () -> "http://localhost:0");
+    registry.add("keycloak.admin.client-id", () -> "test-client");
+    registry.add("keycloak.admin.client-secret", () -> "test-secret");
+    registry.add("keycloak.target-realm", () -> "test-realm");
   }
 
   @BeforeAll
