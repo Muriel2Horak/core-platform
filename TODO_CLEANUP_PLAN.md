@@ -189,9 +189,9 @@ if (Boolean.TRUE.equals(strict)) {
 
 **Akce:**
 - [x] Implementovat strict reads přes `WorkStateService` (streaming lock)
-- [ ] Doplnit `EntityLockService` (pokud bude potřeba mimo streaming)
-- [ ] Přidat TTL pro automatické uvolnění locks
-- [ ] Přidat endpoint pro unlock (admin)
+- [x] Fallback na `EditLockService` (lock tracking v DB)
+- [x] TTL pro automatické uvolnění locks (expiresAt + cleanup)
+- [x] Admin unlock endpoint (EditLockController)
 - [x] Unit testy
 
 **Časová náročnost:** ~30 minut  

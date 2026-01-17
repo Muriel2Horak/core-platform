@@ -6,6 +6,7 @@ import cz.muriel.core.service.ai.ContextAssembler;
 import cz.muriel.core.service.TenantService;
 import cz.muriel.core.streaming.service.WorkStateService;
 import cz.muriel.core.tenant.TenantContextHolder;
+import cz.muriel.core.locks.EditLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,7 @@ public class AiContextController {
   private final AiMetricsCollector metricsCollector;
   private final ObjectProvider<WorkStateService> workStateServiceProvider;
   private final TenantService tenantService;
+  private final ObjectProvider<EditLockService> editLockServiceProvider;
 
   /**
    * Get AI context for route
@@ -81,10 +83,19 @@ public class AiContextController {
       } else {
         String resolvedEntity = entity != null ? entity : inferEntityFromRoute(routeId);
         WorkStateService workStateService = workStateServiceProvider.getIfAvailable();
-        if (workStateService == null) {
-          log.warn("⚠️ Strict reads requested but streaming is disabled; skipping lock check");
-        } else {
+        if (workStateService != null) {
           workStateService.enforceStrictReads(resolvedEntity, entityId);
+        } else {
+          EditLockService editLockService = editLockServiceProvider.getIfAvailable();
+          if (editLockService == null) {
+            log.warn("⚠️ Strict reads requested but no lock service available; skipping lock check");
+          } else {
+            editLockService.getLock(tenantId, resolvedEntity, entityId.toString()).ifPresent(lock -> {
+              throw new ResponseStatusException(HttpStatus.LOCKED,
+                  String.format("Entity %s/%s is locked by %s", resolvedEntity, entityId,
+                      lock.getUserId()));
+            });
+          }
         }
       }
     }

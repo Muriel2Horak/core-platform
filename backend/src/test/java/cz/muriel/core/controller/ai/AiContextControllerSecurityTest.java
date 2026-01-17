@@ -7,6 +7,7 @@ import cz.muriel.core.metrics.AiMetricsCollector;
 import cz.muriel.core.service.ai.ContextAssembler;
 import cz.muriel.core.service.TenantService;
 import cz.muriel.core.streaming.service.WorkStateService;
+import cz.muriel.core.locks.EditLockService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,6 +43,8 @@ class AiContextControllerSecurityTest {
     TenantService tenantService = mock(TenantService.class);
     @SuppressWarnings("unchecked")
     ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
+    @SuppressWarnings("unchecked")
+    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -52,7 +55,7 @@ class AiContextControllerSecurityTest {
     when(assembler.assembleContext(anyString(), any())).thenReturn(Map.of("ok", true));
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
-        provider, tenantService);
+        provider, tenantService, editLockProvider);
 
     try {
       when(tenantService.getTenantKeyFromId(eq(tenantId))).thenReturn("tenant");
@@ -73,6 +76,8 @@ class AiContextControllerSecurityTest {
     TenantService tenantService = mock(TenantService.class);
     @SuppressWarnings("unchecked")
     ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
+    @SuppressWarnings("unchecked")
+    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -81,7 +86,7 @@ class AiContextControllerSecurityTest {
     config.setAi(ai);
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
-        provider, tenantService);
+        provider, tenantService, editLockProvider);
 
     try {
       ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -101,6 +106,8 @@ class AiContextControllerSecurityTest {
     TenantService tenantService = mock(TenantService.class);
     @SuppressWarnings("unchecked")
     ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
+    @SuppressWarnings("unchecked")
+    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -109,7 +116,7 @@ class AiContextControllerSecurityTest {
     config.setAi(ai);
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
-        provider, tenantService);
+        provider, tenantService, editLockProvider);
 
     ResponseStatusException ex = assertThrows(ResponseStatusException.class,
         () -> controller.getContext("users.detail", null, false, null, null));
@@ -126,6 +133,8 @@ class AiContextControllerSecurityTest {
     TenantService tenantService = mock(TenantService.class);
     @SuppressWarnings("unchecked")
     ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
+    @SuppressWarnings("unchecked")
+    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -134,7 +143,7 @@ class AiContextControllerSecurityTest {
     config.setAi(ai);
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
-        provider, tenantService);
+        provider, tenantService, editLockProvider);
 
     try {
       ResponseStatusException ex = assertThrows(ResponseStatusException.class,
