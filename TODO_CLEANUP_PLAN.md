@@ -357,17 +357,17 @@ class Phase2IntegrationTest {
 ### Sprint 1: Critical Fixes (3-4 hodiny)
 - [ ] Fix type safety warnings (4 instances)
 - [ ] Remove unnecessary @SuppressWarnings
-- [ ] Implement tenant from security context
-- [ ] Add unit tests for tenant extraction
+- [x] Implement tenant from security context
+- [x] Add unit tests for tenant extraction
 
 ### Sprint 2: RBAC & Validation (3-4 hodiny)
-- [ ] Implement RBAC integration in McpController
-- [ ] Implement strict reads check
-- [ ] Add entity lock service
-- [ ] Unit & integration tests
+- [x] Implement RBAC integration in McpController
+- [x] Implement strict reads check
+- [x] Add entity lock service (EditLock fallback)
+- [x] Unit & integration tests
 
 ### Sprint 3: Test Fixes (4-6 hodin)
-- [ ] Fix TenantControllerTest (přepsat na @WebMvcTest)
+- [x] Fix TenantControllerTest (přepsat na @WebMvcTest)
 - [ ] Fix Phase2IntegrationTest (mock Keycloak)
 - [ ] Ověřit test coverage
 - [ ] Remove all @Disabled annotations
@@ -386,8 +386,8 @@ class Phase2IntegrationTest {
    - RBAC integration (2 hours)
 
 2. **BRZY (Tento týden):**
-   - Strict reads check (30 min)
-   - TenantControllerTest fix (2-3 hours)
+   - Strict reads check (30 min) ✅
+   - TenantControllerTest fix (2-3 hours) ✅
 
 3. **POZDĚJI (Příští týden):**
    - Phase2IntegrationTest fix (2-4 hours)
