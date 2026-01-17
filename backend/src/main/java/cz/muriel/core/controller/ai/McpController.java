@@ -2,11 +2,14 @@ package cz.muriel.core.controller.ai;
 
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metrics.AiMetricsCollector;
+import cz.muriel.core.service.ai.McpCapabilitiesService;
 import cz.muriel.core.service.ai.UiContextService;
 import cz.muriel.core.service.ai.WfContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -25,6 +28,7 @@ public class McpController {
 
   private final UiContextService uiContextService;
   private final WfContextService wfContextService;
+  private final McpCapabilitiesService capabilitiesService;
   private final GlobalMetamodelConfig globalConfig;
   private final AiMetricsCollector metricsCollector;
 
@@ -129,40 +133,21 @@ public class McpController {
       return ResponseEntity.status(404).body(Map.of("error", "AI is disabled"));
     }
 
-    // Get user capabilities from route permissions
-    // Note: This implementation extracts basic permissions from route metadata
-    // For production, integrate with dedicated PermissionService/RBAC system
-    Map<String, Object> capabilities = getUserCapabilitiesFromRoute(userId, routeId);
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth == null || !auth.isAuthenticated()) {
+      return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+    }
+
+    if (routeId == null || routeId.isBlank()) {
+      metricsCollector.recordAiError("MCP_INVALID_INPUT");
+      return ResponseEntity.status(400).body(Map.of("error", "routeId required"));
+    }
+
+    Map<String, Object> capabilities = capabilitiesService.getCapabilities(auth, routeId);
 
     metricsCollector.recordMcpCall("auth");
     log.info("✅ MCP: auth.get_user_capabilities completed [{}]", correlationId);
     return ResponseEntity.ok(capabilities);
-  }
-
-  /**
-   * Extract user capabilities for a route
-   * 
-   * Returns basic capabilities based on route metadata. For fine-grained RBAC,
-   * extend this to query tenant-specific permissions.
-   * 
-   * @param userId User ID
-   * @param routeId Route ID
-   * @return User capabilities map
-   */
-  private Map<String, Object> getUserCapabilitiesFromRoute(String userId, String routeId) {
-    // Conservative permissions for now
-    // To extend: Query tenant-specific RBAC rules from metamodel or permission
-    // service
-
-    boolean canView = routeId != null && !routeId.isEmpty(); // Basic check
-    boolean canEdit = false; // Conservative default
-
-    log.debug("🔐 Basic capabilities for user={}, route={}: view={}, edit={}", userId, routeId,
-        canView, canEdit);
-
-    return Map.of("canView", canView, "canEdit", canEdit, "canExecute",
-        java.util.Collections.emptyList(), "note",
-        "Basic implementation - integrate PermissionService for full RBAC");
   }
 
   /**
