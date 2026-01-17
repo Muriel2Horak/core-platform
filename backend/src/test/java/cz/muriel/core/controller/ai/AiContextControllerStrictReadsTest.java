@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.stream.Stream;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,10 +33,8 @@ class AiContextControllerStrictReadsTest {
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
     WorkStateService workStateService = mock(WorkStateService.class);
     TenantService tenantService = mock(TenantService.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
+    ObjectProvider<WorkStateService> provider = providerOf(workStateService);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -43,8 +42,6 @@ class AiContextControllerStrictReadsTest {
     ai.setMode(AiVisibilityMode.META_ONLY);
     config.setAi(ai);
 
-    when(provider.getIfAvailable()).thenReturn(workStateService);
-    when(editLockProvider.getIfAvailable()).thenReturn(null);
     when(assembler.assembleContext(anyString(), any())).thenReturn(Map.of("ok", true));
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
@@ -65,11 +62,9 @@ class AiContextControllerStrictReadsTest {
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
     TenantService tenantService = mock(TenantService.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
     EditLockService editLockService = mock(EditLockService.class);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(editLockService);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -77,8 +72,6 @@ class AiContextControllerStrictReadsTest {
     ai.setMode(AiVisibilityMode.META_ONLY);
     config.setAi(ai);
 
-    when(provider.getIfAvailable()).thenReturn(null);
-    when(editLockProvider.getIfAvailable()).thenReturn(editLockService);
     when(assembler.assembleContext(anyString(), any())).thenReturn(Map.of("ok", true));
 
     AiContextController controller = new AiContextController(assembler, config, metricsCollector,
@@ -94,5 +87,37 @@ class AiContextControllerStrictReadsTest {
     ResponseStatusException ex = assertThrows(ResponseStatusException.class,
         () -> controller.getContext("users.detail", tenantId, true, null, entityId));
     assertEquals(423, ex.getStatusCode().value());
+  }
+
+  private static <T> ObjectProvider<T> providerOf(T value) {
+    return new ObjectProvider<>() {
+      @Override
+      public T getObject(Object... args) {
+        if (value == null) {
+          throw new IllegalStateException("No bean available");
+        }
+        return value;
+      }
+
+      @Override
+      public T getIfAvailable() {
+        return value;
+      }
+
+      @Override
+      public T getIfUnique() {
+        return value;
+      }
+
+      @Override
+      public Stream<T> stream() {
+        return value != null ? Stream.of(value) : Stream.empty();
+      }
+
+      @Override
+      public Stream<T> orderedStream() {
+        return stream();
+      }
+    };
   }
 }

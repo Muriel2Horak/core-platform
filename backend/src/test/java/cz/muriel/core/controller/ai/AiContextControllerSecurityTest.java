@@ -21,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,10 +42,8 @@ class AiContextControllerSecurityTest {
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
     TenantService tenantService = mock(TenantService.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -74,10 +73,8 @@ class AiContextControllerSecurityTest {
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
     TenantService tenantService = mock(TenantService.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -104,10 +101,8 @@ class AiContextControllerSecurityTest {
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
     TenantService tenantService = mock(TenantService.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -131,10 +126,8 @@ class AiContextControllerSecurityTest {
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
     TenantService tenantService = mock(TenantService.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<WorkStateService> provider = mock(ObjectProvider.class);
-    @SuppressWarnings("unchecked")
-    ObjectProvider<EditLockService> editLockProvider = mock(ObjectProvider.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
 
     GlobalMetamodelConfig config = new GlobalMetamodelConfig();
     GlobalAiConfig ai = new GlobalAiConfig();
@@ -152,6 +145,38 @@ class AiContextControllerSecurityTest {
     } finally {
       SecurityContextHolder.clearContext();
     }
+  }
+
+  private static <T> ObjectProvider<T> providerOf(T value) {
+    return new ObjectProvider<>() {
+      @Override
+      public T getObject(Object... args) {
+        if (value == null) {
+          throw new IllegalStateException("No bean available");
+        }
+        return value;
+      }
+
+      @Override
+      public T getIfAvailable() {
+        return value;
+      }
+
+      @Override
+      public T getIfUnique() {
+        return value;
+      }
+
+      @Override
+      public Stream<T> stream() {
+        return value != null ? Stream.of(value) : Stream.empty();
+      }
+
+      @Override
+      public Stream<T> orderedStream() {
+        return stream();
+      }
+    };
   }
 
   private Jwt createMockJwt(String tenantId) {
