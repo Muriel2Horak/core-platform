@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.core.ParameterizedTypeReference;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -48,10 +49,10 @@ public class DatasourceDiscoveryService {
       // Query Grafana for datasources
       WebClient webClient = webClientBuilder.baseUrl("http://grafana:3000").build();
 
-      @SuppressWarnings("unchecked")
       List<Map<String, Object>> datasources = webClient.get().uri("/api/datasources")
           .header("Authorization", "Bearer " + token)
-          .header("X-Grafana-Org-Id", String.valueOf(orgId)).retrieve().bodyToMono(List.class)
+          .header("X-Grafana-Org-Id", String.valueOf(orgId)).retrieve()
+          .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
           .onErrorResume(e -> {
             log.error("Failed to query Grafana datasources", e);
             return Mono.just(List.of());

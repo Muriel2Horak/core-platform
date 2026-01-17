@@ -5,6 +5,9 @@ import java.time.Instant;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -32,8 +35,8 @@ public class PrometheusClient {
         .queryParam("step", Math.max(step.getSeconds(), 1))
         .toUriString();
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-    return response;
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET, null,
+        new ParameterizedTypeReference<Map<String, Object>>() {});
+    return response.getBody();
   }
 }
