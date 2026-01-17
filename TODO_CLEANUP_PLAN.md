@@ -278,12 +278,12 @@ class TenantControllerTest {
 ```
 
 **Akce:**
-- [ ] Vytvořit `TestSecurityConfig` s mock security beans
-- [ ] Přepsat na `@WebMvcTest` (rychlejší, bez Testcontainers)
-- [ ] Mock všechny dependencies
-- [ ] Použít `@WithMockUser` pro auth
-- [ ] Přidat testy pro všechny security scénáře
-- [ ] Odstranit `@Disabled`
+- [x] Vytvořit `TestSecurityConfig` s mock security beans (inline v testu)
+- [x] Přepsat na `@WebMvcTest` (rychlejší, bez Testcontainers)
+- [x] Mock všechny dependencies
+- [x] Použít JWT test auth (alternativa k `@WithMockUser`)
+- [x] Přidat testy pro všechny security scénáře
+- [x] Odstranit `@Disabled`
 
 **Časová náročnost:** ~2-3 hodiny  
 **Risk:** MEDIUM (test coverage gap)
