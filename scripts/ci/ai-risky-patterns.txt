@@ -1,7 +1,9 @@
-(?i)apikey
-(?i)api_key
-(?i)secret
-(?i)password
+(?i)api[_-]?key\s*[:=]
+(?i)secret[_-]?key\s*[:=]
+(?i)client[_-]?secret\s*[:=]
+(?i)access[_-]?token\s*[:=]
+(?i)password\s*[:=]
+(?i)private[_-]?key\s*[:=]
 (?i)jwt.*sign
 (?i)permitAll\(
 (?i)csrf\(\)\.disable
