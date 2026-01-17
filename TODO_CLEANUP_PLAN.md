@@ -244,20 +244,12 @@ if (kafkaEnabled) {
 
 ### 5.1 TenantControllerTest
 
-**Problém:** Test disabled kvůli security mock problémům
+**Stav:** Opraveno - test znovu aktivní
 
-**Lokace:** `TenantControllerTest.java` řádek 28
-
-**Současný stav:**
-```java
-@Disabled("Complex security configuration - HTTP status code mismatches. Needs security mock refactoring.")
-```
-
-**Issues:**
-- HTTP 401 → 302 redirects
-- HTTP 403 → 404 not found
-- HTTP 200 → 500 errors
-- Startup time 2+ minuty (testcontainers)
+**Změny:**
+- Přesun na `@WebMvcTest` + vlastní Security filter chain
+- Opravené očekávané status kódy (401/403/404)
+- Vyhnutí se Testcontainers startupu
 
 **Řešení:**
 ```java

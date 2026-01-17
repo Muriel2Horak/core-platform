@@ -2,11 +2,16 @@ package cz.muriel.core.controller;
 
 import cz.muriel.core.entity.Tenant;
 import cz.muriel.core.service.TenantService;
-import cz.muriel.core.test.AbstractIntegrationTest;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,17 +24,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * ⚠️ DISABLED: Complex security configuration issues in test context
- * 
- * Problems: - HTTP status mismatches (401→302, 403→404, 200→500) - Long startup
- * time (2+ minutes due to testcontainers)
- * 
- * FIXME: Fix security mock configuration or convert to @WebMvcTest with proper
- * mocks
- */
-@AutoConfigureMockMvc @Disabled("Complex security configuration - HTTP status code mismatches. Needs security mock refactoring.")
-class TenantControllerTest extends AbstractIntegrationTest {
+@WebMvcTest(TenantController.class) @Import(TenantControllerTest.SecurityTestConfig.class)
+class TenantControllerTest {
 
   @Autowired
   private MockMvc mockMvc;
@@ -83,5 +79,16 @@ class TenantControllerTest extends AbstractIntegrationTest {
         .perform(get("/api/tenants/me").with(jwt().jwt(jwt -> jwt.claim("sub", "user123"))
             .authorities(List.of(new SimpleGrantedAuthority("INVALID_ROLE")))))
         .andExpect(status().isForbidden());
+  }
+
+  @TestConfiguration @EnableWebSecurity @EnableMethodSecurity(prePostEnabled = true)
+  static class SecurityTestConfig {
+    @Bean
+    SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
+      http.csrf(csrf -> csrf.disable())
+          .authorizeHttpRequests(authz -> authz.requestMatchers("/api/**").authenticated()
+              .anyRequest().permitAll());
+      return http.build();
+    }
   }
 }
