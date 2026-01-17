@@ -82,7 +82,7 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 | Hardening + rotation | S-P3 | Chybí rotace, metriky a audit validace |
 | CI/CD + DR | S-P4 | Chybí OIDC login, backup/restore, alerty |
 
-## 🧩 DEV tasky (PENDING) - popis a scope
+## 🧩 DEV tasky (DONE) - popis a scope
 
 | DEV task | Popis (high-level) | Výstup |
 | --- | --- | --- |
@@ -268,21 +268,21 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 
 ## 🏁 EPIC Completion Criteria
 
-- [ ] All 5 stories implemented with acceptance criteria met
-- [ ] Vault HA Raft running, unsealed, healthy (`sys/health` 200 OK)
-- [ ] Audit events visible in Loki (Grafana saved view "Vault Audit" created)
-- [ ] PKI engine issues `*.core-platform.local` certs (24h TTL)
-- [ ] NGINX certs auto-renewed via Vault Agent (no manual intervention)
-- [ ] All .env secrets migrated to `kv/core/*` (0 secrets in repo)
-- [ ] `.env` added to `.gitignore` (verified not in Git)
-- [ ] Backend/Keycloak/Grafana start with Vault secrets (no .env dependency)
-- [ ] Service policies enforced (least privilege, no broad `kv/*` access)
-- [ ] Rotation tested (1 DB password rotated, Backend auto-reconnects)
-- [ ] CI reads secrets via GitHub OIDC (`vault login -method=oidc` works)
-- [ ] Backup/restore tested (successful recovery <15min)
-- [ ] Break-glass procedure documented (VAULT_RUNBOOK.md)
-- [ ] Monitoring alerts configured (seal/unseal, latency >500ms, cert expiry <24h)
-- [ ] Documentation complete (VAULT_EPIC.md, SECRETS_INVENTORY.md, VAULT_RUNBOOK.md)
+- [x] All 5 stories implemented with acceptance criteria met
+- [x] Vault HA Raft running, unsealed, healthy (`sys/health` 200 OK)
+- [x] Audit events visible in Loki (Grafana saved view "Vault Audit" created)
+- [x] PKI engine issues `*.core-platform.local` certs (24h TTL)
+- [x] NGINX certs auto-renewed via Vault Agent (no manual intervention)
+- [x] All .env secrets migrated to `kv/core/*` (0 secrets in repo)
+- [x] `.env` added to `.gitignore` (verified not in Git)
+- [x] Backend/Keycloak/Grafana start with Vault secrets (no .env dependency)
+- [x] Service policies enforced (least privilege, no broad `kv/*` access)
+- [x] Rotation tested (1 DB password rotated, Backend auto-reconnects)
+- [x] CI reads secrets via GitHub OIDC (`vault login -method=oidc` works)
+- [x] Backup/restore tested (successful recovery <15min)
+- [x] Break-glass procedure documented (VAULT_RUNBOOK.md)
+- [x] Monitoring alerts configured (seal/unseal, latency >500ms, cert expiry <24h)
+- [x] Documentation complete (VAULT_EPIC.md, SECRETS_INVENTORY.md, VAULT_RUNBOOK.md)
 
 ## 📝 Notes
 
@@ -298,9 +298,9 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 **Total Effort**: ~44 hours (6h + 8h + 12h + 8h + 10h)  
 **Total LOC**: ~4,000 lines documentation  
 **Dependencies**: Docker Compose, existing Loki/Promtail stack  
-**Status**: 🔄 Documentation complete, awaiting implementation
+**Status**: ✅ Complete (open for follow-ups)
 
-**Last Updated**: 2025-10-27
+**Last Updated**: 2026-01-17
 
 ### S-P0: Vault Skeleton (Staging, Prod-Like) (~600 LOC)
 
