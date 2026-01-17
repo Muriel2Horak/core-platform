@@ -371,7 +371,7 @@ class Phase2IntegrationTest {
 - [x] Fix TenantControllerTest (přepsat na @WebMvcTest)
 - [x] Fix Phase2IntegrationTest (mock Keycloak)
 - [ ] Ověřit test coverage
-- [ ] Remove all @Disabled annotations
+- [x] Remove all @Disabled annotations
 
 ### Sprint 4: Optional Features (POZDĚJI)
 - [x] Kafka config change events (pokud potřeba)
