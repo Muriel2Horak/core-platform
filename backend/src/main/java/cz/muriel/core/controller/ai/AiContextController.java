@@ -5,6 +5,7 @@ import cz.muriel.core.metrics.AiMetricsCollector;
 import cz.muriel.core.service.ai.ContextAssembler;
 import cz.muriel.core.service.TenantService;
 import cz.muriel.core.streaming.service.WorkStateService;
+import cz.muriel.core.tenant.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -154,31 +154,17 @@ public class AiContextController {
           "Authentication required - tenant ID not available");
     }
 
-    // Extract from JWT claims
-    if (auth.getPrincipal() instanceof Jwt jwt) {
-      String tenantIdStr = jwt.getClaimAsString("tenant_id");
-
-      if (tenantIdStr == null || tenantIdStr.isBlank()) {
+    try {
+      return TenantContextHolder.getTenantId(auth).orElseThrow(() -> {
         log.error("❌ No tenant_id claim in JWT for user: {}", auth.getName());
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+        return new ResponseStatusException(HttpStatus.FORBIDDEN,
             "Tenant ID not found in security context - missing tenant_id claim");
-      }
-
-      try {
-        UUID tenantId = UUID.fromString(tenantIdStr);
-        log.debug("✅ Extracted tenant ID from JWT: {}", tenantId);
-        return tenantId;
-      } catch (IllegalArgumentException e) {
-        log.error("❌ Invalid tenant_id format in JWT: {}", tenantIdStr);
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-            "Invalid tenant ID format in security context");
-      }
+      });
+    } catch (IllegalArgumentException e) {
+      log.error("❌ Invalid tenant_id format in JWT: {}", e.getMessage());
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "Invalid tenant ID format in security context");
     }
-
-    // Fallback: try to get from authentication details
-    log.warn("⚠️ Authentication principal is not JWT, attempting fallback");
-    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-        "Unable to extract tenant ID from security context - JWT expected");
   }
 
   private void ensureTenantExists(UUID tenantId) {
