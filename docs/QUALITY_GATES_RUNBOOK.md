@@ -52,6 +52,10 @@ scripts/ci/write-gate-result.sh --name iac-lint --status pass
 scripts/ci/aggregate-gates.sh --event pr --results gate-results --output gate-summary
 ```
 
+## Dashboard
+
+Grafana dashboard for compliance evidence: `docker/grafana/provisioning/dashboards/security/axiom_quality_gates.json`.
+
 ## Failure Handling
 
 - PR: Fix the failing gate and re-run the workflow.
