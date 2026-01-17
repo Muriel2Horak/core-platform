@@ -370,7 +370,7 @@ class Phase2IntegrationTest {
 ### Sprint 3: Test Fixes (4-6 hodin)
 - [x] Fix TenantControllerTest (přepsat na @WebMvcTest)
 - [x] Fix Phase2IntegrationTest (mock Keycloak)
-- [ ] Ověřit test coverage
+- [ ] Ověřit test coverage (čeká na spuštění testů)
 - [x] Remove all @Disabled annotations
 
 ### Sprint 4: Optional Features (POZDĚJI)
