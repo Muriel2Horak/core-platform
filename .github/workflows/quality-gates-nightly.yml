@@ -202,10 +202,18 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder DAST
+      - name: DAST scan
+        id: dast_scan
+        continue-on-error: true
+        run: scripts/ci/dast-smoke.sh
+      - name: Write DAST gate result
+        if: always()
         run: |
-          echo "TODO: wire DAST"
-          scripts/ci/write-gate-result.sh --name dast --status pass --details "placeholder"
+          status=pass
+          if [ "${{ steps.dast_scan.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name dast --status "$status" --details "dast:${{ steps.dast_scan.outcome }}"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-dast
@@ -216,14 +224,47 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder security regression
+      - name: Security regression tests
+        id: sec_regression
+        continue-on-error: true
+        run: scripts/ci/security-regression.sh
+      - name: Write security regression gate result
+        if: always()
         run: |
-          echo "TODO: wire security regression"
-          scripts/ci/write-gate-result.sh --name security-regression --status pass --details "placeholder"
+          status=pass
+          if [ "${{ steps.sec_regression.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name security-regression --status "$status" --details "security-regression:${{ steps.sec_regression.outcome }}"
       - uses: actions/upload-artifact@v4
         with:
           name: gate-results-security-regression
           path: gate-results/security-regression.json
+
+  ai-guardrails:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: AI risky pattern scan
+        id: ai_scan
+        continue-on-error: true
+        run: |
+          base=$(git rev-parse HEAD~1)
+          head=$(git rev-parse HEAD)
+          scripts/ci/check-ai-risky-patterns.sh --base "$base" --head "$head"
+      - name: Write AI guardrails gate result
+        if: always()
+        run: |
+          status=pass
+          if [ "${{ steps.ai_scan.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name ai-guardrails --status "$status" --details "ai-scan:${{ steps.ai_scan.outcome }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-results-ai-guardrails
+          path: gate-results/ai-guardrails.json
 
   aggregate:
     runs-on: ubuntu-latest
@@ -235,6 +276,7 @@ jobs:
       - iac-lint
       - dast
       - security-regression
+      - ai-guardrails
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -246,7 +288,13 @@ jobs:
           merge-multiple: true
       - name: Aggregate quality gates
         run: scripts/ci/aggregate-gates.sh --event nightly --results gate-results --output gate-summary
+      - name: Collect compliance evidence
+        run: scripts/ci/collect-evidence.sh gate-summary/summary.json compliance-evidence
       - uses: actions/upload-artifact@v4
         with:
           name: gate-summary
           path: gate-summary
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compliance-evidence
+          path: compliance-evidence

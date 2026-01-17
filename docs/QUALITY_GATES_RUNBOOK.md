@@ -9,6 +9,7 @@ Quality gates enforce EPIC-020 checks for pull requests, nightly builds, and rel
 - PR: `unit-tests`, `sast`, `sca`, `secret-scan`, `iac-lint`
 - Nightly: PR gates + `dast`, `security-regression`
 - Release: PR gates + `container-scan`
+- AI guardrails: `ai-guardrails` runs on PR/nightly/release
 
 Source of truth: `scripts/ci/gate-matrix.json`.
 
@@ -17,7 +18,8 @@ Source of truth: `scripts/ci/gate-matrix.json`.
 1. Each gate job writes a JSON result to `gate-results/<gate>.json`.
 2. The aggregator downloads all gate results and runs `scripts/ci/aggregate-gates.sh`.
 3. The aggregator writes `gate-summary/summary.json` and `gate-summary/summary.md`.
-4. If any required gate is missing or fails, the aggregator exits non-zero.
+4. Compliance evidence is written to `compliance-evidence/compliance-summary.json`.
+5. If any required gate is missing or fails, the aggregator exits non-zero.
 
 ## Local Execution (Developer)
 

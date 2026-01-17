@@ -4,7 +4,8 @@
     "sast",
     "sca",
     "secret-scan",
-    "iac-lint"
+    "iac-lint",
+    "ai-guardrails"
   ],
   "nightly": [
     "unit-tests",
@@ -13,7 +14,8 @@
     "secret-scan",
     "iac-lint",
     "dast",
-    "security-regression"
+    "security-regression",
+    "ai-guardrails"
   ],
   "release": [
     "unit-tests",
@@ -21,6 +23,7 @@
     "sca",
     "secret-scan",
     "iac-lint",
-    "container-scan"
+    "container-scan",
+    "ai-guardrails"
   ]
 }

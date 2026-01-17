@@ -1,0 +1,10 @@
+(?i)apikey
+(?i)api_key
+(?i)secret
+(?i)password
+(?i)jwt.*sign
+(?i)permitAll\\(
+(?i)csrf\\(\\)\\.disable
+(?i)disableCsrf
+(?i)trustAll
+(?i)skipValidation
