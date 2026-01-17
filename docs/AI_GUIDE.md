@@ -437,7 +437,10 @@ Payload:
   "timestamp": "2025-01-01T12:00:00Z",
   "config": {
     "enabled": true,
-    "mode": "META_ONLY"
+    "mode": "META_ONLY",
+    "policies": {...},
+    "prompts": {...},
+    "tools": [...]
   }
 }
 ```

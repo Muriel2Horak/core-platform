@@ -1,10 +1,9 @@
 package cz.muriel.core.dto;
 
+import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
+
 /**
  * Event payload for config change notifications.
  */
 public record ConfigChangeEvent(String eventId, String eventType, String timestamp,
-    AiConfigPayload config) {
-
-  public record AiConfigPayload(boolean enabled, String mode) {}
-}
+    GlobalAiConfig config) {}

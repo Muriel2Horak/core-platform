@@ -165,10 +165,7 @@ public class AdminAiConfigController {
   private void publishConfigChangeEvent(GlobalAiConfig aiConfig) {
     try {
       ConfigChangeEvent event = new ConfigChangeEvent(UUID.randomUUID().toString(),
-          "AI_CONFIG_CHANGED", Instant.now().toString(),
-          new ConfigChangeEvent.AiConfigPayload(
-              aiConfig.getEnabled() != null && aiConfig.getEnabled(),
-              aiConfig.getMode() != null ? aiConfig.getMode().toString() : "META_ONLY"));
+          "AI_CONFIG_CHANGED", Instant.now().toString(), aiConfig);
 
       String eventJson = objectMapper.writeValueAsString(event);
       String topic = "platform.config.changes";
