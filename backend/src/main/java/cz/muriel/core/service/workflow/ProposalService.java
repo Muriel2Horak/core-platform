@@ -129,18 +129,13 @@ public class ProposalService {
     return versions.isEmpty() ? Optional.empty() : Optional.of(versions.get(0));
   }
 
-  @SuppressWarnings("unchecked")
   public WorkflowDiff generateDiff(Map<String, Object> currentData,
       Map<String, Object> proposedData) {
-    List<Map<String, Object>> currentNodes = (List<Map<String, Object>>) currentData
-        .getOrDefault("nodes", List.of());
-    List<Map<String, Object>> proposedNodes = (List<Map<String, Object>>) proposedData
-        .getOrDefault("nodes", List.of());
+    List<Map<String, Object>> currentNodes = asListOfMaps(currentData.get("nodes"));
+    List<Map<String, Object>> proposedNodes = asListOfMaps(proposedData.get("nodes"));
 
-    List<Map<String, Object>> currentEdges = (List<Map<String, Object>>) currentData
-        .getOrDefault("edges", List.of());
-    List<Map<String, Object>> proposedEdges = (List<Map<String, Object>>) proposedData
-        .getOrDefault("edges", List.of());
+    List<Map<String, Object>> currentEdges = asListOfMaps(currentData.get("edges"));
+    List<Map<String, Object>> proposedEdges = asListOfMaps(proposedData.get("edges"));
 
     Set<String> currentNodeIds = currentNodes.stream().map(n -> (String) n.get("id"))
         .collect(Collectors.toSet());
@@ -165,6 +160,24 @@ public class ProposalService {
         .filter(e -> !proposedEdgeIds.contains(e.get("id"))).collect(Collectors.toList());
 
     return new WorkflowDiff(addedNodes, removedNodes, addedEdges, removedEdges);
+  }
+
+  private List<Map<String, Object>> asListOfMaps(Object value) {
+    if (value instanceof List<?> list) {
+      List<Map<String, Object>> result = new ArrayList<>();
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> map) {
+          Map<String, Object> converted = new HashMap<>();
+          for (Map.Entry<?, ?> entry : map.entrySet()) {
+            String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+            converted.put(key, entry.getValue());
+          }
+          result.add(converted);
+        }
+      }
+      return result;
+    }
+    return List.of();
   }
 
   @Transactional
