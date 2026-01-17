@@ -3,10 +3,10 @@ id: US-020-007
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "Security regression testy (tenant isolation + RBAC)"
 priority: P0
-status: in_progress
+status: done
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-17
+updated: 2026-01-18
 estimate: "4 days"
 path_mapping:
   code_paths:
@@ -19,18 +19,20 @@ path_mapping:
     - backend/src/test/java/cz/muriel/core/tenant/TenantFilterIntegrationTest.java
     - backend/src/test/java/cz/muriel/core/tenant/TenantResolverTest.java
     - tests/multitenancy_smoke.sh
+    - tests/rbac_smoke.sh
     - tests/test_tenant_api.sh
   docs_paths:
     - backlog/EPIC-020-secure-sdlc-quality-gates/README.md
     - backlog/EPIC-000-security-platform-hardening/README.md
     - backlog/EPIC-020-secure-sdlc-quality-gates/stories/US-020-007-security-regression-tests/README.md
+    - docs/SECURITY_REGRESSION_TESTS.md
 ---
 
 # US-020-007: Security regression testy (tenant isolation + RBAC)
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** 🟡 **IN PROGRESS**
+**Status:** ✅ **DONE**
 **Estimate:** 4 days
 
 ## User Story
@@ -59,25 +61,25 @@ path_mapping:
 
 ## Acceptance Criteria
 
-- [ ] Cross-tenant pristup k datum je blokovan (testy musi failnout).
-- [ ] Admin-only endpointy jsou nedostupne pro neadmin role.
-- [ ] Smoke subset bezi na PR, full set nightly.
-- [ ] Test reporty jsou soucasti CI summary.
+- [x] Cross-tenant pristup k datum je blokovan (testy musi failnout).
+- [x] Admin-only endpointy jsou nedostupne pro neadmin role.
+- [x] Smoke subset bezi na PR, full set nightly.
+- [x] Test reporty jsou soucasti CI summary.
 
 ## Definition of Done (DoD)
 
 **Kód:**
-- [ ] E2E a API testy jsou implementovane.
-- [ ] Testy jsou tagovane pro smoke/full.
+- [x] E2E a API testy jsou implementovane.
+- [x] Testy jsou tagovane pro smoke/full.
 
 **Testy:**
-- [ ] Testy pokryvaji tenant isolation a RBAC scenare.
+- [x] Testy pokryvaji tenant isolation a RBAC scenare.
 
 **Dokumentace:**
-- [ ] Test matrix a scenare jsou popsane.
+- [x] Test matrix a scenare jsou popsane.
 
 **Deployment:**
-- [ ] Smoke testy bezi na PR, full testy nightly.
+- [x] Smoke testy bezi na PR, full testy nightly.
 
 ## Závislosti
 

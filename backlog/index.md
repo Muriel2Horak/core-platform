@@ -27,7 +27,7 @@ Last updated: 2026-01-17
 | EPIC-016 Advanced Data UX Framework | PLANNED | Data UX framework | EPIC-016-advanced-data-ux-framework/README.md |
 | EPIC-015 AI Metamodel Collaboration | 30% IN PROGRESS | MCP server + Copilot integration | EPIC-015-ai-metamodel-collaboration/README.md |
 | EPIC-017 Modular Architecture | PLANNED | Module system and licensing | EPIC-017-modular-architecture/README.md |
-| EPIC-020 Secure SDLC Quality Gates | IN PROGRESS | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
+| EPIC-020 Secure SDLC Quality Gates | IN PROGRESS (80%) | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
 | EPIC-021 AI Assisted Delivery Engine | PLANNED | AI delivery engine | EPIC-021-ai-assisted-delivery-engine/README.md |
 
 ## Cleanup Notes

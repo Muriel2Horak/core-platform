@@ -3,16 +3,17 @@ id: US-020-008
 epic: EPIC-020-secure-sdlc-quality-gates
 title: "Compliance evidence a reporting"
 priority: P0
-status: in_progress
+status: done
 assignee: ""
 created: 2026-01-15
-updated: 2026-01-17
+updated: 2026-01-18
 estimate: "3 days"
 path_mapping:
   code_paths:
     - scripts/ci/aggregate-gates.sh
     - scripts/ci/collect-evidence.sh
     - scripts/ci/write-gate-result.sh
+    - docker/grafana/provisioning/dashboards/security/axiom_quality_gates.json
     - docs/QUALITY_GATES_RUNBOOK.md
   test_paths:
     - tests/make_report.sh
@@ -27,7 +28,7 @@ path_mapping:
 
 **EPIC:** EPIC-020 Secure SDLC & Quality Gates
 **Priority:** P0
-**Status:** 🟡 **IN PROGRESS**
+**Status:** ✅ **DONE**
 **Estimate:** 3 days
 
 ## User Story
@@ -59,7 +60,7 @@ path_mapping:
 - [x] CI agreguje vysledky do jednoho JSON summary.
 - [x] Summary je ulozen jako artefakt a/nebo poslan do Loki.
 - [x] Evidence obsahuje mapovani na EPIC-000 baseline body.
-- [ ] Dashboard/report ukazuje posledni PASS/FAIL.
+- [x] Dashboard/report ukazuje posledni PASS/FAIL.
 
 ## Definition of Done (DoD)
 
@@ -68,7 +69,7 @@ path_mapping:
 - [x] Export do uloziste je funkcni.
 
 **Testy:**
-- [ ] Testovaci pipeline vygeneruje validni summary.
+- [x] Testovaci pipeline vygeneruje validni summary.
 
 **Dokumentace:**
 - [x] Format evidence a retence jsou popsane.

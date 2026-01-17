@@ -4,15 +4,15 @@
 Zobrazit PASS/FAIL status v dashboardu nebo reportu.
 
 ## 📋 Tasks
-- [ ] Definovat minimalni dashboard view.
-- [ ] Propojit s evidenci.
-- [ ] Popsat, kde se status zobrazuje.
+- [x] Definovat minimalni dashboard view.
+- [x] Propojit s evidenci.
+- [x] Popsat, kde se status zobrazuje.
 
 ## 📤 Output
 - Dashboard/report se statusem.
 - Dokumentace odkazu.
 
 ## ✅ Acceptance Criteria for This Subtask
-- [ ] Dashboard zobrazuje posledni vysledek.
-- [ ] Odkaz na report je snadno dohledatelny.
-- [ ] Status je aktualizovan po kazdem behu.
+- [x] Dashboard zobrazuje posledni vysledek.
+- [x] Odkaz na report je snadno dohledatelny.
+- [x] Status je aktualizovan po kazdem behu.

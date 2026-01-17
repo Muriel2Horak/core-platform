@@ -29,7 +29,7 @@ Last updated: 2026-01-15
 | EPIC-016 Advanced Data UX Framework | PLANNED | Data UX framework | EPIC-016-advanced-data-ux-framework/README.md |
 | EPIC-015 AI Metamodel Collaboration | 30% IN PROGRESS | MCP server + Copilot integration | EPIC-015-ai-metamodel-collaboration/README.md |
 | EPIC-017 Modular Architecture | PLANNED | Module system and licensing | EPIC-017-modular-architecture/README.md |
-| EPIC-020 Secure SDLC Quality Gates | IN PROGRESS (~40%) | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
+| EPIC-020 Secure SDLC Quality Gates | IN PROGRESS (80%) | Secure SDLC gates | EPIC-020-secure-sdlc-quality-gates/README.md |
 | EPIC-021 AI Assisted Delivery Engine | PLANNED | AI delivery engine | EPIC-021-ai-assisted-delivery-engine/README.md |
 
 Notes:
@@ -476,7 +476,7 @@ public class Product extends TenantAwareEntity {
 ---
 
 ### � EPIC-020: Secure SDLC & Quality Gates
-**Status:** 🔴 NOT STARTED (0%)  
+**Status:** 🟡 IN PROGRESS (80%)  
 **Vytvořeno:** 9. listopadu 2025  
 **Priority:** P0 (CROSS-CUTTING BASELINE)  
 **Dokumentace:** `backlog/EPIC-020-secure-sdlc-quality-gates/README.md`
@@ -523,14 +523,16 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
    - Release pipeline (strict gates)
 
 **User Stories:**
-- 🔴 SECQ1: SonarQube/CodeQL integration (~3 days)
-- 🔴 SECQ2: Dependency & container scanning (~2 days)
-- 🔴 SECQ3: Secret scanning & policies (~1.5 days)
-- 🔴 SECQ4: DAST smoke test (~2 days)
-- 🔴 SECQ5: IaC/Docker/Nginx linting (~1.5 days)
-- 🔴 SECQ6: CI orchestrator pipeline (~2 days)
-- 🔴 SECQ7: AI code guardrails (~1 day)
-- 🔴 SECQ8: Documentation & onboarding (~1.5 days)
+- 🟢 US-020-001: CI quality gates orchestration
+- 🟢 US-020-002: SAST & code quality
+- 🟢 US-020-003: Dependency + container scanning
+- 🟢 US-020-004: Secret scanning (Vault-only policy)
+- 🟢 US-020-005: IaC/config linting
+- 🟡 US-020-006: DAST security scan
+- 🟢 US-020-007: Security regression tests (tenant isolation + RBAC)
+- 🟢 US-020-008: Compliance evidence & reporting
+- 🟡 US-020-009: AI code guardrails
+- 🟢 US-020-010: Security docs onboarding
 
 **Integration Points:**
 - EPIC-000: Vynucuje security architekturu (Keycloak, RBAC)
@@ -559,7 +561,7 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
 | EPIC-018: Platform | 🟢 DONE | S1-S10 | ~10,000 | 100% |
 | EPIC-008: DMS | 🔶 PARTIAL | ~5 | ~3,000 | 80% |
 | EPIC-009: AI/MCP | 🔶 IN PROGRESS | TBD | TBD | 40% |
-| EPIC-020: Secure SDLC | 🟡 IN PROGRESS | 8 | ~2,600 | 40% |
+| EPIC-020: Secure SDLC | 🟡 IN PROGRESS | 10 | ~2,600 | 80% |
 | **TOTAL** | | **~100** | **~83,100** | **~88%** |
 
 ---
@@ -568,7 +570,7 @@ Automatizovaný Secure SDLC pipeline s quality gates pro každý PR, nightly a r
 
 **Doporučené priority:**
 
-1. **EPIC-020: Secure SDLC (URGENT - P0, IN PROGRESS)**
+1. **EPIC-020: Secure SDLC (URGENT - P0, IN PROGRESS 80%)**
    - Implementovat mandatory quality gates
    - SonarQube + Trivy + GitLeaks setup
    - AI code governance checklist
