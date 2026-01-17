@@ -423,6 +423,25 @@ When `enabled: false`:
 - **Tenant Admin**: Read-only AI config
 - **Users**: Can use help widget (if enabled)
 
+### AI Config Change Event
+
+When AI config is updated via admin endpoint, a Kafka event is published to:
+- Topic: `platform.config.changes`
+- Key: `ai-config`
+
+Payload:
+```json
+{
+  "eventId": "uuid",
+  "eventType": "AI_CONFIG_CHANGED",
+  "timestamp": "2025-01-01T12:00:00Z",
+  "config": {
+    "enabled": true,
+    "mode": "META_ONLY"
+  }
+}
+```
+
 ---
 
 ## Developer Guide

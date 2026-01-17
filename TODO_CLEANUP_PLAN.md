@@ -231,7 +231,7 @@ if (kafkaEnabled) {
 - [x] Implementovat Kafka producer (AdminAiConfigController)
 - [x] Vytvořit `ConfigChangeEvent` model
 - [ ] Přidat consumers v ostatních službách
-- [ ] Dokumentovat event schema
+- [x] Dokumentovat event schema
 
 **Časová náročnost:** ~1-2 hodiny (pokud se implementuje)  
 **Risk:** LOW (optional feature, marked as "future")
