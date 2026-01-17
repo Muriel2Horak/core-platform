@@ -169,8 +169,7 @@ public class StudioAdminController {
             "Table name must be lowercase with underscores", "severity", "error"));
       }
 
-      @SuppressWarnings("unchecked")
-      List<Map<String, Object>> fields = (List<Map<String, Object>>) draftData.get("fields");
+      List<Map<String, Object>> fields = asListOfMaps(draftData.get("fields"));
 
       if (fields == null || fields.isEmpty()) {
         errors.add(Map.of("field", "fields", "message", "At least one field is required",
@@ -224,8 +223,7 @@ public class StudioAdminController {
 
     try {
       String entityName = (String) request.get("entity");
-      @SuppressWarnings("unchecked")
-      Map<String, Object> draftData = (Map<String, Object>) request.get("draft");
+      Map<String, Object> draftData = asMap(request.get("draft"));
 
       // Get current entity
       Optional<EntitySchema> currentSchema = metamodelRegistry.getSchema(entityName);
@@ -272,8 +270,7 @@ public class StudioAdminController {
       String author = auth != null ? auth.getName() : "system";
       String description = (String) request.getOrDefault("description", "Metamodel change");
 
-      @SuppressWarnings("unchecked")
-      Map<String, Object> draftData = (Map<String, Object>) request.get("draft");
+      Map<String, Object> draftData = asMap(request.get("draft"));
 
       Map<String, Object> proposal = new LinkedHashMap<>();
       proposal.put("id", proposalId);
@@ -336,8 +333,7 @@ public class StudioAdminController {
       proposal.put("approvedAt", LocalDateTime.now().toString());
 
       // S10-D: Bump specVersion (simulated)
-      @SuppressWarnings("unchecked")
-      Map<String, Object> draft = (Map<String, Object>) proposal.get("draft");
+      Map<String, Object> draft = asMap(proposal.get("draft"));
       Integer currentVersion = (Integer) draft.getOrDefault("specVersion", 1);
       draft.put("specVersion", currentVersion + 1);
 
@@ -400,8 +396,7 @@ public class StudioAdminController {
         return ResponseEntity.notFound().build();
       }
 
-      @SuppressWarnings("unchecked")
-      Map<String, Object> draft = (Map<String, Object>) proposal.get("draft");
+      Map<String, Object> draft = asMap(proposal.get("draft"));
       String entityName = (String) draft.get("entity");
 
       // Get current entity
@@ -434,6 +429,44 @@ public class StudioAdminController {
   /**
    * Calculate diff between current and draft
    */
+  private Map<String, Object> asMap(Object value) {
+    if (value instanceof Map<?, ?> map) {
+      Map<String, Object> result = new LinkedHashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+        result.put(key, entry.getValue());
+      }
+      return result;
+    }
+    return new LinkedHashMap<>();
+  }
+
+  private List<Map<String, Object>> asListOfMaps(Object value) {
+    if (value instanceof List<?> list) {
+      List<Map<String, Object>> result = new ArrayList<>();
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> map) {
+          result.add(asMap(map));
+        }
+      }
+      return result;
+    }
+    return List.of();
+  }
+
+  private Map<String, String> asStringMap(Object value) {
+    if (value instanceof Map<?, ?> map) {
+      Map<String, String> result = new LinkedHashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+        String val = entry.getValue() != null ? entry.getValue().toString() : null;
+        result.put(key, val);
+      }
+      return result;
+    }
+    return Map.of();
+  }
+
   private List<Map<String, Object>> calculateDiff(Map<String, Object> current,
       Map<String, Object> draft) {
     List<Map<String, Object>> changes = new ArrayList<>();
@@ -451,12 +484,8 @@ public class StudioAdminController {
     }
 
     // Compare fields (simplified)
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> currentFields = (List<Map<String, Object>>) current
-        .getOrDefault("fields", List.of());
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> draftFields = (List<Map<String, Object>>) draft.getOrDefault("fields",
-        List.of());
+    List<Map<String, Object>> currentFields = asListOfMaps(current.get("fields"));
+    List<Map<String, Object>> draftFields = asListOfMaps(draft.get("fields"));
 
     Set<String> currentFieldNames = currentFields.stream().map(f -> (String) f.get("name"))
         .collect(Collectors.toSet());
@@ -494,9 +523,7 @@ public class StudioAdminController {
       @RequestBody Map<String, Object> request, Authentication auth) {
     log.info("📋 Validating workflow steps for user: {}", auth.getName());
 
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> steps = (List<Map<String, Object>>) request.getOrDefault("steps",
-        List.of());
+    List<Map<String, Object>> steps = asListOfMaps(request.get("steps"));
 
     List<Map<String, Object>> errors = new ArrayList<>();
     Set<String> stepIds = new HashSet<>();
@@ -523,8 +550,7 @@ public class StudioAdminController {
       }
 
       // Validate inputMap keys (should not be empty)
-      @SuppressWarnings("unchecked")
-      Map<String, String> inputMap = (Map<String, String>) step.getOrDefault("inputMap", Map.of());
+      Map<String, String> inputMap = asStringMap(step.get("inputMap"));
       for (String key : inputMap.keySet()) {
         if (key.isBlank()) {
           errors.add(Map.of("stepId", stepId, "field", "inputMap", "message",
@@ -533,9 +559,9 @@ public class StudioAdminController {
       }
 
       // Validate retry policy
-      @SuppressWarnings("unchecked")
-      Map<String, Object> retry = (Map<String, Object>) step.get("retry");
-      if (retry != null) {
+      Object retryObj = step.get("retry");
+      if (retryObj != null) {
+        Map<String, Object> retry = asMap(retryObj);
         Integer maxAttempts = (Integer) retry.get("maxAttempts");
         Integer initialDelayMs = (Integer) retry.get("initialDelayMs");
         Integer maxDelayMs = (Integer) retry.get("maxDelayMs");
@@ -600,11 +626,8 @@ public class StudioAdminController {
       @RequestBody Map<String, Object> request, Authentication auth) {
     log.info("🧪 Dry-running workflow steps for user: {}", auth.getName());
 
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> steps = (List<Map<String, Object>>) request.getOrDefault("steps",
-        List.of());
-    @SuppressWarnings("unchecked")
-    Map<String, Object> context = (Map<String, Object>) request.getOrDefault("context", Map.of());
+    List<Map<String, Object>> steps = asListOfMaps(request.get("steps"));
+    Map<String, Object> context = asMap(request.get("context"));
 
     List<Map<String, Object>> results = new ArrayList<>();
     boolean success = true;
@@ -612,8 +635,7 @@ public class StudioAdminController {
     for (Map<String, Object> step : steps) {
       String stepId = (String) step.get("id");
       String type = (String) step.get("type");
-      @SuppressWarnings("unchecked")
-      Map<String, String> inputMap = (Map<String, String>) step.getOrDefault("inputMap", Map.of());
+      Map<String, String> inputMap = asStringMap(step.get("inputMap"));
 
       try {
         // Resolve inputMap expressions (simplified - just check if keys exist in
