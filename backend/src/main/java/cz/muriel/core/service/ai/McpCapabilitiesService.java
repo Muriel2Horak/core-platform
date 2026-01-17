@@ -3,6 +3,7 @@ package cz.muriel.core.service.ai;
 import cz.muriel.core.service.PermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class McpCapabilitiesService {
    * @param routeId MCP route ID (e.g., "users.detail")
    * @return Map with canView/canEdit/canExecute
    */
+  @Cacheable(value = "mcp-capabilities", key = "T(cz.muriel.core.service.ai.McpCapabilitiesService).cacheKey(#auth, #routeId)")
   public Map<String, Object> getCapabilities(Authentication auth, String routeId) {
     if (routeId == null || routeId.isBlank()) {
       throw new IllegalArgumentException("routeId required");
@@ -68,6 +70,17 @@ public class McpCapabilitiesService {
 
     return Map.of("canView", canView, "canEdit", canEdit, "canExecute",
         new ArrayList<>(executable), "note", "Capabilities resolved via PermissionService");
+  }
+
+  public static String cacheKey(Authentication auth, String routeId) {
+    String safeRoute = routeId == null ? "unknown" : routeId;
+    if (auth == null) {
+      return safeRoute + ":anonymous";
+    }
+    String subject = auth.getName() != null ? auth.getName() : "unknown";
+    String roles = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
+        .map(McpCapabilitiesService::normalizeRole).sorted().collect(Collectors.joining(","));
+    return safeRoute + ":" + subject + ":" + roles;
   }
 
   private boolean resolveCanEdit(List<String> roles, String resource, String viewKind) {
@@ -103,6 +116,10 @@ public class McpCapabilitiesService {
       return List.of();
     }
     return auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-        .map(a -> a.replace("ROLE_", "")).collect(Collectors.toList());
+        .map(McpCapabilitiesService::normalizeRole).collect(Collectors.toList());
+  }
+
+  private static String normalizeRole(String authority) {
+    return authority.replace("ROLE_", "");
   }
 }

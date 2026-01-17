@@ -146,7 +146,7 @@ return ResponseEntity.ok(Map.of(
 - [x] Vytvořit `McpCapabilitiesService`
 - [x] Integrovat s existujícím RBAC/Permission systémem
 - [x] Implementovat permission checks
-- [ ] Přidat caching (Redis) pro výkon
+- [x] Přidat caching (Redis/Caffeine) pro výkon
 - [x] Přidat unit testy
 
 **Časová náročnost:** ~2 hodiny  
