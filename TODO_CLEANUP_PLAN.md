@@ -96,10 +96,10 @@ if (tenantId == null) {
 ```
 
 **Akce:**
-- [ ] Implementovat `TenantContextHolder` helper class (podobně jako Spring SecurityContextHolder)
-- [ ] Extrahovat tenant ID z JWT claims
-- [ ] Přidat validaci tenant existence
-- [ ] Přidat unit testy pro různé scénáře
+- [x] Extrahovat tenant ID z JWT claims (SecurityContextHolder)
+- [x] Přidat validaci tenant existence přes `TenantService`
+- [x] Přidat unit testy pro různé scénáře
+- [ ] Zvážit `TenantContextHolder` helper (aktuálně není potřeba)
 - [ ] Aktualizovat dokumentaci API
 
 **Časová náročnost:** ~1 hodina  
@@ -143,11 +143,11 @@ return ResponseEntity.ok(Map.of(
 ```
 
 **Akce:**
-- [ ] Vytvořit `RbacCapabilitiesService`
-- [ ] Integrovat s existujícím RBAC systémem
-- [ ] Implementovat permission checks
+- [x] Vytvořit `McpCapabilitiesService`
+- [x] Integrovat s existujícím RBAC/Permission systémem
+- [x] Implementovat permission checks
 - [ ] Přidat caching (Redis) pro výkon
-- [ ] Přidat unit a integration testy
+- [x] Přidat unit testy
 
 **Časová náročnost:** ~2 hodiny  
 **Risk:** HIGH (bezpečnost - nesprávná autorizace)
@@ -188,11 +188,11 @@ if (Boolean.TRUE.equals(strict)) {
 ```
 
 **Akce:**
-- [ ] Vytvořit `EntityLockService`
-- [ ] Implementovat lock tracking (Redis nebo DB)
+- [x] Implementovat strict reads přes `WorkStateService` (streaming lock)
+- [ ] Doplnit `EntityLockService` (pokud bude potřeba mimo streaming)
 - [ ] Přidat TTL pro automatické uvolnění locks
 - [ ] Přidat endpoint pro unlock (admin)
-- [ ] Unit a integration testy
+- [x] Unit testy
 
 **Časová náročnost:** ~30 minut  
 **Risk:** MEDIUM (může ovlivnit data konzistenci)
