@@ -356,8 +356,8 @@ class Phase2IntegrationTest {
 ## 📋 Implementation Checklist
 
 ### Sprint 1: Critical Fixes (3-4 hodiny)
-- [ ] Fix type safety warnings (4 instances)
-- [ ] Remove unnecessary @SuppressWarnings
+- [x] Fix type safety warnings (4 instances)
+- [x] Remove unnecessary @SuppressWarnings
 - [x] Implement tenant from security context
 - [x] Add unit tests for tenant extraction
 
@@ -374,8 +374,8 @@ class Phase2IntegrationTest {
 - [ ] Remove all @Disabled annotations
 
 ### Sprint 4: Optional Features (POZDĚJI)
-- [ ] Kafka config change events (pokud potřeba)
-- [ ] Dokumentace všech změn
+- [x] Kafka config change events (pokud potřeba)
+- [x] Dokumentace všech změn
 
 ---
 
