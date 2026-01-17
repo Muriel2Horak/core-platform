@@ -5,7 +5,8 @@
     "sca",
     "secret-scan",
     "iac-lint",
-    "ai-guardrails"
+    "ai-guardrails",
+    "security-regression"
   ],
   "nightly": [
     "unit-tests",

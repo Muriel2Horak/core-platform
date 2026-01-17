@@ -6,7 +6,7 @@ Quality gates enforce EPIC-020 checks for pull requests, nightly builds, and rel
 
 ## Gate Matrix
 
-- PR: `unit-tests`, `sast`, `sca`, `secret-scan`, `iac-lint`
+- PR: `unit-tests`, `sast`, `sca`, `secret-scan`, `iac-lint`, `security-regression`
 - Nightly: PR gates + `dast`, `security-regression`
 - Release: PR gates + `container-scan`
 - AI guardrails: `ai-guardrails` runs on PR/nightly/release
@@ -27,13 +27,16 @@ Source of truth: `scripts/ci/gate-matrix.json`.
 - `SONAR_BACKEND_PROJECT_KEY` (optional, default `core-platform-backend`)
 - `SONAR_FRONTEND_PROJECT_KEY` (optional, default `core-platform-frontend`)
 - `DAST_TARGET_URL` (nightly DAST target)
-- Security regression secrets: `KC_BASE`, `KC_REALM`, `KC_CLIENT_ID`, `TEST_USER1`, `TEST_PASSWORD1`, `TEST_USER2`, `TEST_PASSWORD2`, `TENANT1_KEY`, `TENANT2_KEY`, `BE_BASE`, `BE_API_PATH`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOKI_BASE`, `SERVICE_LABEL`, `TIMEOUT`, `RETRY_COUNT`
+- Security regression secrets: `KC_BASE`, `KC_REALM`, `KC_CLIENT_ID`, `KC_CLIENT_SECRET`, `TEST_USER1`, `TEST_PASSWORD1`, `TEST_USER2`, `TEST_PASSWORD2`, `TENANT1_KEY`, `TENANT2_KEY`, `BE_BASE`, `BE_API_PATH`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `LOKI_BASE`, `SERVICE_LABEL`, `TIMEOUT`, `RETRY_COUNT`
 - Optional Trivy auth: `TRIVY_USERNAME`, `TRIVY_PASSWORD`, `TRIVY_DB_REPOSITORY`
 
 ## Gate Flags
 
 - `RUN_DAST=1` enables OWASP ZAP baseline in nightly.
-- `RUN_SECURITY_REGRESSION=1` enables multitenancy/RBAC regression in nightly.
+- `RUN_SECURITY_REGRESSION=1` enables multitenancy/RBAC regression in PR/nightly.
+- `SECURITY_REGRESSION_MODE=smoke|full` (default `full`): smoke runs `tests/multitenancy_smoke.sh` + `tests/rbac_smoke.sh`, full adds `tests/test_tenant_api.sh`.
+
+Security regression test matrix: `docs/SECURITY_REGRESSION_TESTS.md`.
 
 ## Local Execution (Developer)
 

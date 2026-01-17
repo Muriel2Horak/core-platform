@@ -8,9 +8,23 @@ set -e
 echo "🧪 Testing Tenant Management API"
 echo "=================================="
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    set -a
+    source "$SCRIPT_DIR/.env"
+    set +a
+fi
+
 # Base URL
-BASE_URL="https://admin.core-platform.local"
-API_URL="${BASE_URL}/api"
+BASE_URL="${BE_BASE:-https://admin.core-platform.local}"
+API_URL="${BASE_URL}${BE_API_PATH:-/api}"
+
+KC_BASE="${KC_BASE:-$BASE_URL}"
+KC_REALM="${KC_REALM:-admin}"
+KC_CLIENT_ID="${KC_CLIENT_ID:-web}"
+KC_CLIENT_SECRET="${KC_CLIENT_SECRET:-}"
+KC_TOKEN_ENDPOINT="${KC_BASE}/realms/${KC_REALM}/protocol/openid-connect/token"
 
 # Test data
 TEST_TENANT_KEY="test-company"
@@ -34,12 +48,12 @@ api_call() {
     echo "   ${method} ${API_URL}${endpoint}"
     
     if [ "$method" = "GET" ]; then
-        curl -s -X GET \
+        curl -s -k -X GET \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ADMIN_TOKEN" \
             "${API_URL}${endpoint}" | jq '.'
     else
-        curl -s -X "$method" \
+        curl -s -k -X "$method" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $ADMIN_TOKEN" \
             -d "$data" \
@@ -51,14 +65,28 @@ api_call() {
 get_admin_token() {
     echo -e "${BLUE}🔐 Getting admin token...${NC}"
     
-    # Get token for test_admin user (should have CORE_ROLE_ADMIN)
-    local token_response=$(curl -s -X POST \
-        "${BASE_URL}/realms/admin/protocol/openid-connect/token" \
-        -H "Content-Type: application/x-www-form-urlencoded" \
-        -d "grant_type=password" \
-        -d "client_id=web" \
-        -d "username=test_admin" \
-        -d "password=Test.1234")
+    local admin_user="${TEST_USER2:-test_admin}"
+    local admin_password="${TEST_PASSWORD2:-Test.1234}"
+    local token_response
+
+    if [ -n "$KC_CLIENT_SECRET" ]; then
+        token_response=$(curl -s -k -X POST \
+            "$KC_TOKEN_ENDPOINT" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=password" \
+            -d "client_id=$KC_CLIENT_ID" \
+            -d "client_secret=$KC_CLIENT_SECRET" \
+            -d "username=$admin_user" \
+            -d "password=$admin_password")
+    else
+        token_response=$(curl -s -k -X POST \
+            "$KC_TOKEN_ENDPOINT" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=password" \
+            -d "client_id=$KC_CLIENT_ID" \
+            -d "username=$admin_user" \
+            -d "password=$admin_password")
+    fi
     
     ADMIN_TOKEN=$(echo "$token_response" | jq -r '.access_token')
     
@@ -74,7 +102,7 @@ get_admin_token() {
 # Function to check if tenant exists
 tenant_exists() {
     local tenant_key=$1
-    local response=$(curl -s -X GET \
+    local response=$(curl -s -k -X GET \
         -H "Authorization: Bearer $ADMIN_TOKEN" \
         "${API_URL}/admin/tenants" | jq -r ".tenants[]? | select(.key == \"$tenant_key\") | .key")
     

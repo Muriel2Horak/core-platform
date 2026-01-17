@@ -298,6 +298,7 @@ jobs:
     continue-on-error: true
     env:
       RUN_SECURITY_REGRESSION: "1"
+      SECURITY_REGRESSION_MODE: "full"
       KC_BASE: ${{ secrets.KC_BASE }}
       KC_REALM: ${{ secrets.KC_REALM }}
       KC_CLIENT_ID: ${{ secrets.KC_CLIENT_ID }}

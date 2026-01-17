@@ -289,6 +289,78 @@ jobs:
           name: gate-results-ai-guardrails
           path: gate-results/ai-guardrails.json
 
+  security-regression:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      RUN_SECURITY_REGRESSION: "1"
+      SECURITY_REGRESSION_MODE: "smoke"
+      KC_BASE: ${{ secrets.KC_BASE }}
+      KC_REALM: ${{ secrets.KC_REALM }}
+      KC_CLIENT_ID: ${{ secrets.KC_CLIENT_ID }}
+      KC_CLIENT_SECRET: ${{ secrets.KC_CLIENT_SECRET }}
+      TEST_USER1: ${{ secrets.TEST_USER1 }}
+      TEST_PASSWORD1: ${{ secrets.TEST_PASSWORD1 }}
+      TEST_USER2: ${{ secrets.TEST_USER2 }}
+      TEST_PASSWORD2: ${{ secrets.TEST_PASSWORD2 }}
+      TENANT1_KEY: ${{ secrets.TENANT1_KEY }}
+      TENANT2_KEY: ${{ secrets.TENANT2_KEY }}
+      BE_BASE: ${{ secrets.BE_BASE }}
+      BE_API_PATH: ${{ secrets.BE_API_PATH }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      LOKI_BASE: ${{ secrets.LOKI_BASE }}
+      SERVICE_LABEL: ${{ secrets.SERVICE_LABEL }}
+      TIMEOUT: ${{ secrets.TIMEOUT }}
+      RETRY_COUNT: ${{ secrets.RETRY_COUNT }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare security test env
+        run: |
+          cat > tests/.env <<EOF
+          KC_BASE=${KC_BASE:-https://admin.core-platform.local}
+          KC_REALM=${KC_REALM:-admin}
+          KC_CLIENT_ID=${KC_CLIENT_ID:-web}
+          KC_CLIENT_SECRET=${KC_CLIENT_SECRET:-}
+          TEST_USER1=${TEST_USER1:-test}
+          TEST_PASSWORD1=${TEST_PASSWORD1:-Test.1234}
+          TEST_USER2=${TEST_USER2:-test_admin}
+          TEST_PASSWORD2=${TEST_PASSWORD2:-Test.1234}
+          TENANT1_KEY=${TENANT1_KEY:-admin}
+          TENANT2_KEY=${TENANT2_KEY:-admin}
+          BE_BASE=${BE_BASE:-https://admin.core-platform.local}
+          BE_API_PATH=${BE_API_PATH:-/api}
+          DB_HOST=${DB_HOST:-localhost}
+          DB_PORT=${DB_PORT:-5432}
+          DB_NAME=${DB_NAME:-core}
+          DB_USER=${DB_USER:-core}
+          DB_PASSWORD=${DB_PASSWORD:-core}
+          LOKI_BASE=${LOKI_BASE:-http://localhost:3100}
+          SERVICE_LABEL=${SERVICE_LABEL:-core-platform-backend}
+          TIMEOUT=${TIMEOUT:-30}
+          RETRY_COUNT=${RETRY_COUNT:-3}
+          EOF
+      - name: Security regression tests (smoke)
+        id: sec_regression
+        continue-on-error: true
+        run: scripts/ci/security-regression.sh
+      - name: Write security regression gate result
+        if: always()
+        run: |
+          status=pass
+          if [ "${{ steps.sec_regression.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name security-regression --status "$status" --details "security-regression:${{ steps.sec_regression.outcome }}"
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-security-regression
+          path: gate-results/security-regression.json
+
   aggregate:
     runs-on: ubuntu-latest
     needs:
@@ -298,6 +370,7 @@ jobs:
       - secret-scan
       - iac-lint
       - ai-guardrails
+      - security-regression
     if: always()
     steps:
       - uses: actions/checkout@v4
