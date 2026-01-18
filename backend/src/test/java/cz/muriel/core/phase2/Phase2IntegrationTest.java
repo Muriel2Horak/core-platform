@@ -13,8 +13,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -49,13 +51,17 @@ public class Phase2IntegrationTest {
 
   @SuppressWarnings("resource") @Container
   static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379)
+      .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(2)))
       .withReuse(false);
 
   @SuppressWarnings("resource") @Container
   static GenericContainer<?> minio = new GenericContainer<>("minio/minio:latest")
       .withExposedPorts(9000, 9001).withEnv("MINIO_ROOT_USER", "minioadmin")
       .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
-      .withCommand("server /data --console-address :9001").withReuse(false);
+      .withCommand("server /data --console-address :9001")
+      .waitingFor(Wait.forHttp("/minio/health/ready").forPort(9000)
+          .withStartupTimeout(Duration.ofMinutes(2)))
+      .withReuse(false);
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {

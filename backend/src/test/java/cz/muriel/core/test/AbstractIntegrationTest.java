@@ -56,7 +56,9 @@ public abstract class AbstractIntegrationTest {
 
   @Container @SuppressWarnings("resource")
   protected static final GenericContainer<?> redisContainer = new GenericContainer<>(
-      DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379).withReuse(true);
+      DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379)
+          .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(2)))
+          .withReuse(true);
 
   @Container @SuppressWarnings("resource")
   protected static final KafkaContainer kafkaContainer = new KafkaContainer(

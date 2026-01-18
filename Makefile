@@ -1784,6 +1784,7 @@ test-backend-unit:
 		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
 			export TESTCONTAINERS_RYUK_DISABLED=true; \
 		fi; \
+		set -o pipefail; \
 		./mvnw test 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
@@ -1860,6 +1861,7 @@ test-backend-full:
 		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
 			export TESTCONTAINERS_RYUK_DISABLED=true; \
 		fi; \
+		set -o pipefail; \
 		./mvnw test 2>&1 | \
 		tee ../artifacts/backend_full_tests.log | \
 		grep -v "^\[DEBUG\]" | \
@@ -1902,6 +1904,7 @@ test-backend-integration:
 		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
 			export TESTCONTAINERS_RYUK_DISABLED=true; \
 		fi; \
+		set -o pipefail; \
 		./mvnw test -Dtest="**/*IT,**/*IntegrationTest" 2>&1 | \
 		tee ../artifacts/backend_integration_tests.log | \
 		grep -v "^\[DEBUG\]" | \
@@ -2109,7 +2112,7 @@ test-e2e-pre:
 		cd e2e && npm install; \
 	fi
 	@echo "▶️  Running smoke tests..."
-	@cd e2e && npm run test:pre 2>&1 | \
+	@cd e2e && set -o pipefail && npm run test:pre 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		sed 's/✓/  ✅/g' | \
 		sed 's/✗/  ❌/g' | \
