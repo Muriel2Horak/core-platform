@@ -84,6 +84,9 @@ jobs:
           # 🚀 Start database and monitoring stack first
           echo "Starting database..."
           docker compose up -d db
+
+          echo "Starting Redis..."
+          docker compose up -d redis
           
           echo "Starting Loki..."
           docker compose up -d loki
@@ -92,6 +95,34 @@ jobs:
           docker compose up -d promtail
           
           echo "✅ Core infrastructure started"
+
+      - name: Wait for Redis readiness
+        run: |
+          echo "⏳ Waiting for Redis to be ready..."
+          for i in {1..60}; do
+            status=$(docker inspect --format '{{.State.Health.Status}}' core-redis 2>/dev/null || echo "missing")
+            if [ "$status" = "healthy" ]; then
+              echo "✅ Redis is healthy";
+              break;
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "❌ Redis reported unhealthy";
+              docker logs core-redis || true
+              exit 1
+            fi
+            if [ "$status" = "missing" ]; then
+              echo "❌ Redis container not found";
+              docker ps -a || true
+              exit 1
+            fi
+            if [ $i -eq 60 ]; then
+              echo "❌ Redis not ready in time"
+              docker logs core-redis || true
+              exit 1
+            fi
+            echo "⏳ Waiting for Redis... ($i/60, status=$status)"
+            sleep 2
+          done
 
       - name: Wait for Loki readiness
         run: |
