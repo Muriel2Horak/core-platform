@@ -1777,7 +1777,14 @@ test-monitoring-epic3:
 .PHONY: test-backend-unit
 test-backend-unit:
 	@echo "🧪 Running backend unit tests..."
-	@cd backend && ./mvnw test 2>&1 | \
+	@cd backend && \
+		if [ -z "$$DOCKER_HOST" ]; then \
+			export DOCKER_HOST="$$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"; \
+		fi; \
+		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
+			export TESTCONTAINERS_RYUK_DISABLED=true; \
+		fi; \
+		./mvnw test 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
 		grep -v "DEBUG \[tenant:" | \
@@ -1846,7 +1853,14 @@ test-backend-full:
 	@echo ""
 	@echo "▶️  Running ALL backend tests (unit + integration)..."
 	@mkdir -p artifacts
-	@cd backend && ./mvnw test 2>&1 | \
+	@cd backend && \
+		if [ -z "$$DOCKER_HOST" ]; then \
+			export DOCKER_HOST="$$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"; \
+		fi; \
+		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
+			export TESTCONTAINERS_RYUK_DISABLED=true; \
+		fi; \
+		./mvnw test 2>&1 | \
 		tee ../artifacts/backend_full_tests.log | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
@@ -1881,7 +1895,14 @@ test-backend-full:
 test-backend-integration:
 	@echo "🔗 Running backend integration tests..."
 	@mkdir -p artifacts
-	@cd backend && ./mvnw test -Dtest="**/*IT,**/*IntegrationTest" 2>&1 | \
+	@cd backend && \
+		if [ -z "$$DOCKER_HOST" ]; then \
+			export DOCKER_HOST="$$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"; \
+		fi; \
+		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
+			export TESTCONTAINERS_RYUK_DISABLED=true; \
+		fi; \
+		./mvnw test -Dtest="**/*IT,**/*IntegrationTest" 2>&1 | \
 		tee ../artifacts/backend_integration_tests.log | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
