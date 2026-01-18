@@ -34,7 +34,8 @@ public class DocumentService {
     private final MinIOProperties minioProperties;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
-    private final Tika tika = new Tika();
+    private volatile Tika tika;
+    private volatile boolean tikaInitFailed;
 
     /**
      * Upload document
@@ -197,8 +198,13 @@ public class DocumentService {
 
     private void extractAndIndexText(UUID documentId, String tenantId, byte[] content) {
         try {
+            Tika localTika = getTika();
+            if (localTika == null) {
+                return;
+            }
+
             // Extract text with Tika
-            String text = tika.parseToString(new ByteArrayInputStream(content));
+            String text = localTika.parseToString(new ByteArrayInputStream(content));
 
             if (text != null && !text.trim().isEmpty()) {
                 // Insert into fulltext index
@@ -213,6 +219,27 @@ public class DocumentService {
             log.error("Failed to extract/index text for document {}: {}", documentId,
                     e.getMessage(), e);
         }
+    }
+
+    private Tika getTika() {
+        if (tikaInitFailed) {
+            return null;
+        }
+        if (tika == null) {
+            synchronized (this) {
+                if (tika == null && !tikaInitFailed) {
+                    try {
+                        tika = new Tika();
+                    } catch (RuntimeException e) {
+                        tikaInitFailed = true;
+                        log.warn("Tika initialization failed; text extraction disabled: {}",
+                                e.getMessage());
+                        return null;
+                    }
+                }
+            }
+        }
+        return tika;
     }
 
     private String getUserId(Authentication auth) {
