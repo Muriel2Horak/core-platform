@@ -132,12 +132,23 @@ jobs:
       - name: Wait for Backend readiness
         run: |
           echo "⏳ Waiting for Backend to be ready..."
-          for i in {1..30}; do
-            if curl -sf http://localhost:8080/api/actuator/health >/dev/null 2>&1; then
-              echo "✅ Backend is ready";
+          for i in {1..120}; do
+            status=$(docker inspect --format '{{.State.Health.Status}}' core-backend 2>/dev/null || echo "missing")
+            if [ "$status" = "healthy" ]; then
+              echo "✅ Backend is healthy";
               break;
             fi
-            echo "⏳ Waiting for Backend... ($i/30)"
+            if [ "$status" = "unhealthy" ]; then
+              echo "❌ Backend reported unhealthy";
+              docker logs core-backend || true
+              exit 1
+            fi
+            if [ "$status" = "missing" ]; then
+              echo "❌ Backend container not found";
+              docker ps -a || true
+              exit 1
+            fi
+            echo "⏳ Waiting for Backend... ($i/120, status=$status)"
             sleep 3
           done
 
@@ -151,7 +162,7 @@ jobs:
           
           # Test Backend
           echo "⚙️ Testing Backend..."
-          curl -sf http://localhost:8080/api/actuator/health || (echo "❌ Backend failed"; exit 1)
+          curl -sf http://localhost:8080/api/actuator/health || (echo "❌ Backend failed"; docker logs core-backend || true; exit 1)
           
           # Test Frontend (basic connectivity)
           echo "🎨 Testing Frontend..."
