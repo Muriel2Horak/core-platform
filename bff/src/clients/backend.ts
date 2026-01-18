@@ -6,7 +6,10 @@ export type BackendClient = {
   post: (url: string, data?: unknown) => Promise<AxiosResponse>;
 };
 
-const baseURL = process.env.BFF_BACKEND_URL || process.env.BACKEND_URL || "http://backend:8080";
+const baseURL = process.env.BFF_BACKEND_URL || process.env.BACKEND_URL;
+if (!baseURL) {
+  throw new Error("BFF_BACKEND_URL or BACKEND_URL must be set");
+}
 const timeout = Number(process.env.BFF_BACKEND_TIMEOUT_MS || 5000);
 
 const axiosInstance = axios.create({

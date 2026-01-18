@@ -13,4 +13,7 @@ RUN npm run build
 ENV NODE_ENV=production
 EXPOSE 4000
 
+RUN chown -R node:node /app
+USER node
+
 CMD ["node", "dist/index.js"]
