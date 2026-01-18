@@ -220,7 +220,7 @@ jobs:
           config: .hadolint.yaml
       - name: actionlint
         id: actionlint
-        uses: rhysd/actionlint@v1
+        uses: rhysd/actionlint@v1.6.27
         continue-on-error: true
         if: ${{ github.actor != 'nektos/act' }}
       - name: Kube-linter
