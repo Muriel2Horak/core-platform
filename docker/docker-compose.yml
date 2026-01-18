@@ -108,7 +108,9 @@ services:
       - KEYCLOAK_INTERNAL_BASE_URL=https://keycloak:8443
       # 🔧 FIX: CORS origins - wildcard pro všechny subdomény
       - CORS_ORIGINS=${CORS_ORIGINS}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
+      - DATABASE_USERNAME=${DATABASE_USERNAME:-core_app}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-core}
       - LOKI_URL=http://loki:3100/loki/api/v1/push
       - LOG_LEVEL=DEBUG
       - SPRING_PROFILES_ACTIVE=development
