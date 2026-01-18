@@ -80,6 +80,9 @@ missing = []
 for gate in required:
     result_file = results_dir / f"{gate}.json"
     if not result_file.exists():
+        matches = list(results_dir.rglob(f"{gate}.json"))
+        result_file = matches[0] if matches else None
+    if not result_file or not result_file.exists():
         missing.append(gate)
         continue
     with result_file.open("r", encoding="utf-8") as handle:
