@@ -193,7 +193,7 @@ jobs:
           
           # Test Backend
           echo "⚙️ Testing Backend..."
-          curl -sf http://localhost:8080/api/actuator/health || (echo "❌ Backend failed"; docker logs core-backend || true; exit 1)
+          docker exec core-backend curl -sf http://localhost:8080/api/actuator/health || (echo "❌ Backend failed"; docker logs core-backend || true; exit 1)
           
           # Test Frontend (basic connectivity)
           echo "🎨 Testing Frontend..."
