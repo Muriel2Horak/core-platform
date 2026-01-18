@@ -2,6 +2,6 @@
 doctor-pre-build:
 	@if [ "$${SKIP_DOCTOR:-false}" = "true" ]; then \
 		echo "⚠️  SKIP_DOCTOR=true - skipping Build Doctor pre-flight checks"; \
-		exit 0; \
+	else \
+		bash scripts/build-doctor/pre-build-checks.sh; \
 	fi
-	@bash scripts/build-doctor/pre-build-checks.sh
