@@ -214,7 +214,7 @@ public class KeycloakSyncService {
   }
 
   // =====================================================
-  // � USER SYNCHRONIZATION
+  // USER SYNCHRONIZATION
   // =====================================================
 
   /**
@@ -371,7 +371,7 @@ public class KeycloakSyncService {
   }
 
   // =====================================================
-  // �🔗 USER-ROLE MAPPING SYNCHRONIZATION
+  // USER-ROLE MAPPING SYNCHRONIZATION
   // =====================================================
 
   /**

@@ -152,7 +152,7 @@ export function DiffPanel({ entity, draft, onPropose, onPublish }: DiffPanelProp
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        � Diff & Actions
+        Diff & Actions
       </Typography>
       <Divider sx={{ mb: 2 }} />
 
