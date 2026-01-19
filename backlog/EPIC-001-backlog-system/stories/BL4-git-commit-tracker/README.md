@@ -3,17 +3,26 @@ id: CORE-004
 epic: EPIC-001-backlog-system
 title: "Git Commit Tracker"
 priority: P2  # P1 (Must Have) | P2 (Should Have) | P3 (Nice to Have)
-status: ready  # ready | in-progress | blocked | done
+status: done
 assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
 estimate: "2 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/
+    - e2e/specs/
+  docs_paths:
+    - backlog/EPIC-001-backlog-system/stories/BL4-git-commit-tracker/README.md
+    - backlog/EPIC-001-backlog-system/README.md
 ---
 
 # CORE-004: Git Commit Tracker
 
 > **Epic:** [EPIC-001-backlog-system](../README.md)  
-> **Priority:** P2 | **Status:** ready | **Estimate:** 2 days
+> **Priority:** P2 | **Status:** ✅ **DONE**| **Estimate:** 2 days
 
 ## 👤 Role / Potřeba / Benefit
 

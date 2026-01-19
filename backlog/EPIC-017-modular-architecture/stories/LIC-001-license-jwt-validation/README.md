@@ -1,3 +1,21 @@
+---
+id: LIC-001
+epic: EPIC-017-modular-architecture
+title: "License JWT Validation"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/LIC-001-license-jwt-validation/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # LIC-001: License JWT Validation
 
 **Status:** ⏳ **PENDING**  
@@ -25,6 +43,18 @@ So that only licensed tenants can use premium modules and tampering is prevented
 - ⏳ Tampered licenses rejected (invalid signature)
 - ⏳ User count enforcement: If license allows 100 users, 101st user blocked
 - ⏳ License cached (Redis) with TTL to avoid DB lookup on every request
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Key management + JWKS config | 0.5d | none |
+| 2 | JWT validation + caching | 0.5d | 1 |
+| 3 | Error mapping + audit events | 0.25d | 2 |
+| 4 | Key rotation support | 0.25d | 1 |
+| 5 | Unit tests | 0.25d | 2 |
 
 ---
 

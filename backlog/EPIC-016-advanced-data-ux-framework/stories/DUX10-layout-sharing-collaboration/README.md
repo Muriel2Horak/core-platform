@@ -1,7 +1,25 @@
+---
+id: S10
+epic: EPIC-016-advanced-data-ux-framework
+title: "Layout Sharing & Collaboration"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "45 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX10-layout-sharing-collaboration/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S10: Layout Sharing & Collaboration
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟢 **P2 - MEDIUM**  
 **Effort:** ~45 hours  
 **Sprint:** 2-3  
@@ -635,4 +653,3 @@ test('Share dashboard with user', async ({ page }) => {
 
 **Status:** 📋 TODO  
 **Next:** S11: EPIC-014 Integration
-

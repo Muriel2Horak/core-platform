@@ -1,3 +1,21 @@
+---
+id: ADM-002
+epic: EPIC-017-modular-architecture
+title: "Tenant Module Assignment"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-002-tenant-module-assignment/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-002: Tenant Module Assignment
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that each tenant has only modules they licensed.
 - ⏳ Upload license for tenant + module
 - ⏳ Show license status (valid, expiring, expired)
 - ⏳ Bulk operations (enable for all tenants)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Tenant module list view + status badges | 0.5d | MOD-002 |
+| 2 | Enable/disable flow with confirmations | 0.5d | 1 |
+| 3 | License status display + expiry warnings | 0.25d | LIC-001 |
+| 4 | Audit logging + RBAC checks | 0.25d | 1 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
 
 ---
 

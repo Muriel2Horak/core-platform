@@ -1,7 +1,26 @@
+---
+id: INF-024
+epic: EPIC-007-infrastructure-deployment
+title: "Test Framework Integration"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - backend/pom.xml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-024-test-framework-integration/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-024: Test Framework Integration
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 3 dny, ~800 LOC  
 **Owner:** QA + Development Team  
@@ -84,6 +103,15 @@ Developer Workflow (Fail Fast!)
 4. ✅ **E2E Test Framework**
    - Playwright pre-deploy smoke (critical paths)
    - Playwright post-deploy full (all features)
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Pre-commit Hooks](subtasks/T1-pre-commit-hooks.md) | 4h | none |
+| 2 | [T2: Testcontainers Integration](subtasks/T2-testcontainers-integration.md) | 8h | T1 |
+| 3 | [T3: Coverage Thresholds](subtasks/T3-coverage-thresholds.md) | 4h | T2 |
+| 4 | [T4: E2E Framework](subtasks/T4-e2e-framework.md) | 8h | T2 |
 
 ### Implementation
 

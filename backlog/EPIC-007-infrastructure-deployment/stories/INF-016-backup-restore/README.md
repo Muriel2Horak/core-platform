@@ -1,7 +1,34 @@
+---
+id: INF-016
+epic: EPIC-007-infrastructure-deployment
+title: "Automated Database Backup & Restore"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-16
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - scripts/backup/pg-backup.sh
+    - scripts/backup/pg-restore.sh
+    - scripts/backup/pg-verify-backup.sh
+    - docker/db/postgresql.conf
+    - docker/db/wal-archive/.gitkeep
+    - docker/docker-compose.yml
+    - Makefile
+    - .gitignore
+  test_paths:
+    - tests/db_backup_tests.sh
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-016-backup-restore/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-016: Automated Database Backup & Restore
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 3 dny, ~600 LOC  
 **Owner:** DBA + Platform Team  
@@ -67,6 +94,14 @@ make db-restore TIMESTAMP="2025-11-08T14:30:00Z"
    - Weekly: Restore test to separate DB
    - Integrity check (pg_restore --list)
    - Alert if backup fails
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-016-01: Backup schedule + storage](subtasks/TASK-016-01-backup-schedule-storage.md) | 8h | none |
+| 2 | [TASK-016-02: Restore + PITR](subtasks/TASK-016-02-restore-pitr.md) | 8h | TASK-016-01 |
+| 3 | [TASK-016-03: Backup verification + alerts](subtasks/TASK-016-03-backup-verification-alerts.md) | 8h | TASK-016-01, TASK-016-02 |
 
 ### Implementation
 

@@ -1,3 +1,24 @@
+---
+id: WF12
+epic: EPIC-006-workflow-engine
+title: "APPROVAL Executor"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "24 hours"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+    - frontend/src/components/Workflow
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF12-approval-executor/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF12: APPROVAL Executor
 
 > **Typ kroku:** Automatický / Čekající na schválení  
@@ -10,6 +31,39 @@
 ## 🎯 Story Goal
 
 Implementovat **APPROVAL executor** pro workflow kroky vyžadující schválení (single approver, unanimous, first-wins, quorum) s role-based access control, SLA tracking, escalations a email notifications.
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Approval typy**
+   - Podporuje SINGLE, ALL_OF, ANY_OF, QUORUM podle configu.
+   - QUORUM respektuje `quorumThreshold`.
+
+2. **SLA + eskalace**
+   - Po prekroceni `slaMinutes` dojde k eskalaci na `escalateTo`.
+   - Eskalace je auditovana a viditelna v historii instance.
+
+3. **RBAC**
+   - Approve/reject je povolene jen rolím/uzivatelum z configu.
+   - Neautorizovany pristup vraci 403.
+
+4. **Notifikace**
+   - Při vytvoreni approval requestu se posle notifikace (email/slack).
+
+5. **Persisted status**
+   - Vsechny approval requesty + odpovedi jsou ulozeny v DB.
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | DB schema + modely pro approval request/response | 8h | W5 |
+| 2 | Approval executor + SLA/escalation flow | 10h | T1, W7 |
+| 3 | API endpoints + notifications | 4h | T2 |
+| 4 | Testy (RBAC, quorum, SLA) | 2h | T2, T3 |
 
 ---
 

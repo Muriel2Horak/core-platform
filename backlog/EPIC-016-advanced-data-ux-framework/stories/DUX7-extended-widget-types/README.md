@@ -1,7 +1,25 @@
+---
+id: S7
+epic: EPIC-016-advanced-data-ux-framework
+title: "Extended Widget Types"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "150 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX7-extended-widget-types/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S7: Extended Widget Types
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟡 **P1 - HIGH**  
 **Effort:** ~150 hours  
 **Sprint:** 6-8  
@@ -1005,4 +1023,3 @@ test('renders KPI with upward trend', () => {
 **Status:** 📋 TODO  
 **Effort:** ~150 hours (~4 sprints)  
 **Next:** Integrate with S1 (DataView) as widget options
-

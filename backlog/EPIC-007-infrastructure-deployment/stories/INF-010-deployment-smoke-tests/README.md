@@ -1,7 +1,29 @@
+---
+id: INF-010
+epic: EPIC-007-infrastructure-deployment
+title: "Post-Deployment Smoke Tests"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-16
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - scripts/deploy/smoke-tests.sh
+    - scripts/deploy/deploy-with-tests.sh
+    - Makefile
+  test_paths:
+    - tests/deploy_smoke_tests.sh
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-010-deployment-smoke-tests/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-010: Post-Deployment Smoke Tests
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** Platform Team  
@@ -69,6 +91,14 @@ make deploy ENV=production
    - If ANY test fails → rollback
    - Notification to Slack/email
    - Preserve logs for debugging
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-010-01: Smoke test script](subtasks/TASK-010-01-smoke-test-script.md) | 6h | none |
+| 2 | [TASK-010-02: Deploy hook + rollback trigger](subtasks/TASK-010-02-deploy-hook-rollback.md) | 6h | TASK-010-01 |
+| 3 | [TASK-010-03: Notifications + logs](subtasks/TASK-010-03-notifications-logs.md) | 4h | TASK-010-01, TASK-010-02 |
 
 ### Implementation
 

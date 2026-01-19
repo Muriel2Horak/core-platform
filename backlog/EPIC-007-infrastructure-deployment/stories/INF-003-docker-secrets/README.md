@@ -1,7 +1,28 @@
+---
+id: INF-003
+epic: EPIC-007-infrastructure-deployment
+title: "Docker Secrets Migration"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - docker/backend/Dockerfile.dev
+    - docker/ssl/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-003-docker-secrets/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-003: Docker Secrets Migration
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL (SECURITY)  
 **Effort:** 3 dny, ~800 LOC  
 **Owner:** Security + Platform Team  
@@ -111,6 +132,17 @@ services:
 2. **Auditability:** Log každý secret access (Docker audit logs)
 3. **Resilience:** Service restart pokud secret rotation fail
 4. **Usability:** Developer friendly error messages
+
+---
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-003-01: Secrets struktura + .gitignore](subtasks/TASK-003-01-secrets-structure.md) | 8h | none |
+| 2 | [TASK-003-02: Compose + sluzby (secrets + fallback)](subtasks/TASK-003-02-compose-service-wiring.md) | 6h | TASK-003-01 |
+| 3 | [TASK-003-03: Generate/rotate/validate skripty](subtasks/TASK-003-03-secrets-scripts.md) | 6h | TASK-003-01, TASK-003-02 |
+| 4 | [TASK-003-04: Migration guide + CI guard](subtasks/TASK-003-04-migration-ci-guard.md) | 4h | TASK-003-02, TASK-003-03 |
 
 ---
 

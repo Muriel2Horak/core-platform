@@ -1,3 +1,21 @@
+---
+id: DMS-007
+epic: EPIC-008-document-management-system
+title: "Public Share Links"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-007-share-links/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-007: Public Share Links
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  

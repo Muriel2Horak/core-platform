@@ -96,7 +96,7 @@ main() {
     done
     
     # Check other services
-    check_service "Backend" "http://localhost:8080/actuator/health"
+    check_service "Backend" "http://localhost:8080/api/actuator/health"
     check_service "Frontend" "http://localhost:3000"
     check_service "Grafana" "http://localhost:3001/api/health"
     check_service "Keycloak" "http://localhost:8081/health/ready"

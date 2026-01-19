@@ -1,5 +1,6 @@
 package cz.muriel.core.workflow;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.entities.MetamodelCrudService;
 import lombok.RequiredArgsConstructor;
@@ -82,16 +83,13 @@ public class WorkflowExecutionService {
       }
 
       // Parse workflow data
-      @SuppressWarnings("unchecked")
-      Map<String, Object> data = (Map<String, Object>) workflow.get("data");
+      Map<String, Object> data = asMap(workflow.get("data"));
       String dataJson = objectMapper.writeValueAsString(data);
-      @SuppressWarnings("unchecked")
-      Map<String, Object> workflowData = objectMapper.readValue(dataJson, Map.class);
+      Map<String, Object> workflowData = objectMapper.readValue(dataJson,
+          new TypeReference<Map<String, Object>>() {});
 
-      @SuppressWarnings("unchecked")
-      List<Map<String, Object>> nodes = (List<Map<String, Object>>) workflowData.get("nodes");
-      @SuppressWarnings("unchecked")
-      List<Map<String, Object>> edges = (List<Map<String, Object>>) workflowData.get("edges");
+      List<Map<String, Object>> nodes = asListOfMaps(workflowData.get("nodes"));
+      List<Map<String, Object>> edges = asListOfMaps(workflowData.get("edges"));
 
       // Execute workflow
       List<ExecutionStep> steps = new ArrayList<>();
@@ -114,8 +112,7 @@ public class WorkflowExecutionService {
         }
 
         String nodeType = (String) currentNode.get("type");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> nodeData = (Map<String, Object>) currentNode.get("data");
+        Map<String, Object> nodeData = asMap(currentNode.get("data"));
 
         ExecutionStep step = new ExecutionStep(currentNodeId, nodeType,
             (String) nodeData.get("label"));
@@ -186,6 +183,31 @@ public class WorkflowExecutionService {
       log.error("Failed to load active workflow", e);
       return null;
     }
+  }
+
+  private Map<String, Object> asMap(Object value) {
+    if (value instanceof Map<?, ?> map) {
+      Map<String, Object> result = new HashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+        result.put(key, entry.getValue());
+      }
+      return result;
+    }
+    return new HashMap<>();
+  }
+
+  private List<Map<String, Object>> asListOfMaps(Object value) {
+    if (value instanceof List<?> list) {
+      List<Map<String, Object>> result = new ArrayList<>();
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> map) {
+          result.add(asMap(map));
+        }
+      }
+      return result;
+    }
+    return new ArrayList<>();
   }
 
   private String findStartNode(List<Map<String, Object>> nodes) {

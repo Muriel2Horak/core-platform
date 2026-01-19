@@ -1,3 +1,24 @@
+---
+id: WF15
+epic: EPIC-006-workflow-engine
+title: "EXTERNAL_TASK Executor - n8n Integration Bridge"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "24 hours"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+    - backend/src/main/java/cz/muriel/core/web
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF15-external-task-executor/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF15: EXTERNAL_TASK Executor - n8n Integration Bridge
 
 **Typ:** TASK  
@@ -6,7 +27,7 @@
 **Priorita:** 🔴 CRITICAL (klíč pro n8n integraci)  
 **Effort:** 800 LOC, 3 dny  
 **Dependencies:** W7 (Executor Framework), N8N6 (BFF API)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 
@@ -80,6 +101,35 @@ steps:
   ]
 }
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Polling API**
+   - Worker dostane pouze tasky s odpovidajicim `taskType`.
+   - Task je atomicky locknuty (PENDING -> LOCKED).
+
+2. **Completion/Fail**
+   - Complete zapisuje output a pokracuje workflow.
+   - Fail resi retry a po vycerpani presune do FAILED/DLQ.
+
+3. **Heartbeat + timeout**
+   - Heartbeat prodluzuje lock; pri vynechani se task unlockne.
+
+4. **Audit**
+   - Kazdy task ma audit zaznam (worker, duration, status).
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | DB schema + poll/lock/complete/fail API | 10h | W7 |
+| 2 | Scheduler pro timeout + heartbeat cleanup | 6h | T1 |
+| 3 | n8n worker integration + auth headers | 4h | T1 |
+| 4 | Testy + metrics | 4h | T1, T2 |
 
 ---
 

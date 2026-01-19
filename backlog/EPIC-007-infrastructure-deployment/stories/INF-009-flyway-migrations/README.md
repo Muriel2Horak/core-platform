@@ -1,7 +1,27 @@
+---
+id: INF-009
+epic: EPIC-007-infrastructure-deployment
+title: "Flyway Multi-DB Migration Coordination"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - backend/src/main/resources/db/migration/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-009-flyway-migrations/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-009: Flyway Multi-DB Migration Coordination
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** HIGH  
 **Effort:** 3 dny, ~800 LOC  
 **Owner:** Platform + DBA Team  
@@ -73,6 +93,14 @@ backend/src/main/resources/db/migration/
    - Deploy: Apply pending migrations
    - Post-deploy: Verify schema state
    - Rollback: Execute U scripts
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-009-01: Flyway configs + directories](subtasks/TASK-009-01-flyway-configs.md) | 8h | none |
+| 2 | [TASK-009-02: Migration orchestration scripts](subtasks/TASK-009-02-migrate-orchestrator.md) | 8h | TASK-009-01 |
+| 3 | [TASK-009-03: CI validation + pre-deploy checks](subtasks/TASK-009-03-ci-validation.md) | 8h | TASK-009-02 |
 
 ### Implementation
 

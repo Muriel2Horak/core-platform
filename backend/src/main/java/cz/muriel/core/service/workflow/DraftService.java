@@ -1,6 +1,7 @@
 package cz.muriel.core.service.workflow;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.entities.MetamodelCrudService;
 import lombok.RequiredArgsConstructor;
@@ -125,10 +126,9 @@ public class DraftService {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private Map<String, Object> deserializeData(String json) {
     try {
-      return objectMapper.readValue(json, Map.class);
+      return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
     } catch (JsonProcessingException e) {
       log.error("Failed to deserialize draft data", e);
       return Map.of("nodes", List.of(), "edges", List.of());

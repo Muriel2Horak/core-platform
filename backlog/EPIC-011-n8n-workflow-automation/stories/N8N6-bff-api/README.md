@@ -1,3 +1,27 @@
+---
+id: N8
+epic: EPIC-011-n8n-workflow-automation
+title: "Deprecated"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-011-n8n-workflow-automation/stories/N8N6-bff-api/README.md
+    - backlog/EPIC-011-n8n-workflow-automation/README.md
+---
+
+# Deprecated
+
+This story is duplicated. Use `../N8N6-backend-n8n-integration-bff-pattern/README.md`.
+
+---
+
 # N8N6: Backend-for-Frontend (BFF) API - External Task Bridge
 
 **Typ:** TASK  

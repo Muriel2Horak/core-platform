@@ -3,6 +3,7 @@
 > **Status:** 🟢 **Phase 1-3 IMPLEMENTED (schema diff, hot reload, UNIQUE)** | 🟡 **Phase 4+ PLANNED (Studio UI, AI, Contracts, Streaming UX)**  
 > **Implementováno:** Srpen-Září 2025 (Phase 1-3)  
 > **LOC:** ~15,000 řádků (generator + templates + UI) + ~8,000 plánováno (Studio, AI, Contracts)
+> **Definice:** ✅ **100%** (META-004..META-021 rozpracovano s AC + tasky)
 
 ---
 
@@ -182,7 +183,7 @@ Vytvořit **low-code platformu pro generování, správu a dokumentaci entity mo
 
 ## 📊 Progress Overview
 
-**Overall Completion:** � **60% (Phase 1-3 DONE, Phase 4-6 PLANNED)**
+**Overall Completion:** 🟡 **14% (3/21 stories done; Phase 1-3 DONE)**
 
 | Phase | Feature | Stories | Status | Completion |
 |-------|---------|---------|--------|------------|
@@ -195,8 +196,8 @@ Vytvořit **low-code platformu pro generování, správu a dokumentaci entity mo
 | **Phase 7** | Governance & Approval Flow | META-007 | 📋 PLANNED | 0% |
 | **Phase 8** | Advanced Constraints | META-008 | 📋 PLANNED | 0% |
 
-**Total Stories:** 8 (3 complete, 5 planned)  
-**Implementation Time:** ~3 weeks (Phase 1-3) + ~6 weeks estimated (Phase 4-8)
+**Total Stories:** 21 (3 complete, 18 planned)  
+**Implementation Time:** ~3 weeks (Phase 1-3) + TBD for Phase 4+
 
 ---
 

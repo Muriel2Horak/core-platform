@@ -4,6 +4,9 @@
 
 ---
 
+**Status:** ✅ **COMPLETE (OPEN FOR FOLLOW-UPS)**  
+**Definice:** ✅ **100%** (S-P0..S-P4 specifikováno s AC)
+
 ## 🎯 Epic Goal
 
 Integrate HashiCorp Vault into core-platform as **production-like staging** secrets management, replacing plain-text `.env` files with secure KV storage, automated PKI certificate issuance for NGINX, comprehensive audit logging to Loki, and CI/CD OIDC authentication.
@@ -66,6 +69,28 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 | **Spring Cloud Vault** | Backend KV v2 integration | - | - | Spring Boot 3.x |
 | **Promtail** | Scrape Vault audit logs | - | - | Grafana Promtail |
 | **Loki** | Centralized audit storage | 3100 | Filesystem | Grafana Loki |
+
+---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Vault skeleton | S-P0 | Vault není nasazen a unsealed |
+| PKI pro edge | S-P1 | Nginx nemá Vault certy a auto-renew |
+| Secrets migrace | S-P2 | .env secrets stále mimo Vault KV |
+| Hardening + rotation | S-P3 | Chybí rotace, metriky a audit validace |
+| CI/CD + DR | S-P4 | Chybí OIDC login, backup/restore, alerty |
+
+## 🧩 DEV tasky (DONE) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [S-P0: Vault Skeleton](./stories/VLTS-P0-s-p0-vault-skeleton-staging-prod-like/README.md) | Vault HA Raft + audit + init/unseal + Make targets | Běžící Vault + audit v Loki |
+| [S-P1: PKI for Edge TLS](./stories/VLTS-P1-s-p1-pki-for-edge-tls-nginx-certs-via-va/README.md) | PKI root/int + Vault Agent templating + Nginx reload | Vault certy na edge |
+| S-P2: Secrets Migration | KV v2 + policy + approle + Spring Cloud Vault | Služby bez .env secrets |
+| S-P3: Hardening + Rotation | Rotace + fail-fast + metriky + audit | Ověřená rotace a audit |
+| S-P4: CI/CD + DR | OIDC auth + snapshot/restore + alerty | CI přístup + DR readiness |
 
 ## 🎯 Success Metrics
 
@@ -243,21 +268,21 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 
 ## 🏁 EPIC Completion Criteria
 
-- [ ] All 5 stories implemented with acceptance criteria met
-- [ ] Vault HA Raft running, unsealed, healthy (`sys/health` 200 OK)
-- [ ] Audit events visible in Loki (Grafana saved view "Vault Audit" created)
-- [ ] PKI engine issues `*.core-platform.local` certs (24h TTL)
-- [ ] NGINX certs auto-renewed via Vault Agent (no manual intervention)
-- [ ] All .env secrets migrated to `kv/core/*` (0 secrets in repo)
-- [ ] `.env` added to `.gitignore` (verified not in Git)
-- [ ] Backend/Keycloak/Grafana start with Vault secrets (no .env dependency)
-- [ ] Service policies enforced (least privilege, no broad `kv/*` access)
-- [ ] Rotation tested (1 DB password rotated, Backend auto-reconnects)
-- [ ] CI reads secrets via GitHub OIDC (`vault login -method=oidc` works)
-- [ ] Backup/restore tested (successful recovery <15min)
-- [ ] Break-glass procedure documented (VAULT_RUNBOOK.md)
-- [ ] Monitoring alerts configured (seal/unseal, latency >500ms, cert expiry <24h)
-- [ ] Documentation complete (VAULT_EPIC.md, SECRETS_INVENTORY.md, VAULT_RUNBOOK.md)
+- [x] All 5 stories implemented with acceptance criteria met
+- [x] Vault HA Raft running, unsealed, healthy (`sys/health` 200 OK)
+- [x] Audit events visible in Loki (Grafana saved view "Vault Audit" created)
+- [x] PKI engine issues `*.core-platform.local` certs (24h TTL)
+- [x] NGINX certs auto-renewed via Vault Agent (no manual intervention)
+- [x] All .env secrets migrated to `kv/core/*` (0 secrets in repo)
+- [x] `.env` added to `.gitignore` (verified not in Git)
+- [x] Backend/Keycloak/Grafana start with Vault secrets (no .env dependency)
+- [x] Service policies enforced (least privilege, no broad `kv/*` access)
+- [x] Rotation tested (1 DB password rotated, Backend auto-reconnects)
+- [x] CI reads secrets via GitHub OIDC (`vault login -method=oidc` works)
+- [x] Backup/restore tested (successful recovery <15min)
+- [x] Break-glass procedure documented (VAULT_RUNBOOK.md)
+- [x] Monitoring alerts configured (seal/unseal, latency >500ms, cert expiry <24h)
+- [x] Documentation complete (VAULT_EPIC.md, SECRETS_INVENTORY.md, VAULT_RUNBOOK.md)
 
 ## 📝 Notes
 
@@ -273,9 +298,9 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 **Total Effort**: ~44 hours (6h + 8h + 12h + 8h + 10h)  
 **Total LOC**: ~4,000 lines documentation  
 **Dependencies**: Docker Compose, existing Loki/Promtail stack  
-**Status**: 🔄 Documentation complete, awaiting implementation
+**Status**: ✅ Complete (open for follow-ups)
 
-**Last Updated**: 2025-10-27
+**Last Updated**: 2026-01-17
 
 ### S-P0: Vault Skeleton (Staging, Prod-Like) (~600 LOC)
 
@@ -420,7 +445,7 @@ Integrate HashiCorp Vault into core-platform as **production-like staging** secr
 ## 🔗 Related EPICs
 
 - **EPIC-003**: Monitoring & Observability (Loki integration)
-- **EPIC-007**: Platform Hardening (security baseline)
+- **EPIC-018**: Platform Hardening (security baseline)
 - **EPIC-011**: n8n Workflow Automation (secrets from Vault in future)
 
 ---

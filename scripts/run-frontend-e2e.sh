@@ -50,7 +50,7 @@ export E2E_BASE_URL=${E2E_BASE_URL:-http://localhost:8080}
 
 # Check if backend is running
 echo -e "${YELLOW}🔍 Checking if backend is running at ${E2E_BASE_URL}...${NC}"
-if ! curl -s -o /dev/null -w "%{http_code}" "${E2E_BASE_URL}/actuator/health" | grep -q "200\|401"; then
+if ! curl -s -o /dev/null -w "%{http_code}" "${E2E_BASE_URL}/api/actuator/health" | grep -q "200\|401"; then
     echo -e "${RED}❌ Backend is not running at ${E2E_BASE_URL}${NC}"
     echo ""
     echo "Please start backend first:"

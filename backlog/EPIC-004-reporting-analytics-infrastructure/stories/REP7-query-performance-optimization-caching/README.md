@@ -1,7 +1,25 @@
+---
+id: S7
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Query Performance Optimization & Caching (Phase R7)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP7-query-performance-optimization-caching/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S7: Query Performance Optimization & Caching (Phase R7)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Prosinec 2024 (Phase R7)  
 **LOC:** ~400 řádků  
 **Sprint:** Reporting Wave 4

@@ -1,7 +1,29 @@
+---
+id: INF-001
+epic: EPIC-007-infrastructure-deployment
+title: "Centralized Template Generator"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - docker/keycloak/generate-realm.sh
+    - docker/keycloak/realm-admin.json
+    - docker/keycloak/realm-admin.template.json
+    - docker/nginx/nginx-ssl.conf.template
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-001-template-generator/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-001: Centralized Template Generator
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 2 dny, ~400 LOC  
 **Owner:** Platform Team  
@@ -76,6 +98,17 @@ make generate-configs  # Generuje VŠE z templates
 1. **Performance:** <5s pro full generation
 2. **Reliability:** 0% false positives (no spurious failures)
 3. **Usability:** Clear error messages (ne "envsubst: command not found")
+
+---
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-001-01: Generator skripty + Makefile target](subtasks/TASK-001-01-generator-scripts.md) | 6h | none |
+| 2 | [TASK-001-02: Validace env promennych pro templates](subtasks/TASK-001-02-env-validation-templates.md) | 4h | TASK-001-01 |
+| 3 | [TASK-001-03: Pre-commit kontrola (lefthook)](subtasks/TASK-001-03-lefthook-precommit.md) | 2h | TASK-001-01 |
+| 4 | [TASK-001-04: CI template-check workflow](subtasks/TASK-001-04-ci-template-check.md) | 4h | TASK-001-02 |
 
 ---
 

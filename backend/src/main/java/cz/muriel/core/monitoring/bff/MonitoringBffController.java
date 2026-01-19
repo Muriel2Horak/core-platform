@@ -1,5 +1,6 @@
 package cz.muriel.core.monitoring.bff;
 
+import cz.muriel.core.monitoring.bff.service.MonitoringMetricsService;
 import cz.muriel.core.monitoring.loki.LokiClient;
 import cz.muriel.core.monitoring.loki.dto.LokiQueryRequest;
 import cz.muriel.core.monitoring.loki.dto.LokiQueryResponse;
@@ -15,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -34,6 +36,7 @@ import java.util.Map;
 public class MonitoringBffController {
 
   private final LokiClient lokiClient;
+  private final MonitoringMetricsService monitoringMetricsService;
 
   /**
    * Query logs with automatic tenant isolation
@@ -160,45 +163,45 @@ public class MonitoringBffController {
     log.info("📊 [AUDIT] tenant={} user={} action=GET_METRICS_SUMMARY hours={}", tenant,
         extractUsername(authentication), hours);
 
-    Instant end = Instant.now();
-    Instant start = end.minus(hours, ChronoUnit.HOURS);
-
-    // Query total logs
-    String totalQuery = String.format("{tenant=\"%s\"}", tenant);
-    LokiQueryRequest totalRequest = LokiQueryRequest.builder().query(totalQuery).start(start)
-        .end(end).limit(5000).build();
-    LokiQueryResponse totalResponse = lokiClient.queryLogs(totalRequest);
-
-    // Query error logs
-    String errorQuery = String.format("{tenant=\"%s\"} |~ \"(?i)(error|exception|failed)\"",
-        tenant);
-    LokiQueryRequest errorRequest = LokiQueryRequest.builder().query(errorQuery).start(start)
-        .end(end).limit(5000).build();
-    LokiQueryResponse errorResponse = lokiClient.queryLogs(errorRequest);
-
-    // Calculate metrics
-    long totalLogs = totalResponse.getData() != null
-        ? totalResponse.getData().getResult().stream()
-            .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0).sum()
-        : 0;
-
-    long errorLogs = errorResponse.getData() != null
-        ? errorResponse.getData().getResult().stream()
-            .mapToLong(stream -> stream.getValues() != null ? stream.getValues().size() : 0).sum()
-        : 0;
-
-    double errorRate = totalLogs > 0 ? (double) errorLogs / totalLogs * 100 : 0;
-
-    Map<String, Object> summary = Map.of("totalLogs", totalLogs, "errorLogs", errorLogs,
-        "errorRate", String.format("%.2f%%", errorRate), "timeRange", hours + "h", "tenant",
-        tenant);
+    Map<String, Object> summary = monitoringMetricsService.getMetricsSummary(tenant, hours);
 
     long duration = System.currentTimeMillis() - startTime;
     log.info(
         "📊 [AUDIT] tenant={} action=GET_METRICS_SUMMARY_COMPLETE totalLogs={} errorLogs={} errorRate={}% durationMs={}",
-        tenant, totalLogs, errorLogs, String.format("%.2f", errorRate), duration);
+        tenant, summary.getOrDefault("totalLogs", 0), summary.getOrDefault("errorLogs", 0),
+        String.valueOf(summary.getOrDefault("errorRate", "0")), duration);
 
     return ResponseEntity.ok(summary);
+  }
+
+  /**
+   * Query Prometheus metric series (range query)
+   */
+  @GetMapping("/metrics/{metric}") @Timed(value = "monitoring.bff.metrics.query", description = "Time to query Prometheus metrics") @Counted(value = "monitoring.bff.metrics.query.requests", description = "Total metrics query requests")
+  public ResponseEntity<Map<String, Object>> queryMetric(
+      @PathVariable String metric,
+      @RequestParam(required = false, defaultValue = "60") Integer minutes,
+      @RequestParam(required = false, defaultValue = "60") Integer stepSeconds,
+      Authentication authentication) {
+    String tenant = extractTenant(authentication);
+    log.info("📊 [AUDIT] tenant={} user={} action=QUERY_METRIC metric={} minutes={} step={}",
+        tenant, extractUsername(authentication), metric, minutes, stepSeconds);
+
+    Instant end = Instant.now();
+    Instant start = end.minus(minutes, ChronoUnit.MINUTES);
+
+    Map<String, Object> response = monitoringMetricsService.queryMetric(metric, start, end,
+        Duration.ofSeconds(stepSeconds));
+
+    return ResponseEntity.ok(response);
+  }
+
+  /**
+   * List supported metrics for native dashboard
+   */
+  @GetMapping("/metrics/available")
+  public ResponseEntity<Map<String, String>> listAvailableMetrics() {
+    return ResponseEntity.ok(monitoringMetricsService.listMetrics());
   }
 
   // ===== PRIVATE HELPERS =====

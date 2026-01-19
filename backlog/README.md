@@ -50,14 +50,17 @@ Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`*
 | EPIC-004: Reporting | `REP` | `REP1-cube-js-data-modeling` |
 | EPIC-005: Metamodel | `META` | `META1-schema-diff-detection` |
 | EPIC-006: Workflow | `WF` | `WF1-json-workflow-model` |
-| EPIC-007: Platform Hardening | `PH` | `PH1-naming-standards-linting` |
+| EPIC-018: Platform Hardening | `PH` | `PH1-naming-standards-linting` |
+| EPIC-007: Infrastructure Deployment | `INF` | `INF-001-template-generator` |
 | EPIC-008: DMS | `DMS` | `DMS1-file-upload-download-service` |
-| EPIC-009: AI Integration | `AI` | `AI1-mcp-server-setup` |
-| EPIC-010: ML Platform | `ML` | `ML1-ml-model-serving-infrastructure` |
+| EPIC-010: Agile Work Management | `AWM` | `AWM1-work-item-model` |
 | EPIC-011: n8n | `N8N` | `N8N1-n8n-platform-deployment` |
 | EPIC-012: Vault | `VLT` | `VLT1-vault-skeleton-staging` |
 | EPIC-014: UX/UI | `UX` | `UX1-mui-theme-foundation` |
 | EPIC-016: Data UX | `DUX` | `DUX1-universal-data-view-engine` |
+| EPIC-015: AI Metamodel Collaboration | `AI` | `AI-001-ai-metamodel-designer` |
+| EPIC-015: AI Metamodel Collaboration (ML track) | `ML` | `ML-001-model-serving` |
+| EPIC-017: Modular Architecture | `MOD/LIC/ADM/FWK` | `MOD-001-module-manifest-loader` |
 | EPIC-020: Secure SDLC | `SECQ` | `SECQ1-sonarqube-quality-gates` |
 
 **Proč popisné názvy?**
@@ -76,8 +79,8 @@ Stories se pojmenovávají podle patternu: **`{PREFIX}{NUM}-{descriptive-slug}`*
 make backlog-new
 
 # Nebo ručně
-cp backlog/templates/story.md backlog/EPIC-007-platform-hardening/stories/PH11-new-feature/README.md
-vim backlog/EPIC-007-platform-hardening/stories/PH11-new-feature/README.md
+cp backlog/templates/story.md backlog/EPIC-018-platform-hardening/stories/PH11-new-feature/README.md
+vim backlog/EPIC-018-platform-hardening/stories/PH11-new-feature/README.md
 ```
 
 ### 2. Naplň story s Copilot pomocí
@@ -401,15 +404,14 @@ python3 scripts/backlog/path_validator.py --story CORE-005
 # ✅ code_paths   1/1 (100%)
 #    scripts/backlog/git_tracker.sh
 # 
-# ⚠️ test_paths   0/1 (0%)
-#    ❌ MISSING (1):
-#       - scripts/backlog/test_git_tracker.sh
+# ✅ test_paths   1/1 (100%)
+#    scripts/backlog/test_integration.py
 # 
 # ✅ docs_paths   3/3 (100%)
 #    backlog/README.md, docs/development/backlog-workflow.md, CHANGELOG.md
 # 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 📈 Overall: 80% (4/5 paths exist)
+# 📈 Overall: 100% (5/5 paths exist)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Validate entire epic
@@ -417,7 +419,7 @@ python3 scripts/backlog/path_validator.py --epic EPIC-001
 
 # JSON output for automation
 python3 scripts/backlog/path_validator.py --story CORE-005 --format json | jq .
-# → {"story_id":"CORE-005","coverage":{...},"overall":{"total":5,"exist":4,"percentage":80.0}}
+# → {"story_id":"CORE-005","coverage":{...},"overall":{"total":5,"exist":5,"percentage":100.0}}
 
 # Features:
 # - Validates code_paths, test_paths, docs_paths from YAML frontmatter

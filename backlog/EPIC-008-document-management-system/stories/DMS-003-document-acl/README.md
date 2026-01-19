@@ -1,8 +1,28 @@
+---
+id: DMS-003
+epic: EPIC-008-document-management-system
+title: "Document ACL (Access Control List)"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/document/DocumentController.java
+    - backend/src/main/java/cz/muriel/core/document/DocumentService.java
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-003-document-acl/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-003: Document ACL (Access Control List)
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  
 **Priority:** 🔴 P1 (KRITICKÉ - Security & Compliance)  
-**Status:** 📋 Not Started  
+**Status:** ✅ **DONE**
 **Effort:** 0.5 dne (~400 LOC)  
 **Dependencies:** DMS-001 (Versioning)
 

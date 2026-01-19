@@ -1,6 +1,7 @@
 # EPIC-007: Infrastructure & Deployment
 
-**Status:** 🔵 **IN PROGRESS**  
+**Status:** ✅ **COMPLETE (OPEN FOR FOLLOW-UPS)**  
+**Definice:** ✅ **100%** (INF-001..INF-025 specifikovano s AC + tasky)  
 **Priority:** P0 (CRITICAL - Foundation)  
 **Effort:** ~40 hodin (core scope)  
 **Owner:** DevOps + Platform Team
@@ -32,6 +33,7 @@
 **EPIC-007 řeší POUZE infrastrukturu:**
 - ✅ Docker Compose deployment (n8n service + PostgreSQL database)
 - ✅ Nginx reverse proxy config (SSL termination, per-tenant routing)
+- ✅ Edge ochrana: WAF (ModSecurity + OWASP CRS), rate limiting, CrowdSec bans
 - ✅ Keycloak OIDC clients (admin realm + tenant realms)
 - ✅ Observability integration (Loki logs, Prometheus metrics, Nginx audit headers)
 - ✅ Environment variables (DB credentials, SSL paths, URLs)
@@ -150,7 +152,7 @@ make clean && make up
 - ✅ `.env.example` existuje s bezpečnými placeholdery
 - ✅ Všechny důležité hodnoty (DB host, jména DB, hesla, doména, Keycloak klienti, n8n config) řízeny přes env proměnné
 
-> 📖 **Security best practices**: Detailní bezpečnostní pravidla (secrets rotation, least privilege, audit requirements) viz [EPIC-000 Security Platform Hardening](../EPIC-000-security-hardening/README.md).
+> 📖 **Security best practices**: Detailní bezpečnostní pravidla (secrets rotation, least privilege, audit requirements) viz [EPIC-000 Security Platform Hardening](../EPIC-000-security-platform-hardening/README.md).
 
 **Konfigurační hodnoty v `.env.example`:**
 - `DOMAIN` - doména systému
@@ -183,6 +185,48 @@ bash scripts/smoke-test-env.sh
 
 ---
 
+## 🔍 Gap Analysis (Current vs DoD)
+
+| Area | Requirement | Story | Gap / Risk |
+| --- | --- | --- | --- |
+| Templates & env | Centralized template generation + env validation | INF-001, INF-002 | Generator/validation nejsou implementovany → konfiguracni drift |
+| Secrets | Vault-only secrets + docker secrets cleanup | INF-003, INF-021 | Secrets stale v `.env`, bez rotace |
+| SSL & domains | ACME/rotation automation | INF-004, INF-005 | Expiry risk bez auto-renewal |
+| Multi-tenancy | Realm/subdomain routing + isolation | INF-020, INF-011 | Neni end-to-end vynuceno |
+| n8n infra | Shared n8n + SSO + audit headers | INF-019 | Blokuje EPIC-011 |
+| Observability | Alerting baseline + dashboards | INF-012 | Neni definovana alerting politika |
+| CI/CD | Pipeline + enhanced gates | INF-015, INF-023 | Release proces neni standardizovan |
+| Backup/DR | Backup + restore + DR plan | INF-016, INF-017 | RPO/RTO definovane, runbooky hotove |
+| Smoke test | Automated env validation | INF-010 | Bez smoke testu nelze rychle verifikovat |
+| Edge security | WAF/DDoS protection | INF-025 | Zvysene riziko na edge |
+
+**Secondary gaps:**
+- Config drift detection (INF-013)
+- Build doctor diagnostics (INF-014)
+- Flyway migrations + rollback (INF-009, INF-008)
+- Separate DB users + least privilege (INF-007)
+
+## 🧩 Rozpad gapů na implementační tasky
+
+| Gap | Implementační tasky |
+| --- | --- |
+| Templates & env (INF-001/002) | INF-001: [TASK-001-01](stories/INF-001-template-generator/subtasks/TASK-001-01-generator-scripts.md), [TASK-001-02](stories/INF-001-template-generator/subtasks/TASK-001-02-env-validation-templates.md), [TASK-001-03](stories/INF-001-template-generator/subtasks/TASK-001-03-lefthook-precommit.md), [TASK-001-04](stories/INF-001-template-generator/subtasks/TASK-001-04-ci-template-check.md)<br>INF-002: [TASK-002-01](stories/INF-002-template-syntax/subtasks/TASK-002-01-template-inventory-conversion.md), [TASK-002-02](stories/INF-002-template-syntax/subtasks/TASK-002-02-template-validation-script.md), [TASK-002-03](stories/INF-002-template-syntax/subtasks/TASK-002-03-template-docs-migration.md) |
+| Secrets (INF-003/021) | INF-003: [TASK-003-01](stories/INF-003-docker-secrets/subtasks/TASK-003-01-secrets-structure.md), [TASK-003-02](stories/INF-003-docker-secrets/subtasks/TASK-003-02-compose-service-wiring.md), [TASK-003-03](stories/INF-003-docker-secrets/subtasks/TASK-003-03-secrets-scripts.md), [TASK-003-04](stories/INF-003-docker-secrets/subtasks/TASK-003-04-migration-ci-guard.md), [T1](stories/INF-003-docker-secrets/subtasks/T1-migrate-postgres-credentials.md), [T2](stories/INF-003-docker-secrets/subtasks/T2-migrate-keycloak-credentials.md), [T3](stories/INF-003-docker-secrets/subtasks/T3-migrate-redis-minio-secrets.md)<br>INF-021: [T1](stories/INF-021-vault-integration/subtasks/T1-deploy-vault-container.md), [T2](stories/INF-021-vault-integration/subtasks/T2-dynamic-database-credentials.md), [T3](stories/INF-021-vault-integration/subtasks/T3-pki-secrets-engine.md) |
+| SSL & domains (INF-004/005) | INF-004: [TASK-004-01](stories/INF-004-ssl-rotation/subtasks/TASK-004-01-expiry-check-rotation-script.md), [TASK-004-02](stories/INF-004-ssl-rotation/subtasks/TASK-004-02-zero-downtime-reload-logging.md), [TASK-004-03](stories/INF-004-ssl-rotation/subtasks/TASK-004-03-cron-notify.md)<br>INF-005: [TASK-005-01](stories/INF-005-lets-encrypt/subtasks/TASK-005-01-traefik-acme-service.md), [TASK-005-02](stories/INF-005-lets-encrypt/subtasks/TASK-005-02-cert-storage-renewal.md), [TASK-005-03](stories/INF-005-lets-encrypt/subtasks/TASK-005-03-monitoring-expiry-alerts.md) |
+| Multi-tenancy (INF-020/011) | INF-020: [T1](stories/INF-020-multi-tenancy/subtasks/T1-nginx-subdomain-routing.md), [T2](stories/INF-020-multi-tenancy/subtasks/T2-frontend-tenant-branding.md), [T3](stories/INF-020-multi-tenancy/subtasks/T3-backend-tenant-context.md), [T4](stories/INF-020-multi-tenancy/subtasks/T4-monitoring-isolation.md)<br>INF-011: [TASK-011-01](stories/INF-011-environment-isolation/subtasks/TASK-011-01-env-files.md), [TASK-011-02](stories/INF-011-environment-isolation/subtasks/TASK-011-02-makefile-validation.md), [TASK-011-03](stories/INF-011-environment-isolation/subtasks/TASK-011-03-docs-usage.md) |
+| n8n infra (INF-019) | INF-019: [TASK-019-01](stories/INF-019-n8n-deployment/subtasks/TASK-019-01-n8n-service-db.md), [TASK-019-02](stories/INF-019-n8n-deployment/subtasks/TASK-019-02-sso-routing.md), [TASK-019-03](stories/INF-019-n8n-deployment/subtasks/TASK-019-03-multi-tenant-mode.md), [TASK-019-04](stories/INF-019-n8n-deployment/subtasks/TASK-019-04-monitoring-logging.md) |
+| Observability (INF-012) | INF-012: [TASK-012-01](stories/INF-012-monitoring-alerting/subtasks/TASK-012-01-prometheus-exporters.md), [TASK-012-02](stories/INF-012-monitoring-alerting/subtasks/TASK-012-02-alertmanager-rules.md), [TASK-012-03](stories/INF-012-monitoring-alerting/subtasks/TASK-012-03-notifications-dashboards.md) |
+| CI/CD (INF-015/023) | INF-015: [TASK-015-01](stories/INF-015-cicd-pipeline/subtasks/TASK-015-01-ci-tests-gates.md), [TASK-015-02](stories/INF-015-cicd-pipeline/subtasks/TASK-015-02-staging-deploy-smoke.md), [TASK-015-03](stories/INF-015-cicd-pipeline/subtasks/TASK-015-03-prod-deploy-rollback.md)<br>INF-023: [T1](stories/INF-023-enhanced-cicd/subtasks/T1-multi-stage-pipeline.md), [T2](stories/INF-023-enhanced-cicd/subtasks/T2-artifact-caching.md), [T3](stories/INF-023-enhanced-cicd/subtasks/T3-quality-gates.md), [T4](stories/INF-023-enhanced-cicd/subtasks/T4-deployment-automation.md), [T5](stories/INF-023-enhanced-cicd/subtasks/T5-rollback-workflow.md) |
+| Backup/DR (INF-016/017) | INF-016: [TASK-016-01](stories/INF-016-backup-restore/subtasks/TASK-016-01-backup-schedule-storage.md), [TASK-016-02](stories/INF-016-backup-restore/subtasks/TASK-016-02-restore-pitr.md), [TASK-016-03](stories/INF-016-backup-restore/subtasks/TASK-016-03-backup-verification-alerts.md)<br>INF-017: [TASK-017-01](stories/INF-017-disaster-recovery/subtasks/TASK-017-01-dr-plan-runbooks.md), [TASK-017-02](stories/INF-017-disaster-recovery/subtasks/TASK-017-02-failover-automation.md), [TASK-017-03](stories/INF-017-disaster-recovery/subtasks/TASK-017-03-dr-drills-metrics.md) |
+| Smoke test (INF-010) | INF-010: [TASK-010-01](stories/INF-010-deployment-smoke-tests/subtasks/TASK-010-01-smoke-test-script.md), [TASK-010-02](stories/INF-010-deployment-smoke-tests/subtasks/TASK-010-02-deploy-hook-rollback.md), [TASK-010-03](stories/INF-010-deployment-smoke-tests/subtasks/TASK-010-03-notifications-logs.md) |
+| Edge security (INF-025) | INF-025: [TASK-025-01](stories/INF-025-edge-waf-ddos-protection/subtasks/TASK-025-01-modsecurity-crs.md), [TASK-025-02](stories/INF-025-edge-waf-ddos-protection/subtasks/TASK-025-02-rate-limit-conn-limit.md), [TASK-025-03](stories/INF-025-edge-waf-ddos-protection/subtasks/TASK-025-03-crowdsec-bouncer.md), [TASK-025-04](stories/INF-025-edge-waf-ddos-protection/subtasks/TASK-025-04-tests-observability-runbook.md) |
+| Config drift (INF-013) | INF-013: [TASK-013-01](stories/INF-013-config-drift-detection/subtasks/TASK-013-01-drift-script.md), [TASK-013-02](stories/INF-013-config-drift-detection/subtasks/TASK-013-02-ci-schedule.md), [TASK-013-03](stories/INF-013-config-drift-detection/subtasks/TASK-013-03-config-sync-docs.md) |
+| Build doctor (INF-014) | INF-014: [TASK-014-01](stories/INF-014-build-doctor/subtasks/TASK-014-01-build-doctor-core.md), [TASK-014-02](stories/INF-014-build-doctor/subtasks/TASK-014-02-makefile-integration.md), [TASK-014-03](stories/INF-014-build-doctor/subtasks/TASK-014-03-template-sync-check.md), [TASK-014-04](stories/INF-014-build-doctor/subtasks/TASK-014-04-docs-usage.md) |
+| Flyway + rollback (INF-009/008) | INF-009: [TASK-009-01](stories/INF-009-flyway-migrations/subtasks/TASK-009-01-flyway-configs.md), [TASK-009-02](stories/INF-009-flyway-migrations/subtasks/TASK-009-02-migrate-orchestrator.md), [TASK-009-03](stories/INF-009-flyway-migrations/subtasks/TASK-009-03-ci-validation.md)<br>INF-008: [TASK-008-01](stories/INF-008-migration-rollback/subtasks/TASK-008-01-undo-migrations-policy.md), [TASK-008-02](stories/INF-008-migration-rollback/subtasks/TASK-008-02-rollback-script-make.md), [TASK-008-03](stories/INF-008-migration-rollback/subtasks/TASK-008-03-rollback-tests-ci.md) |
+| DB users + least privilege (INF-007) | INF-007: [T1](stories/INF-007-db-separate-users/subtasks/T1-create-separate-postgres-users.md), [T2](stories/INF-007-db-separate-users/subtasks/T2-implement-row-level-security.md) |
+
+---
+
 ## 🏗️ Architektura
 
 ### Služby v prostředí
@@ -205,6 +249,10 @@ bash scripts/smoke-test-env.sh
 │    ├─→ REST API                                             │
 │    ├─→ OAuth2 Resource Server (JWT validation)             │
 │    └─→ Actuator endpoints (/health, /metrics)              │
+│                                                             │
+│  BFF (Node.js + Apollo GraphQL)                             │
+│    ├─→ REST aggregation + parallel calls                    │
+│    └─→ Tenant-aware caching (Redis)                         │
 │                                                             │
 │  Frontend (React 18, TypeScript, Vite)                      │
 │    ├─→ OAuth2 Client (Authorization Code Flow)             │
@@ -281,6 +329,7 @@ Nginx (SSL Termination & Reverse Proxy)
 - **Runtime hodnoty:** Z environment proměnných
 - **Templates:** Generované z env při startu (Keycloak realm, Nginx conf)
 - **Žádné duplicity:** DB URL jen jednou (v env), ne v properties i env
+- **Syntax:** Jednotná pravidla v `docs/templates.md`
 
 #### 2. `.env` management
 
@@ -545,10 +594,10 @@ Následující **NEPATŘÍ** do EPIC-007 a budou řešeny jinými EPICy:
 - Performance testing
 
 ### Feature moduly → vlastní EPICy
-- Metamodel Studio → EPIC-004
-- Workflow Designer → EPIC-005
-- DMS (Document Management) → EPIC-006
-- AI/MCP integrace → EPIC-016
+- Metamodel Studio → EPIC-005
+- Workflow Designer → EPIC-006
+- DMS (Document Management) → EPIC-008
+- AI/MCP integrace → EPIC-015
 
 ### Pokročilé security pro produkci
 - HSM integrace

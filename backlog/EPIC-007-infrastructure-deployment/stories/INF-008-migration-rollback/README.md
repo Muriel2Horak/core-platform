@@ -1,7 +1,38 @@
+---
+id: INF-008
+epic: EPIC-007-infrastructure-deployment
+title: "Database Migration Rollback Strategy"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-16
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/db/migration/U1__init.sql
+    - backend/src/main/resources/db/migration/U2__init_keycloak_cdc.sql
+    - backend/src/main/resources/db/migration/U3__workflow_runtime.sql
+    - backend/src/main/resources/db/migration/U4__workflow_versioning.sql
+    - backend/src/main/resources/db/migration/U5__make_service_account_token_nullable.sql
+    - backend/src/main/resources/db/migration/U6__add_admin_tenant_grafana_binding.sql
+    - backend/src/main/resources/db/migration/U7__remove_grafana_integration.sql
+    - backend/src/main/resources/db/migration/U8__make_keycloak_group_id_nullable.sql
+    - scripts/db/rollback.sh
+    - scripts/db/validate-undo-scripts.sh
+    - Makefile
+    - lefthook.yml
+  test_paths:
+    - tests/db_rollback_tests.sh
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-008-migration-rollback/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-008: Database Migration Rollback Strategy
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** HIGH  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** DBA Team  
@@ -67,6 +98,14 @@ make db-rollback VERSION=2  # Roll back to V2
 3. ✅ **Testing**
    - Test: V migration → U rollback → V re-apply
    - Data integrity check
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-008-01: Undo migrations policy](subtasks/TASK-008-01-undo-migrations-policy.md) | 6h | none |
+| 2 | [TASK-008-02: Rollback script + Make target](subtasks/TASK-008-02-rollback-script-make.md) | 6h | TASK-008-01 |
+| 3 | [TASK-008-03: Rollback tests + CI gate](subtasks/TASK-008-03-rollback-tests-ci.md) | 4h | TASK-008-02 |
 
 ### Implementation
 

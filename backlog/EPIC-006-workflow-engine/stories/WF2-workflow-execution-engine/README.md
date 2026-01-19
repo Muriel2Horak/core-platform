@@ -1,7 +1,25 @@
+---
+id: WORK-002
+epic: EPIC-006-workflow-engine
+title: "Workflow Execution Engine (Phase W3)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF2-workflow-execution-engine/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-002: Workflow Execution Engine (Phase W3)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase W3)  
 **LOC:** ~1,200 řádků  
 **Sprint:** Workflow Runtime

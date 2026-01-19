@@ -2,8 +2,6 @@ package cz.muriel.core.config;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
@@ -17,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
  * This ensures database schema exists BEFORE JPA tries to validate entities.
  */
 @Configuration @Slf4j @Order(Integer.MIN_VALUE) // Run FIRST
-@EnableAutoConfiguration(exclude = FlywayAutoConfiguration.class)
 public class FlywayInitializer {
 
   @Value("${spring.datasource.url}")

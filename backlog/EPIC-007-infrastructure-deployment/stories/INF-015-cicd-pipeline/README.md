@@ -1,7 +1,26 @@
+---
+id: INF-015
+epic: EPIC-007-infrastructure-deployment
+title: "CI/CD Pipeline Integration"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - .github/workflows/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-015-cicd-pipeline/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-015: CI/CD Pipeline Integration
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** HIGH  
 **Effort:** 3 dny, ~800 LOC  
 **Owner:** Platform Team  
@@ -59,6 +78,14 @@ PR → Unit Tests → Integration Tests → Deploy to Staging
    ```bash
    make rollback ENV=staging VERSION=v1.2.3
    ```
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-015-01: CI tests + gates](subtasks/TASK-015-01-ci-tests-gates.md) | 8h | none |
+| 2 | [TASK-015-02: Staging deploy + smoke tests](subtasks/TASK-015-02-staging-deploy-smoke.md) | 8h | TASK-015-01 |
+| 3 | [TASK-015-03: Production deploy + rollback](subtasks/TASK-015-03-prod-deploy-rollback.md) | 8h | TASK-015-02 |
 
 ### Implementation
 

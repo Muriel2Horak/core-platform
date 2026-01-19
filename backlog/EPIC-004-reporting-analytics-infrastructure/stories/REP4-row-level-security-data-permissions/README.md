@@ -1,7 +1,27 @@
+---
+id: S4
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Row-Level Security & Data Permissions (Phase R4)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/reporting/security/
+    - backend/src/main/java/cz/muriel/core/reporting/security/ReportingSecurityService.java
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP4-row-level-security-data-permissions/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S4: Row-Level Security & Data Permissions (Phase R4)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Listopad 2024 (Phase R4)  
 **LOC:** ~600 řádků  
 **Sprint:** Reporting Wave 3

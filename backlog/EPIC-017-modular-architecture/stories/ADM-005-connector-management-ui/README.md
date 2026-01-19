@@ -1,3 +1,21 @@
+---
+id: ADM-005
+epic: EPIC-017-modular-architecture
+title: "Connector Management UI"
+priority: P3
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-005-connector-management-ui/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-005: Connector Management UI
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that modules can send emails, sync with Jira, etc.
 - ⏳ Test connection button (verify credentials)
 - ⏳ Credentials encrypted before save
 - ⏳ Delete connector (confirm if used by modules)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Connector list + status/health display | 0.5d | MOD-005 |
+| 2 | Credential form + secret masking | 0.5d | 1 |
+| 3 | Enable/disable + health check trigger | 0.25d | 1 |
+| 4 | Audit log integration | 0.25d | 1 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
 
 ---
 

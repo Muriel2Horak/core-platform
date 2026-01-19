@@ -102,6 +102,8 @@ validate_env_file() {
     # Test users (required for E2E)
     "TEST_USER_PASSWORD"
     "TEST_ADMIN_PASSWORD"
+    "TEST_STUDIO_PASSWORD"
+    "TEST_ANALYST_PASSWORD"
   )
   
   source .env 2>/dev/null || { error "Failed to source .env"; return 1; }
@@ -206,7 +208,7 @@ check_service_connectivity() {
   
   # Backend
   check "Backend connectivity"
-  if docker exec core-backend curl -sf http://localhost:8080/actuator/health >/dev/null 2>&1; then
+  if docker exec core-backend curl -sf http://localhost:8080/api/actuator/health >/dev/null 2>&1; then
     success "Backend is ready"
     
     # Get actual datasource URL from backend

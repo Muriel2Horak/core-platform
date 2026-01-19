@@ -1,4 +1,17 @@
 # T2: Keycloak Mock
 **Effort:** ~3h | **LOC:** ~200
-## Objective: Token endpoint, user API, stub mappings
-## Implementation: See [S13 Story](../S13.md#t2)
+
+## Goal
+Pripravit Keycloak mock (token, userinfo, roles) pro testy.
+
+## Tasks
+- [ ] Stub token endpoint a JWKS.
+- [ ] Pridat userinfo/roles endpoint.
+- [ ] Pripravit fixtures pro admin/tenant usery.
+
+## Output
+- Keycloak mock pro deterministicke auth scenare.
+
+## Acceptance Criteria
+- [ ] Testy dostanou validni JWT z mocku.
+- [ ] Userinfo vraci role a tenant claims.

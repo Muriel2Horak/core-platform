@@ -7,8 +7,11 @@ set -e
 echo "🗄️ Initializing PostgreSQL users and databases..."
 
 # Keycloak database credentials z env proměnných
-KEYCLOAK_DB_USER="${KEYCLOAK_DB_USERNAME:-keycloak}"
+KEYCLOAK_DB_USER="${KEYCLOAK_DB_USERNAME:-keycloak_app}"
 KEYCLOAK_DB_PASS="${KEYCLOAK_DB_PASSWORD:-keycloak}"
+if [ -n "${KEYCLOAK_DB_PASSWORD_FILE:-}" ] && [ -f "$KEYCLOAK_DB_PASSWORD_FILE" ]; then
+  KEYCLOAK_DB_PASS="$(cat "$KEYCLOAK_DB_PASSWORD_FILE")"
+fi
 KEYCLOAK_DB="${KEYCLOAK_DB_NAME:-keycloak}"
 
 echo "Creating Keycloak database user: $KEYCLOAK_DB_USER"

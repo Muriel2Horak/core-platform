@@ -4,8 +4,6 @@ import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
@@ -21,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
  * (core DB), not keycloakDataSource
  */
 @Configuration @Slf4j @Order(1) // Run before other configs
-@EnableAutoConfiguration(exclude = FlywayAutoConfiguration.class)
 public class FlywayConfig {
 
   private final DataSource primaryDataSource;

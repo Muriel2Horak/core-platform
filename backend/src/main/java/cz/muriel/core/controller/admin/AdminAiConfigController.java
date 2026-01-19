@@ -1,13 +1,14 @@
 package cz.muriel.core.controller.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.muriel.core.dto.ConfigChangeEvent;
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
 import cz.muriel.core.metamodel.schema.ai.AiVisibilityMode;
 import cz.muriel.core.service.YamlPersistenceService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -29,14 +30,30 @@ import java.util.UUID;
  * Features: - Get global AI configuration - Update global AI configuration -
  * Hot reload (future: trigger metamodel reload)
  */
-@Slf4j @RestController @RequestMapping("/api/admin/ai") @RequiredArgsConstructor
+@Slf4j
+@RestController
+@RequestMapping("/api/admin/ai")
 public class AdminAiConfigController {
 
   private final GlobalMetamodelConfig globalConfig;
   private final YamlPersistenceService yamlPersistenceService;
   private final MetamodelRegistry metamodelRegistry;
-  private final KafkaTemplate<String, String> kafkaTemplate;
   private final ObjectMapper objectMapper;
+
+  // Kafka is optional - if not available, we just skip event publishing
+  @Autowired(required = false)
+  private KafkaTemplate<String, String> kafkaTemplate;
+
+  public AdminAiConfigController(
+      GlobalMetamodelConfig globalConfig,
+      YamlPersistenceService yamlPersistenceService,
+      MetamodelRegistry metamodelRegistry,
+      ObjectMapper objectMapper) {
+    this.globalConfig = globalConfig;
+    this.yamlPersistenceService = yamlPersistenceService;
+    this.metamodelRegistry = metamodelRegistry;
+    this.objectMapper = objectMapper;
+  }
 
   /**
    * Get global AI configuration
@@ -162,11 +179,15 @@ public class AdminAiConfigController {
    * Allows distributed systems to invalidate their metamodel caches
    */
   private void publishConfigChangeEvent(GlobalAiConfig aiConfig) {
+    // Skip Kafka publishing if KafkaTemplate is not available
+    if (kafkaTemplate == null) {
+      log.debug("⚠️ KafkaTemplate not available, skipping AI config change event publishing");
+      return;
+    }
+
     try {
-      Map<String, Object> event = Map.of("eventId", UUID.randomUUID().toString(), "eventType",
-          "AI_CONFIG_CHANGED", "timestamp", Instant.now().toString(), "config",
-          Map.of("enabled", aiConfig.getEnabled() != null ? aiConfig.getEnabled() : false, "mode",
-              aiConfig.getMode() != null ? aiConfig.getMode().toString() : "META_ONLY"));
+      ConfigChangeEvent event = new ConfigChangeEvent(UUID.randomUUID().toString(),
+          "AI_CONFIG_CHANGED", Instant.now().toString(), aiConfig);
 
       String eventJson = objectMapper.writeValueAsString(event);
       String topic = "platform.config.changes";

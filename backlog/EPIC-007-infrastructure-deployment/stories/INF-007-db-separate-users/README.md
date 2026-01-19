@@ -1,7 +1,36 @@
+---
+id: INF-007
+epic: EPIC-007-infrastructure-deployment
+title: "Database Separate Users Migration"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-16
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - docker/db/init/05-users.sh
+    - docker/db/init/20-keycloak-db.sh
+    - docker/db/init/25-grants.sh
+    - docker/db/init/10-keycloak.sh
+    - docker/docker-compose.yml
+    - backend/src/main/resources/application.yml
+    - backend/src/main/resources/application.properties
+    - .env.template
+    - .env.example
+    - scripts/test-role-group-sync.sh
+  test_paths:
+    - tests/db_separate_users_tests.sh
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-007-db-separate-users/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-007: Database Separate Users Migration
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** 🔥 CRITICAL (SECURITY)  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** Platform + DBA Team  
@@ -91,6 +120,15 @@ User: grafana_app   → Database: grafana   (RW only grafana)
 2. **Auditability:** pgAudit logging všech DDL/DML operací
 3. **Performance:** Connection pooling per service (HikariCP)
 4. **Compliance:** Least privilege principle (GDPR, SOC2)
+
+---
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Create Separate PostgreSQL Users per Service](subtasks/T1-create-separate-postgres-users.md) | 8h | none |
+| 2 | [T2: Implement Row-Level Security Policies](subtasks/T2-implement-row-level-security.md) | 8h | T1 |
 
 ---
 

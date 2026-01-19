@@ -30,6 +30,15 @@ export const ExportProgress: React.FC<{ jobId: string }> = ({ jobId }) => {
 
 ---
 
+## ✅ Acceptance Criteria
+
+- [ ] API vraci `status` a `progress` (0-100) pro export job.
+- [ ] UI zobrazuje progress bar + stavovy text + ETA (pokud dostupne).
+- [ ] Po dokonceni zobrazuje download tlacitko.
+- [ ] Pri selhani nabizi retry + zobrazi error message.
+
+---
+
 ## ✅ DELIVERABLES
 
 - [ ] Progress tracking

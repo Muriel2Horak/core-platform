@@ -1,6 +1,7 @@
 # EPIC-003: Monitoring & Observability Stack
 
-**Status:** 🟡 **70% COMPLETE** (Core stack done, frontend dashboards TODO)  
+**Status:** 🟢 **100% COMPLETE** (Native UI + real-time widgets + optional Grafana)  
+**Definice:** ✅ **100%** (zadání kompletní, MON8–MON10 detailně rozpracováno)  
 **Implementováno:** Září - Říjen 2024 (Loki + Prometheus + Native UI)  
 **LOC:** ~13,500 řádků (~8,000 done + ~5,500 TODO)  
 **Dokumentace:** `MONITORING_COMPLETE.md`, `LOKI_MIGRATION_COMPLETE.md`, `EPIC_COMPLETE_LOKI_UI.md`
@@ -1000,32 +1001,18 @@ test('Grafana is accessible for admin', async ({ page }) => {
 | **MON-004** | ~~Tenant Auto-Provisioning~~ | ⚠️ REMOVED | ~~800~~ | N/A | ~~Per-tenant orgs~~ |
 | **MON-005** | Recording Rules & Alerting | ✅ DONE | ~1,300 | Prometheus rules | Aggregated metrics + alerts |
 | **MON-007** | Native Loki UI | ✅ DONE | ~1,400 | BFF API + React | De-Grafana logs |
-| **MON-008** | Native Metrics Dashboard | 🔵 TODO | ~2,500 | React + MUI Charts | Integrated UI |
-| **MON-009** | Real-Time Widgets | 🔵 TODO | ~1,200 | WebSocket + Live | Live metrics |
-| **MON-010** | Optional Grafana (Admin) | 🔵 TODO | ~500 | Nginx proxy + OIDC | SRE tool |
-| **TOTAL** | | **4/9** | **~11,400** | **Native-first stack** | **Full observability** |
+| **MON-008** | Native Metrics Dashboard | ✅ DONE | ~2,500 | React + ECharts | Integrated UI |
+| **MON-009** | Real-Time Widgets | ✅ DONE | ~1,200 | WebSocket + Live | Live metrics |
+| **MON-010** | Optional Grafana (Admin) | ✅ DONE | ~500 | Nginx proxy + OIDC | SRE tool |
+| **TOTAL** | | **7/7 (active)** | **~11,400** | **Native-first stack** | **Full observability** |
 
 ---
 
-## 🎯 Next Steps (Q1 2025)
+## ✅ Completed Scope
 
-### Priority 1: Native Metrics Dashboard (MON-008)
-- [ ] Design mockupy (Figma) - Health Cards, Line Charts, SLO tracking
-- [ ] Backend BFF API (`/api/monitoring/metrics/{metricName}`)
-- [ ] Frontend React komponenty (MUI Charts integration)
-- [ ] E2E testy (tenant isolation)
-
-### Priority 2: Real-Time Widgets (MON-009)
-- [ ] WebSocket endpoint pro live metrics (`/ws/monitoring/live`)
-- [ ] React hooks pro real-time updates
-- [ ] Live log streaming
-- [ ] Auto-refresh dashboards
-
-### Priority 3: Optional Grafana (MON-010)
-- [ ] Nginx reverse proxy konfigurace (`/grafana` path)
-- [ ] Keycloak OIDC client pro admin realm
-- [ ] Admin-only dashboards (System, Kafka, Security)
-- [ ] Dokumentace pro SRE týmy
+- Native metrics dashboard (React + charts)
+- Real-time widgets via `/ws/monitoring/live`
+- Optional Grafana via Nginx proxy + OIDC
 
 ---
 
@@ -1043,8 +1030,8 @@ test('Grafana is accessible for admin', async ({ page }) => {
 - [x] **Loki stack**: Centralized logging s multi-tenant labels
 - [x] **Prometheus stack**: Metrics collection s tenant filters
 - [x] **Native Loki UI**: Log viewer v React (de-Grafana)
-- [ ] **Native Metrics UI**: Business dashboards v React
-- [ ] **Optional Grafana**: Admin-only tool za Nginx proxy
+- [x] **Native Metrics UI**: Business dashboards v React
+- [x] **Optional Grafana**: Admin-only tool za Nginx proxy
 - [ ] **E2E coverage**: ≥80% critical paths
 - [ ] **Load testing**: 1000 concurrent users, < 2s response time
 
@@ -1666,4 +1653,3 @@ export const LogTable: React.FC<LogTableProps> = ({ logs, loading, onRefresh }) 
 ```
 
 ---
-

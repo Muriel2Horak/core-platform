@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
@@ -116,21 +117,18 @@ public class FrontendLogsController {
     }
     if (enriched.get("context") != null) {
       Object context = enriched.get("context");
-      if (context instanceof Map) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> contextMap = (Map<String, Object>) context;
-        details.putAll(contextMap);
+      if (context instanceof Map<?, ?> contextMap) {
+        details.putAll(coerceMap(contextMap));
       }
     }
     if (enriched.get("http") != null) {
       Object http = enriched.get("http");
-      if (http instanceof Map) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> httpMap = (Map<String, Object>) http;
-        details.put("method", httpMap.get("method"));
-        details.put("http_status", httpMap.get("status"));
-        details.put("duration", httpMap.get("duration"));
-        details.put("endpoint", httpMap.get("endpoint"));
+      if (http instanceof Map<?, ?> httpMap) {
+        Map<String, Object> mapped = coerceMap(httpMap);
+        details.put("method", mapped.get("method"));
+        details.put("http_status", mapped.get("status"));
+        details.put("duration", mapped.get("duration"));
+        details.put("endpoint", mapped.get("endpoint"));
       }
     }
 
@@ -207,23 +205,7 @@ public class FrontendLogsController {
     }
 
     // 🔧 FIX: Bezpečné parsování details objektu
-    Map<String, Object> details = null;
-    Object detailsObj = logEntry.get("details");
-    if (detailsObj instanceof Map) {
-      @SuppressWarnings("unchecked")
-      Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
-      details = detailsMap;
-    } else if (detailsObj instanceof String) {
-      // Pokus o parsování JSON stringu
-      try {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> parsedDetails = objectMapper.readValue((String) detailsObj, Map.class);
-        details = parsedDetails;
-      } catch (Exception e) {
-        // Pokud se nepodaří parsovat, vytvoříme jednoduchý map
-        details = Map.of("raw", detailsObj.toString());
-      }
-    }
+    Map<String, Object> details = parseDetails(logEntry.get("details"));
 
     // 🎯 PŘIDÁNO: Username jako label pro filtrování
     String username = (String) logEntry.get("login");
@@ -283,6 +265,41 @@ public class FrontendLogsController {
     return stream;
   }
 
+  private Map<String, Object> parseDetails(Object detailsObj) {
+    if (detailsObj == null) {
+      return null;
+    }
+    if (detailsObj instanceof Map<?, ?> map) {
+      return coerceMap(map);
+    }
+    if (detailsObj instanceof String detailsStr) {
+      if (detailsStr.trim().startsWith("{")) {
+        try {
+          return objectMapper.readValue(detailsStr,
+              new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+          return Map.of("raw_string", detailsStr);
+        }
+      }
+      return Map.of("message", detailsStr);
+    }
+    try {
+      String serialized = objectMapper.writeValueAsString(detailsObj);
+      return Map.of("serialized_data", serialized);
+    } catch (Exception e) {
+      return Map.of("toString_data", detailsObj.toString());
+    }
+  }
+
+  private Map<String, Object> coerceMap(Map<?, ?> source) {
+    Map<String, Object> result = new HashMap<>();
+    for (Map.Entry<?, ?> entry : source.entrySet()) {
+      String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+      result.put(key, entry.getValue());
+    }
+    return result;
+  }
+
   private String categorizeHttpStatus(String status) {
     try {
       int statusCode = Integer.parseInt(status);
@@ -304,24 +321,7 @@ public class FrontendLogsController {
     String operation = (String) logEntry.get("operation");
     String level = (String) logEntry.get("level");
 
-    // 🔧 FIX: Bezpečné parsování details objektu (stejná oprava jako výše)
-    Map<String, Object> details = null;
-    Object detailsObj = logEntry.get("details");
-    if (detailsObj instanceof Map) {
-      @SuppressWarnings("unchecked")
-      Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
-      details = detailsMap;
-    } else if (detailsObj instanceof String) {
-      // Pokus o parsování JSON stringu
-      try {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> parsedDetails = objectMapper.readValue((String) detailsObj, Map.class);
-        details = parsedDetails;
-      } catch (Exception e) {
-        // Pokud se nepodaří parsovat, details zůstanou null
-        details = null;
-      }
-    }
+    Map<String, Object> details = parseDetails(logEntry.get("details"));
 
     // Security události
     if (details != null && "security".equals(details.get("category"))) {
@@ -380,46 +380,7 @@ public class FrontendLogsController {
     String operation = (String) logEntry.get("operation");
     String message = (String) logEntry.get("message");
 
-    // 🔧 FIX: Kompletně přepsané bezpečné zpracování details objektu
-    Map<String, Object> details = null;
-    Object detailsObj = logEntry.get("details");
-
-    if (detailsObj != null) {
-      if (detailsObj instanceof Map) {
-        try {
-          @SuppressWarnings("unchecked")
-          Map<String, Object> detailsMap = (Map<String, Object>) detailsObj;
-          details = detailsMap;
-        } catch (ClassCastException e) {
-          // Pokud cast selže, vytvoříme wrapper
-          details = Map.of("raw_data", detailsObj.toString());
-        }
-      } else if (detailsObj instanceof String) {
-        String detailsStr = (String) detailsObj;
-        if (detailsStr.trim().startsWith("{")) {
-          // Pokus o parsování JSON stringu
-          try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> parsedDetails = objectMapper.readValue(detailsStr, Map.class);
-            details = parsedDetails;
-          } catch (Exception e) {
-            // Pokud parsování selže, použijeme string wrapper
-            details = Map.of("raw_string", detailsStr);
-          }
-        } else {
-          // Obyčejný string
-          details = Map.of("message", detailsStr);
-        }
-      } else {
-        // Pro všechny ostatní typy (List, Number, Boolean, atd.)
-        try {
-          String serialized = objectMapper.writeValueAsString(detailsObj);
-          details = Map.of("serialized_data", serialized);
-        } catch (Exception e) {
-          details = Map.of("toString_data", detailsObj.toString());
-        }
-      }
-    }
+    Map<String, Object> details = parseDetails(logEntry.get("details"));
 
     // 🎯 FIX: Bezpečné získání username z details
     if ((login == null || "anonymous".equals(login) || "null".equals(login)) && details != null) {

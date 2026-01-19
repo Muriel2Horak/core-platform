@@ -3,7 +3,9 @@ package cz.muriel.core.streaming;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.TestRestClientConfig;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -25,13 +27,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  * redaction, DIFF/SNAPSHOT, max size
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(TestRestClientConfig.class)
 public class PriorityAndPoliciesIT extends AbstractIntegrationTest {
 
   @Autowired
   private JdbcTemplate jdbcTemplate;
 
   @Autowired
-  private TestRestTemplate restTemplate;
+  private RestTemplate restTemplate;
 
   @Test
   void testPriorityLanesProcessingOrder() throws Exception {

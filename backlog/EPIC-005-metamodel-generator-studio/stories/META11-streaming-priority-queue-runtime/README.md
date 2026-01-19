@@ -1,7 +1,25 @@
+---
+id: META-011
+epic: EPIC-005-metamodel-generator-studio
+title: "Streaming & Priority Queue Runtime ⚡"
+priority: P0
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "160 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META11-streaming-priority-queue-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-011: Streaming & Priority Queue Runtime ⚡
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL** - Schema existuje, runtime CHYBÍ!  
+**Status:** 🟡 **READY**
 **Priorita:** P0 (Critical - Start Immediately)  
 **Estimated LOC:** ~2,000 řádků  
 **Effort:** 4 týdny (160 hodin)
@@ -146,6 +164,18 @@ Jako **platform developer**, chci **runtime implementaci streaming & priority qu
   }
   ```
 - **AND** Kafka consumers mohou filtrovat per-tenant
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Outbox + priority queue storage + scheduler | 45h | META-001 |
+| 2 | Kafka producer + payload modes + topic naming | 40h | T1, META-010 |
+| 3 | CDC diff + versioning + optimistic lock hooky | 35h | T1 |
+| 4 | DLQ/retry + presence integration | 25h | T2, EPIC-003 |
+| 5 | Integration testy + docs (event schema) | 15h | T1, T2, T3, T4 |
 
 ---
 

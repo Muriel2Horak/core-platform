@@ -1,0 +1,452 @@
+name: Quality Gates (Nightly)
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Setup Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Run unit tests
+        run: |
+          set +e
+          ./backend/mvnw -f backend/pom.xml -DskipITs test
+          backend_status=$?
+          npm --prefix frontend ci
+          npm_status=$?
+          npm --prefix frontend run test:run
+          frontend_status=$?
+          status=pass
+          if [ $backend_status -ne 0 ] || [ $npm_status -ne 0 ] || [ $frontend_status -ne 0 ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name unit-tests --status "$status" --details "backend:$backend_status frontend_install:$npm_status frontend_tests:$frontend_status"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-unit-tests
+          path: gate-results/unit-tests.json
+
+  sast:
+    permissions:
+      contents: read
+      pull-requests: read
+      security-events: write
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_BACKEND_PROJECT_KEY: ${{ secrets.SONAR_BACKEND_PROJECT_KEY }}
+      SONAR_FRONTEND_PROJECT_KEY: ${{ secrets.SONAR_FRONTEND_PROJECT_KEY }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Setup Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Initialize CodeQL
+        id: codeql_init
+        uses: github/codeql-action/init@4bdb89f48054571735e3792627da6195c57459e2
+        continue-on-error: true
+        with:
+          languages: java,javascript
+      - name: Build for CodeQL
+        id: codeql_build
+        continue-on-error: true
+        run: |
+          ./backend/mvnw -f backend/pom.xml -DskipTests package
+          npm --prefix frontend ci
+      - name: Analyze CodeQL
+        id: codeql_analyze
+        uses: github/codeql-action/analyze@4bdb89f48054571735e3792627da6195c57459e2
+        continue-on-error: true
+      - name: SonarQube scan (backend)
+        id: sonar_backend
+        continue-on-error: true
+        if: env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != ''
+        run: |
+          project_key="${SONAR_BACKEND_PROJECT_KEY:-core-platform-backend}"
+          ./backend/mvnw -f backend/pom.xml -DskipTests sonar:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.login="${SONAR_TOKEN}" \
+            -Dsonar.projectKey="${project_key}"
+      - name: SonarQube scan (frontend)
+        id: sonar_frontend
+        continue-on-error: true
+        if: env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != ''
+        uses: sonarsource/sonarqube-scan-action@13990a695682794b53148ff9f6a8b6e22e43955e
+        with:
+          projectBaseDir: frontend
+          args: >
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.projectKey=${{ secrets.SONAR_FRONTEND_PROJECT_KEY || 'core-platform-frontend' }}
+            -Dsonar.sources=src
+      - name: Write SAST gate result
+        if: always()
+        run: |
+          status=pass
+          sonar_backend_outcome="${{ steps.sonar_backend.outcome }}"
+          sonar_frontend_outcome="${{ steps.sonar_frontend.outcome }}"
+          if [ -z "$sonar_backend_outcome" ] || [ "$sonar_backend_outcome" = "skipped" ]; then
+            sonar_backend_outcome="success"
+          fi
+          if [ -z "$sonar_frontend_outcome" ] || [ "$sonar_frontend_outcome" = "skipped" ]; then
+            sonar_frontend_outcome="success"
+          fi
+          if [ "${{ steps.codeql_init.outcome }}" != "success" ] || \
+             [ "${{ steps.codeql_build.outcome }}" != "success" ] || \
+             [ "${{ steps.codeql_analyze.outcome }}" != "success" ] || \
+             [ "$sonar_backend_outcome" != "success" ] || \
+             [ "$sonar_frontend_outcome" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name sast --status "$status" --details "codeql:${{ steps.codeql_analyze.outcome }} sonar_backend:${{ steps.sonar_backend.outcome || 'skipped' }} sonar_frontend:${{ steps.sonar_frontend.outcome || 'skipped' }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-sast
+          path: gate-results/sast.json
+
+  sca:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Setup Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Dependency checks
+        run: |
+          set +e
+          ./backend/mvnw -f backend/pom.xml -DskipTests dependency-check:check
+          backend_status=$?
+          npm --prefix frontend ci
+          npm_status=$?
+          npm --prefix frontend audit --omit=dev --audit-level=high
+          frontend_status=$?
+          status=pass
+          if [ $backend_status -ne 0 ] || [ $npm_status -ne 0 ] || [ $frontend_status -ne 0 ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name sca --status "$status" --details "backend:$backend_status frontend_install:$npm_status frontend_audit:$frontend_status"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-sca
+          path: gate-results/sca.json
+
+  secret-scan:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: GitLeaks scan
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+        continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          config-path: .gitleaks.toml
+          report-path: gitleaks-report.json
+      - name: Write secret scan gate result
+        if: always()
+        run: |
+          status=pass
+          gitleaks_outcome="${{ steps.gitleaks.outcome }}"
+          if [ -z "$gitleaks_outcome" ] || [ "$gitleaks_outcome" = "skipped" ]; then
+            gitleaks_outcome="success"
+          fi
+          if [ "$gitleaks_outcome" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name secret-scan --status "$status" --details "gitleaks:${{ steps.gitleaks.outcome || 'skipped' }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-secret-scan
+          path: gate-results/secret-scan.json
+
+  iac-lint:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Hadolint
+        id: hadolint
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf
+        continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          recursive: true
+          config: .hadolint.yaml
+      - name: actionlint
+        id: actionlint
+        uses: rhysd/actionlint@c6bd06256dd700a45e483869bcdcf304239393a6
+        continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
+      - name: Kube-linter
+        id: kube_linter
+        uses: stackrox/kube-linter-action@87802a2f4e01abebb3ee3c67a3002fea71f6eae5
+        continue-on-error: true
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          directory: k8s
+          config: .kube-linter.yaml
+      - name: Nginx config lint
+        id: nginx_lint
+        continue-on-error: true
+        run: scripts/ci/nginx-lint.sh
+      - name: Write IaC lint gate result
+        if: always()
+        run: |
+          status=pass
+          hadolint_outcome="${{ steps.hadolint.outcome }}"
+          actionlint_outcome="${{ steps.actionlint.outcome }}"
+          kube_outcome="${{ steps.kube_linter.outcome }}"
+          nginx_outcome="${{ steps.nginx_lint.outcome }}"
+          for outcome in hadolint_outcome actionlint_outcome kube_outcome nginx_outcome; do
+            value="${!outcome}"
+            if [ -z "$value" ] || [ "$value" = "skipped" ]; then
+              printf -v "$outcome" "%s" "success"
+            fi
+          done
+          if [ "$hadolint_outcome" != "success" ] || \
+             [ "$actionlint_outcome" != "success" ] || \
+             [ "$kube_outcome" != "success" ] || \
+             [ "$nginx_outcome" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name iac-lint --status "$status" --details "hadolint:${{ steps.hadolint.outcome }} actionlint:${{ steps.actionlint.outcome }} kube:${{ steps.kube_linter.outcome }} nginx:${{ steps.nginx_lint.outcome }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-iac-lint
+          path: gate-results/iac-lint.json
+
+  dast:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      RUN_DAST: "1"
+      DAST_TARGET_URL: ${{ secrets.DAST_TARGET_URL }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: DAST scan
+        id: dast_scan
+        continue-on-error: true
+        run: scripts/ci/dast-smoke.sh
+      - name: Write DAST gate result
+        if: always()
+        run: |
+          status=pass
+          if [ "${{ steps.dast_scan.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name dast --status "$status" --details "dast:${{ steps.dast_scan.outcome }}"
+      - name: Upload ZAP report
+        if: ${{ always() && github.actor != 'nektos/act' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: zap-report
+          path: |
+            zap_report.html
+            zap_report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-dast
+          path: gate-results/dast.json
+
+  security-regression:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      RUN_SECURITY_REGRESSION: "1"
+      SECURITY_REGRESSION_MODE: "full"
+      KC_BASE: ${{ secrets.KC_BASE }}
+      KC_REALM: ${{ secrets.KC_REALM }}
+      KC_CLIENT_ID: ${{ secrets.KC_CLIENT_ID }}
+      TEST_USER1: ${{ secrets.TEST_USER1 }}
+      TEST_PASSWORD1: ${{ secrets.TEST_PASSWORD1 }}
+      TEST_USER2: ${{ secrets.TEST_USER2 }}
+      TEST_PASSWORD2: ${{ secrets.TEST_PASSWORD2 }}
+      TENANT1_KEY: ${{ secrets.TENANT1_KEY }}
+      TENANT2_KEY: ${{ secrets.TENANT2_KEY }}
+      BE_BASE: ${{ secrets.BE_BASE }}
+      BE_API_PATH: ${{ secrets.BE_API_PATH }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      LOKI_BASE: ${{ secrets.LOKI_BASE }}
+      SERVICE_LABEL: ${{ secrets.SERVICE_LABEL }}
+      TIMEOUT: ${{ secrets.TIMEOUT }}
+      RETRY_COUNT: ${{ secrets.RETRY_COUNT }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Prepare security test env
+        run: |
+          cat > tests/.env <<EOF
+          KC_BASE=${KC_BASE:-https://admin.core-platform.local}
+          KC_REALM=${KC_REALM:-admin}
+          KC_CLIENT_ID=${KC_CLIENT_ID:-web}
+          TEST_USER1=${TEST_USER1:-test}
+          TEST_PASSWORD1=${TEST_PASSWORD1:-Test.1234}
+          TEST_USER2=${TEST_USER2:-test_admin}
+          TEST_PASSWORD2=${TEST_PASSWORD2:-Test.1234}
+          TENANT1_KEY=${TENANT1_KEY:-admin}
+          TENANT2_KEY=${TENANT2_KEY:-admin}
+          BE_BASE=${BE_BASE:-https://admin.core-platform.local}
+          BE_API_PATH=${BE_API_PATH:-/api}
+          DB_HOST=${DB_HOST:-localhost}
+          DB_PORT=${DB_PORT:-5432}
+          DB_NAME=${DB_NAME:-core}
+          DB_USER=${DB_USER:-core}
+          DB_PASSWORD=${DB_PASSWORD:-core}
+          LOKI_BASE=${LOKI_BASE:-http://localhost:3100}
+          SERVICE_LABEL=${SERVICE_LABEL:-core-platform-backend}
+          TIMEOUT=${TIMEOUT:-30}
+          RETRY_COUNT=${RETRY_COUNT:-3}
+          EOF
+      - name: Security regression tests
+        id: sec_regression
+        continue-on-error: true
+        run: scripts/ci/security-regression.sh
+      - name: Write security regression gate result
+        if: always()
+        run: |
+          status=pass
+          if [ "${{ steps.sec_regression.outcome }}" != "success" ]; then
+            status=fail
+          fi
+          scripts/ci/write-gate-result.sh --name security-regression --status "$status" --details "security-regression:${{ steps.sec_regression.outcome }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-security-regression
+          path: gate-results/security-regression.json
+
+  ai-guardrails:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: AI risky pattern scan
+        id: ai_scan
+        continue-on-error: true
+        run: |
+          base=$(git rev-parse HEAD~1)
+          head=$(git rev-parse HEAD)
+          scripts/ci/check-ai-risky-patterns.sh --base "$base" --head "$head"
+      - name: Write AI guardrails gate result
+        if: always()
+        run: |
+          status=pass
+          if [ "${{ steps.ai_scan.outcome }}" != "success" ]; then
+            status=warn
+            echo "::warning::AI guardrails detected risky patterns. Review the checklist before merge."
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              echo "- AI guardrails: WARN (risky patterns detected)" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          scripts/ci/write-gate-result.sh --name ai-guardrails --status "$status" --details "ai-scan:${{ steps.ai_scan.outcome }}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-results-ai-guardrails
+          path: gate-results/ai-guardrails.json
+
+  aggregate:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    needs:
+      - unit-tests
+      - sast
+      - sca
+      - secret-scan
+      - iac-lint
+      - dast
+      - security-regression
+      - ai-guardrails
+    if: always()
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Download gate results
+        if: ${{ github.actor != 'nektos/act' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: gate-results-*
+          path: gate-results
+          merge-multiple: true
+      - name: Aggregate quality gates
+        if: ${{ github.actor != 'nektos/act' }}
+        run: scripts/ci/aggregate-gates.sh --event nightly --results gate-results --output gate-summary
+      - name: Collect compliance evidence
+        if: ${{ github.actor != 'nektos/act' }}
+        run: scripts/ci/collect-evidence.sh gate-summary/summary.json compliance-evidence
+      - name: Skip aggregation for act
+        if: ${{ github.actor == 'nektos/act' }}
+        run: echo "Skipping aggregation in act."
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: gate-summary
+          path: gate-summary
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ github.actor != 'nektos/act' }}
+        with:
+          name: compliance-evidence
+          path: compliance-evidence

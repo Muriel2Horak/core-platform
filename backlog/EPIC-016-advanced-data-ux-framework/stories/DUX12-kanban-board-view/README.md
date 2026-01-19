@@ -1,7 +1,25 @@
+---
+id: S12
+epic: EPIC-016-advanced-data-ux-framework
+title: "Kanban Board View"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "120 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX12-kanban-board-view/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S12: Kanban Board View
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟡 **P1 - HIGH**  
 **Effort:** ~120 hours  
 **Sprint:** 8-10  

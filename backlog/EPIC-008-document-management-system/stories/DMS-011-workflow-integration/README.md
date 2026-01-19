@@ -1,3 +1,21 @@
+---
+id: DMS-011
+epic: EPIC-008-document-management-system
+title: "Workflow Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-011-workflow-integration/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-011: Workflow Integration
 
 **Epic:** EPIC-008 Document Management System  

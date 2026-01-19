@@ -1,3 +1,21 @@
+---
+id: FWK-004
+epic: EPIC-017-modular-architecture
+title: "Helm Chart Distribution"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/FWK-004-helm-chart-distribution/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # FWK-004: Helm Chart Distribution
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that I can run CORE in Kubernetes with my custom modules.
 - ⏳ Configurable via `values.yaml` (DB URL, Redis, Kafka, modules)
 - ⏳ Volume mounts for custom modules
 - ⏳ Horizontal Pod Autoscaling (HPA)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Helm chart skeleton + values schema | 0.5d | none |
+| 2 | Secrets integration + TLS config | 0.5d | 1 |
+| 3 | Publish to chart repo | 0.25d | 1 |
+| 4 | Install/upgrade docs | 0.25d | 1 |
+| 5 | CI lint + helm test | 0.25d | 1 |
 
 ---
 

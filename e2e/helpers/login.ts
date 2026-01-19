@@ -30,6 +30,7 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
   
   // Navigate to app (should redirect to Keycloak if not logged in)
   await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
   
   // 🔧 FIX: Check login status AFTER navigation
   const alreadyLoggedIn = await isLoggedIn(page);
@@ -38,11 +39,23 @@ export async function login(page: Page, options: LoginOptions = {}): Promise<voi
     return;
   }
 
+  // Wait for possible redirect to Keycloak (avoid race with SPA routing)
+  const keycloakUrlMatch = (url: URL) =>
+    url.href.includes('/realms/') && url.href.includes('/protocol/openid-connect');
+  if (!keycloakUrlMatch(new URL(page.url()))) {
+    try {
+      await page.waitForURL(keycloakUrlMatch, { timeout: 10000 });
+    } catch {
+      // If no redirect, continue; we'll re-check below.
+    }
+  }
+
   // Wait for Keycloak login page - improved detection
   const currentUrl = page.url();
   const isKeycloakPage = currentUrl.includes('/realms/') && currentUrl.includes('/protocol/openid-connect');
   
   if (isKeycloakPage) {
+    await page.waitForSelector('input[name="username"]', { timeout: 10000 });
     // Fill login form
     await page.fill('input[name="username"]', username);
     await page.fill('input[name="password"]', password);

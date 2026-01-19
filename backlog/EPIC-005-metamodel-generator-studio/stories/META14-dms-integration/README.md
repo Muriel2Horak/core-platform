@@ -1,3 +1,21 @@
+---
+id: META-014
+epic: EPIC-005-metamodel-generator-studio
+title: "DMS Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "80 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META14-dms-integration/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-014: DMS Integration
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -57,6 +75,17 @@ attachments:
 - **GIVEN** entita s `attachments.enabled: true`
 - **THEN** detail view má záložku "Documents"
 - **Obsahuje**: Seznam souborů, upload button, preview, download
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Attachments schema + validation + storage config | 15h | META-001 |
+| 2 | Backend API + storage providers (MinIO/external) | 35h | T1 |
+| 3 | UI Document tab + permissions | 20h | T2, EPIC-014 |
+| 4 | Testy + docs (upload/download/versioning) | 10h | T2, T3 |
 
 ---
 

@@ -10,6 +10,10 @@ BUILD_TS := $(shell date +%Y%m%d-%H%M%S)
 LOG_DIR := diagnostics
 LOG_FILE := $(LOG_DIR)/build-$(BUILD_TS).log
 JSON_REPORT := $(LOG_DIR)/build-report-$(BUILD_TS).json
+VAULT_COMPOSE := docker compose -f docker/docker-compose.yml -f docker/docker-compose.vault.yml --env-file .env
+SKIP_DOCTOR ?= false
+
+include scripts/build-doctor/Makefile.doctor
 
 .PHONY: help test-mt report-mt test-and-report clean-artifacts backlog-new backlog-help
 .PHONY: up down clean clean-fast rebuild doctor watch verify verify-full
@@ -41,6 +45,7 @@ help:
 	@echo "  up              - Start production environment"
 	@echo "  down            - Stop all services"
 	@echo "  restart         - Restart all services"
+	@echo "  deploy          - Deploy with post-deploy smoke tests"
 	@echo "  rebuild         - Rebuild with cache (FAST ⚡)"
 	@echo "  rebuild-clean   - Rebuild without cache (slow but clean)"
 	@echo "  clean           - Clean restart + FULL E2E testing 🧪"
@@ -50,6 +55,22 @@ help:
 	@echo "  test-backend          - Backend UNIT tests only (fast, 2-5 min)"
 	@echo "  test-backend-full     - Backend ALL tests (unit + integration, 10-15 min)"
 	@echo "  test-frontend         - Frontend unit tests"
+	@echo "  test-build-doctor     - Build Doctor pre-flight tests"
+	@echo "  test-db-separate-users - DB user isolation checks (core/keycloak/grafana)"
+	@echo "  test-smoke-tests      - Smoke test script dry-run"
+	@echo "  test-bff              - BFF GraphQL wiring checks"
+	@echo "  test-db-backup        - Backup/restore dry-run tests"
+	@echo "  test-dr-plan          - DR plan + automation checks"
+	@echo "  test-ssl-rotation     - SSL rotation dry-run"
+	@echo "  test-letsencrypt      - Let's Encrypt dry-run checks"
+	@echo "  test-vault-skeleton   - Vault S-P0 config checks"
+	@echo "  test-vault-pki        - Vault S-P1 PKI config checks"
+	@echo "  test-vault-migration  - Vault S-P2 secrets migration checks"
+	@echo "  test-vault-rotation   - Vault S-P3 rotation checks"
+	@echo "  test-vault-oidc       - Vault S-P4 OIDC config checks"
+	@echo "  test-vault-snapshot   - Vault S-P4 snapshot checks"
+	@echo "  test-vault-monitoring - Vault S-P4 monitoring checks"
+	@echo "  test-monitoring-epic3 - EPIC-003 completion checks"
 	@echo "  test-all              - All unit tests (backend + frontend)"
 	@echo "  test-mt               - Multitenancy tests"
 	@echo "  test-monitoring       - Monitoring tests (deploy + runtime)"
@@ -60,12 +81,33 @@ help:
 	@echo "  test-e2e-sync         - Keycloak Sync E2E tests (10 tests)"
 	@echo "  test-e2e-loki         - Loki monitoring UI E2E tests (LogViewer + CSV)"
 	@echo "  smoke-test-loki       - Quick API validation (curl-based, 1-2 min)"
+	@echo "  smoke-tests           - Post-deploy smoke tests"
 	@echo "  verify                - Quick smoke tests (health checks)"
 	@echo "  verify-full           - Full integration tests"
 	@echo ""
 	@echo "🔍 Environment Validation:"
 	@echo "  env-validate    - Quick .env validation (file exists, vars set)"
 	@echo "  doctor          - Full health check (.env + service connectivity)"
+	@echo "  validate-templates - Validate envsubst template syntax"
+	@echo "  ssl-rotate-check - Check and rotate SSL certificates"
+	@echo "  ssl-expiry-check - Check Let's Encrypt certificate expiry"
+	@echo ""
+	@echo "🔐 Vault:"
+	@echo "  vault-up        - Start Vault + Vault Agent (vault-only secrets)"
+	@echo "  vault-bootstrap - Init/unseal Vault + seed secrets + AppRole"
+	@echo "  vault-seed      - Seed secrets from .env into Vault"
+	@echo "  vault-approle   - Recreate Vault Agent AppRole creds"
+	@echo "  vault-push-secrets - Seed secrets into Vault (kv/core)"
+	@echo "  vault-list-secrets - List secrets under kv/core"
+	@echo "  vault-pki-setup - Setup Vault PKI root + intermediate CAs"
+	@echo "  vault-pki-issue - Issue edge TLS cert into vault_secrets"
+	@echo "  vault-rotate-backend-db-pass - Rotate backend DB password"
+	@echo "  vault-oidc-setup - Configure GitHub Actions OIDC auth"
+	@echo "  vault-snapshot  - Save Vault Raft snapshot"
+	@echo "  vault-restore   - Restore Vault Raft snapshot"
+	@echo "  vault-smoke     - Vault health + audit log checks"
+	@echo "  vault-smoke-runtime - Vault KV access smoke check"
+	@echo "  vault-logs      - Tail Vault logs"
 	@echo ""
 	@echo "� Backlog Management:"
 	@echo "  backlog-new     - Create new User Story from template"
@@ -136,6 +178,12 @@ help-advanced:
 	@echo "💾 Database:"
 	@echo "  reset-db           - Reset database data"
 	@echo "  db-clean-migrate   - Clean DB & run fresh migrations (DEV/CI only)"
+	@echo "  db-rollback        - Roll back Flyway migrations (VERSION=)"
+	@echo "  db-rollback-test   - Validate undo scripts + dry-run rollback"
+	@echo "  validate-undo-migrations - Check every V has U migration"
+	@echo "  db-backup          - Run database backup (full + base)"
+	@echo "  db-restore         - Restore from backup (DB=, FILE=, TIMESTAMP=)"
+	@echo "  db-backup-verify   - Verify latest backups"
 	@echo ""
 	@echo "🧹 Cleanup:"
 	@echo "  clean-artifacts     - Clean test artifacts"
@@ -196,10 +244,92 @@ verify:
 env-validate:
 	@bash scripts/env-validate.sh
 
+# Post-deployment smoke tests
+.PHONY: smoke-tests
+smoke-tests:
+	@bash scripts/deploy/smoke-tests.sh
+
+# Deployment with smoke tests
+.PHONY: deploy
+deploy:
+	@bash scripts/deploy/deploy-with-tests.sh
+
+# Template syntax validation
+.PHONY: validate-templates
+validate-templates:
+	@bash scripts/templates/validate-syntax.sh
+
+# SSL rotation check
+.PHONY: ssl-rotate-check
+ssl-rotate-check:
+	@bash scripts/ssl/check-and-rotate.sh
+
+# Let's Encrypt expiry check
+.PHONY: ssl-expiry-check
+ssl-expiry-check:
+	@bash scripts/ssl/check-expiry.sh
+
 # Full environment doctor check (validation + connectivity)
 .PHONY: doctor
 doctor:
 	@bash scripts/env-validate.sh --full
+
+# =============================================================================
+# 🔐 VAULT (Vault-only secrets + Vault Agent)
+# =============================================================================
+
+.PHONY: vault-up vault-down vault-bootstrap vault-seed vault-approle vault-push-secrets vault-list-secrets vault-pki-setup vault-pki-issue vault-rotate-backend-db-pass vault-oidc-setup vault-snapshot vault-restore vault-smoke vault-smoke-runtime vault-logs vault-status
+
+vault-up:
+	@$(VAULT_COMPOSE) up -d vault vault-agent
+
+vault-down:
+	@$(VAULT_COMPOSE) down
+
+vault-bootstrap:
+	@bash scripts/vault/bootstrap-vault.sh
+
+vault-seed:
+	@bash scripts/vault/bootstrap-vault.sh --seed-only
+
+vault-approle:
+	@bash scripts/vault/bootstrap-vault.sh --approle-only
+
+vault-push-secrets:
+	@bash scripts/vault/bootstrap-vault.sh --seed-only
+
+vault-list-secrets:
+	@bash scripts/vault/list-secrets.sh
+
+vault-pki-setup:
+	@bash scripts/vault/pki-setup.sh
+
+vault-pki-issue:
+	@bash scripts/vault/pki-issue.sh
+
+vault-rotate-backend-db-pass:
+	@bash scripts/vault/rotate-backend-db-pass.sh
+
+vault-oidc-setup:
+	@bash scripts/vault/oidc-setup.sh
+
+vault-snapshot:
+	@bash scripts/vault/snapshot-save.sh
+
+vault-restore:
+	@bash scripts/vault/snapshot-restore.sh
+
+vault-smoke:
+	@bash scripts/vault/vault-smoke.sh
+
+vault-smoke-runtime:
+	@bash scripts/vault/vault-smoke-runtime.sh
+
+vault-logs:
+	@$(VAULT_COMPOSE) logs -f vault vault-agent
+
+vault-status:
+	@$(VAULT_COMPOSE) ps vault vault-agent
 
 # Full integration tests (includes multitenancy and streaming)
 .PHONY: verify-full
@@ -389,7 +519,7 @@ logs-tail:
 # =============================================================================
 
 # Production up with Build Doctor
-up:
+up: doctor-pre-build
 	@scripts/build/wrapper.sh $(MAKE) _up_inner 2>&1 | tee -a $(LOG_FILE)
 
 _up_inner: validate-env kc-image
@@ -454,7 +584,7 @@ _up_inner: validate-env kc-image
 	@MAX_WAIT=420; \
 	ELAPSED=0; \
 	while [ $$ELAPSED -lt $$MAX_WAIT ]; do \
-		if docker exec core-backend curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then \
+		if docker exec core-backend curl -sf http://localhost:8080/api/actuator/health > /dev/null 2>&1; then \
 			echo "✅ Backend is ready (took $${ELAPSED}s)"; \
 			break; \
 		fi; \
@@ -713,7 +843,7 @@ rebuild-clean: check-registries
 	@NO_CACHE=true scripts/build/wrapper.sh $(MAKE) _rebuild_inner 2>&1 | tee -a $(LOG_FILE)
 
 # Clean with Build Doctor (FULL E2E TESTING)
-clean: check-registries
+clean: doctor-pre-build check-registries
 	@CLEAN_START=$$(date +%s); \
 	bash scripts/build/auto-split.sh "NO_CACHE=true SKIP_TEST_CLASSES=TenantFilterIntegrationTest,QueryDeduplicatorTest,MonitoringProxyServiceTest,PresenceServiceIntegrationTest,ReportingPropertiesTest,WorkflowVersionServiceTest RUN_E2E_FULL=true scripts/build/wrapper.sh $(MAKE) _clean_inner"; \
 	EXIT_CODE=$$?; \
@@ -910,6 +1040,49 @@ db-clean-migrate:
 	done; \
 	echo "⚠️  Backend might still be starting up"
 
+# Validate undo migrations
+.PHONY: validate-undo-migrations
+validate-undo-migrations:
+	@bash scripts/db/validate-undo-scripts.sh
+
+# Roll back Flyway migrations (version required)
+.PHONY: db-rollback
+db-rollback:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Usage: make db-rollback VERSION=2"; \
+		exit 1; \
+	fi
+	@bash scripts/db/rollback.sh $(VERSION)
+
+# Rollback dry-run tests
+.PHONY: db-rollback-test
+db-rollback-test:
+	@bash tests/db_rollback_tests.sh
+
+# Database backup (full + base)
+.PHONY: db-backup
+db-backup:
+	@bash scripts/backup/pg-backup.sh
+
+# Database restore (FILE or TIMESTAMP required)
+.PHONY: db-restore
+db-restore:
+	@if [ -z "$(FILE)" ] && [ -z "$(TIMESTAMP)" ]; then \
+		echo "❌ Usage: make db-restore DB=core FILE=backups/postgres/full/core_<ts>.dump"; \
+		echo "   or:  make db-restore TIMESTAMP=2025-11-08T14:30:00Z"; \
+		exit 1; \
+	fi
+	@if [ -n "$(TIMESTAMP)" ]; then \
+		bash scripts/backup/pg-restore.sh --timestamp "$(TIMESTAMP)"; \
+	else \
+		bash scripts/backup/pg-restore.sh --db "$(DB)" --file "$(FILE)"; \
+	fi
+
+# Verify latest backups
+.PHONY: db-backup-verify
+db-backup-verify:
+	@bash scripts/backup/pg-verify-backup.sh
+
 # =============================================================================
 # 🌐 DOCKER REGISTRY VALIDATION
 # =============================================================================
@@ -949,7 +1122,7 @@ check-registries:
 
 # Build all images
 .PHONY: build
-build: check-registries
+build: doctor-pre-build check-registries
 	@echo "🔨 Building all images (with cache)..."
 	@$(MAKE) kc-image
 	docker compose -f docker/docker-compose.yml --env-file .env build
@@ -1106,7 +1279,7 @@ wait-for-services:
 	@bash scripts/setup-keycloak-triggers.sh || echo "⚠️  Failed to install triggers - CDC synchronization may not work"
 	@echo "⏳ Waiting for backend..."
 	@for i in $$(seq 1 45); do \
-		if curl -s http://localhost:8080/actuator/health >/dev/null 2>&1; then \
+		if curl -s http://localhost:8080/api/actuator/health >/dev/null 2>&1; then \
 			break; \
 		fi; \
 		sleep 2; \
@@ -1520,11 +1693,99 @@ nuclear-rebuild-frontend:
 # 🧪 BACKEND TESTING TARGETS
 # =============================================================================
 
+# Build Doctor tests (pre-flight checks)
+.PHONY: test-build-doctor
+test-build-doctor:
+	@bash tests/build_doctor_tests.sh
+
+# DB separate users isolation tests
+.PHONY: test-db-separate-users
+test-db-separate-users:
+	@START_DB=true bash tests/db_separate_users_tests.sh
+
+# Smoke test script dry-run
+.PHONY: test-smoke-tests
+test-smoke-tests:
+	@bash tests/deploy_smoke_tests.sh
+
+# BFF GraphQL wiring checks
+.PHONY: test-bff
+test-bff:
+	@bash tests/bff_tests.sh
+
+# Backup/restore dry-run tests
+.PHONY: test-db-backup
+test-db-backup:
+	@bash tests/db_backup_tests.sh
+
+# DR plan + automation checks
+.PHONY: test-dr-plan
+test-dr-plan:
+	@bash tests/dr_plan_tests.sh
+
+# SSL rotation dry-run tests
+.PHONY: test-ssl-rotation
+test-ssl-rotation:
+	@bash tests/ssl_rotation_tests.sh
+
+# Let's Encrypt dry-run tests
+.PHONY: test-letsencrypt
+test-letsencrypt:
+	@bash tests/letsencrypt_tests.sh
+
+# Vault S-P0 config checks
+.PHONY: test-vault-skeleton
+test-vault-skeleton:
+	@bash tests/vault_skeleton_tests.sh
+
+# Vault S-P1 PKI config checks
+.PHONY: test-vault-pki
+test-vault-pki:
+	@bash tests/vault_pki_tests.sh
+
+# Vault S-P2 secrets migration checks
+.PHONY: test-vault-migration
+test-vault-migration:
+	@bash tests/vault_secrets_migration_tests.sh
+
+# Vault S-P3 rotation checks
+.PHONY: test-vault-rotation
+test-vault-rotation:
+	@bash tests/vault_rotation_tests.sh
+
+# Vault S-P4 OIDC checks
+.PHONY: test-vault-oidc
+test-vault-oidc:
+	@bash tests/vault_oidc_tests.sh
+
+# Vault S-P4 snapshot checks
+.PHONY: test-vault-snapshot
+test-vault-snapshot:
+	@bash tests/vault_snapshot_tests.sh
+
+# Vault S-P4 monitoring checks
+.PHONY: test-vault-monitoring
+test-vault-monitoring:
+	@bash tests/vault_monitoring_tests.sh
+
+# EPIC-003 completion checks
+.PHONY: test-monitoring-epic3
+test-monitoring-epic3:
+	@bash tests/monitoring_epic3_tests.sh
+
 # Run backend unit tests only
 .PHONY: test-backend-unit
 test-backend-unit:
 	@echo "🧪 Running backend unit tests..."
-	@cd backend && ./mvnw test 2>&1 | \
+	@cd backend && \
+		if [ -z "$$DOCKER_HOST" ]; then \
+			export DOCKER_HOST="$$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"; \
+		fi; \
+		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
+			export TESTCONTAINERS_RYUK_DISABLED=true; \
+		fi; \
+		set -o pipefail; \
+		./mvnw test 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
 		grep -v "DEBUG \[tenant:" | \
@@ -1593,7 +1854,15 @@ test-backend-full:
 	@echo ""
 	@echo "▶️  Running ALL backend tests (unit + integration)..."
 	@mkdir -p artifacts
-	@cd backend && ./mvnw test 2>&1 | \
+	@cd backend && \
+		if [ -z "$$DOCKER_HOST" ]; then \
+			export DOCKER_HOST="$$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"; \
+		fi; \
+		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
+			export TESTCONTAINERS_RYUK_DISABLED=true; \
+		fi; \
+		set -o pipefail; \
+		./mvnw test 2>&1 | \
 		tee ../artifacts/backend_full_tests.log | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
@@ -1628,7 +1897,15 @@ test-backend-full:
 test-backend-integration:
 	@echo "🔗 Running backend integration tests..."
 	@mkdir -p artifacts
-	@cd backend && ./mvnw test -Dtest="**/*IT,**/*IntegrationTest" 2>&1 | \
+	@cd backend && \
+		if [ -z "$$DOCKER_HOST" ]; then \
+			export DOCKER_HOST="$$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)"; \
+		fi; \
+		if echo "$$DOCKER_HOST" | grep -q "/.colima/"; then \
+			export TESTCONTAINERS_RYUK_DISABLED=true; \
+		fi; \
+		set -o pipefail; \
+		./mvnw test -Dtest="**/*IT,**/*IntegrationTest" 2>&1 | \
 		tee ../artifacts/backend_integration_tests.log | \
 		grep -v "^\[DEBUG\]" | \
 		grep -v "^2025-" | \
@@ -1662,7 +1939,7 @@ test-backend-health:
 	@echo "🧪 Running backend health checks..."
 	@mkdir -p artifacts
 	@echo "Testing basic health endpoint..." > artifacts/backend_health.log
-	@if curl -s http://localhost:8080/actuator/health | jq -e '.status == "UP"' >/dev/null 2>&1; then \
+	@if curl -s http://localhost:8080/api/actuator/health | jq -e '.status == "UP"' >/dev/null 2>&1; then \
 		echo "✅ Health check: UP" | tee -a artifacts/backend_health.log; \
 	else \
 		echo "❌ Health check: DOWN" | tee -a artifacts/backend_health.log; \
@@ -1835,7 +2112,7 @@ test-e2e-pre:
 		cd e2e && npm install; \
 	fi
 	@echo "▶️  Running smoke tests..."
-	@cd e2e && npm run test:pre 2>&1 | \
+	@cd e2e && set -o pipefail && npm run test:pre 2>&1 | \
 		grep -v "^\[DEBUG\]" | \
 		sed 's/✓/  ✅/g' | \
 		sed 's/✗/  ❌/g' | \

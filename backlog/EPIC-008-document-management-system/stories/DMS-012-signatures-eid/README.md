@@ -1,3 +1,21 @@
+---
+id: DMS-012
+epic: EPIC-008-document-management-system
+title: "Digital Signatures & eID Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-012-signatures-eid/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-012: Digital Signatures & eID Integration
 
 **Epic:** EPIC-008 Document Management System  

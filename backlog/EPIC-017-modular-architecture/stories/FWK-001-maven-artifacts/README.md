@@ -1,3 +1,21 @@
+---
+id: FWK-001
+epic: EPIC-017-modular-architecture
+title: "Maven Artifacts Distribution"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "4 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/FWK-001-maven-artifacts/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # FWK-001: Maven Artifacts Distribution
 
 **Status:** ⏳ **PENDING**  
@@ -24,6 +42,18 @@ So that I can build on top of CORE without forking.
 - ⏳ Versioning: Semantic versioning (1.0.0, 1.1.0, 2.0.0)
 - ⏳ Documentation: JavaDocs published
 - ⏳ Bill of Materials (BOM) for version management
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define module SDK interfaces + packaging | 0.5d | none |
+| 2 | Maven publish pipeline + repository config | 0.5d | 1 |
+| 3 | BOM + versioning policy | 0.25d | 1 |
+| 4 | Reference module build (sample) | 0.5d | 1 |
+| 5 | CI release checks | 0.25d | 2 |
 
 ---
 

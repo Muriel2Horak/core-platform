@@ -1,7 +1,29 @@
+---
+id: INF-011
+epic: EPIC-007-infrastructure-deployment
+title: "Multi-Environment Configuration Isolation"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - docker/.env
+    - docker/.env.development
+    - docker/.env.production
+    - docker/.env.staging
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-011-environment-isolation/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-011: Multi-Environment Configuration Isolation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** HIGH  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** Platform Team  
@@ -73,6 +95,14 @@ docker/.env.production           # Production overrides
    - Check: ENV value is valid (dev/staging/prod)
    - Check: Environment-specific .env file exists
    - Fail-fast if invalid
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-011-01: Environment override files](subtasks/TASK-011-01-env-files.md) | 6h | none |
+| 2 | [TASK-011-02: Makefile wiring + validation](subtasks/TASK-011-02-makefile-validation.md) | 6h | TASK-011-01 |
+| 3 | [TASK-011-03: Docs + usage guide](subtasks/TASK-011-03-docs-usage.md) | 4h | TASK-011-01, TASK-011-02 |
 
 ### Implementation
 

@@ -1,3 +1,21 @@
+---
+id: META-020
+epic: EPIC-005-metamodel-generator-studio
+title: "Search & Filter DSL"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "80 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META20-search-filter-dsl/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-020: Search & Filter DSL
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -51,6 +69,22 @@ Response:
   }
 }
 ```
+
+### AC4: Filter UI Components
+- **GIVEN** metamodel pole `filterable/searchable`
+- **THEN** UI umi vygenerovat filter builder + ulozit query preset
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | DSL grammar + parser (AND/OR, nesting) | 25h | META-001 |
+| 2 | Query builder + full-text search integration | 25h | T1 |
+| 3 | Facet aggregation + response schema | 15h | T2 |
+| 4 | UI filter builder + presets | 10h | T1, META-009 |
+| 5 | Testy + docs (examples) | 5h | T1, T2, T3 |
 
 ---
 

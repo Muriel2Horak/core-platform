@@ -1,0 +1,12 @@
+(?i)api[_-]?key\s*[:=]
+(?i)secret[_-]?key\s*[:=]
+(?i)client[_-]?secret\s*[:=]
+(?i)access[_-]?token\s*[:=]
+(?i)password\s*[:=]
+(?i)private[_-]?key\s*[:=]
+(?i)jwt.*sign
+(?i)permitAll\(
+(?i)csrf\(\)\.disable
+(?i)disableCsrf
+(?i)trustAll
+(?i)skipValidation

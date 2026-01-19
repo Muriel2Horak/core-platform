@@ -1,7 +1,32 @@
+---
+id: INF-023
+epic: EPIC-007-infrastructure-deployment
+title: "Enhanced CI/CD Pipeline"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "4 days"
+path_mapping:
+  code_paths:
+    - .github/workflows/
+    - .github/workflows/ci.yml
+    - backend/target/
+    - backend/target/surefire-reports/
+    - docker/docker-compose.yml
+    - frontend/package-lock.json
+  test_paths:
+    - e2e/playwright-report/
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-023-enhanced-cicd/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-023: Enhanced CI/CD Pipeline
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 4 dny, ~1100 LOC  
 **Owner:** DevOps + Platform Team  
@@ -96,6 +121,16 @@ GitHub Actions (Multi-Stage Pipeline)
    - Staging: Auto-deploy on main merge
    - Production: Manual approval + tag trigger
    - Rollback: One-click previous version
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Multi-Stage Pipeline](subtasks/T1-multi-stage-pipeline.md) | 6h | none |
+| 2 | [T2: Artifact Caching](subtasks/T2-artifact-caching.md) | 4h | T1 |
+| 3 | [T3: Quality Gates](subtasks/T3-quality-gates.md) | 6h | T2 |
+| 4 | [T4: Deployment Automation](subtasks/T4-deployment-automation.md) | 10h | T3 |
+| 5 | [T5: Rollback Workflow](subtasks/T5-rollback-workflow.md) | 6h | T4 |
 
 ### Implementation
 

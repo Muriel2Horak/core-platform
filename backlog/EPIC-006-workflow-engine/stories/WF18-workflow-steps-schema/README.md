@@ -1,3 +1,24 @@
+---
+id: WF18
+epic: EPIC-006-workflow-engine
+title: "Workflow Steps Schema - Metamodel Integration"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "24 hours"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+    - frontend/src/components/Workflow
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF18-workflow-steps-schema/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF18: Workflow Steps Schema - Metamodel Integration
 
 **Typ:** TASK  
@@ -6,7 +27,7 @@
 **Priorita:** MEDIUM  
 **Effort:** 600 LOC, 3 dny  
 **Dependencies:** META-001 (Entity Definition), W10 (Workflow Steps UI), WF17 (Runtime)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 
@@ -50,6 +71,33 @@ Integrovat **workflow steps schema** do metamodel (EntityDefinition):
   ]
 }
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **Schema persistence**
+   - workflowSteps jsou ulozeny v workflow_versions jako JSONB.
+
+2. **Validation API**
+   - API vraci chyby pro neznama step types nebo invalid config.
+
+3. **Dry-run**
+   - Dry-run vraci mock output bez side effects.
+
+4. **UI integration**
+   - WorkflowStepsEditor zapisuje do real persistence (ne mock).
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Schema model + persistence (workflow_versions) | 8h | META-001 |
+| 2 | Validation API + registry mapping | 6h | T1 |
+| 3 | Dry-run API + UI wiring | 6h | T2 |
+| 4 | Testy + docs | 4h | T2, T3 |
 
 ---
 

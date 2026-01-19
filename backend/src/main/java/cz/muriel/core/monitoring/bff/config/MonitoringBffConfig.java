@@ -120,7 +120,7 @@ public class MonitoringBffConfig {
   @Bean @Primary @ConditionalOnProperty(name = "app.redis.enabled", havingValue = "false", matchIfMissing = true)
   public CacheManager cacheManager() {
     CaffeineCacheManager cacheManager = new CaffeineCacheManager("grafana-queries",
-        "grafana-dashboards", "reportQueryCache", "tenantOrgBindings");
+        "grafana-dashboards", "reportQueryCache", "tenantOrgBindings", "mcp-capabilities");
     cacheManager.setCaffeine(caffeineConfig());
     return cacheManager;
   }

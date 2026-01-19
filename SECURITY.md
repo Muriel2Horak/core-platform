@@ -2,6 +2,10 @@
 
 ## Supported Versions
 
+# Security Policy
+
+## Supported Versions
+
 Core Platform is currently in active development. Security updates are provided for:
 
 | Version | Supported          | Notes |

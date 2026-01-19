@@ -1,7 +1,37 @@
+---
+id: INF-014
+epic: EPIC-007-infrastructure-deployment
+title: "Build Doctor Pre-Flight Checks"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-16
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - scripts/build-doctor/pre-build-checks.sh
+    - scripts/build-doctor/check-env.sh
+    - scripts/build-doctor/check-docker.sh
+    - scripts/build-doctor/check-ports.sh
+    - scripts/build-doctor/check-disk.sh
+    - scripts/build-doctor/check-templates.sh
+    - scripts/build-doctor/Makefile.doctor
+    - docker/keycloak/generate-realm.sh
+    - Makefile
+  test_paths:
+    - tests/build_doctor_tests.sh
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-014-build-doctor/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+    - docs/BUILD_DOCTOR.md
+    - README.md
+---
+
 # INF-014: Build Doctor Pre-Flight Checks
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** 🔥 CRITICAL  
 **Effort:** 2 dny, ~600 LOC  
 **Owner:** Platform Team  
@@ -77,6 +107,17 @@ make build
 1. **Speed:** <10s for all checks
 2. **Reliability:** Zero false positives
 3. **Usability:** Friendly error messages
+
+---
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-014-01: Build Doctor core checks](subtasks/TASK-014-01-build-doctor-core.md) | 6h | none |
+| 2 | [TASK-014-02: Makefile integration + skip flag](subtasks/TASK-014-02-makefile-integration.md) | 4h | TASK-014-01 |
+| 3 | [TASK-014-03: Template sync check](subtasks/TASK-014-03-template-sync-check.md) | 4h | TASK-014-01 |
+| 4 | [TASK-014-04: Docs + usage guide](subtasks/TASK-014-04-docs-usage.md) | 2h | TASK-014-01, TASK-014-02, TASK-014-03 |
 
 ---
 

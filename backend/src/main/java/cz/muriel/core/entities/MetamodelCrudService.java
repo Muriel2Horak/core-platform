@@ -8,6 +8,7 @@ import cz.muriel.core.metamodel.schema.FieldSchema;
 import cz.muriel.core.security.policy.PolicyEngine;
 import cz.muriel.core.util.UUIDv7Generator;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -53,28 +54,56 @@ public class MetamodelCrudService {
       allowedColumns = schema.getFields().stream().map(FieldSchema::getName)
           .collect(Collectors.toSet());
     }
+    Set<String> filterableColumns = schema.getFields().stream()
+        .filter(field -> !isRelationshipField(field))
+        .map(FieldSchema::getName)
+        .collect(Collectors.toSet());
 
     // Build SQL query
-    String columns = String.join(", ", allowedColumns);
-    StringBuilder sql = new StringBuilder("SELECT " + columns + " FROM " + schema.getTable());
+    String columnSelect = String.join(", ", allowedColumns);
+    StringBuilder sql = new StringBuilder("SELECT " + columnSelect + " FROM " + schema.getTable());
 
     // Apply filters
     List<String> whereClauses = new ArrayList<>();
+    Map<String, Object> params = new LinkedHashMap<>();
+    int paramIndex = 0;
     for (var entry : filters.entrySet()) {
       String key = entry.getKey();
       String value = entry.getValue();
 
       if (key.endsWith("__like")) {
         String field = key.substring(0, key.length() - 6);
-        whereClauses.add(field + " LIKE '%" + sanitize(value) + "%'");
+        if (!filterableColumns.contains(field)) {
+          continue;
+        }
+        String param = "p" + paramIndex++;
+        whereClauses.add(field + " LIKE :" + param);
+        params.put(param, "%" + value + "%");
       } else if (key.endsWith("__in")) {
         String field = key.substring(0, key.length() - 4);
+        if (!filterableColumns.contains(field)) {
+          continue;
+        }
         String[] values = value.split(",");
-        String inList = Arrays.stream(values).map(v -> "'" + sanitize(v) + "'")
-            .collect(Collectors.joining(", "));
-        whereClauses.add(field + " IN (" + inList + ")");
+        List<String> placeholders = new ArrayList<>();
+        for (String rawValue : values) {
+          if (rawValue == null || rawValue.isBlank()) {
+            continue;
+          }
+          String param = "p" + paramIndex++;
+          placeholders.add(":" + param);
+          params.put(param, rawValue.trim());
+        }
+        if (!placeholders.isEmpty()) {
+          whereClauses.add(field + " IN (" + String.join(", ", placeholders) + ")");
+        }
       } else {
-        whereClauses.add(key + " = '" + sanitize(value) + "'");
+        if (!filterableColumns.contains(key)) {
+          continue;
+        }
+        String param = "p" + paramIndex++;
+        whereClauses.add(key + " = :" + param);
+        params.put(param, value);
       }
     }
 
@@ -84,10 +113,10 @@ public class MetamodelCrudService {
 
     // Apply sorting
     if (sort != null && !sort.isBlank()) {
-      if (sort.startsWith("-")) {
-        sql.append(" ORDER BY ").append(sort.substring(1)).append(" DESC");
-      } else {
-        sql.append(" ORDER BY ").append(sort).append(" ASC");
+      boolean descending = sort.startsWith("-");
+      String sortField = descending ? sort.substring(1) : sort;
+      if (filterableColumns.contains(sortField)) {
+        sql.append(" ORDER BY ").append(sortField).append(descending ? " DESC" : " ASC");
       }
     }
 
@@ -95,12 +124,20 @@ public class MetamodelCrudService {
     sql.append(" LIMIT ").append(size).append(" OFFSET ").append(page * size);
 
     // Execute query
-    @SuppressWarnings("unchecked")
-    List<Object[]> results = entityManager.createNativeQuery(sql.toString()).getResultList();
+    Query listQuery = entityManager.createNativeQuery(sql.toString());
+    for (var entry : params.entrySet()) {
+      listQuery.setParameter(entry.getKey(), entry.getValue());
+    }
+    List<?> results = listQuery.getResultList();
 
     // Map to response
     List<String> columnList = new ArrayList<>(allowedColumns);
-    return results.stream().map(row -> mapRowToMap(row, columnList)).collect(Collectors.toList());
+    return results.stream().map(row -> {
+      if (row instanceof Object[] rowValues) {
+        return mapRowToMap(rowValues, columnList);
+      }
+      return Map.<String, Object>of();
+    }).collect(Collectors.toList());
   }
 
   /**
@@ -175,8 +212,8 @@ public class MetamodelCrudService {
     }
 
     // Execute native INSERT
-    String insertSql = buildInsertSql(schema, data);
-    int affected = entityManager.createNativeQuery(insertSql).executeUpdate();
+    Query insertQuery = buildInsertQuery(schema, data);
+    int affected = insertQuery.executeUpdate();
 
     if (affected == 0) {
       throw new RuntimeException("Failed to create entity");
@@ -246,8 +283,8 @@ public class MetamodelCrudService {
     lifecycleExecutor.executeBeforeUpdate(schema, changedFields);
 
     // Build UPDATE with version check (only changed fields)
-    String updateSql = buildUpdateSql(schema, id, changedFields, expectedVersion);
-    int affected = entityManager.createNativeQuery(updateSql).executeUpdate();
+    Query updateQuery = buildUpdateQuery(schema, id, changedFields, expectedVersion);
+    int affected = updateQuery.executeUpdate();
 
     if (affected == 0) {
       // Version mismatch or entity deleted
@@ -294,10 +331,10 @@ public class MetamodelCrudService {
     relationshipResolver.deleteRelationships(schema, id);
 
     // Execute DELETE
-    String deleteSql = String.format("DELETE FROM %s WHERE %s = '%s'", schema.getTable(),
-        schema.getIdField(), id);
+    String deleteSql = String.format("DELETE FROM %s WHERE %s = :id", schema.getTable(),
+        schema.getIdField());
 
-    entityManager.createNativeQuery(deleteSql).executeUpdate();
+    entityManager.createNativeQuery(deleteSql).setParameter("id", id).executeUpdate();
     log.info("Deleted entity: {} id={}", entityType, id);
 
     // ✨ LIFECYCLE: Execute afterDelete hooks
@@ -305,13 +342,6 @@ public class MetamodelCrudService {
   }
 
   // Helper methods
-
-  private String sanitize(String value) {
-    if (value == null)
-      return "";
-    // Basic SQL injection prevention
-    return value.replace("'", "''").replace(";", "");
-  }
 
   private Object findEntityById(EntitySchema schema, String id) {
     // ✅ Filter out relationship fields (manyToOne, oneToMany, manyToMany)
@@ -408,67 +438,62 @@ public class MetamodelCrudService {
   /**
    * Build INSERT SQL statement
    */
-  private String buildInsertSql(EntitySchema schema, Map<String, Object> data) {
+  private Query buildInsertQuery(EntitySchema schema, Map<String, Object> data) {
     List<String> columns = new ArrayList<>();
-    List<String> values = new ArrayList<>();
+    List<String> placeholders = new ArrayList<>();
+    Map<String, Object> params = new LinkedHashMap<>();
+    int paramIndex = 0;
 
     for (var entry : data.entrySet()) {
+      String param = "p" + paramIndex++;
       columns.add(entry.getKey());
-      values.add(formatValue(entry.getValue()));
+      placeholders.add(":" + param);
+      params.put(param, entry.getValue());
     }
 
-    return String.format("INSERT INTO %s (%s) VALUES (%s)", schema.getTable(),
-        String.join(", ", columns), String.join(", ", values));
+    String sql = String.format("INSERT INTO %s (%s) VALUES (%s)", schema.getTable(),
+        String.join(", ", columns), String.join(", ", placeholders));
+    Query query = entityManager.createNativeQuery(sql);
+    for (var entry : params.entrySet()) {
+      query.setParameter(entry.getKey(), entry.getValue());
+    }
+    return query;
   }
 
   /**
    * Build UPDATE SQL statement with version check
    */
-  private String buildUpdateSql(EntitySchema schema, String id, Map<String, Object> data,
+  private Query buildUpdateQuery(EntitySchema schema, String id, Map<String, Object> data,
       long expectedVersion) {
     List<String> sets = new ArrayList<>();
+    Map<String, Object> params = new LinkedHashMap<>();
+    int paramIndex = 0;
 
     for (var entry : data.entrySet()) {
       // Skip ID field and version field (version is managed by trigger)
       if (!entry.getKey().equals(schema.getIdField())
           && !entry.getKey().equals(schema.getVersionField())) {
-        sets.add(entry.getKey() + " = " + formatValue(entry.getValue()));
+        String param = "p" + paramIndex++;
+        sets.add(entry.getKey() + " = :" + param);
+        params.put(param, entry.getValue());
       }
     }
 
     // Increment version via trigger, just check current version
-    String sql = String.format("UPDATE %s SET %s WHERE %s = '%s'", schema.getTable(),
-        String.join(", ", sets), schema.getIdField(), id);
+    String sql = String.format("UPDATE %s SET %s WHERE %s = :id", schema.getTable(),
+        String.join(", ", sets), schema.getIdField());
+    params.put("id", id);
 
     if (schema.getVersionField() != null) {
-      sql += " AND " + schema.getVersionField() + " = " + expectedVersion;
+      sql += " AND " + schema.getVersionField() + " = :expectedVersion";
+      params.put("expectedVersion", expectedVersion);
     }
 
-    return sql;
-  }
-
-  /**
-   * Format value for SQL statement
-   */
-  private String formatValue(Object value) {
-    if (value == null) {
-      return "NULL";
+    Query query = entityManager.createNativeQuery(sql);
+    for (var entry : params.entrySet()) {
+      query.setParameter(entry.getKey(), entry.getValue());
     }
-
-    if (value instanceof String) {
-      return "'" + sanitize(value.toString()) + "'";
-    }
-
-    if (value instanceof Number || value instanceof Boolean) {
-      return value.toString();
-    }
-
-    if (value instanceof UUID) {
-      return "'" + value.toString() + "'";
-    }
-
-    // Default: convert to string
-    return "'" + sanitize(value.toString()) + "'";
+    return query;
   }
 
   /**

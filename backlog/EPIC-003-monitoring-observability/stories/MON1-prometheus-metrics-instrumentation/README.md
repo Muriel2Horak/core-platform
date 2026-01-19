@@ -1,7 +1,27 @@
+---
+id: S1
+epic: EPIC-003-monitoring-observability
+title: "Prometheus Metrics Instrumentation (Phase S1)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - docker/prometheus/prometheus.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-003-monitoring-observability/stories/MON1-prometheus-metrics-instrumentation/README.md
+    - backlog/EPIC-003-monitoring-observability/README.md
+---
+
 # S1: Prometheus Metrics Instrumentation (Phase S1)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červen 2024 (Phase S1)  
 **LOC:** ~1,800 řádků  
 **Sprint:** Monitoring Wave 1

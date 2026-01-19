@@ -1,8 +1,28 @@
+---
+id: DMS-001
+epic: EPIC-008-document-management-system
+title: "Document Versioning System"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/document/DocumentController.java
+    - backend/src/main/java/cz/muriel/core/document/DocumentService.java
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-001-document-versioning/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-001: Document Versioning System
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  
 **Priority:** 🔴 P1 (KRITICKÉ - Core First-Class Component)  
-**Status:** 📋 Not Started  
+**Status:** ✅ **DONE**
 **Effort:** 1 den (~600 LOC)  
 **Dependencies:** None (prvni story Phase 1)
 

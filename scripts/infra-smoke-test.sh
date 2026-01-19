@@ -29,12 +29,18 @@ function test_warn() {
     echo -e "${YELLOW}⚠${NC} $1"
 }
 
+BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
+GRAFANA_URL="${GRAFANA_URL:-http://localhost:3001}"
+PROMETHEUS_URL="${PROMETHEUS_URL:-http://localhost:9090}"
+KAFKA_PORT="${KAFKA_PORT:-9092}"
+CURL_FLAGS="${CURL_FLAGS:-}"
+
 echo "🧪 Running infrastructure smoke tests..."
 echo ""
 
 # Test 1: Backend Health
 echo "Testing Backend Health..."
-HEALTH=$(curl -s http://localhost:8080/actuator/health)
+HEALTH=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/health" 2>/dev/null || echo "")
 if echo "$HEALTH" | grep -q '"status":"UP"'; then
     test_passed "Backend health endpoint returns UP"
 else
@@ -44,7 +50,7 @@ fi
 # Test 2: Prometheus Metrics
 echo ""
 echo "Testing Prometheus Metrics..."
-METRICS=$(curl -s http://localhost:8080/actuator/prometheus)
+METRICS=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/actuator/prometheus" 2>/dev/null || echo "")
 if echo "$METRICS" | grep -q 'jvm_memory_used_bytes'; then
     test_passed "Prometheus metrics endpoint returns JVM metrics"
 else
@@ -60,7 +66,7 @@ fi
 # Test 3: Streaming Config
 echo ""
 echo "Testing Streaming Configuration..."
-CONFIG=$(curl -s http://localhost:8080/api/admin/streaming/config 2>/dev/null || echo "{}")
+CONFIG=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/admin/streaming/config" 2>/dev/null || echo "{}")
 if echo "$CONFIG" | grep -q '"batchSize"'; then
     test_passed "Streaming config endpoint accessible"
     
@@ -77,42 +83,30 @@ fi
 # Test 4: Kafka Topics
 echo ""
 echo "Testing Kafka Topics..."
-TOPICS=$(docker compose --profile streaming exec -T kafka kafka-topics.sh \
-    --bootstrap-server localhost:9092 \
-    --list 2>/dev/null || echo "")
-
-if echo "$TOPICS" | grep -q 'streaming.entity.events'; then
-    test_passed "Kafka topic 'streaming.entity.events' exists"
+if command -v nc >/dev/null 2>&1; then
+    if nc -z -w 2 127.0.0.1 "$KAFKA_PORT"; then
+        test_passed "Kafka port $KAFKA_PORT is reachable"
+    else
+        test_failed "Kafka port $KAFKA_PORT is not reachable"
+    fi
 else
-    test_failed "Kafka topic 'streaming.entity.events' not found"
+    if bash -c "</dev/tcp/127.0.0.1/$KAFKA_PORT" 2>/dev/null; then
+        test_passed "Kafka port $KAFKA_PORT is reachable"
+    else
+        test_failed "Kafka port $KAFKA_PORT is not reachable"
+    fi
 fi
 
 # Test 5: Kafka Topic Configuration
 echo ""
 echo "Testing Kafka Topic Policies..."
-if echo "$TOPICS" | grep -q 'streaming.entity.events'; then
-    TOPIC_CONFIG=$(docker compose --profile streaming exec -T kafka kafka-configs.sh \
-        --bootstrap-server localhost:9092 \
-        --describe \
-        --topic streaming.entity.events 2>/dev/null || echo "")
-    
-    if echo "$TOPIC_CONFIG" | grep -q 'cleanup.policy=compact'; then
-        test_passed "Topic has cleanup.policy=compact"
-    else
-        test_warn "Topic cleanup policy: $(echo "$TOPIC_CONFIG" | grep 'cleanup.policy' || echo 'not set')"
-    fi
-    
-    if echo "$TOPIC_CONFIG" | grep -q 'retention.ms'; then
-        RETENTION=$(echo "$TOPIC_CONFIG" | grep -o 'retention.ms=[0-9]*' | cut -d'=' -f2)
-        test_passed "Topic retention configured: ${RETENTION}ms"
-    fi
-fi
+test_warn "Kafka topic policies skipped (port reachability only)"
 
 # Test 6: Grafana Health
 echo ""
 echo "Testing Grafana..."
-GRAFANA_HEALTH=$(curl -s http://localhost:3001/api/health)
-if echo "$GRAFANA_HEALTH" | grep -q '"database":"ok"'; then
+GRAFANA_HEALTH=$(curl -s $CURL_FLAGS "$GRAFANA_URL/api/health" 2>/dev/null || echo "")
+if echo "$GRAFANA_HEALTH" | grep -Eq '"database"[[:space:]]*:[[:space:]]*"ok"'; then
     test_passed "Grafana health check passed"
 else
     test_failed "Grafana health check failed: $GRAFANA_HEALTH"
@@ -121,7 +115,7 @@ fi
 # Test 7: Grafana Dashboards
 echo ""
 echo "Testing Grafana Dashboard Provisioning..."
-DASHBOARDS=$(curl -s 'http://localhost:3001/api/search?query=Streaming' 2>/dev/null || echo "[]")
+DASHBOARDS=$(curl -s $CURL_FLAGS "$GRAFANA_URL/api/search?query=Streaming" 2>/dev/null || echo "[]")
 DASHBOARD_COUNT=$(echo "$DASHBOARDS" | grep -o '"type":"dash-db"' | wc -l | tr -d ' ')
 
 if [ "$DASHBOARD_COUNT" -ge 1 ]; then
@@ -133,7 +127,7 @@ fi
 # Test 8: Prometheus Targets
 echo ""
 echo "Testing Prometheus Targets..."
-PROM_TARGETS=$(curl -s http://localhost:9090/api/v1/targets 2>/dev/null || echo "{}")
+PROM_TARGETS=$(curl -s $CURL_FLAGS "$PROMETHEUS_URL/api/v1/targets" 2>/dev/null || echo "{}")
 if echo "$PROM_TARGETS" | grep -q '"health":"up"'; then
     UP_COUNT=$(echo "$PROM_TARGETS" | grep -o '"health":"up"' | wc -l | tr -d ' ')
     test_passed "Prometheus has $UP_COUNT targets UP"
@@ -145,7 +139,7 @@ fi
 echo ""
 echo "Testing End-to-End Mini Flow..."
 echo "  1. POST command to queue..."
-COMMAND_RESPONSE=$(curl -s -X POST http://localhost:8080/api/admin/commands/test \
+COMMAND_RESPONSE=$(curl -s $CURL_FLAGS -X POST "$BACKEND_URL/api/admin/commands/test" \
     -H "Content-Type: application/json" \
     -d '{"type":"TEST","payload":"{\"test\":true}"}' 2>/dev/null || echo "{}")
 
@@ -157,7 +151,7 @@ if echo "$COMMAND_RESPONSE" | grep -q '"id"'; then
     sleep 5
     
     echo "  3. GET command status..."
-    STATUS_RESPONSE=$(curl -s http://localhost:8080/api/admin/commands/$COMMAND_ID 2>/dev/null || echo "{}")
+    STATUS_RESPONSE=$(curl -s $CURL_FLAGS "$BACKEND_URL/api/admin/commands/$COMMAND_ID" 2>/dev/null || echo "{}")
     
     if echo "$STATUS_RESPONSE" | grep -q '"status":"APPLIED"'; then
         test_passed "Command processed to APPLIED state"

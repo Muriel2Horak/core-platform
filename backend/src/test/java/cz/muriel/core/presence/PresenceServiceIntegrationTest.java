@@ -3,13 +3,13 @@ package cz.muriel.core.presence;
 import cz.muriel.core.test.AbstractIntegrationTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Set;
 
@@ -26,6 +26,7 @@ import static org.awaitility.Awaitility.await;
  * timing-sensitive assertions.
  */
 @SpringBootTest @Execution(ExecutionMode.SAME_THREAD)
+@TestPropertySource(properties = { "app.presence.userTtlMs=500", "app.presence.lockTtlMs=800" })
 class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
 
   @Autowired
@@ -41,6 +42,8 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
   private static final String ID = "123";
   private static final String USER_1 = "user1";
   private static final String USER_2 = "user2";
+  private static final java.time.Duration USER_TTL = java.time.Duration.ofMillis(500);
+  private static final java.time.Duration LOCK_TTL = java.time.Duration.ofMillis(800);
 
   @BeforeEach
   void setUp() {
@@ -94,42 +97,36 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(users).doesNotContain(USER_1);
   }
 
-  /**
-   * ⏱️ SLOW TEST: Waits 62 seconds for presence TTL expiration
-   */
-  @Test @Disabled("Slow test - waits 62s for TTL expiration. Enable for manual testing.")
+  @Test
   void shouldExpirePresenceAfterTTL() {
     // Subscribe user
     presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
 
-    // Wait for TTL expiration (60s + 1s buffer)
-    await().atMost(java.time.Duration.ofSeconds(62)).untilAsserted(() -> {
+    // Wait for TTL expiration
+    await().atMost(USER_TTL.plusSeconds(2)).untilAsserted(() -> {
       Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
       assertThat(users).isEmpty();
     });
   }
 
-  /**
-   * ⏱️ SLOW TEST: Waits 81 seconds with heartbeat refresh
-   */
-  @Test @Disabled("Slow test - waits 81s testing heartbeat refresh. Enable for manual testing.")
+  @Test
   void shouldRefreshTTLOnHeartbeat() {
     // Subscribe user
     presenceService.subscribe(USER_1, tenantId, ENTITY, ID);
 
-    // Wait 40s and send heartbeat
-    await().pollDelay(java.time.Duration.ofSeconds(40)).atMost(java.time.Duration.ofSeconds(41))
+    // Wait and send heartbeat
+    await().pollDelay(java.time.Duration.ofMillis(300)).atMost(java.time.Duration.ofSeconds(1))
         .untilAsserted(() -> {
           presenceService.heartbeat(USER_1, tenantId, ENTITY, ID);
           Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
-          assertThat(users).contains(USER_1); // Still present after 40s
+          assertThat(users).contains(USER_1);
         });
 
-    // Wait another 40s (80s total, would expire without heartbeat)
-    await().pollDelay(java.time.Duration.ofSeconds(40)).atMost(java.time.Duration.ofSeconds(41))
+    // Wait again, should still be present due to heartbeat refresh
+    await().pollDelay(java.time.Duration.ofMillis(300)).atMost(java.time.Duration.ofSeconds(1))
         .untilAsserted(() -> {
           Set<Object> users = presenceService.getPresence(tenantId, ENTITY, ID);
-          assertThat(users).contains(USER_1); // Still present due to heartbeat
+          assertThat(users).contains(USER_1);
         });
   }
 
@@ -168,35 +165,29 @@ class PresenceServiceIntegrationTest extends AbstractIntegrationTest {
     assertThat(owner).isNull(); // Lock released
   }
 
-  /**
-   * ⏱️ SLOW TEST: Waits 122 seconds for lock TTL expiration
-   */
-  @Test @Disabled("Slow test - waits 122s for TTL expiration. Enable for manual testing.")
+  @Test
   void shouldExpireLockAfterTTL() {
     String field = "totalAmount";
 
     // Acquire lock
     presenceService.acquireLock(USER_1, tenantId, ENTITY, ID, field);
 
-    // Wait for TTL expiration (120s + 1s buffer)
-    await().atMost(java.time.Duration.ofSeconds(122)).untilAsserted(() -> {
+    // Wait for TTL expiration
+    await().atMost(LOCK_TTL.plusSeconds(2)).untilAsserted(() -> {
       String owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);
       assertThat(owner).isNull();
     });
   }
 
-  /**
-   * ⏱️ SLOW TEST: Waits 81 seconds then refreshes lock
-   */
-  @Test @Disabled("Slow test - waits 81s before refresh. Enable for manual testing.")
+  @Test
   void shouldRefreshLockTTL() {
     String field = "totalAmount";
 
     // Acquire lock
     presenceService.acquireLock(USER_1, tenantId, ENTITY, ID, field);
 
-    // Wait 80s and refresh
-    await().pollDelay(java.time.Duration.ofSeconds(80)).atMost(java.time.Duration.ofSeconds(81))
+    // Wait and refresh
+    await().pollDelay(java.time.Duration.ofMillis(500)).atMost(java.time.Duration.ofSeconds(1))
         .untilAsserted(() -> {
           presenceService.refreshLock(USER_1, tenantId, ENTITY, ID, field);
           String owner = presenceService.getLockOwner(tenantId, ENTITY, ID, field);

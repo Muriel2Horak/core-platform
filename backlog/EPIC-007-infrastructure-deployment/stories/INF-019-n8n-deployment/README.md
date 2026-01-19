@@ -1,7 +1,26 @@
+---
+id: INF-019
+epic: EPIC-007-infrastructure-deployment
+title: "N8N Workflow Engine Deployment"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - docker/docker-compose.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-019-n8n-deployment/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-019: N8N Workflow Engine Deployment
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 3 dny, ~800 LOC  
 **Owner:** Platform + Workflow Team  
@@ -75,6 +94,15 @@ services:
    - Grafana dashboard
    - Loki log aggregation
    - Alerting (workflow failures)
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-019-01: n8n service + database init](subtasks/TASK-019-01-n8n-service-db.md) | 8h | INF-003, INF-007 |
+| 2 | [TASK-019-02: SSO + routing (Keycloak + Nginx)](subtasks/TASK-019-02-sso-routing.md) | 6h | TASK-019-01 |
+| 3 | [TASK-019-03: Multi-tenant mode + user management](subtasks/TASK-019-03-multi-tenant-mode.md) | 6h | TASK-019-02, INF-020 |
+| 4 | [TASK-019-04: Monitoring + logging integration](subtasks/TASK-019-04-monitoring-logging.md) | 4h | TASK-019-01, INF-012 |
 
 ### Implementation
 

@@ -1,5 +1,6 @@
 package cz.muriel.core.auth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.dto.UserDto;
@@ -117,8 +118,8 @@ public class AuthController {
 
       try {
         JsonNode me = kc.userinfo(token);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> ui = om.convertValue(me, Map.class);
+        Map<String, Object> ui = om.convertValue(me,
+            new TypeReference<Map<String, Object>>() {});
         if (ui != null) {
           userMap.putAll(ui);
           auditLogger.debug("✅ SESSION_KEYCLOAK_USERINFO: Keycloak userinfo retrieved");
@@ -189,10 +190,12 @@ public class AuthController {
       // Extract roles properly
       List<String> roles = new ArrayList<>();
       Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-      if (realmAccess != null && realmAccess.get("roles") instanceof List) {
-        @SuppressWarnings("unchecked")
-        List<String> realmRoles = (List<String>) realmAccess.get("roles");
-        roles.addAll(realmRoles);
+      if (realmAccess != null && realmAccess.get("roles") instanceof List<?> realmRoles) {
+        for (Object role : realmRoles) {
+          if (role instanceof String roleName) {
+            roles.add(roleName);
+          }
+        }
         auditLogger.debug("🎭 USERINFO_ROLES: Extracted {} roles from realm_access", roles.size());
       } else {
         auditLogger.warn("⚠️ USERINFO_ROLES: No realm_access roles found");
@@ -307,15 +310,8 @@ public class AuthController {
 
       // Safe cast for data object
       Map<String, Object> data = null;
-      if (dataObj instanceof Map) {
-        try {
-          @SuppressWarnings("unchecked")
-          Map<String, Object> castedData = (Map<String, Object>) dataObj;
-          data = castedData;
-        } catch (ClassCastException e) {
-          // If cast fails, log the error and continue without data
-          auditLogger.warn("⚠️ FRONTEND_LOG: Invalid data format in log entry");
-        }
+      if (dataObj instanceof Map<?, ?> map) {
+        data = coerceMap(map);
       }
 
       // Log based on level - MDC context will automatically include tenant info
@@ -422,6 +418,15 @@ public class AuthController {
         .domain(".core-platform.local") // NEW - wildcard domain
         .maxAge(Duration.ZERO).build();
     resp.addHeader("Set-Cookie", cookie.toString());
+  }
+
+  private Map<String, Object> coerceMap(Map<?, ?> source) {
+    Map<String, Object> result = new HashMap<>();
+    for (Map.Entry<?, ?> entry : source.entrySet()) {
+      String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+      result.put(key, entry.getValue());
+    }
+    return result;
   }
 
   // Extract tenant from JWT helper method

@@ -6,3 +6,5 @@
 
 export { LogViewer } from './LogViewer';
 export { MetricCard } from './MetricCard';
+export { MetricsDashboard } from './MetricsDashboard';
+export { LiveMetricsWidget } from './LiveMetricsWidget';

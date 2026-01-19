@@ -37,7 +37,7 @@ print_info "1. Checking triggers in Keycloak database..."
 # Zjistíme Keycloak DB jméno z .env
 source "${SCRIPT_DIR}/../.env" 2>/dev/null || true
 KEYCLOAK_DB_NAME=${KEYCLOAK_DB_NAME:-keycloak}
-KEYCLOAK_DB_USERNAME=${KEYCLOAK_DB_USERNAME:-keycloak}
+KEYCLOAK_DB_USERNAME=${KEYCLOAK_DB_USERNAME:-keycloak_app}
 
 print_info "Using Keycloak DB: $KEYCLOAK_DB_NAME"
 

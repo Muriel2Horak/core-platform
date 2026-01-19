@@ -1,5 +1,7 @@
 package cz.muriel.core.controller.admin;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.service.workflow.DraftService;
 import cz.muriel.core.service.workflow.ProposalService;
 import cz.muriel.core.service.workflow.WorkflowSimulator;
@@ -66,12 +68,8 @@ public class WorkflowAdminController {
   @PutMapping("/{entity}/draft")
   public ResponseEntity<Map<String, Object>> saveDraft(@PathVariable String entity,
       @RequestBody Map<String, Object> draftData, Authentication auth) {
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> nodes = (List<Map<String, Object>>) draftData.getOrDefault("nodes",
-        List.of());
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> edges = (List<Map<String, Object>>) draftData.getOrDefault("edges",
-        List.of());
+    List<Map<String, Object>> nodes = asListOfMaps(draftData.get("nodes"));
+    List<Map<String, Object>> edges = asListOfMaps(draftData.get("edges"));
 
     log.info("💾 Saving draft workflow for entity: {} (nodes: {}, edges: {})", entity, nodes.size(),
         edges.size());
@@ -89,12 +87,8 @@ public class WorkflowAdminController {
       @PathVariable String entity, @RequestBody Map<String, Object> request) {
     log.info("✅ Validating draft workflow for entity: {}", entity);
 
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> nodes = (List<Map<String, Object>>) request.getOrDefault("nodes",
-        List.of());
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> edges = (List<Map<String, Object>>) request.getOrDefault("edges",
-        List.of());
+    List<Map<String, Object>> nodes = asListOfMaps(request.get("nodes"));
+    List<Map<String, Object>> edges = asListOfMaps(request.get("edges"));
 
     WorkflowValidator.ValidationResult result = validator.validate(parseNodes(nodes),
         parseEdges(edges));
@@ -110,17 +104,11 @@ public class WorkflowAdminController {
       @PathVariable String entity, @RequestBody Map<String, Object> request) {
     log.info("🎬 Simulating workflow for entity: {}", entity);
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> workflow = (Map<String, Object>) request.get("workflow");
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> nodes = (List<Map<String, Object>>) workflow.getOrDefault("nodes",
-        List.of());
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> edges = (List<Map<String, Object>>) workflow.getOrDefault("edges",
-        List.of());
+    Map<String, Object> workflow = asMap(request.get("workflow"));
+    List<Map<String, Object>> nodes = asListOfMaps(workflow.get("nodes"));
+    List<Map<String, Object>> edges = asListOfMaps(workflow.get("edges"));
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> data = (Map<String, Object>) request.get("data");
+    Map<String, Object> data = asMap(request.get("data"));
 
     WorkflowSimulator.SimulationResult result = simulator.simulate(parseNodes(nodes),
         parseEdges(edges), data);
@@ -130,17 +118,16 @@ public class WorkflowAdminController {
 
   // ===== W2: Helper methods =====
 
-  @SuppressWarnings("unchecked")
   private List<WorkflowValidator.WorkflowNode> parseNodes(List<Map<String, Object>> nodes) {
     return nodes.stream().map(n -> {
       WorkflowValidator.WorkflowNode node = new WorkflowValidator.WorkflowNode();
       node.setId((String) n.get("id"));
       node.setType((String) n.get("type"));
 
-      Map<String, Object> data = (Map<String, Object>) n.get("data");
+      Map<String, Object> data = asMap(n.get("data"));
       if (data != null) {
         node.setLabel((String) data.get("label"));
-        node.setBranches((List<String>) data.get("branches"));
+        node.setBranches(asStringList(data.get("branches")));
       }
 
       return node;
@@ -166,8 +153,7 @@ public class WorkflowAdminController {
       @RequestBody Map<String, Object> request, Authentication auth) {
     log.info("📝 Creating proposal for entity: {}", entity);
 
-    @SuppressWarnings("unchecked")
-    Map<String, Object> draftData = (Map<String, Object>) request.get("draftData");
+    Map<String, Object> draftData = asMap(request.get("draftData"));
     String author = (String) request.getOrDefault("author", "system");
     String description = (String) request.getOrDefault("description", "Workflow update");
 
@@ -175,6 +161,44 @@ public class WorkflowAdminController {
         description, auth);
 
     return ResponseEntity.ok(proposal);
+  }
+
+  private Map<String, Object> asMap(Object value) {
+    if (value instanceof Map<?, ?> map) {
+      Map<String, Object> result = new HashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+        result.put(key, entry.getValue());
+      }
+      return result;
+    }
+    return new HashMap<>();
+  }
+
+  private List<Map<String, Object>> asListOfMaps(Object value) {
+    if (value instanceof List<?> list) {
+      List<Map<String, Object>> result = new ArrayList<>();
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> map) {
+          result.add(asMap(map));
+        }
+      }
+      return result;
+    }
+    return List.of();
+  }
+
+  private List<String> asStringList(Object value) {
+    if (value instanceof List<?> list) {
+      List<String> result = new ArrayList<>();
+      for (Object item : list) {
+        if (item != null) {
+          result.add(item.toString());
+        }
+      }
+      return result;
+    }
+    return List.of();
   }
 
   /**
@@ -267,10 +291,9 @@ public class WorkflowAdminController {
     return ResponseEntity.ok(diff);
   }
 
-  @SuppressWarnings("unchecked")
   private Map<String, Object> parseJsonToMap(String json) {
     try {
-      return new com.fasterxml.jackson.databind.ObjectMapper().readValue(json, Map.class);
+      return new ObjectMapper().readValue(json, new TypeReference<Map<String, Object>>() {});
     } catch (Exception e) {
       log.error("Failed to parse JSON", e);
       return Map.of("nodes", List.of(), "edges", List.of());

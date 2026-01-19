@@ -1,5 +1,6 @@
 package cz.muriel.core.auth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -1273,8 +1274,8 @@ public class KeycloakAdminService {
    */
   public void createRealm(String realmJson) {
     try {
-      @SuppressWarnings("unchecked")
-      Map<String, Object> realmConfig = objectMapper.readValue(realmJson, Map.class);
+      Map<String, Object> realmConfig = objectMapper.readValue(realmJson,
+          new TypeReference<Map<String, Object>>() {});
       createRealm(realmConfig);
     } catch (Exception ex) {
       log.error("❌ Failed to parse realm JSON", ex);

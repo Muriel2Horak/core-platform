@@ -1,80 +1,191 @@
 package cz.muriel.core.controller.ai;
 
+import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
+import cz.muriel.core.metamodel.schema.ai.AiVisibilityMode;
+import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
+import cz.muriel.core.metrics.AiMetricsCollector;
+import cz.muriel.core.service.ai.ContextAssembler;
+import cz.muriel.core.service.TenantService;
+import cz.muriel.core.streaming.service.WorkStateService;
+import cz.muriel.core.locks.EditLockService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for tenant ID extraction from security context
- * 
- * Tests the security integration in AiContextController
- */
 @ExtendWith(MockitoExtension.class)
 class AiContextControllerSecurityTest {
 
   @Test
-  void getTenantIdFromSecurityContext_shouldExtractFromJwt() {
-    // Arrange
-    UUID expectedTenantId = UUID.randomUUID();
-    Jwt jwt = createMockJwt(expectedTenantId.toString());
+  void getContext_usesTenantIdFromJwtWhenMissingParam() {
+    UUID tenantId = UUID.randomUUID();
+    Jwt jwt = createMockJwt(tenantId.toString());
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
-    // Act & Assert - Verify JWT structure for tenant extraction
-    assertNotNull(jwt.getClaimAsString("tenant_id"));
-    assertEquals(expectedTenantId.toString(), jwt.getClaimAsString("tenant_id"));
+    ContextAssembler assembler = mock(ContextAssembler.class);
+    AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
+    TenantService tenantService = mock(TenantService.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
+
+    GlobalMetamodelConfig config = new GlobalMetamodelConfig();
+    GlobalAiConfig ai = new GlobalAiConfig();
+    ai.setEnabled(true);
+    ai.setMode(AiVisibilityMode.META_ONLY);
+    config.setAi(ai);
+
+    when(assembler.assembleContext(anyString(), any())).thenReturn(Map.of("ok", true));
+
+    AiContextController controller = new AiContextController(assembler, config, metricsCollector,
+        provider, tenantService, editLockProvider);
+
+    try {
+      when(tenantService.getTenantKeyFromId(eq(tenantId))).thenReturn("tenant");
+      controller.getContext("users.detail", null, false, null, null);
+      verify(assembler).assembleContext(eq("users.detail"), eq(tenantId));
+    } finally {
+      SecurityContextHolder.clearContext();
+    }
   }
 
   @Test
-  void getTenantIdFromSecurityContext_shouldHandleNoAuthentication() {
-    // Arrange
-    SecurityContext securityContext = mock(SecurityContext.class);
-    lenient().when(securityContext.getAuthentication()).thenReturn(null);
+  void getContext_rejectsMissingTenantClaim() {
+    Jwt jwt = createMockJwt(null);
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
-    // Act & Assert - Verify no auth scenario
-    assertNull(securityContext.getAuthentication());
+    ContextAssembler assembler = mock(ContextAssembler.class);
+    AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
+    TenantService tenantService = mock(TenantService.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
+
+    GlobalMetamodelConfig config = new GlobalMetamodelConfig();
+    GlobalAiConfig ai = new GlobalAiConfig();
+    ai.setEnabled(true);
+    ai.setMode(AiVisibilityMode.META_ONLY);
+    config.setAi(ai);
+
+    AiContextController controller = new AiContextController(assembler, config, metricsCollector,
+        provider, tenantService, editLockProvider);
+
+    try {
+      ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+          () -> controller.getContext("users.detail", null, false, null, null));
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    } finally {
+      SecurityContextHolder.clearContext();
+    }
   }
 
   @Test
-  void getTenantIdFromSecurityContext_shouldHandleNotAuthenticated() {
-    // Arrange
-    Authentication auth = mock(Authentication.class);
-    lenient().when(auth.isAuthenticated()).thenReturn(false);
+  void getContext_rejectsMissingAuthentication() {
+    SecurityContextHolder.clearContext();
 
-    // Act & Assert - Verify not authenticated scenario
-    assertFalse(auth.isAuthenticated());
+    ContextAssembler assembler = mock(ContextAssembler.class);
+    AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
+    TenantService tenantService = mock(TenantService.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
+
+    GlobalMetamodelConfig config = new GlobalMetamodelConfig();
+    GlobalAiConfig ai = new GlobalAiConfig();
+    ai.setEnabled(true);
+    ai.setMode(AiVisibilityMode.META_ONLY);
+    config.setAi(ai);
+
+    AiContextController controller = new AiContextController(assembler, config, metricsCollector,
+        provider, tenantService, editLockProvider);
+
+    ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+        () -> controller.getContext("users.detail", null, false, null, null));
+    assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
   }
 
   @Test
-  void getTenantIdFromSecurityContext_shouldHandleNoTenantIdClaim() {
-    // Arrange
-    Jwt jwt = createMockJwt(null); // No tenant_id claim
+  void getContext_rejectsInvalidTenantClaimFormat() {
+    Jwt jwt = createMockJwt("not-a-uuid");
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
-    // Act & Assert - Verify missing claim scenario
-    assertNull(jwt.getClaimAsString("tenant_id"));
+    ContextAssembler assembler = mock(ContextAssembler.class);
+    AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
+    TenantService tenantService = mock(TenantService.class);
+    ObjectProvider<WorkStateService> provider = providerOf(null);
+    ObjectProvider<EditLockService> editLockProvider = providerOf(null);
+
+    GlobalMetamodelConfig config = new GlobalMetamodelConfig();
+    GlobalAiConfig ai = new GlobalAiConfig();
+    ai.setEnabled(true);
+    ai.setMode(AiVisibilityMode.META_ONLY);
+    config.setAi(ai);
+
+    AiContextController controller = new AiContextController(assembler, config, metricsCollector,
+        provider, tenantService, editLockProvider);
+
+    try {
+      ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+          () -> controller.getContext("users.detail", null, false, null, null));
+      // After optional Kafka changes, invalid tenant format returns UNAUTHORIZED
+      // because authentication check happens before tenant parsing
+      assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+    } finally {
+      SecurityContextHolder.clearContext();
+    }
   }
 
-  @Test
-  void getTenantIdFromSecurityContext_shouldHandleInvalidUuidFormat() {
-    // Arrange
-    Jwt jwt = createMockJwt("not-a-valid-uuid");
+  private static <T> ObjectProvider<T> providerOf(T value) {
+    return new ObjectProvider<>() {
+      @Override
+      public T getObject(Object... args) {
+        if (value == null) {
+          throw new IllegalStateException("No bean available");
+        }
+        return value;
+      }
 
-    // Act & Assert - Verify invalid UUID format throws exception
-    assertThrows(IllegalArgumentException.class,
-        () -> UUID.fromString(jwt.getClaimAsString("tenant_id")));
+      @Override
+      public T getIfAvailable() {
+        return value;
+      }
+
+      @Override
+      public T getIfUnique() {
+        return value;
+      }
+
+      @Override
+      public Stream<T> stream() {
+        return value != null ? Stream.of(value) : Stream.empty();
+      }
+
+      @Override
+      public Stream<T> orderedStream() {
+        return stream();
+      }
+    };
   }
 
-  /**
-   * Create mock JWT with tenant_id claim
-   */
   private Jwt createMockJwt(String tenantId) {
     Map<String, Object> claims = tenantId != null
         ? Map.of("tenant_id", tenantId, "sub", "user@example.com")

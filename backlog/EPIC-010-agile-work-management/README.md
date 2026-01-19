@@ -1,6 +1,7 @@
 # EPIC-010: Agile Work Management Module (AWM)
 
 **Status:** 🔵 **PLANNED**  
+**Definice:** ✅ **100%** (AWM1..AWM17 specifikovano s AC)  
 **Priority:** P1 (Strategic)  
 **Effort:** ~180 hodin  
 **LOC:** ~12,000 řádků
@@ -421,12 +422,57 @@
 
 ---
 
-**Pokračování následuje v dalším commitu (AWM7-AWM17):**
-- Theme 3: Boards & Backlog (AWM7-AWM9)
-- Theme 4: DMS & Komentáře (AWM10-AWM11)
-- Theme 5: Reporting & Monitoring (AWM12-AWM13)
-- Theme 6: Tenancy, RBAC, Licensing (AWM14-AWM15)
-- Theme 7: AI/MCP Hooks (AWM16-AWM17)
+**Pokračování a detaily:**
+- [PART-2-BOARDS-DMS-REPORTING.md](./PART-2-BOARDS-DMS-REPORTING.md) (Themes 3-5, AWM7-AWM13)
+- [PART-3-TENANCY-RBAC-AI.md](./PART-3-TENANCY-RBAC-AI.md) (Themes 6-7, AWM14-AWM17)
+
+---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Work Item model | AWM1 | Chybí core metamodel definice → bez CRUD základu |
+| Hierarchie & linky | AWM2 | Neexistuje parent/child ani dependency links |
+| Validace & rules | AWM3 | Chybí validační pravidla → nekonzistence dat |
+| Workflow šablony | AWM4 | Bez standardních flow vznikne nekonzistentní stavový model |
+| Workflow engine | AWM5 | Nejsou provázané přechody → statusy bez kontroly |
+| Workflow vizualizace | AWM6 | Chybí timeline/diagram → slabá UX transparentnost |
+| Backlog | AWM7 | Chybí prioritizace a grooming view |
+| Board | AWM8 | Chybí kanban/scrum board → žádný vizuální flow |
+| Sprinty | AWM9 | Není planning/active/close cyklus |
+| DMS integrace | AWM10 | Bez příloh/odkazů na dokumenty |
+| Komentáře | AWM11 | Chybí diskuze a auditní kontext |
+| Reporting | AWM12 | Chybí burndown/velocity a základní reporty |
+| Observabilita | AWM13 | Bez metrik/logů není provozní dohled |
+| Tenancy feature | AWM14 | Nelze zapnout/vypnout modul per tenant |
+| Licensing readiness | AWM15 | Chybí licenční hooky pro monetizaci |
+| AI/MCP návrhy | AWM16 | Chybí AI asistence pro workflow/config |
+| AI field generation | AWM17 | Chybí AI generace polí/validací |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [AWM1: Work Item Model](./README.md) | Metamodel definice + validace | Core entity model |
+| [AWM2: Relace & Hierarchie](./README.md) | Parent/child + cross-links | Hierarchické vazby |
+| [AWM3: Validace & Rules](./README.md) | Business pravidla v metamodelu | Konzistence dat |
+| [AWM4: Workflow Šablony](./README.md) | Předdefinované workflow modely | Standardní flow |
+| [AWM5: Workflow Engine](./README.md) | Integrace přechodů a validací | Řízené statusy |
+| [AWM6: Workflow Viz](./README.md) | Timeline + diagram | Vizualizace workflow |
+| [AWM7: Backlog View](./PART-2-BOARDS-DMS-REPORTING.md) | Backlog UI + prioritizace | Backlog view |
+| [AWM8: Board](./PART-2-BOARDS-DMS-REPORTING.md) | Kanban/Scrum board | Board view |
+| [AWM9: Sprints](./PART-2-BOARDS-DMS-REPORTING.md) | Sprint planning/active/close | Sprint management |
+| [AWM10: DMS](./PART-2-BOARDS-DMS-REPORTING.md) | Propojení na dokumenty | Attachments |
+| [AWM11: Komentáře](./PART-2-BOARDS-DMS-REPORTING.md) | Diskuze, mentions, audit | Collaboration |
+| [AWM12: Reporting](./PART-2-BOARDS-DMS-REPORTING.md) | Burndown/velocity | Reporty |
+| [AWM13: Observabilita](./PART-2-BOARDS-DMS-REPORTING.md) | Metrics + logs | Monitoring |
+| [AWM14: Tenant Feature](./PART-3-TENANCY-RBAC-AI.md) | Zapnutí modulu per tenant | Feature toggle |
+| [AWM15: Licensing](./PART-3-TENANCY-RBAC-AI.md) | Licenční připravenost | Licensing hooks |
+| [AWM16: AI/MCP návrhy](./PART-3-TENANCY-RBAC-AI.md) | AI asistence konfigurace | AI suggestions |
+| [AWM17: AI generace polí](./PART-3-TENANCY-RBAC-AI.md) | AI pro pole/validace | AI schema assist |
+
+Poznámka: Detailní zadání AWM1-AWM6 je v `backlog/EPIC-010-agile-work-management/README.md`. AWM7-AWM17 jsou detailně v Part 2/3.
 
 ---
 

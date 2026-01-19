@@ -1,3 +1,21 @@
+---
+id: ADM-001
+epic: EPIC-017-modular-architecture
+title: "Global Module Catalog"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-001-global-module-catalog/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-001: Global Module Catalog
 
 **Status:** ⏳ **PENDING**  
@@ -24,6 +42,18 @@ So that I can install and manage modules.
 - ⏳ Actions: Install, Enable, Disable, Uninstall
 - ⏳ Dependency graph visualization (D3.js)
 - ⏳ Filter by status, search by name
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Module catalog API integration + data model | 0.5d | MOD-002 |
+| 2 | Table UI with status chips + actions (install/enable/disable) | 0.5d | 1 |
+| 3 | Dependency graph visualization (D3) + empty states | 0.5d | 1 |
+| 4 | Filters/search + pagination | 0.25d | 2 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
 
 ---
 

@@ -3,7 +3,7 @@
 **Story:** [S8: Frontend-Backend Integration](README.md)  
 **Effort:** 8 hours  
 **Priority:** P0  
-**Dependencies:** None
+**Dependencies:** EPIC-014 S3, S9
 
 ---
 
@@ -28,6 +28,15 @@ export const FormulaBuilder: React.FC = () => {
   );
 };
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+- [ ] Formula builder umoznuje vyber pole a operatoru bez manualniho psani.
+- [ ] Validace blokuje ulozeni neplatneho vyrazu a zobrazuje chybu.
+- [ ] Dostupna pole jsou nacitena z Cube.js meta API.
+- [ ] Po ulozeni se custom metric objevi v seznamu metrik.
 
 ---
 

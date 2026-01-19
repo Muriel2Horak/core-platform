@@ -1,7 +1,26 @@
+---
+id: S1
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Cube.js Data Modeling & Pre-aggregations (Phase R1)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - docker/docker-compose.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP1-cube-js-data-modeling-pre-aggregations/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S1: Cube.js Data Modeling & Pre-aggregations (Phase R1)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Září 2024 (Phase R1)  
 **LOC:** ~2,500 řádků (data models, pre-aggregations, schemas)  
 **Sprint:** Reporting Wave 1

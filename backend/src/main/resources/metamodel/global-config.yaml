@@ -1,6 +1,6 @@
 # Global metamodel configuration
 streaming:
-  enabled: false
+  enabled: true
   # Default values for entity streaming config (supported fields only!)
   defaultPartitions: 3
   defaultReplicationFactor: 1

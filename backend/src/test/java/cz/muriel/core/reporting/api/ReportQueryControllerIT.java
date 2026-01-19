@@ -3,8 +3,9 @@ package cz.muriel.core.reporting.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests complete reporting workflow: - Query execution with Cube.js - Caching
  * behavior - RLS enforcement - Rate limiting - Circuit breaker (error handling)
  */
-@SpringBootTest @AutoConfigureMockMvc @Transactional
+@SpringBootTest @Import(MockMvcTestConfig.class) @Transactional
 class ReportQueryControllerIT extends AbstractIntegrationTest {
 
   @Autowired

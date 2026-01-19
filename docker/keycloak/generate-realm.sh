@@ -7,9 +7,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Input template and output file
-REALM_TEMPLATE="$SCRIPT_DIR/realm-admin.template.json"
-REALM_OUTPUT="$SCRIPT_DIR/realm-admin.json"
+# Input template and output file (overridable for checks/tests)
+REALM_TEMPLATE="${REALM_TEMPLATE:-$SCRIPT_DIR/realm-admin.template.json}"
+REALM_OUTPUT="${REALM_OUTPUT:-$SCRIPT_DIR/realm-admin.json}"
 
 # 🌐 Dynamické generování Keycloak realm exportu s aktuální DOMAIN
 # Použije environment proměnnou DOMAIN pro generování správných redirect URIs
@@ -87,8 +87,8 @@ debug_echo "Running envsubst command..."
 # 🔧 FIX: Nejprve nahradíme fallback syntaxi standardní syntaxí pro envsubst
 # Používáme ADMIN_DOMAIN místo DOMAIN pro admin realm
 debug_echo "Processing fallback syntax..."
-sed 's/\${TEST_USER_PASSWORD:[^}]*}/${TEST_USER_PASSWORD}/g; s/\${TEST_ADMIN_PASSWORD:[^}]*}/${TEST_ADMIN_PASSWORD}/g; s/\${GRAFANA_OAUTH_SECRET:[^}]*}/${GRAFANA_OAUTH_SECRET}/g' "$REALM_TEMPLATE" | \
-DOMAIN="$ADMIN_DOMAIN" GRAFANA_OAUTH_SECRET="${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}" envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET $TEST_USER_PASSWORD $TEST_ADMIN_PASSWORD $GRAFANA_OAUTH_SECRET' > "$REALM_OUTPUT"
+sed 's/\${TEST_USER_PASSWORD:[^}]*}/${TEST_USER_PASSWORD}/g; s/\${TEST_ADMIN_PASSWORD:[^}]*}/${TEST_ADMIN_PASSWORD}/g; s/\${GRAFANA_OIDC_SECRET:[^}]*}/${GRAFANA_OIDC_SECRET}/g' "$REALM_TEMPLATE" | \
+DOMAIN="$ADMIN_DOMAIN" GRAFANA_OIDC_SECRET="${GRAFANA_OIDC_SECRET:-grafana-secret-change-in-prod}" envsubst '$DOMAIN $KEYCLOAK_ADMIN_CLIENT_SECRET $TEST_USER_PASSWORD $TEST_ADMIN_PASSWORD $GRAFANA_OIDC_SECRET' > "$REALM_OUTPUT"
 
 # Kontrola, že výstupní soubor byl vytvořen
 if [[ ! -f "$REALM_OUTPUT" ]]; then

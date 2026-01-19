@@ -1,8 +1,31 @@
+---
+id: S8
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Frontend-Backend Integration Improvements"
+priority: P0
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "22 hours"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/reporting
+    - frontend/src/components/Reporting
+    - frontend/src/services
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/reporting
+    - frontend/src/test
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP8-frontend-backend-integration-improvement/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S8: Frontend-Backend Integration Improvements
 
-**Status:** 🔵 **TODO**  
+**Status:** ✅ **DONE**
 **Priority:** P0 (Critical for Production)  
-**Effort:** ~18 hodin (3 tasky)  
+**Effort:** ~22 hodin (4 tasky)  
 **Dependencies:** 
 - EPIC-014 S3 (Form Components) - pro formula builder UI
 - EPIC-014 S9 (Data Tables) - pro field picker autocomplete
@@ -26,6 +49,15 @@
 - [ ] **Error Handling Consistency** - všechny API errors mají standardní formát
 
 ---
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Formula Builder UI](subtasks/T1-formula-builder.md) | 8h | EPIC-014 S3, S9 |
+| 2 | [T2: Export Progress Tracking](subtasks/T2-export-progress.md) | 6h | T1 |
+| 3 | [T3: API Response Standardization](subtasks/T3-api-standardization.md) | 4h | T1 |
+| 4 | [T4: Testing](subtasks/T4-testing.md) | 4h | T1, T2, T3 |
 
 ## 🔍 Current State Analysis
 

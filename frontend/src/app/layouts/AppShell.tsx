@@ -35,14 +35,14 @@ export interface AppShellProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | false;
 }
 
-// � Sidebar resize constants
+// Sidebar resize constants
 const SIDEBAR_MIN_WIDTH = 60; // Collapsed mode (icons only)
 const SIDEBAR_MAX_WIDTH = 400; // Maximum expanded width
 const SIDEBAR_DEFAULT_WIDTH = 240; // Default width (from tokens)
 const SIDEBAR_COLLAPSE_THRESHOLD = 150; // Auto-collapse below this width
 const SIDEBAR_STORAGE_KEY = 'sidebar-width';
 
-// �🎨 Styled komponenty
+// Styled komponenty
 const ShellContainer = styled(Box)(() => ({
   display: 'flex',
   minHeight: '100vh',

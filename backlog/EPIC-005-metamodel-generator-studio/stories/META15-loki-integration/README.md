@@ -1,3 +1,21 @@
+---
+id: META-015
+epic: EPIC-005-metamodel-generator-studio
+title: "Loki Integration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "80 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META15-loki-integration/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-015: Loki Integration
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -67,6 +85,17 @@ fields:
 - **THEN** Generic Table zobrazí logy
 - **Filtry**: Time range, level, service
 - **Export**: CSV obsahující pouze visible fields
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Log entity schema + validation (storageType=log) | 15h | META-001 |
+| 2 | Loki query builder + mapping to fields | 35h | T1 |
+| 3 | UI log viewer + filters + export | 20h | T2, META-009 |
+| 4 | Testy + docs (query limits, tenancy) | 10h | T2, T3 |
 
 ---
 

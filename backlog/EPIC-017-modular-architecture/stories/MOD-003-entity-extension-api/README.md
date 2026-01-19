@@ -1,3 +1,21 @@
+---
+id: MOD-003
+epic: EPIC-017-modular-architecture
+title: "Entity Extension API"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/MOD-003-entity-extension-api/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # MOD-003: Entity Extension API
 
 **Status:** ⏳ **PENDING**  
@@ -24,6 +42,18 @@ So that I can add functionality without modifying core entities.
 - ⏳ Extensions isolated per module (uninstall removes only module's fields)
 - ⏳ Schema migrations generated automatically for extensions
 - ⏳ UI metadata updated (new fields appear in forms/lists)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Metamodel overlay apply/remove | 0.5d | EPIC-005 |
+| 2 | Validation + rollback hooks | 0.5d | 1 |
+| 3 | Tenant-scoped extensions | 0.25d | 1 |
+| 4 | Migration hooks | 0.25d | 1 |
+| 5 | Tests | 0.25d | 2 |
 
 ---
 

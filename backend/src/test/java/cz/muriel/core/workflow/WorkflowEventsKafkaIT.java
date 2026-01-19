@@ -1,5 +1,6 @@
 package cz.muriel.core.workflow;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -80,8 +81,7 @@ class WorkflowEventsKafkaIT extends AbstractKafkaIntegrationTest {
     assertThat(records.isEmpty()).isFalse();
 
     String value = records.iterator().next().value();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> event = objectMapper.readValue(value, Map.class);
+    Map<String, Object> event = parseEvent(value);
 
     assertThat(event.get("tenantId")).isEqualTo(tenantId);
     assertThat(event.get("entityType")).isEqualTo(entityType);
@@ -113,8 +113,7 @@ class WorkflowEventsKafkaIT extends AbstractKafkaIntegrationTest {
     assertThat(records.isEmpty()).isFalse();
 
     String value = records.iterator().next().value();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> event = objectMapper.readValue(value, Map.class);
+    Map<String, Object> event = parseEvent(value);
 
     assertThat(event.get("eventType")).isEqualTo("EXIT_STATE");
     assertThat(event.get("fromStateCode")).isEqualTo(stateCode);
@@ -143,8 +142,7 @@ class WorkflowEventsKafkaIT extends AbstractKafkaIntegrationTest {
     assertThat(records.isEmpty()).isFalse();
 
     String value = records.iterator().next().value();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> event = objectMapper.readValue(value, Map.class);
+    Map<String, Object> event = parseEvent(value);
 
     assertThat(event.get("eventType")).isEqualTo("ACTION_APPLIED");
     assertThat(event.get("fromStateCode")).isEqualTo(fromState);
@@ -173,8 +171,7 @@ class WorkflowEventsKafkaIT extends AbstractKafkaIntegrationTest {
     assertThat(records.isEmpty()).isFalse();
 
     String value = records.iterator().next().value();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> event = objectMapper.readValue(value, Map.class);
+    Map<String, Object> event = parseEvent(value);
 
     assertThat(event.get("eventType")).isEqualTo("ERROR");
     assertThat(event.get("fromStateCode")).isEqualTo(stateCode);
@@ -206,8 +203,7 @@ class WorkflowEventsKafkaIT extends AbstractKafkaIntegrationTest {
     List<String> eventTypes = new ArrayList<>();
     records.forEach(record -> {
       try {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> event = objectMapper.readValue(record.value(), Map.class);
+        Map<String, Object> event = parseEvent(record.value());
         eventTypes.add((String) event.get("eventType"));
       } catch (Exception e) {
         // Ignore
@@ -230,11 +226,14 @@ class WorkflowEventsKafkaIT extends AbstractKafkaIntegrationTest {
     // Act
     ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(10));
     String value = records.iterator().next().value();
-    @SuppressWarnings("unchecked")
-    Map<String, Object> event = objectMapper.readValue(value, Map.class);
+    Map<String, Object> event = parseEvent(value);
 
     // Assert: Required fields present
     assertThat(event).containsKeys("eventId", "tenantId", "entityType", "entityId", "eventType",
         "actor", "timestamp");
+  }
+
+  private Map<String, Object> parseEvent(String payload) throws Exception {
+    return objectMapper.readValue(payload, new TypeReference<Map<String, Object>>() {});
   }
 }

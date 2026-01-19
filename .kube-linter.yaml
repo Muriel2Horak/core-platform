@@ -1,0 +1,4 @@
+checks:
+  include:
+    - "latest-tag"
+    - "privileged-container"

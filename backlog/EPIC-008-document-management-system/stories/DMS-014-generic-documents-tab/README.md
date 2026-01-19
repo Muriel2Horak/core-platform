@@ -1,3 +1,21 @@
+---
+id: DMS-014
+epic: EPIC-008-document-management-system
+title: "Generic Documents Tab Component"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-014-generic-documents-tab/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-014: Generic Documents Tab Component
 
 **Epic:** EPIC-008 Document Management System  

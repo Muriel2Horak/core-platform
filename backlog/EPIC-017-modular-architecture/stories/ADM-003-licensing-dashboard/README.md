@@ -1,3 +1,21 @@
+---
+id: ADM-003
+epic: EPIC-017-modular-architecture
+title: "Licensing Dashboard"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-003-licensing-dashboard/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-003: Licensing Dashboard
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that I can proactively renew expiring licenses.
 - ⏳ Widget: Revenue forecast (based on active licenses)
 - ⏳ Audit log viewer (license uploads, denials)
 - ⏳ Export license report (CSV)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | KPI widgets: active licenses, expiring, disabled | 0.5d | LIC-003 |
+| 2 | Usage/consumption charts + filters | 0.5d | 1 |
+| 3 | Expiry alerts + export (CSV/PDF) | 0.25d | 1 |
+| 4 | Backend endpoints integration + caching | 0.25d | 1 |
+| 5 | UI tests + snapshot tests | 0.25d | 2 |
 
 ---
 

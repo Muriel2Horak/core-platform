@@ -1,6 +1,6 @@
 # T3: REST API Controller
 
-**Story:** [S8: Test Registry & Tracking](../S8.md)  
+**Story:** Test Registry & Tracking  
 **Status:** 🔵 TODO  
 **Effort:** ~2 hodiny  
 **LOC:** ~200 řádků
@@ -424,4 +424,4 @@ class TestRegistryIntegrationTest {
 
 ---
 
-**Back to:** [S8 Tasks](./README.md) | [S8 Story](../S8.md)
+**Back to:** [S8 Tasks](../README.md) | [EPIC-002](../../../README.md)

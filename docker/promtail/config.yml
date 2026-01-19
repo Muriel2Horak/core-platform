@@ -38,3 +38,28 @@ scrape_configs:
         replacement: 'docker'
     pipeline_stages:
       - docker: {}
+
+  - job_name: vault-audit
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: vault-audit
+          __path__: /var/log/vault/audit.log
+    pipeline_stages:
+      - json:
+          expressions:
+            time: time
+            type: type
+            auth_display_name: auth.display_name
+            request_path: request.path
+            request_operation: request.operation
+            response_mount_type: response.mount_type
+      - timestamp:
+          source: time
+          format: RFC3339
+      - labels:
+          auth_display_name:
+          request_path:
+          request_operation:
+          response_mount_type:

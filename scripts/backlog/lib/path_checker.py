@@ -60,8 +60,9 @@ class PathValidationResult:
         Returns:
             Absolute Path object
         """
-        # Remove leading ./
-        path = path.lstrip("./")
+        # Remove a single leading ./ without stripping dot-prefixed dirs (e.g. ".github")
+        if path.startswith("./"):
+            path = path[2:]
 
         # If already absolute, convert to relative to repo_root
         if Path(path).is_absolute():

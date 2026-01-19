@@ -1,3 +1,22 @@
+---
+id: S1
+epic: EPIC-008-document-management-system
+title: "File Upload/Download Service"
+priority: P0
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - docker/docker-compose.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS1-file-upload-download-service/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # S1: File Upload/Download Service
 
 > **Core DMS Capability:** Robustní file upload/download s chunked transfers, resumable uploads a virus scanning

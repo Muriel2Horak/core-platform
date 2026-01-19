@@ -1,3 +1,21 @@
+---
+id: ADM-004
+epic: EPIC-017-modular-architecture
+title: "Tenant Module Configuration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/ADM-004-tenant-module-configuration/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # ADM-004: Tenant Module Configuration
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that I can customize module behavior (e.g., SLA times, notification emails).
 - ⏳ Save configuration (stored in JSONB column)
 - ⏳ Reset to defaults button
 - ⏳ Configuration validation (required fields, formats)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Config schema rendering (form builder) | 0.5d | MOD-004 |
+| 2 | Persist config + validation errors | 0.5d | 1 |
+| 3 | Reset to defaults + versioning | 0.25d | 2 |
+| 4 | RBAC + audit events | 0.25d | 2 |
+| 5 | UI tests + API contract tests | 0.25d | 2 |
 
 ---
 

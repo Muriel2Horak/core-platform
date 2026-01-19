@@ -34,4 +34,10 @@ cache:
 
 ---
 
+## ✅ Acceptance Criteria
+
+- [ ] Deliverables listed above are completed and reviewed.
+- [ ] Relevant code/tests/docs updated for this task.
+- [ ] Outcome verified locally (or in CI where applicable).
+
 **Estimated:** 10 hours

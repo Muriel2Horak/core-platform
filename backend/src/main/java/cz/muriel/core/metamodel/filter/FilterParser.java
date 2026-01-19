@@ -105,15 +105,14 @@ public class FilterParser {
       String values = inMatcher.group(3);
 
       List<Object> valueList = parseValueList(values);
-      Field<Object> fieldRef = DSL.field(DSL.name(field));
-
-      // Convert to DSL.inline() for proper type handling in DEFAULT dialect
-      Object[] typedValues = valueList.stream().map(DSL::inline).toArray();
+      Class<?> valueType = valueList.isEmpty() ? String.class : valueList.get(0).getClass();
+      @SuppressWarnings({"rawtypes", "unchecked"})
+      Field fieldRef = DSL.field(DSL.name(field), valueType);
 
       if ("in".equals(operator)) {
-        return fieldRef.in(typedValues);
+        return fieldRef.in(valueList);
       } else {
-        return fieldRef.notIn(typedValues);
+        return fieldRef.notIn(valueList);
       }
     }
 
@@ -134,17 +133,22 @@ public class FilterParser {
    * Create comparison condition
    */
   private static Condition createComparison(String fieldName, String operator, Object value) {
-    Field<Object> field = DSL.field(DSL.name(fieldName));
+    if ("like".equals(operator)) {
+      return DSL.field(DSL.name(fieldName), String.class).like(value.toString());
+    }
 
-    // Use DSL.inline() for proper type handling in DEFAULT dialect
+    Class<?> valueType = value == null ? String.class : value.getClass();
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    Field field = DSL.field(DSL.name(fieldName), valueType);
+    var param = DSL.val(value, field.getDataType());
+
     return switch (operator) {
-    case "eq" -> field.eq(DSL.inline(value));
-    case "ne" -> field.ne(DSL.inline(value));
-    case "lt" -> field.lt(DSL.inline(value));
-    case "lte" -> field.le(DSL.inline(value));
-    case "gt" -> field.gt(DSL.inline(value));
-    case "gte" -> field.ge(DSL.inline(value));
-    case "like" -> field.like(value.toString());
+    case "eq" -> field.eq(param);
+    case "ne" -> field.ne(param);
+    case "lt" -> field.lt(param);
+    case "lte" -> field.le(param);
+    case "gt" -> field.gt(param);
+    case "gte" -> field.ge(param);
     default -> throw new IllegalArgumentException("Unknown operator: " + operator);
     };
   }
