@@ -1,19 +1,15 @@
 package cz.muriel.core.controller;
 
 import cz.muriel.core.entity.Tenant;
-import cz.muriel.core.config.PrimaryJpaConfig;
 import cz.muriel.core.service.TenantService;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ContextConfiguration;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,7 +18,9 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import java.util.Optional;
 import java.util.List;
@@ -32,11 +30,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = TenantController.class,
-    excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-        classes = PrimaryJpaConfig.class))
-@Import(TenantControllerTest.SecurityTestConfig.class)
-@ContextConfiguration(classes = {TenantController.class, TenantControllerTest.SecurityTestConfig.class})
+@SpringJUnitWebConfig(classes = {TenantController.class, TenantControllerTest.WebConfig.class,
+    TenantControllerTest.SecurityTestConfig.class, MockMvcTestConfig.class})
 @Execution(ExecutionMode.SAME_THREAD)
 class TenantControllerTest {
 
@@ -108,5 +103,9 @@ class TenantControllerTest {
               .anyRequest().permitAll());
       return http.build();
     }
+  }
+
+  @Configuration @EnableWebMvc
+  static class WebConfig {
   }
 }

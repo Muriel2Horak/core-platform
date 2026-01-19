@@ -1,8 +1,8 @@
 package cz.muriel.core.config;
 
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
@@ -21,8 +21,10 @@ public class RestTemplateConfig {
    * Používán pro: - Grafana Admin API calls - Externí HTTP komunikace
    */
   @Bean
-  public RestTemplate restTemplate(RestTemplateBuilder builder) {
-    return builder.connectTimeout(Duration.ofSeconds(10)).readTimeout(Duration.ofSeconds(30))
-        .build();
+  public RestTemplate restTemplate() {
+    SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+    requestFactory.setConnectTimeout((int) Duration.ofSeconds(10).toMillis());
+    requestFactory.setReadTimeout((int) Duration.ofSeconds(30).toMillis());
+    return new RestTemplate(requestFactory);
   }
 }

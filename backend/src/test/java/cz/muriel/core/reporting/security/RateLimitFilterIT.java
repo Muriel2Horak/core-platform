@@ -2,8 +2,9 @@ package cz.muriel.core.reporting.security;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.springframework.test.web.servlet.MockMvc;
 
 import cz.muriel.core.test.AbstractIntegrationTest;
@@ -15,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for RateLimitFilter. Tests rate limiting enforcement (120
  * req/min per tenant).
  */
-@SpringBootTest @AutoConfigureMockMvc
+@SpringBootTest @Import(MockMvcTestConfig.class)
 class RateLimitFilterIT extends AbstractIntegrationTest {
 
   @Autowired

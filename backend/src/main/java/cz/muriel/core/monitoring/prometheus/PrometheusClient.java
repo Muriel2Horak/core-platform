@@ -27,7 +27,7 @@ public class PrometheusClient {
   private String baseUrl;
 
   public Map<String, Object> queryRange(String query, Instant start, Instant end, Duration step) {
-    String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+    String url = UriComponentsBuilder.fromUriString(baseUrl)
         .path("/api/v1/query_range")
         .queryParam("query", query)
         .queryParam("start", start.getEpochSecond())

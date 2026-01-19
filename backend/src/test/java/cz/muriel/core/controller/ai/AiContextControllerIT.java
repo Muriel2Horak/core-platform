@@ -6,8 +6,9 @@ import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
 import cz.muriel.core.entity.Tenant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * @since 2025-10-14
  */
-@SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
+@SpringBootTest @Import(MockMvcTestConfig.class) @ActiveProfiles("test")
 class AiContextControllerIT {
 
   @Autowired

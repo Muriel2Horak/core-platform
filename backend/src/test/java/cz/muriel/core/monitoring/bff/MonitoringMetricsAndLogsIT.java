@@ -3,9 +3,11 @@ package cz.muriel.core.monitoring.bff;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import cz.muriel.core.test.TestRestClientConfig;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,14 +31,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * (request count, errors, etc.) - Sensitive data is NOT logged - Logs are
  * structured and queryable
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @AutoConfigureMockMvc @ExtendWith(WireMockExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import({TestRestClientConfig.class, MockMvcTestConfig.class})
+@ExtendWith(WireMockExtension.class)
 class MonitoringMetricsAndLogsIT extends AbstractIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;
 
   @Autowired
-  private TestRestTemplate restTemplate;
+  private RestTemplate restTemplate;
 
   @Test
   void shouldExposeActuatorMetrics() {

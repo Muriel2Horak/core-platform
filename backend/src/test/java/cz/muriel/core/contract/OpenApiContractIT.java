@@ -11,7 +11,9 @@ import org.openapi4j.parser.model.v3.OpenApi3;
 import org.openapi4j.parser.model.v3.Path;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.TestRestClientConfig;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -35,10 +37,11 @@ import static org.awaitility.Awaitility.await;
  * openapi.json as CI artifact
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(TestRestClientConfig.class)
 public class OpenApiContractIT extends AbstractIntegrationTest {
 
   @Autowired
-  private TestRestTemplate restTemplate;
+  private RestTemplate restTemplate;
 
   @Autowired
   private ObjectMapper objectMapper;
