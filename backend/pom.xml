@@ -579,7 +579,7 @@
 					<nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
 
 					<!-- Vulnerability data retention -->
-					<cveValidForHours>4</cveValidForHours>
+					<dataValidForHours>4</dataValidForHours>
 				</configuration>
 				<executions>
 					<execution>

@@ -143,6 +143,8 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Setup Java
