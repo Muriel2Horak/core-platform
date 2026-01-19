@@ -7,6 +7,15 @@
 <!-- Link to related issues/tickets -->
 Closes #
 
+## 🤖 AI Usage Disclosure
+- [ ] No AI tools used
+- [ ] AI tools used (list tools + files/areas impacted):
+
+## 🔒 AI Security Checklist (if AI used)
+- [ ] Risky patterns reviewed (auth, secrets, crypto, tenant isolation)
+- [ ] Security-sensitive paths reviewed by owner (see CODEOWNERS)
+- [ ] No secrets or credentials introduced
+
 ## 🧪 Testing Checklist
 
 ### For Backend Changes (Java/Spring Boot)

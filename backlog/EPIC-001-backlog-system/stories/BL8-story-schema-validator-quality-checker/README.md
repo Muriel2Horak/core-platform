@@ -3,7 +3,7 @@ id: CORE-008
 epic: EPIC-001-backlog-system
 title: "Story Schema Validator & Quality Checker"
 priority: P1
-status: ready
+status: done
 assignee: ""
 created: 2025-11-06
 updated: 2025-11-06
@@ -163,4 +163,3 @@ See `path_mapping` in YAML frontmatter.
 ---
 
 **Story complete, ready for implementation!**
-

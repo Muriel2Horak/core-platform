@@ -1,7 +1,25 @@
+---
+id: META-008
+epic: EPIC-005-metamodel-generator-studio
+title: "API Generation Runtime"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "120 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META8-api-generation-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-008: API Generation Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL** - Klíčová funkcionalita  
+**Status:** 🟡 **READY**
 **Priorita:** P1 (High Priority)  
 **Estimated LOC:** ~1,500 řádků  
 **Effort:** 3 týdny (120 hodin)
@@ -137,6 +155,18 @@ Jako **platform developer**, chci **automaticky generovat REST API endpoints z Y
     }
   }
   ```
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | CRUD runtime router + metamodel endpoint registry | 40h | META-006 |
+| 2 | Filter/search DSL parser + query builder | 30h | T1, META-020 |
+| 3 | Pagination/sorting + export endpoints + response schema | 25h | T1 |
+| 4 | Validation + tenant/field-level enforcement | 15h | META-007, META-016 |
+| 5 | Testy (API + security + export) + docs | 10h | T1, T2, T3, T4 |
 
 ---
 

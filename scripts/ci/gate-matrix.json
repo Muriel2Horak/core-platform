@@ -1,0 +1,30 @@
+{
+  "pr": [
+    "unit-tests",
+    "sast",
+    "sca",
+    "secret-scan",
+    "iac-lint",
+    "ai-guardrails",
+    "security-regression"
+  ],
+  "nightly": [
+    "unit-tests",
+    "sast",
+    "sca",
+    "secret-scan",
+    "iac-lint",
+    "dast",
+    "security-regression",
+    "ai-guardrails"
+  ],
+  "release": [
+    "unit-tests",
+    "sast",
+    "sca",
+    "secret-scan",
+    "iac-lint",
+    "container-scan",
+    "ai-guardrails"
+  ]
+}

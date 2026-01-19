@@ -25,6 +25,16 @@ pre-commit:
       run: bash scripts/validate-dashboard-structure.sh
       fail_text: "❌ Dashboard structure validation failed. Move loose JSON files to subdirectories!"
 
+    template-validate:
+      glob: "{docker/**/*.template*,docker/**/realm-*.template.json}"
+      run: bash scripts/templates/validate-syntax.sh
+      fail_text: "❌ Template syntax validation failed. Run: make validate-templates"
+
+    undo-migrations:
+      glob: "backend/src/main/resources/db/migration/V*.sql"
+      run: bash scripts/db/validate-undo-scripts.sh
+      fail_text: "❌ Missing undo migrations. Run: make validate-undo-migrations"
+
 pre-push:
   commands:
     backend-tests:

@@ -1,7 +1,25 @@
+---
+id: WORK-007
+epic: EPIC-006-workflow-engine
+title: "Node Executors (HTTP, Script, Human) (Phase W8-W9)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF7-node-executors-http-script-human/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-007: Node Executors (HTTP, Script, Human) (Phase W8-W9)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase W8-W9)  
 **LOC:** ~900 řádků  
 **Sprint:** Workflow Executors

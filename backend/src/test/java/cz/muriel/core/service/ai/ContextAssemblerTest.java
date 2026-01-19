@@ -34,6 +34,9 @@ class ContextAssemblerTest {
   @Mock
   private WfContextService wfContextService;
 
+  @Mock
+  private McpCapabilitiesService mcpCapabilitiesService;
+
   private GlobalMetamodelConfig globalConfig;
   private ContextAssembler assembler;
 
@@ -45,7 +48,8 @@ class ContextAssemblerTest {
     aiConfig.setMode(AiVisibilityMode.META_ONLY);
     globalConfig.setAi(aiConfig);
 
-    assembler = new ContextAssembler(registry, uiContextService, wfContextService, globalConfig);
+    assembler = new ContextAssembler(registry, uiContextService, wfContextService, globalConfig,
+        mcpCapabilitiesService);
   }
 
   @Test
@@ -74,15 +78,12 @@ class ContextAssemblerTest {
     assertTrue(context.containsKey("metadata"));
 
     // Verify META_ONLY mode
-    @SuppressWarnings("unchecked")
-    Map<String, Object> metadata = (Map<String, Object>) context.get("metadata");
-    @SuppressWarnings("unchecked")
-    Map<String, Object> policy = (Map<String, Object>) metadata.get("policy");
+    Map<String, Object> metadata = asMap(context.get("metadata"));
+    Map<String, Object> policy = asMap(metadata.get("policy"));
     assertEquals("META_ONLY", policy.get("visibility"));
 
     // Verify no actual values in fields (META_ONLY check)
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> fields = (List<Map<String, Object>>) context.get("fields");
+    List<Map<String, Object>> fields = asListOfMaps(context.get("fields"));
     for (Map<String, Object> field : fields) {
       assertFalse(field.containsKey("value"), "META_ONLY mode must not contain 'value' field");
       assertFalse(field.containsKey("data"), "META_ONLY mode must not contain 'data' field");
@@ -115,10 +116,33 @@ class ContextAssemblerTest {
     Map<String, Object> context = assembler.assembleContext(routeId, tenantId);
 
     // Then - should still be META_ONLY
-    @SuppressWarnings("unchecked")
-    Map<String, Object> metadata = (Map<String, Object>) context.get("metadata");
-    @SuppressWarnings("unchecked")
-    Map<String, Object> policy = (Map<String, Object>) metadata.get("policy");
+    Map<String, Object> metadata = asMap(context.get("metadata"));
+    Map<String, Object> policy = asMap(metadata.get("policy"));
     assertEquals("META_ONLY", policy.get("visibility"), "Should force META_ONLY for safety");
+  }
+
+  private Map<String, Object> asMap(Object value) {
+    if (value instanceof Map<?, ?> map) {
+      Map<String, Object> result = new java.util.HashMap<>();
+      for (Map.Entry<?, ?> entry : map.entrySet()) {
+        String key = entry.getKey() != null ? entry.getKey().toString() : "null";
+        result.put(key, entry.getValue());
+      }
+      return result;
+    }
+    return Map.of();
+  }
+
+  private List<Map<String, Object>> asListOfMaps(Object value) {
+    if (value instanceof List<?> list) {
+      List<Map<String, Object>> result = new java.util.ArrayList<>();
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> map) {
+          result.add(asMap(map));
+        }
+      }
+      return result;
+    }
+    return List.of();
   }
 }

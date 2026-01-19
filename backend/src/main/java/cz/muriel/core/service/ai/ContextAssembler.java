@@ -32,6 +32,7 @@ public class ContextAssembler {
   private final UiContextService uiContextService;
   private final WfContextService wfContextService;
   private final GlobalMetamodelConfig globalConfig;
+  private final McpCapabilitiesService mcpCapabilitiesService;
 
   /**
    * Assemble full AI context for route
@@ -86,7 +87,7 @@ public class ContextAssembler {
     }
 
     // Auth context
-    Map<String, Object> authContext = buildAuthContext();
+    Map<String, Object> authContext = buildAuthContext(routeId);
     context.put("auth", authContext);
 
     // Metadata
@@ -114,23 +115,32 @@ public class ContextAssembler {
   /**
    * Build auth context (capabilities only, no sensitive data)
    */
-  private Map<String, Object> buildAuthContext() {
+  private Map<String, Object> buildAuthContext(String routeId) {
     Map<String, Object> authContext = new LinkedHashMap<>();
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth != null && auth.isAuthenticated()) {
       authContext.put("authenticated", true);
-      // Don't include actual authorities - just a flag
       authContext.put("hasPermissions", !auth.getAuthorities().isEmpty());
+
+      try {
+        Map<String, Object> capabilities = mcpCapabilitiesService.getCapabilities(auth, routeId);
+        authContext.put("canView", capabilities.getOrDefault("canView", false));
+        authContext.put("canEdit", capabilities.getOrDefault("canEdit", false));
+        authContext.put("canExecute",
+            capabilities.getOrDefault("canExecute", Collections.emptyList()));
+      } catch (Exception e) {
+        log.warn("Failed to resolve auth capabilities for route {}: {}", routeId, e.getMessage());
+        authContext.put("canView", false);
+        authContext.put("canEdit", false);
+        authContext.put("canExecute", Collections.emptyList());
+      }
     } else {
       authContext.put("authenticated", false);
+      authContext.put("canView", false);
+      authContext.put("canEdit", false);
+      authContext.put("canExecute", Collections.emptyList());
     }
-
-    // Placeholder for actual capabilities
-    // Will be implemented when we integrate with permission system
-    authContext.put("canView", true);
-    authContext.put("canEdit", false);
-    authContext.put("canExecute", Collections.emptyList());
 
     return authContext;
   }

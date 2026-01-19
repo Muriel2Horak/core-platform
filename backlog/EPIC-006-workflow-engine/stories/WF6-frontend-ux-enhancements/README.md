@@ -1,7 +1,26 @@
+---
+id: WORK-006
+epic: EPIC-006-workflow-engine
+title: "Frontend UX Enhancements (Phase W7)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - frontend/src/components/workflow/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF6-frontend-ux-enhancements/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-006: Frontend UX Enhancements (Phase W7)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase W7)  
 **LOC:** ~500 řádků  
 **Sprint:** Workflow Polish

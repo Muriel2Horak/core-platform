@@ -3,7 +3,7 @@ id: CORE-XXX
 epic: EPIC-XXX-epic-name
 title: "Short Story Title"
 priority: P1  # P1 (Must Have) | P2 (Should Have) | P3 (Nice to Have)
-status: ready  # ready | in-progress | blocked | done
+status: ready  # ready | in-progress | blocked | refactor | done
 assignee: ""
 created: YYYY-MM-DD
 updated: YYYY-MM-DD

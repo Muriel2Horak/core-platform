@@ -67,7 +67,7 @@
       "lastName": "User",
       "email": "test.user@example.com",
       "credentials": [
-        { "type": "password", "value": "${TEST_USER_PASSWORD:Test.1234!}", "temporary": false }
+        { "type": "password", "value": "${TEST_USER_PASSWORD:-Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER"],
       "requiredActions": [],
@@ -92,7 +92,7 @@
       "lastName": "Administrator",
       "email": "test.admin@example.com",
       "credentials": [
-        { "type": "password", "value": "${TEST_ADMIN_PASSWORD:Test.1234!}", "temporary": false }
+        { "type": "password", "value": "${TEST_ADMIN_PASSWORD:-Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_ADMIN"],
       "requiredActions": [],
@@ -112,7 +112,7 @@
       "lastName": "Studio Designer",
       "email": "test.studio@example.com",
       "credentials": [
-        { "type": "password", "value": "${TEST_STUDIO_PASSWORD:Test.1234!}", "temporary": false }
+        { "type": "password", "value": "${TEST_STUDIO_PASSWORD:-Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER", "CORE_ROLE_STUDIO"],
       "requiredActions": [],
@@ -133,7 +133,7 @@
       "lastName": "Data Analyst",
       "email": "test.analyst@example.com",
       "credentials": [
-        { "type": "password", "value": "${TEST_ANALYST_PASSWORD:Test.1234!}", "temporary": false }
+        { "type": "password", "value": "${TEST_ANALYST_PASSWORD:-Test.1234!}", "temporary": false }
       ],
       "realmRoles": ["CORE_ROLE_USER", "CORE_ROLE_REPORTING"],
       "requiredActions": [],
@@ -374,7 +374,7 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "secret": "${GRAFANA_OAUTH_SECRET:-grafana-secret-change-in-prod}",
+      "secret": "${GRAFANA_OIDC_SECRET:-grafana-secret-change-in-prod}",
       "rootUrl": "https://${DOMAIN}/monitoring",
       "redirectUris": [
         "https://${DOMAIN}/monitoring/login/generic_oauth",

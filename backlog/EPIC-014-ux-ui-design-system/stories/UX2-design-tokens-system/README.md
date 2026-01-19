@@ -1,7 +1,26 @@
+---
+id: S2
+epic: EPIC-014-ux-ui-design-system
+title: "Design Tokens System"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - frontend/src/shared/theme/tokens.ts
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-014-ux-ui-design-system/stories/UX2-design-tokens-system/README.md
+    - backlog/EPIC-014-ux-ui-design-system/README.md
+---
+
 # S2: Design Tokens System
 
 **EPIC:** [EPIC-004: UX/UI & Design System](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červenec 2024  
 **LOC:** ~300 řádků
 

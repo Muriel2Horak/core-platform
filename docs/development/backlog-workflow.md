@@ -419,15 +419,14 @@ python3 scripts/backlog/path_validator.py --story CORE-005
 # ✅ code_paths   1/1 (100%)
 #    scripts/backlog/git_tracker.sh
 # 
-# ⚠️ test_paths   0/1 (0%)
-#    ❌ MISSING (1):
-#       - scripts/backlog/test_git_tracker.sh
+# ✅ test_paths   1/1 (100%)
+#    scripts/backlog/test_integration.py
 # 
 # ✅ docs_paths   3/3 (100%)
 #    backlog/README.md, docs/development/backlog-workflow.md, CHANGELOG.md
 # 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 📈 Overall: 80% (4/5 paths exist)
+# 📈 Overall: 100% (5/5 paths exist)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # Validate entire epic (aggregate all stories)
@@ -440,16 +439,16 @@ python3 scripts/backlog/path_validator.py --epic EPIC-001
 # 
 # ✅ CORE-001: 100% (3/3 paths)
 # ✅ CORE-003: 100% (4/4 paths)
-# ✅ CORE-005:  80% (4/5 paths)
+# ✅ CORE-005: 100% (5/5 paths)
 # ✅ CORE-006: 100% (7/7 paths)
 # 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 📈 Epic Overall: 95% (18/19 paths across 4 stories)
+# 📈 Epic Overall: 100% (19/19 paths across 4 stories)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 # JSON output for CI/CD automation
 python3 scripts/backlog/path_validator.py --story CORE-005 --format json | jq .
-# → {"story_id":"CORE-005","coverage":{"code_paths":{...},"overall":80}}
+# → {"story_id":"CORE-005","coverage":{"code_paths":{...},"overall":100}}
 
 # Include stories with 0% coverage (missing path_mapping)
 python3 scripts/backlog/path_validator.py --epic EPIC-001 --show-zero

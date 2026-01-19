@@ -1,3 +1,24 @@
+---
+id: WF13
+epic: EPIC-006-workflow-engine
+title: "REST_SYNC Executor - Synchronní REST API Volání"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "40 hours"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/workflow
+    - backend/src/main/java/cz/muriel/core/util
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF13-rest-sync-executor/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WF13: REST_SYNC Executor - Synchronní REST API Volání
 
 **Typ:** TASK  
@@ -6,7 +27,7 @@
 **Priorita:** HIGH (kritická integrace s externími systémy)  
 **Effort:** 1,200 LOC, 5 dní  
 **Dependencies:** W7 (Executor Framework)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 
@@ -55,6 +76,39 @@ steps:
       jiraTicketId: "$.id"
       jiraTicketKey: "$.key"
 ```
+
+---
+
+## ✅ Acceptance Criteria
+
+1. **OpenAPI support**
+   - OpenAPI 3.0/Swagger 2.0 je parsovan a validovan.
+   - Response je validovana proti schema (pokud definovana).
+
+2. **Template substitution**
+   - URL/body/headers podporuji `${context.*}` a `${secrets.*}`.
+
+3. **Resilience**
+   - Retry + circuit breaker + timeout funguje podle configu.
+   - Idempotency key se posila v headeru a duplicitni volani vraci cached response.
+
+4. **Error handling**
+   - 4xx je business error bez retry.
+   - 5xx/timeout se retrujuji podle policy.
+
+5. **Observability**
+   - Metrics + trace ID jsou dostupne pro kazde volani.
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | OpenAPI parser + spec cache | 12h | W5 |
+| 2 | HTTP client + template substitution + idempotency store | 14h | T1 |
+| 3 | Retry/circuit breaker/timeout + SSRF guard | 8h | T2 |
+| 4 | Testy + observability + docs | 6h | T2, T3 |
 
 ---
 

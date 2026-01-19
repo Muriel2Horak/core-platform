@@ -1,3 +1,21 @@
+---
+id: MOD-001
+epic: EPIC-017-modular-architecture
+title: "Module Manifest Loader"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/MOD-001-module-manifest-loader/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # MOD-001: Module Manifest Loader
 
 **Status:** ⏳ **PENDING**  
@@ -24,6 +42,18 @@ So that modules can declare their entities, workflows, UI, and dependencies with
 - ⏳ Invalid manifests logged (errors) but don't crash startup
 - ⏳ Hot-reload: Admin can trigger manifest re-scan via API (without restart)
 - ⏳ Version conflicts detected (e.g., `requires: core>=2.0` but core is 1.5)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Directory scan + manifest parsing | 0.5d | none |
+| 2 | Store entries in registry | 0.5d | 1 |
+| 3 | Hot-reload API + cache invalidation | 0.25d | 1 |
+| 4 | Conflict/version checks | 0.25d | 1 |
+| 5 | Unit tests | 0.25d | 2 |
 
 ---
 

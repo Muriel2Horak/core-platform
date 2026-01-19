@@ -1,7 +1,27 @@
+---
+id: S3
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Test Data Factories (Phase S3)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths:
+    - e2e/helpers/fixtures.ts
+    - e2e/specs/
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E3-test-data-factories/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # S3: Test Data Factories (Phase S3)
 
 **EPIC:** [EPIC-002: E2E Testing Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červenec 2024 (Phase S3)  
 **LOC:** ~1,500 řádků  
 **Sprint:** E2E Testing Wave 2

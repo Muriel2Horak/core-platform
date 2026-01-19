@@ -1,7 +1,27 @@
+---
+id: S1
+epic: EPIC-014-ux-ui-design-system
+title: "MUI Theme Foundation"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - frontend/src/App.jsx
+    - frontend/src/shared/theme/theme.ts
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-014-ux-ui-design-system/stories/UX1-mui-theme-foundation/README.md
+    - backlog/EPIC-014-ux-ui-design-system/README.md
+---
+
 # S1: MUI Theme Foundation
 
 **EPIC:** [EPIC-004: UX/UI & Design System](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červenec 2024  
 **LOC:** ~500 řádků
 

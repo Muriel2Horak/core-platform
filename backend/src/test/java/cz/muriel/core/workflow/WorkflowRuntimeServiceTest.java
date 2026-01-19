@@ -8,10 +8,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentMatchers;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.Authentication;
 
 import java.time.Instant;
@@ -165,11 +167,8 @@ class WorkflowRuntimeServiceTest {
                                 .toCode("SHIPPED").slaMinutes(60).build()));
 
         // Mock SLA query (lenient mode allows flexible matching)
-        @SuppressWarnings("unchecked")
-        var slaQueryStub = when(
-                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-                        anyString(), anyString(), anyString()));
-        slaQueryStub.thenReturn(List.of(30));
+        when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Integer>>any(),
+                anyString(), anyString(), anyString())).thenReturn(List.of(30));
 
         // Act
         WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
@@ -210,11 +209,8 @@ class WorkflowRuntimeServiceTest {
                 .thenReturn(Collections.emptyList());
 
         // Mock SLA query with lenient mode
-        @SuppressWarnings("unchecked")
-        var slaQueryStub2 = when(
-                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-                        anyString(), anyString(), anyString()));
-        slaQueryStub2.thenReturn(List.of(60));
+        when(jdbcTemplate.query(anyString(), ArgumentMatchers.<RowMapper<Integer>>any(),
+                anyString(), anyString(), anyString())).thenReturn(List.of(60));
 
         // Act
         WorkflowModels.WorkflowStateDetail detail = runtimeService.getStateDetail(auth, entityType,
@@ -237,11 +233,9 @@ class WorkflowRuntimeServiceTest {
         String tenantId = "tenant-1";
 
         // Mock history query with lenient mode
-        @SuppressWarnings("unchecked")
-        var historyQueryStub = when(
-                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-                        anyString(), anyString(), anyString()));
-        historyQueryStub.thenReturn(List.of(
+        when(jdbcTemplate.query(anyString(),
+                ArgumentMatchers.<RowMapper<WorkflowModels.HistoryEntry>>any(), anyString(),
+                anyString(), anyString())).thenReturn(List.of(
                 WorkflowModels.HistoryEntry.builder()
                         .eventType(WorkflowModels.WorkflowEventType.ACTION_APPLIED)
                         .fromState("PENDING").toState("APPROVED").transitionCode("approve")
@@ -294,14 +288,13 @@ class WorkflowRuntimeServiceTest {
         UUID timerId = UUID.randomUUID();
 
         // Mock timer query with lenient mode
-        @SuppressWarnings("unchecked")
-        var timerQueryStub = when(
-                jdbcTemplate.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class),
-                        anyString(), anyString(), anyString()));
-        timerQueryStub.thenReturn(List.of(WorkflowModels.PendingTimer.builder().id(timerId)
-                .type(WorkflowModels.TimerType.SLA_WARNING)
-                .scheduledAt(Instant.now().plusSeconds(3600)).action("notify").remainingMs(3600000L)
-                .build()));
+        when(jdbcTemplate.query(anyString(),
+                ArgumentMatchers.<RowMapper<WorkflowModels.PendingTimer>>any(), anyString(),
+                anyString(), anyString()))
+                        .thenReturn(List.of(WorkflowModels.PendingTimer.builder().id(timerId)
+                                .type(WorkflowModels.TimerType.SLA_WARNING)
+                                .scheduledAt(Instant.now().plusSeconds(3600)).action("notify")
+                                .remainingMs(3600000L).build()));
 
         // Act
         WorkflowModels.WorkflowForecast forecast = runtimeService.getForecast(auth, entityType,

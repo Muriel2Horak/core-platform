@@ -1,3 +1,23 @@
+---
+id: N8N1
+epic: EPIC-011-n8n-workflow-automation
+title: "n8n Platform Deployment"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths:
+    - docker/docker-compose.yml
+    - docker/db
+    - docker/nginx/nginx-ssl.conf.template
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-011-n8n-workflow-automation/README.md
+---
+
 # S1: n8n Platform Deployment
 
 > **Foundation:** Deploy n8n Community Edition with PostgreSQL backend and webhook support
@@ -14,7 +34,8 @@
 **WHEN** running `docker compose up -d n8n`  
 **THEN** n8n is accessible at http://n8n:5678 (internal network)  
 **AND** PostgreSQL stores workflow definitions and execution history  
-**AND** webhooks are functional at /webhook/* endpoints
+**AND** webhooks are functional at /webhook/* endpoints  
+**AND** sensitive secrets (DB password, N8N_ENCRYPTION_KEY, API key) are sourced from Vault in non-dev
 
 ## 🏗️ Implementation
 
@@ -123,6 +144,8 @@ N8N_DB_USER=n8n_user
 N8N_DB_PASSWORD=n8n_password  # Change in production!
 N8N_ENCRYPTION_KEY=<generate-with-openssl-rand-base64-32>
 ```
+
+Note: In stage/prod, load secrets from Vault via `/run/secrets/*` (do not store plaintext in `.env`).
 
 ### 4. Webhook Configuration
 
@@ -473,7 +496,7 @@ access_control:
     - domain: "core-platform.local"
       policy: two_factor
       subject:
-        - ["group:n8n-admins"]
+        - ["group:WF_ADMIN"]
       resources:
         - "^/n8n/workflows/.*$"
         - "^/n8n/executions/.*$"
@@ -483,7 +506,7 @@ access_control:
     - domain: "core-platform.local"
       policy: one_factor
       subject:
-        - ["group:n8n-users"]
+        - ["group:WF_EDITOR"]
       resources:
         - "^/n8n/.*$"
     
@@ -491,7 +514,7 @@ access_control:
     - domain: "core-platform.local"
       policy: one_factor
       subject:
-        - ["group:n8n-viewers"]
+        - ["group:WF_READER"]
       resources:
         - "^/n8n/workflows$"
         - "^/n8n/executions$"

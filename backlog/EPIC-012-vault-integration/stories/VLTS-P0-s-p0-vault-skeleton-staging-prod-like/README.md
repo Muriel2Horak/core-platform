@@ -1,3 +1,29 @@
+---
+id: S-P0
+epic: EPIC-012-vault-integration
+title: "Vault Skeleton (Staging, Prod-Like)"
+priority: P0
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-16
+estimate: "6 hours"
+path_mapping:
+  code_paths:
+    - docker/docker-compose.vault.yml
+    - docker/docker-compose.yml
+    - docker/vault/config.hcl
+    - docker/promtail/config.yml
+    - scripts/vault/bootstrap-vault.sh
+    - scripts/vault/vault-smoke.sh
+    - Makefile
+  test_paths:
+    - tests/vault_skeleton_tests.sh
+  docs_paths:
+    - backlog/EPIC-012-vault-integration/stories/VLTS-P0-s-p0-vault-skeleton-staging-prod-like/README.md
+    - backlog/EPIC-012-vault-integration/README.md
+---
+
 # S-P0: Vault Skeleton (Staging, Prod-Like)
 
 > **Foundation:** HashiCorp Vault HA Raft deployment, audit device, init/unseal scripts, Make automation
@@ -354,7 +380,7 @@ vault-unseal:
 
 ## Vault: Check Vault status
 vault-status:
-	@echo "📊 Vault Status:"
+	@echo "📊 Vault Status: ✅ DONE
 	@docker exec core-vault vault status || true
 
 ## Vault: Enable audit device

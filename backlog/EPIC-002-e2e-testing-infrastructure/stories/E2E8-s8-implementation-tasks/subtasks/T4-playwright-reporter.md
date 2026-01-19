@@ -1,6 +1,6 @@
 # T4: Playwright Reporter
 
-**Story:** [S8: Test Registry & Tracking](../S8.md)  
+**Story:** Test Registry & Tracking  
 **Status:** 🔵 TODO  
 **Effort:** ~2 hodiny  
 **LOC:** ~150 řádků
@@ -369,4 +369,4 @@ E2E-CRUD-001     | CORE-456      | E2E_FULL   | FAIL   | 4521
 
 ---
 
-**Back to:** [S8 Tasks](./README.md) | [S8 Story](../S8.md)
+**Back to:** [S8 Tasks](../README.md) | [EPIC-002](../../../README.md)

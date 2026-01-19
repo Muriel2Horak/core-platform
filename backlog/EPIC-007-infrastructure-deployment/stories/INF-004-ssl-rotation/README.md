@@ -1,7 +1,29 @@
+---
+id: INF-004
+epic: EPIC-007-infrastructure-deployment
+title: "SSL Certificate Rotation Automation"
+priority: P2
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-16
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - docker/ssl/generate-ssl.sh
+    - scripts/ssl/check-and-rotate.sh
+    - Makefile
+  test_paths:
+    - tests/ssl_rotation_tests.sh
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-004-ssl-rotation/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-004: SSL Certificate Rotation Automation
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ DONE  
 **Priority:** MEDIUM  
 **Effort:** 2 dny, ~400 LOC  
 **Owner:** Platform Team  
@@ -62,6 +84,14 @@ bash docker/ssl/generate-ssl.sh
    - Log: Rotation timestamp
    - Log: Old cert expiry
    - Log: New cert expiry
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-004-01: Expiry check + rotation script](subtasks/TASK-004-01-expiry-check-rotation-script.md) | 6h | none |
+| 2 | [TASK-004-02: Zero-downtime reload + audit log](subtasks/TASK-004-02-zero-downtime-reload-logging.md) | 6h | TASK-004-01 |
+| 3 | [TASK-004-03: Cron schedule + notifications](subtasks/TASK-004-03-cron-notify.md) | 4h | TASK-004-01, TASK-004-02 |
 
 ### Implementation
 

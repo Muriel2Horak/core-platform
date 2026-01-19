@@ -1,6 +1,7 @@
 # EPIC-008: Document Management System (DMS)
 
 **Status:** 🟡 **20% COMPLETE** (MinIO backend + Upload API v produkci od srpna 2024)  
+**Definice:** ✅ **100%** (DMS-001..DMS-015 specifikovano s AC + tasky)  
 **Implementováno:** ~3,500 LOC (backend + frontend)  
 **Pending:** Document Versioning, Links, ACL, Templates, WebDAV, Multi-Storage
 
@@ -85,6 +86,48 @@ documents (
 | **TOTAL** | | **18 components** | **3 DONE / 15 PENDING** | **~9,200** | **10d** | **20% Complete** |
 
 ---
+
+## 🔍 GAP analýza (Current vs Target)
+
+| Oblast | Story | Gap / Riziko |
+| --- | --- | --- |
+| Versioning | DMS-001 | Chybí historie verzí + rollback → ztráta auditní stopy |
+| Entity vazby | DMS-002 | Dokument je vázán jen na 1 entitu → duplicity a slabší reuse |
+| Access control | DMS-003 | Není jemné ACL → bezpečnostní riziko |
+| Audit trail | DMS-004 | Chybí plný audit operací → compliance risk |
+| Templates | DMS-005 | Chybí šablony a generování dokumentů |
+| WebDAV editing | DMS-006 | Chybí Office editace + zámky |
+| Share links | DMS-007 | Chybí bezpečné sdílení mimo aplikaci |
+| Storage abstraction | DMS-008 | Vendor lock-in na MinIO |
+| SharePoint integration | DMS-009 | Chybí enterprise integrace s M365 |
+| Google Drive integration | DMS-010 | Chybí integrace s Google Drive |
+| Workflow integration | DMS-011 | DMS není provázaný s WF lifecycle |
+| Signatures & eID | DMS-012 | Chybí legal-ready podpisy a verifikace |
+| Metamodel config | DMS-013 | Metamodel nemá podporu pro doc metadata/fields |
+| Generic documents tab | DMS-014 | Chybí jednotný UI vstup pro dokumenty napříč moduly |
+| AI template suggestions | DMS-015 | Chybí AI asistence pro šablony |
+
+## 🧩 DEV tasky (PENDING) - popis a scope
+
+| DEV task | Popis (high-level) | Výstup |
+| --- | --- | --- |
+| [DMS-001: Document Versioning](./stories/DMS-001-document-versioning/README.md) | DB verze + API + FE timeline + rollback | Historie verzí a rollback |
+| [DMS-002: Document Links](./stories/DMS-002-document-links/README.md) | M:N vazby dokumentu na entity + reorder v UI | Link management mezi entitami |
+| [DMS-003: Document ACL](./stories/DMS-003-document-acl/README.md) | Jemné ACL na dokumenty + enforcement | Role/User přístupy + kontrola |
+| [DMS-004: Audit Trail](./stories/DMS-004-audit-trail/README.md) | Audit události + API + UI log | Audit log pro compliance |
+| [DMS-005: Document Templates](./stories/DMS-005-templates/README.md) | Šablony, mapping polí, generování dokumentů | Template-driven dokumenty |
+| [DMS-006: WebDAV Editing](./stories/DMS-006-webdav-editing/README.md) | WebDAV server + locky + Office flow | Office editace s locky |
+| [DMS-007: Share Links](./stories/DMS-007-share-links/README.md) | Tokeny, expirace, sdílení mimo app | Bezpečné sdílení dokumentu |
+| [DMS-008: Storage Abstraction](./stories/DMS-008-storage-abstraction/README.md) | Storage rozhraní + adaptéry | Multi-storage support |
+| [DMS-009: SharePoint Integration](./stories/DMS-009-sharepoint-integration/README.md) | Sync + API + UI integrace | Enterprise M365 integrace |
+| [DMS-010: Google Drive](./stories/DMS-010-google-drive-integration/README.md) | Sync + API + UI integrace | Google Drive integrace |
+| [DMS-011: Workflow Integration](./stories/DMS-011-workflow-integration/README.md) | WF schéma + eventy + UI vazby | DMS navázané na workflow |
+| [DMS-012: Signatures & eID](./stories/DMS-012-signatures-eid/README.md) | Podpisy, verifikace, audit | Legal-ready podpisy |
+| [DMS-013: Metamodel Features](./stories/DMS-013-metamodel-features/README.md) | Metamodel schéma + UI pro docs | Document metadata v metamodelu |
+| [DMS-014: Generic Documents Tab](./stories/DMS-014-generic-documents-tab/README.md) | Jednotný tab napříč moduly | Konzistentní DMS UI |
+| [DMS-015: AI Template Suggestions](./stories/DMS-015-ai-template-suggestions/README.md) | AI analýza šablon + návrhy | AI asistence pro šablony |
+
+Poznámka: Detailní rozpad na implementační subtasky je v každém story README (sekce "subtasks").
 
 ## ❌ PENDING FEATURES (80% - 12/15 stories)
 
@@ -487,7 +530,7 @@ documents (
 ## 🔗 Dependencies
 
 ### Upstream Dependencies
-- **EPIC-007:** Platform Hardening (multi-tenancy, security)
+- **EPIC-018:** Platform Hardening (multi-tenancy, security)
 - **EPIC-003:** Monitoring (metrics, alerts)
 - **.env configuration:** MinIO/S3 credentials
 

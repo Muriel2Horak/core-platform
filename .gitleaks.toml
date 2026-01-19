@@ -1,0 +1,13 @@
+title = "core-platform gitleaks"
+
+[allowlist]
+description = "Ignore build artifacts and vendored dependencies"
+paths = [
+  '''node_modules''',
+  '''frontend/node_modules''',
+  '''backend/target''',
+  '''.*/target($|/)''',
+  '''.*/dist($|/)''',
+  '''.*/build($|/)''',
+  '''.*\\.min\\.js$'''
+]

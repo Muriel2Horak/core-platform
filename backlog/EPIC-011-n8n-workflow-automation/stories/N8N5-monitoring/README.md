@@ -1,3 +1,28 @@
+---
+id: N8
+epic: EPIC-011-n8n-workflow-automation
+title: "Deprecated"
+priority: P1
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths:
+    - docker/docker-compose.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-011-n8n-workflow-automation/stories/N8N5-monitoring/README.md
+    - backlog/EPIC-011-n8n-workflow-automation/README.md
+---
+
+# Deprecated
+
+This story is duplicated. Use `../N8N5-monitoring-alerting-integration/README.md`.
+
+---
+
 # N8N5: n8n Monitoring & Observability
 
 **Typ:** TASK  
@@ -6,7 +31,7 @@
 **Priorita:** MEDIUM  
 **Effort:** 400 LOC, 1 den  
 **Dependencies:** N8N1 (Platform), WF19 (Grafana)  
-**Status:** ⏳ TODO
+**Status:** ✅ **DONE**
 
 ---
 

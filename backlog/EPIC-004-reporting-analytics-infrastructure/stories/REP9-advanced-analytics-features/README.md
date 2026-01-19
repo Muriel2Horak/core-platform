@@ -1,8 +1,30 @@
+---
+id: S9
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Advanced Analytics Features"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "53 hours"
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/reporting
+    - frontend/src/components/Reporting
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/reporting
+    - frontend/src/test
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP9-advanced-analytics-features/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S9: Advanced Analytics Features
 
-**Status:** 📋 **PLANNED** (Phase 8 - Post-MVP)  
+**Status:** ✅ **DONE**
 **Priority:** P2 (Competitive Differentiation)  
-**Effort:** TBD (~40-60 hodin estimate, needs detailed breakdown)  
+**Effort:** ~53 hodin (4 tasky)  
 **Dependencies:** 
 - EPIC-009 (AI Integration) - pro ML models a NLP
 - EPIC-010 (ML Platform) - pro model training/deployment
@@ -26,6 +48,45 @@
    "As a business analyst, I want to type 'show me top 10 customers by revenue last month' and get instant results, so I don't need SQL knowledge."
 
 ---
+
+## 📋 Story Description
+
+Jako **CFO/ops/analytik** potrebuji **pokrocile analytics (forecasting, anomaly detection, NLP queries)**, abych **mel prediktivni a proaktivni insighty bez rucniho analyzovani dat**.
+
+## ✅ Acceptance Criteria
+
+1. **Forecasting**
+   - UI umoznuje spustit predikci pro vybrane metriky s confidence intervalem.
+   - Model vraci forecast + metadata (model, horizon, accuracy).
+
+2. **Anomaly detection**
+   - System detekuje odchylky podle definovaneho prahu (napr. >20%).
+   - Alerts jsou auditovane a viditelne v UI.
+
+3. **NLP queries**
+   - Uzivatel muze zadat dotaz v prirozenem jazyce pro top use cases.
+   - Pri nepochopeni dotazu vraci UI navod/fallback.
+
+4. **Tenant izolace**
+   - Predikce a alerty jsou tenant-scoped (bez cross-tenant dat).
+
+5. **Performance**
+   - P95 response time pro forecast/anomaly endpointy < 3s pro standardni dataset.
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: ML Forecasting](subtasks/T1-forecasting.md) | 20h | EPIC-009, EPIC-010 |
+| 2 | [T2: Anomaly Detection](subtasks/T2-anomaly-detection.md) | 16h | T1 |
+| 3 | [T3: NLP Queries](subtasks/T3-nlp-queries.md) | 9h | EPIC-009, EPIC-010 |
+| 4 | [T4: Testing](subtasks/T4-testing.md) | 8h | T1, T2, T3 |
+
+## 🔗 Závislosti
+
+- EPIC-009 (AI Integration)
+- EPIC-010 (ML Platform)
+- EPIC-014 S3, S8, S9 (UI komponenty)
 
 ## 📊 Current State vs. Desired State
 

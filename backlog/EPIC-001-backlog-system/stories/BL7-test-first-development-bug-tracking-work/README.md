@@ -3,7 +3,7 @@ id: CORE-007
 epic: EPIC-001-backlog-system
 title: "Test-First Development & Bug Tracking Workflow"
 priority: P1
-status: ready
+status: done
 assignee: ""
 created: 2025-11-06
 updated: 2025-11-06
@@ -14,18 +14,24 @@ path_mapping:
     - backlog/templates/story.md
     - scripts/backlog/test_validator.sh
     - docs/development/test-driven-workflow.md
+    - scripts/backlog/
+    - scripts/backlog/test_integration.py
+    - scripts/backlog/test_story_validator.py
   test_paths:
-    - scripts/backlog/test_test_validator.sh
+    - scripts/backlog/test_story_validator.py
+    - backend/src/test/java/cz/muriel/core/
+    - e2e/specs/
   docs_paths:
     - backlog/README.md
     - docs/development/backlog-workflow.md
     - CHANGELOG.md
+    - docs/development/test-driven-workflow.md
 ---
 
 # CORE-007: Test-First Development & Bug Tracking Workflow
 
 > **Epic:** [EPIC-001-backlog-system](../../README.md)  
-> **Priority:** P1 | **Status:** ready | **Estimate:** 2 days
+> **Priority:** P1 | **Status:** ✅ **DONE**| **Estimate:** 2 days
 
 ## 👤 Role / Potřeba / Benefit
 
@@ -167,13 +173,13 @@ bash scripts/backlog/test_validator.sh --story CORE-005
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 
 # AC1: Git tracker shows commits per story
-#   ✅ Unit test: scripts/backlog/test_git_tracker.sh (exists)
+#   ✅ Unit test: scripts/backlog/test_integration.py (exists)
 #   ⚠️  Integration test: MISSING
 #   ⚠️  E2E test: MISSING
 #   Coverage: 33% (1/3 test types)
 #
 # AC2: Git tracker outputs JSON format
-#   ✅ Unit test: scripts/backlog/test_git_tracker.sh (exists)
+#   ✅ Unit test: scripts/backlog/test_integration.py (exists)
 #   Coverage: 33% (1/3 test types)
 #
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -306,7 +312,7 @@ code_paths:
   - docs/development/test-driven-workflow.md          # NEW: TDD workflow guide
 
 test_paths:
-  - scripts/backlog/test_test_validator.sh            # Unit tests for validator
+  - scripts/backlog/test_story_validator.py            # Unit tests for validator
   - e2e/specs/backlog/test-first-workflow.spec.ts    # E2E test for workflow
 
 docs_paths:
@@ -451,7 +457,7 @@ docs_paths:
 ---
 
 ### Subtask 4: Write Validator Unit Tests (3 hours)
-- [ ] Create `scripts/backlog/test_test_validator.sh`
+- [ ] Create `scripts/backlog/test_story_validator.py`
 - [ ] Test scenarios:
   - [ ] Parse AC sections from CORE-005
   - [ ] Extract test mappings
@@ -462,7 +468,7 @@ docs_paths:
 - [ ] All tests must pass
 
 **Files:**
-- [ ] `scripts/backlog/test_test_validator.sh`
+- [ ] `scripts/backlog/test_story_validator.py`
 
 ---
 

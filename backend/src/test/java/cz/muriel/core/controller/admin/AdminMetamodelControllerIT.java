@@ -4,8 +4,9 @@ import cz.muriel.core.metamodel.MetamodelRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -18,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * Tests: - Hot reload metamodel - Get metamodel status - RBAC enforcement
  */
-@SpringBootTest @AutoConfigureMockMvc @DisplayName("AdminMetamodelController IT")
+@SpringBootTest @Import(MockMvcTestConfig.class) @DisplayName("AdminMetamodelController IT")
 class AdminMetamodelControllerIT {
 
   @Autowired

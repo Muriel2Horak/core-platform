@@ -1,6 +1,6 @@
 # T1: Database Schema Migration
 
-**Story:** [S8: Test Registry & Tracking](../S8.md)  
+**Story:** Test Registry & Tracking  
 **Status:** 🔵 TODO  
 **Effort:** ~1 hodina  
 **LOC:** ~50 řádků
@@ -193,4 +193,4 @@ Pak: `./mvnw flyway:undo`
 
 ---
 
-**Back to:** [S8 Tasks](./README.md) | [S8 Story](../S8.md)
+**Back to:** [S8 Tasks](../README.md) | [EPIC-002](../../../README.md)

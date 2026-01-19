@@ -2,19 +2,21 @@ package cz.muriel.core.phase2;
 
 import io.minio.MinioClient;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,10 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 
  * Tests for WebSocket, Workflow, Documents and Search functionality
  * 
- * ⚠️ DISABLED: Requires full Keycloak setup (KeycloakAdminService) FIXME:
- * Create TestKeycloakConfig with mocks or run these tests separately
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers @Disabled("Requires full Keycloak environment - KeycloakAdminService autowiring fails in test context")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) @Testcontainers
+@ActiveProfiles("test")
 public class Phase2IntegrationTest {
 
   @LocalServerPort
@@ -50,13 +51,17 @@ public class Phase2IntegrationTest {
 
   @SuppressWarnings("resource") @Container
   static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379)
+      .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(2)))
       .withReuse(false);
 
   @SuppressWarnings("resource") @Container
   static GenericContainer<?> minio = new GenericContainer<>("minio/minio:latest")
       .withExposedPorts(9000, 9001).withEnv("MINIO_ROOT_USER", "minioadmin")
       .withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
-      .withCommand("server /data --console-address :9001").withReuse(false);
+      .withCommand("server /data --console-address :9001")
+      .waitingFor(Wait.forHttp("/minio/health/ready").forPort(9000)
+          .withStartupTimeout(Duration.ofMinutes(2)))
+      .withReuse(false);
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
@@ -68,10 +73,18 @@ public class Phase2IntegrationTest {
     // Redis
     registry.add("spring.data.redis.host", redis::getHost);
     registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+    registry.add("app.redis.enabled", () -> "true");
+    registry.add("keycloak.datasource.enabled", () -> "false");
 
     // MinIO
     registry.add("minio.endpoint",
         () -> String.format("http://%s:%d", minio.getHost(), minio.getFirstMappedPort()));
+
+    // Keycloak (dummy values for bean initialization)
+    registry.add("keycloak.admin.base-url", () -> "http://localhost:0");
+    registry.add("keycloak.admin.client-id", () -> "test-client");
+    registry.add("keycloak.admin.client-secret", () -> "test-secret");
+    registry.add("keycloak.target-realm", () -> "test-realm");
   }
 
   @BeforeAll

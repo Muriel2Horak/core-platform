@@ -1,3 +1,21 @@
+---
+id: INF-002
+epic: EPIC-017-modular-architecture
+title: "Module Audit Log"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/INF-002-module-audit-log/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # INF-002: Module Audit Log
 
 **Status:** ⏳ **PENDING**  
@@ -24,6 +42,18 @@ So that I can track who installed/enabled/disabled modules and when.
 - ⏳ Store in database (retention: 1 year)
 - ⏳ UI viewer (filter by user, module, date range)
 - ⏳ Export to CSV
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Audit event model + DB schema | 0.5d | none |
+| 2 | Emit events on register/activate/deactivate | 0.5d | MOD-002 |
+| 3 | Loki labels + promtail pipeline | 0.25d | 1 |
+| 4 | Admin query API | 0.25d | 1 |
+| 5 | Tests + sample dashboards | 0.25d | 2 |
 
 ---
 

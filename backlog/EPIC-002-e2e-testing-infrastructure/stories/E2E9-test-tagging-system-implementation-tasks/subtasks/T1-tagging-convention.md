@@ -1,21 +1,29 @@
 # T1: Tagging Convention Documentation
 
-**Story:** [S9: Test Tagging System](../S9.md)  
+**Story:** Test Tagging System  
 **Task:** T1/4  
 **Effort:** ~1h  
 **LOC:** ~50
 
 ---
 
-## 🎯 Objective
+## Goal
 
-Definovat a zdokumentovat tagging convention pro mapování testů na User Stories.
+Definovat a zdokumentovat tagging convention pro mapovani testu na user stories.
 
 ---
 
-## 📋 Requirements
+## Tasks
 
-### Tag Format
+- [ ] Definovat tag format a pravidla.
+- [ ] Pridat priklady pro Playwright/JUnit.
+- [ ] Popsat validacni pravidla a povinne tagy.
+
+## Output
+
+- Dokumentace s jasnym formatem a priklady.
+
+## Tag Format
 
 ```
 @CORE-XXX - mapuje na User Story CORE-XXX
@@ -38,7 +46,7 @@ void shouldCreateUser() { }
 
 ---
 
-## 💻 Implementation
+## Implementation
 
 **File:** `docs/testing-tagging-conventions.md`
 
@@ -52,14 +60,10 @@ void shouldCreateUser() { }
 
 ---
 
-## ✅ Acceptance Criteria
+## Acceptance Criteria
 
 - [ ] Documentation created
 - [ ] Tag format defined (@CORE-XXX)
 - [ ] Examples for E2E, Unit, Integration
 - [ ] Validation rules documented
 - [ ] Reviewed and approved
-
----
-
-**Next:** [T2: Playwright Tag Support](./T2-playwright-tags.md)

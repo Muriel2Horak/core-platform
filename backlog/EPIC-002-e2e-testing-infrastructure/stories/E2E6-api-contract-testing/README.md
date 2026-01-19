@@ -1,7 +1,25 @@
+---
+id: S6
+epic: EPIC-002-e2e-testing-infrastructure
+title: "API Contract Testing (Phase S6)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E6-api-contract-testing/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # S6: API Contract Testing (Phase S6)
 
 **EPIC:** [EPIC-002: E2E Testing Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Září 2024 (Phase S6)  
 **LOC:** ~1,000 řádků  
 **Sprint:** E2E Testing Wave 3

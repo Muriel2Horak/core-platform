@@ -1,3 +1,21 @@
+---
+id: FWK-003
+epic: EPIC-017-modular-architecture
+title: "Public API Stabilization"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/FWK-003-public-api-stabilization/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # FWK-003: Public API Stabilization
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that my modules don't break on CORE upgrades.
 - ⏳ Deprecation warnings (mark @Deprecated, remove in next major)
 - ⏳ API changelog per release
 - ⏳ Integration tests for API stability
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Inventory public API surface + mark internal | 0.5d | none |
+| 2 | Semver + deprecation policy docs | 0.25d | 1 |
+| 3 | Compatibility test suite | 0.5d | 1 |
+| 4 | Changelog automation | 0.25d | 2 |
+| 5 | CI gate for breaking changes | 0.25d | 2 |
 
 ---
 

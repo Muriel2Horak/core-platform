@@ -1,7 +1,26 @@
+---
+id: WORK-001
+epic: EPIC-006-workflow-engine
+title: "JSON Workflow Model (Phase W1-W2)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/workflow/
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF1-json-workflow-model/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-001: JSON Workflow Model (Phase W1-W2)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Říjen 2024 (Phase W1-W2)  
 **LOC:** ~800 řádků  
 **Sprint:** Workflow Foundation

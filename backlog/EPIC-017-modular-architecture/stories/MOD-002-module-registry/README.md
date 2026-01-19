@@ -1,3 +1,21 @@
+---
+id: MOD-002
+epic: EPIC-017-modular-architecture
+title: "Module Registry"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "4 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/MOD-002-module-registry/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # MOD-002: Module Registry
 
 **Status:** ⏳ **PENDING**  
@@ -25,6 +43,18 @@ So that I can enable/disable modules, track their state, and enforce lifecycle r
 - ⏳ Module deactivation hides entities (logical, not physical delete)
 - ⏳ Dependency checks prevent removing module if others depend on it
 - ⏳ Audit log records all state changes (who, when, why)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | DB schema + service layer | 0.5d | none |
+| 2 | Dependency resolution engine | 0.5d | 1 |
+| 3 | Lifecycle states (installed/enabled/disabled) | 0.25d | 1 |
+| 4 | Admin API endpoints | 0.25d | 1 |
+| 5 | API tests | 0.25d | 2 |
 
 ---
 

@@ -1,3 +1,21 @@
+---
+id: META-012
+epic: EPIC-005-metamodel-generator-studio
+title: "Workflow Engine Integration"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "160 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META12-workflow-engine-integration/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-012: Workflow Engine Integration
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -83,6 +101,18 @@ guards:
 - **State Badge**: `<Chip color="blue">PENDING_APPROVAL</Chip>`
 - **Transition Buttons**: `<Button onClick={approve}>Approve</Button>`
 - **Workflow History**: Timeline view (Draft → Pending → Approved)
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit metamodel workflow schema + parser | 20h | META-001 |
+| 2 | Runtime state machine + guard evaluator + step executors | 60h | T1 |
+| 3 | API pro transitions + audit/history | 35h | T2 |
+| 4 | UI workflow komponenty (badge, actions, timeline) | 25h | T3, EPIC-014 |
+| 5 | Testy (happy path + guard fail + retry) | 20h | T2, T3 |
 
 ---
 

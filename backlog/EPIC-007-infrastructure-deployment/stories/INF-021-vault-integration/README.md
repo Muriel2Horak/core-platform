@@ -1,7 +1,27 @@
+---
+id: INF-021
+epic: EPIC-007-infrastructure-deployment
+title: "HashiCorp Vault Integration"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - backend/pom.xml
+    - docker/ssl/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-021-vault-integration/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-021: HashiCorp Vault Integration
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 3 dny, ~900 LOC  
 **Owner:** Security + Platform Team  
@@ -78,6 +98,14 @@ HashiCorp Vault
    - Internal CA v Vault
    - Certificate issuance automation
    - Auto-renewal 30 days before expiry
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Deploy Vault Container](subtasks/T1-deploy-vault-container.md) | 8h | none |
+| 2 | [T2: Dynamic Database Credentials](subtasks/T2-dynamic-database-credentials.md) | 10h | T1 |
+| 3 | [T3: PKI Secrets Engine](subtasks/T3-pki-secrets-engine.md) | 6h | T1 |
 
 ### Implementation
 

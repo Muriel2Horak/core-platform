@@ -1,7 +1,27 @@
+---
+id: INF-020
+epic: EPIC-007-infrastructure-deployment
+title: "Multi-Tenancy Architecture (Subdomains)"
+priority: P0
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "4 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - docker/nginx/nginx-ssl.conf.template
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-020-multi-tenancy/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-020: Multi-Tenancy Architecture (Subdomains)
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** 🔥 CRITICAL  
 **Effort:** 4 dny, ~1200 LOC  
 **Owner:** Platform + Architecture Team  
@@ -104,6 +124,15 @@ Frontend
    - Grafana: Separate org per tenant
    - Loki: Tenant label filtering
    - Prometheus: Tenant label on metrics
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [T1: Implement Nginx Subdomain Routing](subtasks/T1-nginx-subdomain-routing.md) | 6h | none |
+| 2 | [T3: Backend Tenant Context + Guard](subtasks/T3-backend-tenant-context.md) | 10h | T1 |
+| 3 | [T2: Frontend Tenant Branding](subtasks/T2-frontend-tenant-branding.md) | 8h | T1, T3 |
+| 4 | [T4: Monitoring Isolation (Grafana/Loki)](subtasks/T4-monitoring-isolation.md) | 8h | T1, T3 |
 
 ### Implementation
 

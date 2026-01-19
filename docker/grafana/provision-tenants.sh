@@ -15,6 +15,14 @@ DB_NAME="${DB_NAME:-core}"
 DB_USER="${DB_USER:-core}"
 DB_PASSWORD="${DB_PASSWORD:-core}"
 
+if [ -f /run/secrets/grafana-admin-password ] && [ -z "$GRAFANA_ADMIN_PASSWORD" ]; then
+  GRAFANA_ADMIN_PASSWORD="$(cat /run/secrets/grafana-admin-password)"
+fi
+
+if [ -f /run/secrets/postgres-password ] && [ -z "$DB_PASSWORD" ]; then
+  DB_PASSWORD="$(cat /run/secrets/postgres-password)"
+fi
+
 # ⚠️ DEPRECATED: Hardcoded tenants list (fallback only)
 # Tenants to provision (space-separated)
 # TENANTS="${TENANTS:-admin test-tenant company-b}"

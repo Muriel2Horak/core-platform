@@ -1,7 +1,25 @@
+---
+id: WORK-010
+epic: EPIC-006-workflow-engine
+title: "Workflow Studio UI Integration (Phase W12)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-006-workflow-engine/stories/WF10-workflow-studio-ui-integration/README.md
+    - backlog/EPIC-006-workflow-engine/README.md
+---
+
 # WORK-010: Workflow Studio UI Integration (Phase W12)
 
 **EPIC:** [EPIC-006: Workflow Engine](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Říjen 2024 (Phase W12)  
 **LOC:** ~800 řádků  
 **Sprint:** Workflow Studio

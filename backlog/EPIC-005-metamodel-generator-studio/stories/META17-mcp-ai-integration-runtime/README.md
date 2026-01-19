@@ -1,3 +1,21 @@
+---
+id: META-017
+epic: EPIC-005-metamodel-generator-studio
+title: "MCP/AI Integration Runtime"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "120 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META17-mcp-ai-integration-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-017: MCP/AI Integration Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -59,6 +77,17 @@ ai:
     queriesPerHour: 100
     maxResults: 50
 ```
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | AI tool schema + policy (PII, scope, limits) | 20h | META-016 |
+| 2 | MCP tool generator + handlers s maskingem | 50h | T1 |
+| 3 | Rate limiting + audit log + permissions | 25h | T2 |
+| 4 | Testy + docs + sample prompts | 25h | T2, T3 |
 
 ---
 

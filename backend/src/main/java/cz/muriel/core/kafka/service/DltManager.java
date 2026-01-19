@@ -1,5 +1,6 @@
 package cz.muriel.core.kafka.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.kafka.entity.DlqMessage;
 import cz.muriel.core.kafka.repository.DlqMessageRepository;
@@ -73,8 +74,8 @@ public class DltManager {
 
     try {
       // Parse payload to Map
-      @SuppressWarnings("unchecked")
-      Map<String, Object> payloadMap = objectMapper.readValue(payload, Map.class);
+      Map<String, Object> payloadMap = objectMapper.readValue(payload,
+          new TypeReference<Map<String, Object>>() {});
 
       // Extract original topic (remove .dlt suffix)
       String originalTopic = topic.endsWith(".dlt") ? topic.substring(0, topic.length() - 4)

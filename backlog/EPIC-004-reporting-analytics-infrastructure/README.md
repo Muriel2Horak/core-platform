@@ -188,15 +188,15 @@ const DashboardBuilder = () => {
 
 | ID | Story | Status | LOC | Phase | Priority | Dependencies |
 |----|-------|--------|-----|-------|----------|--------------|
-| [S8](stories/S8-frontend-backend-integration.md) | Frontend-Backend Integration | 🔵 TODO | ~18h | Phase 8 | P0 | EPIC-014 S3, S7, S9 |
-| [S9](stories/S9-advanced-analytics.md) | Advanced Analytics (ML/NLP) | 📋 PLANNED | ~50h | Phase 9 | P2 | EPIC-009, EPIC-010 |
-| [S10](stories/S10-collaboration.md) | Collaboration Features | 📋 PLANNED | ~30h | Phase 10 | P3 | User research |
-| [S11](stories/S11-advanced-visualization.md) | Advanced Visualization | 📋 PLANNED | ~26h | Phase 11 | P3 | Library evaluation |
-| **ENHANCEMENTS TOTAL** | | **0/4** | **~124h** | | | |
+| [S8](stories/REP8-frontend-backend-integration-improvement/README.md) | Frontend-Backend Integration | 🔵 TODO | ~22h | Phase 8 | P0 | EPIC-014 S3, S7, S9 |
+| [S9](stories/REP9-advanced-analytics-features/README.md) | Advanced Analytics (ML/NLP) | 📋 PLANNED | ~53h | Phase 9 | P2 | EPIC-009, EPIC-010 |
+| [S10](stories/REP10-collaboration-features/README.md) | Collaboration Features | 📋 PLANNED | ~34h | Phase 10 | P3 | User research |
+| [S11](stories/REP11-advanced-visualization/README.md) | Advanced Visualization | 📋 PLANNED | ~30h | Phase 11 | P3 | Library evaluation |
+| **ENHANCEMENTS TOTAL** | | **0/4** | **~139h** | | | |
 
 **📋 See:** [CRITICAL_GAPS_ANALYSIS.md](CRITICAL_GAPS_ANALYSIS.md) for comprehensive gap breakdown
 
-**Overall Progress:** 7 MVP stories complete, 4 enhancement stories defined, ~124h additional work identified
+**Overall Progress:** 7 MVP stories complete, 4 enhancement stories defined, ~139h additional work identified
 
 ---
 
@@ -636,11 +636,11 @@ CSV Export (Streaming):
 
 ## 🚀 Enhancement Features (Defined - Awaiting Implementation)
 
-**📋 See detailed stories:** [S8](stories/S8-frontend-backend-integration.md) | [S9](stories/S9-advanced-analytics.md) | [S10](stories/S10-collaboration.md) | [S11](stories/S11-advanced-visualization.md)
+**📋 See detailed stories:** [S8](stories/REP8-frontend-backend-integration-improvement/README.md) | [S9](stories/REP9-advanced-analytics-features/README.md) | [S10](stories/REP10-collaboration-features/README.md) | [S11](stories/REP11-advanced-visualization/README.md)
 
 ### 🔴 PRIORITY: Phase 8 - Frontend-Backend Integration (S8)
 
-**Status:** 🔵 TODO (~18h)  
+**Status:** 🔵 TODO (~22h)  
 **Dependencies:** EPIC-014 S3 (Forms), S7 (Loading), S9 (Tables)
 
 **Features:**
@@ -665,7 +665,7 @@ CSV Export (Streaming):
 
 ### 📋 PLANNED: Phase 9 - Advanced Analytics (S9)
 
-**Status:** 📋 PLANNED (~50h estimate, needs user research)  
+**Status:** 📋 PLANNED (~53h)  
 **Dependencies:** EPIC-009 (AI Integration), EPIC-010 (ML Platform)
 
 **Features:**
@@ -693,7 +693,7 @@ CSV Export (Streaming):
 
 ### 📋 PLANNED: Phase 10 - Collaboration (S10)
 
-**Status:** 📋 PLANNED (~30h estimate)
+**Status:** 📋 PLANNED (~34h)
 
 **Features:**
 - **Dashboard Sharing** - Public links with expiration + password protection
@@ -712,7 +712,7 @@ CSV Export (Streaming):
 
 ### 📋 PLANNED: Phase 11 - Advanced Visualization (S11)
 
-**Status:** 📋 PLANNED (~26h estimate)
+**Status:** 📋 PLANNED (~30h)
 
 **Features:**
 - **Custom Chart Types** - Sankey, Treemap, Heatmap, Network graphs
@@ -743,7 +743,7 @@ CSV Export (Streaming):
 | **S8 (Error States)** | 🔴 HIGH (production) | Robust error handling, retry UI | ⚠️ console.error() only |
 | **S6 (Accessibility)** | 🔴 CRITICAL (compliance) | WCAG 2.1 AA compliance | ❌ Not accessible |
 
-**Integration Effort After EPIC-014:** ~45 hours (see [S8](stories/S8-frontend-backend-integration.md))
+**Integration Effort After EPIC-014:** ~22 hours (see [S8](stories/REP8-frontend-backend-integration-improvement/README.md))
 
 **📋 See:** [CRITICAL_GAPS_ANALYSIS.md](CRITICAL_GAPS_ANALYSIS.md) for complete dependency breakdown
 
@@ -765,10 +765,10 @@ CSV Export (Streaming):
 - **S1-S7:** `stories/S1.md` - `stories/S7.md` (implemented features)
 
 **Enhancement Stories:**
-- **S8:** [Frontend-Backend Integration](stories/S8-frontend-backend-integration.md) (~18h)
-- **S9:** [Advanced Analytics](stories/S9-advanced-analytics.md) (~50h, needs research)
-- **S10:** [Collaboration Features](stories/S10-collaboration.md) (~30h, needs research)
-- **S11:** [Advanced Visualization](stories/S11-advanced-visualization.md) (~26h, needs research)
+- **S8:** [Frontend-Backend Integration](stories/REP8-frontend-backend-integration-improvement/README.md) (~22h)
+- **S9:** [Advanced Analytics](stories/REP9-advanced-analytics-features/README.md) (~53h)
+- **S10:** [Collaboration Features](stories/REP10-collaboration-features/README.md) (~34h)
+- **S11:** [Advanced Visualization](stories/REP11-advanced-visualization/README.md) (~30h)
 
 **Gap Analysis:**
 - **[CRITICAL_GAPS_ANALYSIS.md](CRITICAL_GAPS_ANALYSIS.md)** - Comprehensive breakdown of all gaps (2,524 lines)

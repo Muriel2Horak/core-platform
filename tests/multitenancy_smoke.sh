@@ -92,7 +92,19 @@ load_config() {
     set -a
     source "$SCRIPT_DIR/.env"
     set +a
-    
+
+    if [[ -z "${OIDC_CLIENT_ID:-}" && -n "${KC_CLIENT_ID:-}" ]]; then
+        OIDC_CLIENT_ID="$KC_CLIENT_ID"
+    fi
+    if [[ -z "${OIDC_CLIENT_SECRET:-}" && -n "${KC_CLIENT_SECRET:-}" ]]; then
+        OIDC_CLIENT_SECRET="$KC_CLIENT_SECRET"
+    fi
+
+    USER1_USERNAME="${USER1_USERNAME:-${TEST_USER1:-}}"
+    USER1_PASSWORD="${USER1_PASSWORD:-${TEST_PASSWORD1:-}}"
+    USER2_USERNAME="${USER2_USERNAME:-${TEST_USER2:-}}"
+    USER2_PASSWORD="${USER2_PASSWORD:-${TEST_PASSWORD2:-}}"
+
     log_success "Configuration loaded"
 }
 

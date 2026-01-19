@@ -1,7 +1,26 @@
+---
+id: INF-006
+epic: EPIC-007-infrastructure-deployment
+title: "Database Schema Version Control"
+priority: P2
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/db/migration/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-006-db-schema-versioning/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-006: Database Schema Version Control
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** MEDIUM  
 **Effort:** 2 dny, ~500 LOC  
 **Owner:** DBA + Platform Team  
@@ -63,6 +82,14 @@ make db-schema-update     # Update Git from running DB
 3. ✅ **Migration Generation**
    - Auto-generate Flyway migration from schema diff
    - Review + edit before applying
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-006-01: Schema dump scripts + targets](subtasks/TASK-006-01-schema-dump-scripts.md) | 6h | none |
+| 2 | [TASK-006-02: Drift detection + CI check](subtasks/TASK-006-02-drift-detection-ci.md) | 6h | TASK-006-01 |
+| 3 | [TASK-006-03: Migration generation from schema diff](subtasks/TASK-006-03-migration-generation.md) | 4h | TASK-006-02 |
 
 ### Implementation
 

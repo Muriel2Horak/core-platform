@@ -1,0 +1,11 @@
+groups:
+  - name: ssl-cert-expiry
+    rules:
+      - alert: SSLCertificateExpiringSoon
+        expr: ssl_certificate_expiry_days < 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expires in less than 30 days"
+          description: "Certificate for {{ $labels.domain }} expires in {{ $value }} days."

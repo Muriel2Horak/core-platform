@@ -155,10 +155,9 @@ public class CubeMapper {
   /**
    * Normalize filter value to array format expected by Cube.
    */
-  @SuppressWarnings("unchecked")
   private List<Object> normalizeValue(Object value) {
-    if (value instanceof List) {
-      return (List<Object>) value;
+    if (value instanceof List<?> list) {
+      return new ArrayList<>(list);
     }
     return List.of(value);
   }

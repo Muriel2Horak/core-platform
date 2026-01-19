@@ -3,13 +3,17 @@ package cz.muriel.core.controller.ai;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metrics.AiMetricsCollector;
 import cz.muriel.core.service.ai.ContextAssembler;
+import cz.muriel.core.service.TenantService;
+import cz.muriel.core.streaming.service.WorkStateService;
+import cz.muriel.core.tenant.TenantContextHolder;
+import cz.muriel.core.locks.EditLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,11 +34,14 @@ public class AiContextController {
   private final ContextAssembler contextAssembler;
   private final GlobalMetamodelConfig globalConfig;
   private final AiMetricsCollector metricsCollector;
+  private final ObjectProvider<WorkStateService> workStateServiceProvider;
+  private final TenantService tenantService;
+  private final ObjectProvider<EditLockService> editLockServiceProvider;
 
   /**
    * Get AI context for route
    * 
-   * GET /api/ai/context?routeId=users.detail&tenantId=...
+   * GET /api/ai/context?routeId=users.detail&tenantId=...&entity=User&entityId=...
    * 
    * Returns: - 200 OK with context (META_ONLY) - 404 if AI disabled - 423 Locked
    * if strict reads and entity updating
@@ -42,13 +49,18 @@ public class AiContextController {
    * @param routeId Route identifier
    * @param tenantId Tenant ID
    * @param strict Strict reads flag (optional)
+   * @param entity Entity name (optional, inferred from routeId when missing)
+   * @param entityId Entity ID (optional)
    * @return AI context
    */
   @GetMapping("/context")
   public ResponseEntity<Map<String, Object>> getContext(@RequestParam String routeId,
       @RequestParam(required = false) UUID tenantId,
-      @RequestParam(required = false, defaultValue = "false") boolean strict) {
-    log.info("📥 AI context request: route={}, tenant={}, strict={}", routeId, tenantId, strict);
+      @RequestParam(required = false, defaultValue = "false") boolean strict,
+      @RequestParam(required = false) String entity,
+      @RequestParam(required = false) UUID entityId) {
+    log.info("📥 AI context request: route={}, tenant={}, strict={}, entity={}, entityId={}",
+        routeId, tenantId, strict, entity, entityId);
 
     // Check if AI is enabled
     if (globalConfig.getAi() == null || !Boolean.TRUE.equals(globalConfig.getAi().getEnabled())) {
@@ -62,18 +74,30 @@ public class AiContextController {
     if (tenantId == null) {
       tenantId = getTenantIdFromSecurityContext();
     }
+    ensureTenantExists(tenantId);
 
     // Strict reads check: reject if entity is being updated
     if (strict) {
-      // Note: Strict mode requires entityType and entityId parameters
-      // Current implementation only has routeId, which doesn't contain entity ID
-      // To implement: Add entityType and entityId parameters, then check:
-      // if (editLockService.isLocked(tenantId, entityType, entityId)) {
-      // throw new ResponseStatusException(HttpStatus.LOCKED, "Entity is being
-      // edited");
-      // }
-      log.warn(
-          "⚠️ Strict reads requested but requires entityType/entityId parameters (not implemented yet)");
+      if (entityId == null) {
+        log.warn("⚠️ Strict reads requested but entityId missing; skipping lock check");
+      } else {
+        String resolvedEntity = entity != null ? entity : inferEntityFromRoute(routeId);
+        WorkStateService workStateService = workStateServiceProvider.getIfAvailable();
+        if (workStateService != null) {
+          workStateService.enforceStrictReads(resolvedEntity, entityId);
+        } else {
+          EditLockService editLockService = editLockServiceProvider.getIfAvailable();
+          if (editLockService == null) {
+            log.warn("⚠️ Strict reads requested but no lock service available; skipping lock check");
+          } else {
+            editLockService.getLock(tenantId, resolvedEntity, entityId.toString()).ifPresent(lock -> {
+              throw new ResponseStatusException(HttpStatus.LOCKED,
+                  String.format("Entity %s/%s is locked by %s", resolvedEntity, entityId,
+                      lock.getUserId()));
+            });
+          }
+        }
+      }
     }
 
     try {
@@ -141,30 +165,41 @@ public class AiContextController {
           "Authentication required - tenant ID not available");
     }
 
-    // Extract from JWT claims
-    if (auth.getPrincipal() instanceof Jwt jwt) {
-      String tenantIdStr = jwt.getClaimAsString("tenant_id");
-
-      if (tenantIdStr == null || tenantIdStr.isBlank()) {
+    try {
+      return TenantContextHolder.getTenantId(auth).orElseThrow(() -> {
         log.error("❌ No tenant_id claim in JWT for user: {}", auth.getName());
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+        return new ResponseStatusException(HttpStatus.FORBIDDEN,
             "Tenant ID not found in security context - missing tenant_id claim");
-      }
-
-      try {
-        UUID tenantId = UUID.fromString(tenantIdStr);
-        log.debug("✅ Extracted tenant ID from JWT: {}", tenantId);
-        return tenantId;
-      } catch (IllegalArgumentException e) {
-        log.error("❌ Invalid tenant_id format in JWT: {}", tenantIdStr);
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-            "Invalid tenant ID format in security context");
-      }
+      });
+    } catch (IllegalArgumentException e) {
+      log.error("❌ Invalid tenant_id format in JWT: {}", e.getMessage());
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+          "Invalid tenant ID format in security context");
     }
+  }
 
-    // Fallback: try to get from authentication details
-    log.warn("⚠️ Authentication principal is not JWT, attempting fallback");
-    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-        "Unable to extract tenant ID from security context - JWT expected");
+  private void ensureTenantExists(UUID tenantId) {
+    if (tenantId == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tenant ID is required");
+    }
+    try {
+      tenantService.getTenantKeyFromId(tenantId);
+    } catch (IllegalArgumentException e) {
+      log.error("❌ Unknown tenant ID: {}", tenantId);
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+          "Tenant not found in registry");
+    }
+  }
+
+  private String inferEntityFromRoute(String routeId) {
+    String[] parts = routeId != null ? routeId.split("\\.") : new String[] {};
+    if (parts.length == 0 || parts[0].isBlank()) {
+      return null;
+    }
+    String entityName = parts[0];
+    if (entityName.endsWith("s") && entityName.length() > 1) {
+      entityName = entityName.substring(0, entityName.length() - 1);
+    }
+    return Character.toUpperCase(entityName.charAt(0)) + entityName.substring(1);
   }
 }

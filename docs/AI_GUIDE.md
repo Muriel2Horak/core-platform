@@ -222,6 +222,17 @@ All UI elements should have:
 
 ### GET /api/ai/context?routeId={route}
 
+Query params:
+- `routeId` (required) - UI route identifier (e.g., `users.detail`)
+- `tenantId` (optional) - Tenant UUID; when missing, resolved from JWT `tenant_id`
+- `strict` (optional) - When `true`, enforces strict reads and can return `423 Locked`
+- `entity` (optional) - Entity name override (defaults to route prefix)
+- `entityId` (optional) - Entity UUID for strict reads
+
+Authorization:
+- Requires authenticated JWT with `tenant_id` claim when `tenantId` is not provided
+ - `401` if no authentication, `403` if tenant claim missing, `400` if tenant format invalid
+
 Returns META_ONLY context:
 
 ```json
@@ -328,7 +339,7 @@ Content-Type: application/json
 }
 ```
 
-Returns: User capabilities (canView, canEdit, canExecute) - STUB
+Returns: User capabilities (canView, canEdit, canExecute)
 
 ### data_context.query
 
@@ -411,6 +422,28 @@ When `enabled: false`:
 - **PlatformAdmin/Ops**: Full AI config write access
 - **Tenant Admin**: Read-only AI config
 - **Users**: Can use help widget (if enabled)
+
+### AI Config Change Event
+
+When AI config is updated via admin endpoint, a Kafka event is published to:
+- Topic: `platform.config.changes`
+- Key: `ai-config`
+
+Payload:
+```json
+{
+  "eventId": "uuid",
+  "eventType": "AI_CONFIG_CHANGED",
+  "timestamp": "2025-01-01T12:00:00Z",
+  "config": {
+    "enabled": true,
+    "mode": "META_ONLY",
+    "policies": {...},
+    "prompts": {...},
+    "tools": [...]
+  }
+}
+```
 
 ---
 

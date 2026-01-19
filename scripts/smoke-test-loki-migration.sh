@@ -77,8 +77,8 @@ fi
 success "JWT token validated"
 
 # ===== TEST 1: Feature Flags =====
-log "TEST 1: Checking feature flags via backend /actuator/health"
-HEALTH=$(c "$BASE/actuator/health" 2>/dev/null || echo '{}')
+log "TEST 1: Checking feature flags via backend /api/actuator/health"
+HEALTH=$(c "$BASE/api/actuator/health" 2>/dev/null || echo '{}')
 echo "$HEALTH" | jq . > /dev/null 2>&1 || warn "Health endpoint didn't return valid JSON"
 success "Backend actuator/health accessible"
 
@@ -106,9 +106,9 @@ TOTAL_LOGS=$(echo "$METRICS" | jq -r '.totalLogs')
 success "Metrics summary: totalLogs=$TOTAL_LOGS"
 
 # ===== TEST 6: Prometheus Metrics =====
-log "TEST 6: Prometheus metrics /actuator/prometheus"
-PROM=$(c "$BASE/actuator/prometheus" | grep -E '^monitoring_bff_(logs_query_seconds|logs_requests_total|labels_requests_total)' || echo "")
-[[ -n "$PROM" ]] || error "No monitoring_bff_* metrics found in /actuator/prometheus"
+log "TEST 6: Prometheus metrics /api/actuator/prometheus"
+PROM=$(c "$BASE/api/actuator/prometheus" | grep -E '^monitoring_bff_(logs_query_seconds|logs_requests_total|labels_requests_total)' || echo "")
+[[ -n "$PROM" ]] || error "No monitoring_bff_* metrics found in /api/actuator/prometheus"
 success "Found monitoring_bff metrics:"
 echo "$PROM" | head -5
 

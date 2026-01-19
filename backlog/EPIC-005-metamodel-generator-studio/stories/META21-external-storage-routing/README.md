@@ -1,3 +1,21 @@
+---
+id: META-021
+epic: EPIC-005-metamodel-generator-studio
+title: "External Storage Routing"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "80 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META21-external-storage-routing/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-021: External Storage Routing
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -51,6 +69,21 @@ externalSource:
   workflowId: "abc123"
   webhookUrl: "https://n8n.company.com/webhook/orders"
 ```
+
+### AC4: Error Handling & Caching
+- **GIVEN** external API failure
+- **THEN** system vrati standardizovanou chybu + optional cache fallback
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Storage routing schema + field mappings | 20h | META-001 |
+| 2 | REST/OAuth2 connector + response transform | 30h | T1 |
+| 3 | n8n connector (webhook/proxy) | 15h | T1 |
+| 4 | Error handling + caching + testy | 15h | T2, T3 |
 
 ---
 

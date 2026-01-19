@@ -1,7 +1,27 @@
+---
+id: META-001
+epic: EPIC-005-metamodel-generator-studio
+title: "Schema Diff Detection Engine"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - backend/src/main/java/cz/muriel/core/metamodel/schema/
+  test_paths:
+    - backend/src/test/java/cz/muriel/core/metamodel/schema/
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META1-schema-diff-detection-engine/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-001: Schema Diff Detection Engine
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** 15. září 2025  
 **LOC:** ~600 řádků  
 **Sprint:** Metamodel Phase 1
@@ -509,7 +529,7 @@ Skipped 7 risky changes (manual review required)
 
 - **Depends On:** None (foundational story)
 - **Blocks:** [META-002 (Hot Reload API)](META-002.md), [META-003 (UNIQUE Constraints)](META-003.md)
-- **Related:** EPIC-007 S10 (Metamodel Studio UI - uses this diff engine)
+- **Related:** EPIC-018 S10 (Metamodel Studio UI - uses this diff engine)
 
 ---
 

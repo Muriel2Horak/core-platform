@@ -1,7 +1,25 @@
+---
+id: META-004
+epic: EPIC-005-metamodel-generator-studio
+title: "Advanced Constraints (CHECK, FK Cascade)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "16 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META4-advanced-constraints-check-fk-cascade/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-004: Advanced Constraints (CHECK, FK Cascade)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (Not implemented yet)  
+**Status:** 🟡 **READY**
 **Priorita:** P2 (Nice-to-have)  
 **Estimated LOC:** ~250 řádků  
 
@@ -66,6 +84,16 @@ Jako **platform developer**, chci **podporu pro pokročilé DB constraints (CHEC
   ADD CONSTRAINT ck_users_status 
   CHECK (status IN ('ACTIVE', 'INACTIVE', 'PENDING'))
   ```
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit YAML schema + parser o `check`, `constraints`, `onDelete/onUpdate`, `enum` | 4h | META-001 |
+| 2 | Implementovat DDL generator pro CHECK + FK CASCADE/RESTRICT | 6h | T1 |
+| 3 | Integrace do migraci + testy (positive/negative cases) | 6h | T2, META-002 |
 
 ---
 
@@ -226,7 +254,7 @@ void shouldCascadeDeleteTenant() {
 
 - **Depends On:** [META-003 (UNIQUE Constraints)](META-003.md)
 - **Blocks:** [META-005 (Visual Studio)](META-005.md)
-- **Future:** EPIC-007 S8 (Audit constraints for compliance)
+- **Future:** EPIC-018 S8 (Audit constraints for compliance)
 
 ---
 

@@ -25,6 +25,14 @@ export const HeatmapChart: React.FC = ({ data }) => (
 
 ---
 
+## ✅ Acceptance Criteria
+
+- [ ] Implementovany jsou min. 3 nove chart typy.
+- [ ] Charty podporuji tooltip + highlight.
+- [ ] Data transformace z Cube.js je reusable.
+
+---
+
 ## ✅ DELIVERABLES
 
 - [ ] 3+ advanced chart types

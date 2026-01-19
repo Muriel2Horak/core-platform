@@ -1,3 +1,21 @@
+---
+id: INF-003
+epic: EPIC-017-modular-architecture
+title: "Module Sandbox Environment"
+priority: P3
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/INF-003-module-sandbox/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # INF-003: Module Sandbox Environment
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that I can verify modules before enabling for production tenants.
 - ⏳ Sandbox data isolated (separate DB schema or soft delete flag)
 - ⏳ Admin can reset sandbox (delete all data, reinstall modules)
 - ⏳ Promote module from sandbox to production (one-click)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define sandbox policy (allowed APIs/files) | 0.5d | none |
+| 2 | Runtime isolation (classloader/process) | 0.5d | 1 |
+| 3 | Resource limits + timeouts | 0.25d | 2 |
+| 4 | Escape detection + audit | 0.25d | 2 |
+| 5 | Security tests | 0.25d | 2 |
 
 ---
 

@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -59,17 +60,17 @@ public class WorkflowExecutorOrchestrator {
     }
 
     // Execute all matching executors in parallel
-    var futures = executors.stream()
+    List<CompletableFuture<Map<String, Object>>> futures = executors.stream()
         .map(executor -> executeWithRetry(executor, entityType, entityId, actionCode, context))
-        .toArray(CompletableFuture[]::new);
+        .toList();
 
-    return CompletableFuture.allOf(futures).thenApply(v -> {
+    CompletableFuture<?>[] futureArray = futures.toArray(CompletableFuture[]::new);
+
+    return CompletableFuture.allOf(futureArray).thenApply(v -> {
       // Merge results from all executors
       Map<String, Object> mergedResults = new java.util.HashMap<>();
-      for (var future : futures) {
-        @SuppressWarnings("unchecked")
-        var result = (CompletableFuture<Map<String, Object>>) future;
-        mergedResults.putAll(result.join());
+      for (CompletableFuture<Map<String, Object>> future : futures) {
+        mergedResults.putAll(future.join());
       }
       return mergedResults;
     });

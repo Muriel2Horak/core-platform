@@ -1,7 +1,26 @@
+---
+id: INF-018
+epic: EPIC-007-infrastructure-deployment
+title: "Infrastructure Documentation & Runbooks"
+priority: P2
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - docker/keycloak/generate-realm.sh
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-018-documentation-runbooks/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-018: Infrastructure Documentation & Runbooks
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** MEDIUM  
 **Effort:** 2 dny, ~400 LOC  
 **Owner:** Platform Team  
@@ -75,6 +94,14 @@ docs/
    - Developer setup (first day)
    - First deployment walkthrough
    - Code review checklist
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-018-01: Docs structure + index](subtasks/TASK-018-01-docs-structure.md) | 6h | none |
+| 2 | [TASK-018-02: Deployment runbooks + troubleshooting](subtasks/TASK-018-02-runbooks-troubleshooting.md) | 6h | TASK-018-01 |
+| 3 | [TASK-018-03: Architecture + onboarding docs](subtasks/TASK-018-03-architecture-onboarding.md) | 4h | TASK-018-01 |
 
 ### Implementation
 

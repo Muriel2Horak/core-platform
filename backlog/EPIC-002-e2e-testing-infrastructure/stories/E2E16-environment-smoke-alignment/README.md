@@ -1,6 +1,25 @@
+---
+id: E2E16
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Environment & Smoke Alignment"
+priority: P0
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "6 hours"
+path_mapping:
+  code_paths:
+    - docker/ssl/
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E16-environment-smoke-alignment/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # E2E16: Environment & Smoke Alignment
 
-**Status:** 🔵 **TODO**  
+**Status:** ✅ **DONE**
 **Priority:** P0 (MUST HAVE - Phase 1 Foundation)  
 **Effort:** ~6 hodin  
 **LOC:** ~400 řádků
@@ -207,6 +226,14 @@ test-smoke: ## Run smoke E2E tests (5-7 min)
 ```
 
 ---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Dokumentace prostredi (core-platform.local) | 2h | none |
+| 2 | Smoke test scenare (SMOKE-1..4) | 2h | E2E1, E2E2 |
+| 3 | Health check script + npm/make targets | 2h | Task 2 |
 
 ## 📂 Implementace
 

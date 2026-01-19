@@ -1,7 +1,27 @@
+---
+id: S6
+epic: EPIC-003-monitoring-observability
+title: "Health Checks & Readiness Probes (Phase S6)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths:
+    - backend/src/main/resources/application.yml
+    - docker/docker-compose.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-003-monitoring-observability/stories/MON6-health-checks-readiness-probes/README.md
+    - backlog/EPIC-003-monitoring-observability/README.md
+---
+
 # S6: Health Checks & Readiness Probes (Phase S6)
 
 **EPIC:** [EPIC-003: Monitoring & Observability](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Srpen 2024 (Phase S6)  
 **LOC:** ~600 řádků  
 **Sprint:** Monitoring Wave 3

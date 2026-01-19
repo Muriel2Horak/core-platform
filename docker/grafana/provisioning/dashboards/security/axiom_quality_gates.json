@@ -1,0 +1,42 @@
+{
+  "uid": "axiom_quality_gates",
+  "title": "Quality Gates Status",
+  "tags": ["axiom", "security", "quality-gates", "compliance"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "type": "table",
+      "title": "Latest Quality Gates Evidence (Loki)",
+      "datasource": {"type": "loki", "uid": "${DS_LOKI}"},
+      "targets": [
+        {
+          "expr": "{service=\"quality-gates\",source=\"ci\"} | json",
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Time": "Timestamp",
+              "overall": "Overall",
+              "event": "Event",
+              "generated_at": "Generated At"
+            }
+          }
+        }
+      ],
+      "options": {"showHeader": true}
+    }
+  ]
+}

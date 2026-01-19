@@ -1,5 +1,6 @@
 package cz.muriel.core.workflow;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.metamodel.MetamodelRegistry;
 import cz.muriel.core.security.policy.PolicyEngine;
@@ -245,8 +246,8 @@ public class WorkflowService {
       String guardJson = rs.getString("guard");
       if (guardJson != null) {
         try {
-          @SuppressWarnings("unchecked")
-          Map<String, Object> guardMap = objectMapper.readValue(guardJson, Map.class);
+          Map<String, Object> guardMap = objectMapper.readValue(guardJson,
+              new TypeReference<Map<String, Object>>() {});
           guard = guardMap;
         } catch (Exception e) {
           log.warn("Failed to parse guard JSON: {}", guardJson, e);

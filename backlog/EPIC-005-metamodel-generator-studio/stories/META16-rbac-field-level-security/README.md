@@ -1,7 +1,25 @@
+---
+id: META-016
+epic: EPIC-005-metamodel-generator-studio
+title: "RBAC & Field-Level Security"
+priority: P0
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "120 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META16-rbac-field-level-security/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-016: RBAC & Field-Level Security
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL**  
+**Status:** 🟡 **READY**
 **Priorita:** P0 (Critical - Security!)  
 **Estimated LOC:** ~1,800 řádků  
 **Effort:** 3 týdny (120 hodin)
@@ -83,6 +101,17 @@ fields:
 - **GIVEN** pole s `exportable: false` nebo `visibility: adminOnly`
 - **WHEN** uživatel bez permissions volá export
 - **THEN** pole je vynecháno z CSV/Excel výstupu
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Rozsirit metamodel schema o visibility/pii/exportable/roles | 20h | META-001 |
+| 2 | Backend enforcement (field filter, masking, export rules) + audit log | 50h | T1 |
+| 3 | Integrace do API/UI + workflow actions | 30h | T2, META-008 |
+| 4 | Testy + security review | 20h | T2, T3 |
 
 ---
 

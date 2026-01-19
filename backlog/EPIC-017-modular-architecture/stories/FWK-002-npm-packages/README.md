@@ -1,3 +1,21 @@
+---
+id: FWK-002
+epic: EPIC-017-modular-architecture
+title: "NPM Packages for UI Components"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/FWK-002-npm-packages/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # FWK-002: NPM Packages for UI Components
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that I can build custom frontends on top of CORE.
 - ⏳ TypeScript definitions included
 - ⏳ Versioning: Semantic versioning (1.0.0, 1.1.0, 2.0.0)
 - ⏳ Storybook documentation for all components
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Define UI SDK packages + build config | 0.5d | none |
+| 2 | Publish pipeline (private registry) + versioning | 0.5d | 1 |
+| 3 | Type definitions + tree-shaking | 0.25d | 1 |
+| 4 | Example module integration | 0.25d | 1 |
+| 5 | CI release checks | 0.25d | 2 |
 
 ---
 

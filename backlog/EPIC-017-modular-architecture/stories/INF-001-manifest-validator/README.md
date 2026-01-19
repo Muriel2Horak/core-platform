@@ -1,3 +1,21 @@
+---
+id: INF-001
+epic: EPIC-017-modular-architecture
+title: "Manifest Validator"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/INF-001-manifest-validator/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # INF-001: Manifest Validator
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that invalid modules don't crash the system.
 - ⏳ Namespace collision detection (`ivg.User` vs `core.User`)
 - ⏳ Version constraint validation (semver format)
 - ⏳ Validation report (warnings, errors, blocking issues)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | JSON schema validation + parser | 0.5d | MOD-001 |
+| 2 | Dependency/version checks + namespace collisions | 0.5d | 1 |
+| 3 | Validation report structure | 0.25d | 1 |
+| 4 | CLI/CI validation hook | 0.25d | 2 |
+| 5 | Unit tests + fixtures | 0.25d | 2 |
 
 ---
 

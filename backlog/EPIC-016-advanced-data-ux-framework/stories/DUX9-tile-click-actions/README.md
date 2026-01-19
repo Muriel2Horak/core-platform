@@ -1,7 +1,25 @@
+---
+id: S9
+epic: EPIC-016-advanced-data-ux-framework
+title: "Tile Click Actions"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "55 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX9-tile-click-actions/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S9: Tile Click Actions
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟢 **P2 - MEDIUM**  
 **Effort:** ~55 hours  
 **Sprint:** 3  
@@ -563,4 +581,3 @@ test('Navigate on table row click', async ({ page }) => {
 
 **Status:** 📋 TODO  
 **Next:** S10: Layout Sharing
-

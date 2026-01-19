@@ -13,7 +13,7 @@ services:
       - ./nginx/nginx-ssl.conf.template:/etc/nginx/nginx-ssl.conf.template:ro
       - ./nginx/docker-entrypoint.sh:/custom-entrypoint.sh:ro
       # 🔒 Updated to use new wildcard SSL certificates
-      - ../ssl:/etc/nginx/ssl:ro
+      - ${SSL_VOLUME:-../ssl}:/etc/nginx/ssl:ro
       - certbot-www:/var/www/certbot:ro
     entrypoint: ["/custom-entrypoint.sh"]
     command: ["nginx", "-g", "daemon off;"]
@@ -22,13 +22,15 @@ services:
         condition: service_healthy  # ✅ OPRAVENO: Čeká na frontend health check
       backend:
         condition: service_started
+      bff:
+        condition: service_started
       keycloak:
         condition: service_started
       grafana:
         condition: service_healthy  # ✅ FIX: Čeká na Grafana health check
     networks:
       core-net:
-        ipv4_address: 172.18.0.20  # 🔒 Static IP for stable DNS resolution from Grafana
+        ipv4_address: 172.30.0.20  # 🔒 Static IP for stable DNS resolution from Grafana
     restart: unless-stopped
 
   # 🗄️ Database
@@ -36,16 +38,29 @@ services:
     image: postgres:16
     container_name: core-db
     environment:
-      POSTGRES_USER: ${DB_INTERNAL_USERNAME}
-      POSTGRES_PASSWORD: ${DB_INTERNAL_PASSWORD}
-      POSTGRES_DB: ${DB_INTERNAL_NAME}
+      POSTGRES_USER: ${DB_INTERNAL_USERNAME:-core}
+      POSTGRES_PASSWORD: ${DB_INTERNAL_PASSWORD:-core}
+      POSTGRES_DB: ${DB_INTERNAL_NAME:-core}
+      # Core app database credentials
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-core_app}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-core}
+      DATABASE_PASSWORD_FILE: ${DATABASE_PASSWORD_FILE:-}
       # Keycloak database credentials pro init skripty
-      KEYCLOAK_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
-      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
-      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME}
+      KEYCLOAK_DB_USERNAME: ${KEYCLOAK_DB_USERNAME:-keycloak_app}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KEYCLOAK_DB_PASSWORD_FILE: ${KEYCLOAK_DB_PASSWORD_FILE:-}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak}
+      # Grafana database credentials pro init skripty
+      GRAFANA_DB_NAME: ${GRAFANA_DB_NAME:-grafana}
+      GRAFANA_DB_USERNAME: ${GRAFANA_DB_USERNAME:-grafana_app}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:-grafana}
+      GRAFANA_DB_PASSWORD_FILE: ${GRAFANA_DB_PASSWORD_FILE:-}
     volumes:
       - core_db_data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./db/wal-archive:/var/lib/postgresql/wal-archive
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     ports:
       - "${DB_PORT:-5432}:5432"
     networks:
@@ -93,25 +108,27 @@ services:
       - KEYCLOAK_INTERNAL_BASE_URL=https://keycloak:8443
       # 🔧 FIX: CORS origins - wildcard pro všechny subdomény
       - CORS_ORIGINS=${CORS_ORIGINS}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-jdbc:postgresql://db:5432/core}
+      - DATABASE_USERNAME=${DATABASE_USERNAME:-core_app}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-core}
       - LOKI_URL=http://loki:3100/loki/api/v1/push
       - LOG_LEVEL=DEBUG
       - SPRING_PROFILES_ACTIVE=development
       # 🔐 Service Account Credentials
       - KEYCLOAK_ADMIN_CLIENT_ID=backend-admin-service
-      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET}
-      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM}
-      - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM}
-      - KEYCLOAK_ADMIN_BASE_URL=${KEYCLOAK_ADMIN_BASE_URL}
+      - KEYCLOAK_ADMIN_CLIENT_SECRET=${KEYCLOAK_ADMIN_CLIENT_SECRET:-local-admin-secret}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-local-client-secret}
+      - KEYCLOAK_ADMIN_REALM=${KEYCLOAK_ADMIN_REALM:-admin}
+      - KEYCLOAK_TARGET_REALM=${KEYCLOAK_TARGET_REALM:-admin}
+      - KEYCLOAK_ADMIN_BASE_URL=${KEYCLOAK_ADMIN_BASE_URL:-https://keycloak:8443}
       # 🏢 MULTITENANCY Configuration
-      - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY}
+      - TENANCY_DEFAULT_TENANT_KEY=${TENANCY_DEFAULT_TENANT_KEY:-admin}
       - AUTH_JWT_TENANT_CLAIM=${AUTH_JWT_TENANT_CLAIM:-tenant}
       # 📅 KEYCLOAK BACKFILL Configuration
       - APP_KEYCLOAK_BACKFILL_ENABLED=${APP_KEYCLOAK_BACKFILL_ENABLED:-true}
       - APP_KEYCLOAK_BACKFILL_CRON=${APP_KEYCLOAK_BACKFILL_CRON:-0 25 3 * * *}
-      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin123}  # 🔧 FIX: Přidáno "123" pro konzistenci s .env
       # 🔒 SSL Configuration for HTTPS communication with Keycloak
       - JAVA_OPTS=-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=JKS
       # 📊 Streaming & Kafka Configuration
@@ -124,7 +141,7 @@ services:
       - GRAFANA_PUBLIC_URL=${GRAFANA_PUBLIC_URL:-https://grafana.${DOMAIN}}
       # 📊 Grafana SSO Integration
       - GRAFANA_JWT_TTL=${GRAFANA_JWT_TTL:-300}  # Must match Keycloak access token lifespan (5 min)
-      - GRAFANA_JWT_SECRET=${GRAFANA_JWT_SECRET}
+      - GRAFANA_JWT_SECRET=${GRAFANA_JWT_SECRET:-local-grafana-secret}
       # 📊 Loki Configuration (aplikační logging přes Logback)
       - LOKI_URL=http://core-loki:3100/loki/api/v1/push
     volumes:
@@ -142,13 +159,45 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 600s  # 10 minut - backend má pomalý AspectJ weaving
     networks:
       - core-net
+    restart: unless-stopped
+
+  # 🧩 BFF (Backend-for-Frontend) - GraphQL aggregator
+  bff:
+    build:
+      context: ../bff
+      dockerfile: Dockerfile
+    container_name: core-bff
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - BFF_BACKEND_URL=${BFF_BACKEND_URL:-http://backend:8080}
+      - REDIS_URL=${BFF_REDIS_URL:-}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - BFF_TENANT_CLAIM=${BFF_TENANT_CLAIM:-tenant}
+      - BFF_DEFAULT_TENANT=${BFF_DEFAULT_TENANT:-default}
+      - BFF_BACKEND_TIMEOUT_MS=${BFF_BACKEND_TIMEOUT_MS:-5000}
+      - GRAPHQL_PLAYGROUND=${BFF_GRAPHQL_PLAYGROUND:-false}
+    ports:
+      - "${BFF_PORT:-4000}:4000"
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - core-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # 🛡️ Frontend - PRODUKČNÍ BUILD PRO DEV PARITY
@@ -164,7 +213,7 @@ services:
     # NOTE: No volume mount - static files are baked into the image during build
     # For development with hot-reload, use: make dev-watch or docker compose watch
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost/health || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost/ || exit 1" ]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -198,21 +247,21 @@ services:
       - "8081:8443" # 🔒 HTTPS port mapping
     environment:
       # 🔐 Admin credentials
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
       
       # 🗄️ Database Configuration - používá env proměnné místo hardcoded
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB_NAME}
-      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME:-keycloak_app}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
       
       # 👥 Test User Credentials (DEVELOPMENT ONLY)
-      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD}
-      TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD}
+      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-Test.1234}
+      TEST_ADMIN_PASSWORD: ${TEST_ADMIN_PASSWORD:-Test.1234}
       
       # 🔑 Client Secrets for init-realm.sh
-      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-local-admin-secret}
       DOMAIN: ${DOMAIN:-core-platform.local}
 
       # 🔒 HTTPS Production Mode Configuration - OPRAVENO: dynamické hostname detection
@@ -428,6 +477,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - promtail_positions:/tmp
+      - vault_audit:/var/log/vault:ro
     depends_on:
       - loki
     networks:
@@ -587,13 +637,13 @@ services:
   minio:
     image: minio/minio:latest
     container_name: core-minio
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT:-9001}"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_CONSOLE_PORT:-9001}:${MINIO_CONSOLE_PORT:-9001}"
     volumes:
       - minio_data:/data
     networks:
@@ -651,12 +701,14 @@ volumes:
   redis_data:
   minio_data:
   kafka_data:
+  vault_audit:
 
 
 networks:
   core-net:
     driver: bridge
+    name: ${COMPOSE_PROJECT_NAME:-core-platform}-core-net
     ipam:
       config:
-        - subnet: 172.18.0.0/16  # 🔒 Subnet for static IP assignment
-          gateway: 172.18.0.1
+        - subnet: 172.30.0.0/16  # 🔒 Subnet for static IP assignment
+          gateway: 172.30.0.1

@@ -1,9 +1,17 @@
 # T4: Pre-commit Tag Validation
 
-**Story:** [S9](../S9.md) | **Task:** T4/4 | **Effort:** ~1h | **LOC:** ~100
+**Story:** Test Tagging System | **Task:** T4/4 | **Effort:** ~1h | **LOC:** ~100
 
-## Objective
-Pre-commit hook validující že všechny testy mají @CORE-XXX tag.
+## Goal
+Pre-commit hook validujici, ze vsechny testy maji @CORE-XXX tag.
+
+## Tasks
+- [ ] Pridat `.husky/pre-commit` hook.
+- [ ] Implementovat `scripts/validate-test-tags.sh`.
+- [ ] Zahrnout kontrolu Playwright a JUnit testu.
+
+## Output
+- Commit gate, ktery hlida story tagy.
 
 ## Implementation
 - `.husky/pre-commit` hook

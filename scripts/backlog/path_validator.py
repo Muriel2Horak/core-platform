@@ -95,9 +95,11 @@ def find_epic_stories(epic_id: str, repo_root: Path = None) -> List[Path]:
     if not stories_dir.exists():
         return []
 
-    # Find all story READMEs
+    # Find all story READMEs (support any prefix, not just CORE-*)
     story_files = []
-    for story_dir in stories_dir.glob("CORE-*"):
+    for story_dir in sorted(stories_dir.iterdir()):
+        if not story_dir.is_dir():
+            continue
         readme = story_dir / "README.md"
         if readme.exists():
             story_files.append(readme)

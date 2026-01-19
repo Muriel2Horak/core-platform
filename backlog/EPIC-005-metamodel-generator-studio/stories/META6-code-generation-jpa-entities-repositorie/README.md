@@ -1,7 +1,25 @@
+---
+id: META-006
+epic: EPIC-005-metamodel-generator-studio
+title: "Code Generation (JPA Entities, Repositories, Controllers)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "32 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META6-code-generation-jpa-entities-repositorie/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-006: Code Generation (JPA Entities, Repositories, Controllers)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (Design phase)  
+**Status:** 🟡 **READY**
 **Priorita:** P2 (Nice-to-have automation)  
 **Estimated LOC:** ~600 řádků  
 
@@ -51,6 +69,17 @@ Jako **platform developer**, chci **auto-generovat Java kód z YAML metamodelu**
 - **GIVEN** existující ručně upravená entity
 - **WHEN** re-generuji
 - **THEN** zachová custom metody (via `// CUSTOM CODE START/END` blocks)
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Template engine + entity/repository/controller templates | 12h | META-001 |
+| 2 | Generator pipeline + custom code preservation | 10h | T1 |
+| 3 | Integrace s metamodel registry + CLI runner | 6h | T1 |
+| 4 | Testy generace + docs (examples) | 4h | T2, T3 |
 
 ---
 

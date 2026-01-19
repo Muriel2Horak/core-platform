@@ -1,7 +1,27 @@
+---
+id: INF-013
+epic: EPIC-007-infrastructure-deployment
+title: "Configuration Drift Detection"
+priority: P2
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths:
+    - docker/keycloak/generate-realm.sh
+    - docker/keycloak/realm-admin.template.json
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-013-config-drift-detection/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-013: Configuration Drift Detection
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** MEDIUM  
 **Effort:** 2 dny, ~400 LOC  
 **Owner:** Platform Team  
@@ -66,6 +86,14 @@ make config-drift-check
    ```bash
    make config-sync  # Regenerate ALL configs from templates
    ```
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-013-01: Drift detection script](subtasks/TASK-013-01-drift-script.md) | 6h | none |
+| 2 | [TASK-013-02: CI schedule + PR gate](subtasks/TASK-013-02-ci-schedule.md) | 6h | TASK-013-01 |
+| 3 | [TASK-013-03: Config sync + docs](subtasks/TASK-013-03-config-sync-docs.md) | 4h | TASK-013-01 |
 
 ### Implementation
 

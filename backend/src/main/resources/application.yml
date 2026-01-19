@@ -37,6 +37,6 @@ spring:
 keycloak:
   datasource:
     url: ${KEYCLOAK_DATABASE_URL:jdbc:postgresql://core-db:5432/keycloak}
-    username: ${KEYCLOAK_DB_USERNAME:keycloak}
+    username: ${KEYCLOAK_DB_USERNAME:keycloak_app}
     password: ${KEYCLOAK_DB_PASSWORD:keycloak}
     driver-class-name: org.postgresql.Driver

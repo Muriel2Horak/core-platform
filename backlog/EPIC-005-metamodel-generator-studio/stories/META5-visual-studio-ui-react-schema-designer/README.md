@@ -1,7 +1,25 @@
+---
+id: META-005
+epic: EPIC-005-metamodel-generator-studio
+title: "Visual Studio UI (React Schema Designer)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "40 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META5-visual-studio-ui-react-schema-designer/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-005: Visual Studio UI (React Schema Designer)
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🟡 **PLANNED** (UI mockups exist)  
+**Status:** 🟡 **READY**
 **Priorita:** P1 (High-value feature)  
 **Estimated LOC:** ~800 řádků (React + backend API)  
 
@@ -51,6 +69,17 @@ Jako **low-code user**, chci **visual editor pro tvorbu entit**, abych **mohl de
   - Left: Visual designer
   - Right: Generated YAML (live preview)
 - **AND** tlačítko "Apply Changes" → volá META-002 reload API
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Canvas + entity cards (drag/drop, selection, layout) | 15h | EPIC-014 S4, S9 |
+| 2 | Entity/field/relationship editor UI + validation | 12h | T1 |
+| 3 | YAML preview + apply changes (META-002 API) | 8h | T1, T2, META-002 |
+| 4 | UI tests + basic a11y pass | 5h | T1, T2, T3 |
 
 ---
 
@@ -298,7 +327,7 @@ describe('MetamodelStudio', () => {
 - **Depends On:** 
   - [META-001 (Schema Diff)](META-001.md) - YAML parser
   - [META-002 (Hot Reload)](META-002.md) - Apply changes API
-- **Enables:** EPIC-007 S10 (Metamodel Studio full feature)
+- **Enables:** EPIC-018 S10 (Metamodel Studio full feature)
 - **Inspired By:** Strapi Content-Type Builder, Hasura Console
 
 ---

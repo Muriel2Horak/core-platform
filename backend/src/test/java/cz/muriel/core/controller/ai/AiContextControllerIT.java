@@ -3,10 +3,12 @@ package cz.muriel.core.controller.ai;
 import cz.muriel.core.metamodel.schema.GlobalMetamodelConfig;
 import cz.muriel.core.metamodel.schema.ai.AiVisibilityMode;
 import cz.muriel.core.metamodel.schema.ai.GlobalAiConfig;
+import cz.muriel.core.entity.Tenant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.MockMvcTestConfig;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -20,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 
  * @since 2025-10-14
  */
-@SpringBootTest @AutoConfigureMockMvc @ActiveProfiles("test")
+@SpringBootTest @Import(MockMvcTestConfig.class) @ActiveProfiles("test")
 class AiContextControllerIT {
 
   @Autowired
@@ -42,7 +44,9 @@ class AiContextControllerIT {
       globalConfig.getAi().setEnabled(false);
     }
 
-    mockMvc.perform(get("/api/ai/context").param("routeId", "users.detail"))
+    String tenantId = Tenant.generateUuidFromKey("admin").toString();
+    mockMvc.perform(
+        get("/api/ai/context").param("routeId", "users.detail").param("tenantId", tenantId))
         .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("AI_DISABLED"));
   }
 
@@ -55,7 +59,9 @@ class AiContextControllerIT {
     globalConfig.getAi().setEnabled(true);
     globalConfig.getAi().setMode(AiVisibilityMode.META_ONLY);
 
-    mockMvc.perform(get("/api/ai/context").param("routeId", "users.detail"))
+    String tenantId = Tenant.generateUuidFromKey("admin").toString();
+    mockMvc.perform(
+        get("/api/ai/context").param("routeId", "users.detail").param("tenantId", tenantId))
         .andExpect(status().isOk()).andExpect(jsonPath("$.metadata").exists())
         .andExpect(jsonPath("$.metadata.policy.visibility").value("META_ONLY"))
         // Ensure no 'value' or 'data' fields in response

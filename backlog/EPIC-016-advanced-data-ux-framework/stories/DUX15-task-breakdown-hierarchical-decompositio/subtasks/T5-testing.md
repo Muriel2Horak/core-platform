@@ -64,4 +64,10 @@ test('reparents task via drag & drop', async ({ page }) => {
 
 ---
 
+## ✅ Acceptance Criteria
+
+- [ ] Test cases for the described scope are implemented.
+- [ ] Tests pass locally/CI without regressions.
+- [ ] Reports or artifacts are stored when applicable.
+
 **Estimated:** 3 hours

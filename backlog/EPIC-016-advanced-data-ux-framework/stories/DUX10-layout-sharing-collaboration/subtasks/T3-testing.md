@@ -52,4 +52,10 @@ test('view-only user cannot edit', async ({ page, context }) => {
 
 ---
 
+## ✅ Acceptance Criteria
+
+- [ ] Test cases for the described scope are implemented.
+- [ ] Tests pass locally/CI without regressions.
+- [ ] Reports or artifacts are stored when applicable.
+
 **Estimated:** 5 hours

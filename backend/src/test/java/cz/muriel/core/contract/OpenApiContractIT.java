@@ -11,7 +11,9 @@ import org.openapi4j.parser.model.v3.OpenApi3;
 import org.openapi4j.parser.model.v3.Path;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Import;
+import cz.muriel.core.test.TestRestClientConfig;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -35,10 +37,11 @@ import static org.awaitility.Awaitility.await;
  * openapi.json as CI artifact
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Import(TestRestClientConfig.class)
 public class OpenApiContractIT extends AbstractIntegrationTest {
 
   @Autowired
-  private TestRestTemplate restTemplate;
+  private RestTemplate restTemplate;
 
   @Autowired
   private ObjectMapper objectMapper;
@@ -86,7 +89,7 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
   @Test
   void testHealthEndpointContract() throws ValidationException, ResolutionException {
     // When: Call health endpoint
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/health", String.class);
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/health", String.class);
 
     // Then: Validate against OpenAPI spec (if defined)
     assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
@@ -116,7 +119,7 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
   @Test
   void testMetricsEndpointExists() {
     // When: Call Prometheus metrics endpoint
-    ResponseEntity<String> response = restTemplate.getForEntity("/actuator/prometheus",
+    ResponseEntity<String> response = restTemplate.getForEntity("/api/actuator/prometheus",
         String.class);
 
     // Then: Should return metrics
@@ -140,7 +143,7 @@ public class OpenApiContractIT extends AbstractIntegrationTest {
   @Test
   void testResponseSchemas() throws Exception {
     // Test common response patterns
-    ResponseEntity<String> healthResponse = restTemplate.getForEntity("/actuator/health",
+    ResponseEntity<String> healthResponse = restTemplate.getForEntity("/api/actuator/health",
         String.class);
 
     JsonNode healthJson = objectMapper.readTree(healthResponse.getBody());

@@ -1,7 +1,25 @@
+---
+id: S6
+epic: EPIC-016-advanced-data-ux-framework
+title: "Visual Query Builder"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "65 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-016-advanced-data-ux-framework/stories/DUX6-visual-query-builder/README.md
+    - backlog/EPIC-016-advanced-data-ux-framework/README.md
+---
+
 # S6: Visual Query Builder
 
 **EPIC:** [EPIC-016: Advanced Data UX Framework](../README.md)  
-**Status:** 📋 **TODO**  
+**Status:** 🟡 **READY**
 **Priority:** 🟡 **P1 - HIGH**  
 **Effort:** ~65 hours  
 **Sprint:** 3  
@@ -642,4 +660,3 @@ test('Build query with drag & drop', async ({ page }) => {
 
 **Status:** 📋 TODO  
 **Next:** S7: Extended Widget Types
-

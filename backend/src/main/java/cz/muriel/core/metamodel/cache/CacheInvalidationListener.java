@@ -1,5 +1,6 @@
 package cz.muriel.core.metamodel.cache;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.muriel.core.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -41,8 +42,8 @@ public class CacheInvalidationListener implements MessageListener {
       log.debug("Received cache invalidation event from {}: {}", channel, payload);
 
       // Parse event
-      @SuppressWarnings("unchecked")
-      Map<String, Object> event = objectMapper.readValue(payload, Map.class);
+      Map<String, Object> event = objectMapper.readValue(payload,
+          new TypeReference<Map<String, Object>>() {});
 
       String eventType = (String) event.get("type");
       String table = (String) event.get("table");

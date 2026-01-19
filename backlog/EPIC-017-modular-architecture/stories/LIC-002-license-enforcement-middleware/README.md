@@ -1,3 +1,21 @@
+---
+id: LIC-002
+epic: EPIC-017-modular-architecture
+title: "License Enforcement Middleware"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/LIC-002-license-enforcement-middleware/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # LIC-002: License Enforcement Middleware
 
 **Status:** ⏳ **PENDING**  
@@ -24,6 +42,18 @@ So that unlicensed modules return 403 Forbidden.
 - ⏳ Caches validation result (Redis, 5 min TTL)
 - ⏳ Bypass check for platform admin role
 - ⏳ Audit log records license denials
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Middleware hook in API/BFF | 0.5d | LIC-001 |
+| 2 | Tenant-module lookup + policy evaluation | 0.5d | 1 |
+| 3 | Deny/allow response handling | 0.25d | 2 |
+| 4 | Metrics + audit logging | 0.25d | 2 |
+| 5 | Integration tests | 0.25d | 2 |
 
 ---
 

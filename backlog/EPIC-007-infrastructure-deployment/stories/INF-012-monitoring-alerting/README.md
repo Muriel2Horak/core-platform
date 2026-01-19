@@ -1,7 +1,26 @@
+---
+id: INF-012
+epic: EPIC-007-infrastructure-deployment
+title: "Comprehensive Monitoring & Alerting"
+priority: P1
+status: done
+assignee: ""
+created: 2025-11-08
+updated: 2026-01-15
+estimate: "3 days"
+path_mapping:
+  code_paths:
+    - docker/prometheus/prometheus.yml
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-007-infrastructure-deployment/stories/INF-012-monitoring-alerting/README.md
+    - backlog/EPIC-007-infrastructure-deployment/README.md
+---
+
 # INF-012: Comprehensive Monitoring & Alerting
 
 **Epic:** EPIC-007 Infrastructure & Deployment  
-**Status:** 🔴 TODO  
+**Status:** ✅ **DONE**
 **Priority:** HIGH  
 **Effort:** 3 dny, ~700 LOC  
 **Owner:** Platform + Ops Team  
@@ -75,6 +94,14 @@ alerts:
    - Slack (non-critical)
    - Email (critical)
    - PagerDuty (P1 incidents)
+
+## Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | [TASK-012-01: Prometheus + exporters](subtasks/TASK-012-01-prometheus-exporters.md) | 10h | none |
+| 2 | [TASK-012-02: Alertmanager + rules](subtasks/TASK-012-02-alertmanager-rules.md) | 8h | TASK-012-01 |
+| 3 | [TASK-012-03: Notifications + dashboards](subtasks/TASK-012-03-notifications-dashboards.md) | 6h | TASK-012-02 |
 
 ### Implementation
 

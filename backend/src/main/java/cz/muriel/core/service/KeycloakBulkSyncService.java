@@ -455,7 +455,7 @@ public class KeycloakBulkSyncService {
   }
 
   /**
-   * � Helper: Aktualizuj DB záznam na základě progress
+   * Helper: Aktualizuj DB zaznam na zaklade progress
    */
   private void updateSyncExecution(SyncProgress progress) {
     syncExecutionRepository.findById(progress.getSyncId()).ifPresent(execution -> {
@@ -476,7 +476,7 @@ public class KeycloakBulkSyncService {
   }
 
   /**
-   * �📊 Progress tracking class
+   * Progress tracking class
    */
   private static class SyncProgress {
     private final String syncId;

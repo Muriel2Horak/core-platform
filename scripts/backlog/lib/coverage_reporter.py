@@ -33,10 +33,10 @@ def generate_text_report(
         📊 Path Mapping Coverage: CORE-005
 
         ✅ code_paths:  1/1 (100%) - scripts/backlog/git_tracker.sh
-        ⚠️  test_paths:  0/1 (0%)   - MISSING: scripts/backlog/test_git_tracker.sh
+        ✅ test_paths:  1/1 (100%) - scripts/backlog/test_integration.py
         ✅ docs_paths:  3/3 (100%) - backlog/README.md, docs/development/backlog-workflow.md, CHANGELOG.md
 
-        📈 Overall: 80% (4/5 paths exist)
+        📈 Overall: 100% (5/5 paths exist)
     """
     lines = []
 

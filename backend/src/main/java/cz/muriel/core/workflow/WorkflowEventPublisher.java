@@ -1,8 +1,8 @@
 package cz.muriel.core.workflow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +18,13 @@ import java.util.UUID;
  * 
  * @since 2025-10-14
  */
-@Service @RequiredArgsConstructor @Slf4j
+@Service @Slf4j
 public class WorkflowEventPublisher {
 
-  private final KafkaTemplate<String, String> kafkaTemplate;
+  // KafkaTemplate is optional - workflow events won't be published if Kafka is not configured
+  @Autowired(required = false)
+  private KafkaTemplate<String, String> kafkaTemplate;
+  
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   private static final String TOPIC = "workflow.events";
@@ -92,6 +95,12 @@ public class WorkflowEventPublisher {
    * Internal: Publish event to Kafka and persist to DB
    */
   private void publishEvent(WorkflowModels.WorkflowEvent event) {
+    // Skip publishing if Kafka is not configured
+    if (kafkaTemplate == null) {
+      log.debug("KafkaTemplate not available - skipping workflow event publication for event: {}", event.getEventId());
+      return;
+    }
+    
     try {
       String key = event.getEntityType() + ":" + event.getEntityId();
       String value = objectMapper.writeValueAsString(toEventPayload(event));

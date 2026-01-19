@@ -1,11 +1,20 @@
 # T5: Executive Summary
 **Effort:** ~2h | **LOC:** ~200
 
-## Objective
-High-level KPI dashboard pro executive team
+## Goal
+High-level KPI dashboard pro executive team.
 
 ## Files
 - `frontend/src/pages/admin/reports/ExecutiveDashboard.tsx`
+
+## Tasks
+- [ ] Vybrat top KPI (revenue, usage, uptime, churn).
+- [ ] Pridat health score a growth trends (MoM/YoY).
+- [ ] Vystavit top issues list s odkazem na detail.
+- [ ] Pridat PDF export a shareable link.
+
+## Output
+- Executive summary dashboard s KPI a sdilenim.
 
 ## Acceptance Criteria
 - Top 6 KPIs zobrazeny
@@ -14,6 +23,3 @@ High-level KPI dashboard pro executive team
 - Top issues list
 - PDF export
 - Shareable link
-
-## Implementation
-See [S9 Story](../S9.md#t5-executive-summary)

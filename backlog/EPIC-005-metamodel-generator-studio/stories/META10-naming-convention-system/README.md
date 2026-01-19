@@ -1,3 +1,21 @@
+---
+id: META-010
+epic: EPIC-005-metamodel-generator-studio
+title: "Naming Convention System"
+priority: P1
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "40 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META10-naming-convention-system/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-010: Naming Convention System
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
@@ -49,6 +67,17 @@ Jako **platform developer**, chci **konzistentní naming conventions napříč c
   table: user-profile  # ❌ CHYBA (kebab-case)
   ```
 - **THEN** validace selže: "Table name must be snake_case"
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Definovat naming rules + config (DB/Kafka/REST/FE) | 8h | META-007 |
+| 2 | Validator pro metamodel load + error reporting | 12h | T1 |
+| 3 | Auto-generatory nazvu (table/topic/path/route) | 12h | T1 |
+| 4 | Testy + docs + migration guide pro stavajici entity | 8h | T2, T3 |
 
 ---
 

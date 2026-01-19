@@ -1,7 +1,30 @@
+---
+id: S1
+epic: EPIC-002-e2e-testing-infrastructure
+title: "Playwright Test Framework Setup (Phase S1)"
+priority: P2
+status: done
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths:
+    - e2e/helpers/fixtures.ts
+    - e2e/playwright-report/
+    - e2e/playwright.config.ts
+    - e2e/specs/
+    - e2e/test-results/
+  docs_paths:
+    - backlog/EPIC-002-e2e-testing-infrastructure/stories/E2E1-playwright-test-framework-setup/README.md
+    - backlog/EPIC-002-e2e-testing-infrastructure/README.md
+---
+
 # S1: Playwright Test Framework Setup (Phase S1)
 
 **EPIC:** [EPIC-002: E2E Testing Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** ✅ **DONE**
 **Implementováno:** Červenec 2024 (Phase S1)  
 **LOC:** ~1,200 řádků  
 **Sprint:** E2E Testing Wave 1

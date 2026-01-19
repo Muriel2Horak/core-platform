@@ -1,3 +1,21 @@
+---
+id: MOD-005
+epic: EPIC-017-modular-architecture
+title: "Connector Registry"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "2 days"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-017-modular-architecture/stories/MOD-005-connector-registry/README.md
+    - backlog/EPIC-017-modular-architecture/README.md
+---
+
 # MOD-005: Connector Registry
 
 **Status:** ⏳ **PENDING**  
@@ -23,6 +41,18 @@ So that multiple modules can reuse connectors without duplication.
 - ⏳ Connector credentials encrypted (AES-256)
 - ⏳ Admin UI to configure connectors per tenant
 - ⏳ Connection testing (verify credentials before save)
+
+---
+
+## 🧩 Implementační tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | Connector schema + registry store | 0.5d | none |
+| 2 | Register/update/remove API | 0.5d | 1 |
+| 3 | Health status tracking | 0.25d | 1 |
+| 4 | RBAC + audit logging | 0.25d | 1 |
+| 5 | Integration tests | 0.25d | 2 |
 
 ---
 

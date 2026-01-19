@@ -1,7 +1,25 @@
+---
+id: META-009
+epic: EPIC-005-metamodel-generator-studio
+title: "UI Generation Runtime"
+priority: P1
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "160 hours"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-005-metamodel-generator-studio/stories/META9-ui-generation-runtime/README.md
+    - backlog/EPIC-005-metamodel-generator-studio/README.md
+---
+
 # META-009: UI Generation Runtime
 
 **EPIC:** [EPIC-005: Metamodel Generator & Studio](../README.md)  
-**Status:** 🔴 **CRITICAL** - Klíčová funkcionalita  
+**Status:** 🟡 **READY**
 **Priorita:** P1 (High Priority)  
 **Estimated LOC:** ~2,500 řádků  
 **Effort:** 4 týdny (160 hodin)
@@ -121,6 +139,18 @@ Jako **platform developer**, chci **automaticky generovat React UI komponenty z 
 - **THEN**:
   - Zobrazí se jako link: `<a href="/app/categories/123">Electronics</a>`
   - Klik otevře detail Category entity
+
+---
+
+## Implementacni tasky
+
+| Order | Task | Estimate | Depends on |
+| --- | --- | --- | --- |
+| 1 | UI spec schema + loader (metamodel -> UI config) | 45h | META-008 |
+| 2 | Generic list/detail/form renderer | 50h | T1, EPIC-014 S3, S9 |
+| 3 | Inline edit + bulk edit + saved views | 35h | T2 |
+| 4 | Field renderers + relationship navigation | 20h | T2 |
+| 5 | Testy + docs (UI spec examples) | 10h | T1, T2, T3, T4 |
 
 ---
 

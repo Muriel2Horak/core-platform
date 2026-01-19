@@ -1,3 +1,21 @@
+---
+id: DMS-013
+epic: EPIC-008-document-management-system
+title: "Metamodel Document Features Configuration"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-013-metamodel-features/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-013: Metamodel Document Features Configuration
 
 **Epic:** EPIC-008 Document Management System  

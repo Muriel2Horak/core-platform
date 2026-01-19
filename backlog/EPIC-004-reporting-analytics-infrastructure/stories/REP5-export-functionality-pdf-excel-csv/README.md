@@ -1,7 +1,25 @@
+---
+id: S5
+epic: EPIC-004-reporting-analytics-infrastructure
+title: "Export Functionality (PDF, Excel, CSV) (Phase R5)"
+priority: P2
+status: ready
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: ""
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-004-reporting-analytics-infrastructure/stories/REP5-export-functionality-pdf-excel-csv/README.md
+    - backlog/EPIC-004-reporting-analytics-infrastructure/README.md
+---
+
 # S5: Export Functionality (PDF, Excel, CSV) (Phase R5)
 
 **EPIC:** [EPIC-004: Reporting & Analytics Infrastructure](../README.md)  
-**Status:** ✅ **DONE**  
+**Status:** 🟡 **READY**
 **Implementováno:** Listopad 2024 (Phase R5)  
 **LOC:** ~500 řádků  
 **Sprint:** Reporting Wave 3

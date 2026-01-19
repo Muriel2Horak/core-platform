@@ -3,7 +3,7 @@ id: CORE-005
 epic: EPIC-001-backlog-system
 title: "Git Commit Tracker"
 priority: P2  # P1 (Must Have) | P2 (Should Have) | P3 (Nice to Have)
-status: done  # Story complete and merged to main
+status: done
 assignee: "GitHub Copilot"
 created: 2025-11-06
 updated: 2025-11-06
@@ -11,8 +11,11 @@ estimate: "2 days"
 path_mapping:
   code_paths:
     - scripts/backlog/git_tracker.sh
+    - scripts/backlog/
+    - scripts/backlog/test_integration.py
   test_paths:
-    - scripts/backlog/test_git_tracker.sh  # TODO: Add unit tests
+    - scripts/backlog/test_integration.py  # TODO: Add unit tests
+    - e2e/specs/
   docs_paths:
     - backlog/README.md
     - docs/development/backlog-workflow.md
@@ -22,7 +25,7 @@ path_mapping:
 # CORE-005: Git Commit Tracker
 
 > **Epic:** [EPIC-001-backlog-system](../README.md)  
-> **Priority:** P2 | **Status:** ready | **Estimate:** 2 days
+> **Priority:** P2 | **Status:** ✅ **DONE**| **Estimate:** 2 days
 
 ## 👤 Role / Potřeba / Benefit
 
@@ -256,7 +259,7 @@ Testy které budou vytvořeny:
 
 ```yaml
 test_paths:
-  - scripts/backlog/tests/test_git_tracker.sh  # Bash integration tests (manual)
+  - scripts/backlog/test_integration.py  # Integration tests (manual)
   - e2e/specs/backlog/git-tracker.spec.ts  # E2E (optional, deferred to CORE-006)
 ```
 

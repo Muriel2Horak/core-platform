@@ -1,3 +1,21 @@
+---
+id: DMS-005
+epic: EPIC-008-document-management-system
+title: "Document Templates & Generation"
+priority: P2
+status: todo
+assignee: ""
+created: 2026-01-15
+updated: 2026-01-15
+estimate: "1 day"
+path_mapping:
+  code_paths: []
+  test_paths: []
+  docs_paths:
+    - backlog/EPIC-008-document-management-system/stories/DMS-005-templates/README.md
+    - backlog/EPIC-008-document-management-system/README.md
+---
+
 # DMS-005: Document Templates & Generation
 
 **Epic:** [EPIC-008 Document Management System](../README.md)  
