@@ -85,7 +85,7 @@
 			<dependency>
 				<groupId>com.google.errorprone</groupId>
 				<artifactId>error_prone_annotations</artifactId>
-				<version>2.40.0</version>
+				<version>2.46.0</version>
 			</dependency>
 
 			<!-- Force checker-qual to 3.49.3 (latest from PostgreSQL driver) -->
