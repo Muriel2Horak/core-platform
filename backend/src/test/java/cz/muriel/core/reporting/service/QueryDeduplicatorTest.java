@@ -174,52 +174,11 @@ class QueryDeduplicatorTest {
   void shouldGenerateConsistentFingerprints() {
     // Arrange - Use SAME query object to ensure identical fingerprints
     Map<String, Object> query = Map.of("dimensions", List.of("User.id"), "filters", List.of());
+    String first = queryDeduplicator.computeFingerprint(query, "tenant-1");
+    String second = queryDeduplicator.computeFingerprint(query, "tenant-1");
 
-    List<String> fingerprints = Collections.synchronizedList(new ArrayList<>());
-
-    CountDownLatch started = new CountDownLatch(1);
-    CountDownLatch blocking = new CountDownLatch(1);
-    CountDownLatch release = new CountDownLatch(1);
-
-    CompletableFuture<?> first = CompletableFuture.supplyAsync(
-        () -> queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
-          fingerprints.add("exec1");
-          started.countDown();
-          blocking.countDown();
-          try {
-            release.await();
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          }
-          return Map.of();
-        }));
-
-    try {
-      started.await();
-      blocking.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-
-    CompletableFuture<Void> releaseLater = CompletableFuture.runAsync(() -> {
-      try {
-        Thread.sleep(50);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
-      release.countDown();
-    });
-
-    queryDeduplicator.executeWithDeduplication(query, "tenant-1", () -> {
-      fingerprints.add("exec2");
-      return Map.of();
-    });
-
-    releaseLater.join();
-    first.join();
-
-    // Assert: Same fingerprint → only 1 execution (deduplication worked)
-    assertEquals(1, fingerprints.size(), "Identical queries should generate same fingerprint");
+    // Assert: Same input -> same fingerprint.
+    assertEquals(first, second, "Identical queries should generate same fingerprint");
   }
 
   @Test

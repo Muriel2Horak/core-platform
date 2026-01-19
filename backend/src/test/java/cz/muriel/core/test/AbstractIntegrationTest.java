@@ -4,6 +4,8 @@ import cz.muriel.core.config.TestKafkaConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -45,6 +47,7 @@ import java.time.Duration;
  * }</pre>
  */
 @SpringBootTest @ActiveProfiles("test") @Testcontainers @Import(TestKafkaConfig.class)
+@Execution(ExecutionMode.SAME_THREAD)
 public abstract class AbstractIntegrationTest {
 
   // ==================== SHARED CONTAINERS (1 per JVM) ====================
@@ -65,7 +68,7 @@ public abstract class AbstractIntegrationTest {
       DockerImageName.parse("confluentinc/cp-kafka:7.6.1")).withKraft() // Use KRaft mode (no
                                                                         // Zookeeper)
           .withEnv("KAFKA_HEAP_OPTS", "-Xms256m -Xmx256m")
-          .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(5)))
+          .waitingFor(Wait.forListeningPort().withStartupTimeout(Duration.ofMinutes(15)))
           .withStartupAttempts(3);
 
   // ==================== PER-TEST ISOLATION ====================

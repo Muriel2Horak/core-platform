@@ -618,18 +618,14 @@
 						<exclude>**/*IT.java</exclude>
 						<exclude>**/*IntegrationTest.java</exclude>
 					</excludes>
-					<!-- Parallel execution: 1.5 threads per CPU core -->
-					<forkCount>1.5C</forkCount>
+					<!-- Single fork to avoid duplicate Testcontainers in parallel runs -->
+					<forkCount>1</forkCount>
 					<reuseForks>true</reuseForks>
-					<parallel>classesAndMethods</parallel>
-					<threadCount>${surefire.threads}</threadCount>
 					<!-- JVM args for better performance -->
 					<argLine>@{argLine} -Xms256m -Xmx1g -XX:+UseZGC</argLine>
 					<!-- Propagate JUnit 5 parallel properties -->
 					<systemPropertyVariables>
-						<junit.jupiter.execution.parallel.enabled>true</junit.jupiter.execution.parallel.enabled>
-						<junit.jupiter.execution.parallel.mode.default>concurrent</junit.jupiter.execution.parallel.mode.default>
-						<junit.jupiter.execution.parallel.mode.classes.default>concurrent</junit.jupiter.execution.parallel.mode.classes.default>
+						<junit.jupiter.execution.parallel.enabled>false</junit.jupiter.execution.parallel.enabled>
 					</systemPropertyVariables>
 				</configuration>
 			</plugin>

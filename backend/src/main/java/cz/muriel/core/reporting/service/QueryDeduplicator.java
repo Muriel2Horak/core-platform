@@ -80,7 +80,7 @@ public class QueryDeduplicator {
    * @param tenantId Tenant ID
    * @return SHA-256 hex string
    */
-  private String computeFingerprint(Map<String, Object> query, String tenantId) {
+  String computeFingerprint(Map<String, Object> query, String tenantId) {
     try {
       Object canonical = canonicalize(query);
       String queryString = FINGERPRINT_MAPPER.writeValueAsString(canonical) + ":" + tenantId;

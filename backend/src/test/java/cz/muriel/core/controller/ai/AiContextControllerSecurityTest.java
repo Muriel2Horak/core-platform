@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.server.ResponseStatusException;
@@ -38,7 +39,8 @@ class AiContextControllerSecurityTest {
   void getContext_usesTenantIdFromJwtWhenMissingParam() {
     UUID tenantId = UUID.randomUUID();
     Jwt jwt = createMockJwt(tenantId.toString());
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
@@ -69,7 +71,8 @@ class AiContextControllerSecurityTest {
   @Test
   void getContext_rejectsMissingTenantClaim() {
     Jwt jwt = createMockJwt(null);
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
@@ -122,7 +125,8 @@ class AiContextControllerSecurityTest {
   @Test
   void getContext_rejectsInvalidTenantClaimFormat() {
     Jwt jwt = createMockJwt("not-a-uuid");
-    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of()));
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
     ContextAssembler assembler = mock(ContextAssembler.class);
     AiMetricsCollector metricsCollector = mock(AiMetricsCollector.class);
