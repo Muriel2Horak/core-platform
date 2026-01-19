@@ -132,7 +132,7 @@ jobs:
               echo "✅ Loki is ready"; 
               break;
             fi
-            if [ $i -eq 60]; then
+            if [ $i -eq 60 ]; then
               echo "❌ Loki not ready in time"
               echo "🔍 Checking Loki logs:"
               docker logs core-loki || true

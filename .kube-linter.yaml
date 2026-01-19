@@ -1,4 +1,4 @@
 checks:
   include:
-    - "no-latest-tag"
-    - "no-privileged"
+    - "latest-tag"
+    - "privileged-container"

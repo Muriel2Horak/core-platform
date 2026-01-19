@@ -188,6 +188,8 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
         continue-on-error: true
         if: ${{ github.actor != 'nektos/act' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           config-path: .gitleaks.toml
           report-path: gitleaks-report.json
@@ -310,7 +312,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
-      RUN_SECURITY_REGRESSION: "1"
+      RUN_SECURITY_REGRESSION: ${{ secrets.RUN_SECURITY_REGRESSION }}
       SECURITY_REGRESSION_MODE: "smoke"
       KC_BASE: ${{ secrets.KC_BASE }}
       KC_REALM: ${{ secrets.KC_REALM }}
