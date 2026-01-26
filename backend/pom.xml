@@ -30,7 +30,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-boot.version>3.3.4</spring-boot.version>
-		<testcontainers.version>1.21.4</testcontainers.version>
+		<testcontainers.version>2.0.3</testcontainers.version>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
 		<!-- Enforcer control - set to true only during refactoring -->
