@@ -325,7 +325,7 @@
 		<dependency>
 			<groupId>com.auth0</groupId>
 			<artifactId>java-jwt</artifactId>
-			<version>4.4.0</version>
+			<version>4.5.0</version>
 		</dependency>
 
 		<!-- Nimbus JOSE+JWT for RS256 signing and JWKS support -->
