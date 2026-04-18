@@ -103,7 +103,7 @@
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcprov-jdk18on</artifactId>
-				<version>1.79</version>
+				<version>1.84</version>
 			</dependency>
 
 			<!-- Force error_prone_annotations to 2.40.0 (latest from Caffeine) -->
